@@ -1,3 +1,11 @@
-pub mod setup_plugin;
-pub mod player_plugin;
-pub mod fps_plugin;
+mod setup_plugin;
+mod player_plugin;
+mod fps_plugin;
+mod world_plugin;
+mod debug_plugin;
+
+pub use setup_plugin::*;
+pub use player_plugin::*;
+pub use fps_plugin::*;
+pub use world_plugin::*;
+pub use debug_plugin::*;
