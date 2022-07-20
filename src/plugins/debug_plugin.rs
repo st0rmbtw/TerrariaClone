@@ -1,4 +1,4 @@
-use bevy::{prelude::{Plugin, App, Commands, EventWriter, Res, KeyCode}, input::Input};
+use bevy::prelude::{Plugin, App};
 use bevy_rapier2d::prelude::RapierDebugRenderPlugin;
 
 pub struct DebugPlugin;

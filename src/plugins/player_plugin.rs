@@ -1,10 +1,10 @@
 use std::{time::Duration, collections::HashSet};
 
 use bevy::{prelude::*, sprite::Anchor, math::XY};
-use bevy_rapier2d::{prelude::{RigidBody, Velocity, Sleeping, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalImpulse, ExternalForce, ColliderMassProperties, Damping}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
+use bevy_rapier2d::{prelude::{RigidBody, Velocity, Sleeping, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
 
-pub const PLAYER_SPRITE_WIDTH: f32 = 37.;
-pub const PLAYER_SPRITE_HEIGHT: f32 = 53.;
+const PLAYER_SPRITE_WIDTH: f32 = 37.;
+const PLAYER_SPRITE_HEIGHT: f32 = 53.;
 
 pub struct PlayerPlugin;
 
@@ -27,48 +27,42 @@ struct Player;
 #[derive(Component)]
 struct PlayerCoords;
 
-#[derive(Component)]
+#[derive(Default, Component)]
 struct Movement {
     direction: FaceDirection,
     state: MovementState
 }
 
-impl Default for Movement {
-    fn default() -> Self {
-        Self {
-            direction: FaceDirection::LEFT, 
-            state: MovementState::IDLE
-        }
-    }
-}
-
+#[derive(Default)]
 enum MovementState {
+    #[default]
     IDLE,
     RUNNING,
     FLYING
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(Default, PartialEq, Eq)]
 enum FaceDirection {
+    #[default]
     LEFT,
     RIGHT
 }
 
 impl FaceDirection {
+    #[inline]
     fn is_right(&self) -> bool {
         *self == FaceDirection::RIGHT
-    }
-
-    fn is_left(&self) -> bool {
-        *self == FaceDirection::LEFT
     }
 }
 
 #[derive(Component, Deref, DerefMut)]
 struct AnimationTimer(Timer);
 
-#[derive(Component, Deref, DerefMut)]
-struct JumpTimer(Timer);    
+#[derive(Component)]
+struct Jumpable {
+    jump_timer: Timer,
+    // jump_cooldown_timer: Timer
+}
 
 #[derive(Component, Default)]
 struct GroundDetection {
@@ -104,7 +98,10 @@ fn spawn_player(
         .insert(Player)
         .insert(Movement::default())
         .insert(AnimationTimer(Timer::new(Duration::from_millis(50), true)))
-        .insert(JumpTimer(Timer::new(Duration::from_millis(300), true)))
+        .insert(Jumpable {
+            jump_timer: Timer::new(Duration::from_millis(250), true),
+            // jump_cooldown_timer: Timer::new(Duration::from_millis(400), true)
+        })
         .insert(GroundDetection::default())
 
         // RigidBody
@@ -143,21 +140,21 @@ fn spawn_player(
 fn update(
     time: Res<Time>,
     keyinput: Res<Input<KeyCode>>,
-    mut query: Query<(&mut Velocity, &mut ExternalForce, &GroundDetection, &mut JumpTimer), With<Player>>,
+    mut query: Query<(&mut Velocity, &mut ExternalForce, &GroundDetection, &mut Jumpable), With<Player>>,
 ) {
-    let (mut velocity, mut impulse, ground_detection, mut jump_timer) = query.single_mut();
+    let (mut velocity, mut impulse, ground_detection, mut jumpable) = query.single_mut();
 
     let left = keyinput.pressed(KeyCode::A) || keyinput.pressed(KeyCode::Left);
     let right = keyinput.pressed(KeyCode::D) || keyinput.pressed(KeyCode::Right);
     let up = keyinput.pressed(KeyCode::Space) || keyinput.pressed(KeyCode::Up);
-    
+
     if up && ground_detection.on_ground {
         impulse.force = Vec2::Y * 1500.;
-        jump_timer.reset();
+        jumpable.jump_timer.reset();
     }
     
-    if !ground_detection.on_ground && jump_timer.tick(time.delta()).just_finished() {
-        impulse.force = Vec2::Y * -500. * time.delta_seconds();
+    if !ground_detection.on_ground && jumpable.jump_timer.tick(time.delta()).just_finished() {
+        impulse.force = Vec2::Y * -200.;
     }
 
     let x_axis = -(left as i8) + right as i8;
@@ -211,7 +208,7 @@ fn update_coords_text(
     let mut new_translation = Vec3::from(transform.translation);
 
     new_translation.y += PLAYER_SPRITE_HEIGHT + 20.;
-    new_translation.x -= PLAYER_SPRITE_WIDTH / 2.;
+    new_translation.x -= PLAYER_SPRITE_WIDTH - 10.;
 
     player_coords.sections[0].value = format!("({:.1}, {:.1})", x, y);
     text_transform.translation = new_translation;
@@ -288,7 +285,7 @@ fn spawn_ground_sensor(
 
                     commands.entity(entity).with_children(|builder| {
                         builder.spawn()
-                            .insert(Collider::cuboid(cuboid.half_extents.x / 2., 1.))
+                            .insert(Collider::cuboid(cuboid.half_extents.x - 2., 1.))
                             .insert(Ccd::enabled())
                             .insert(Sensor)
                             .insert(ActiveEvents::COLLISION_EVENTS)
