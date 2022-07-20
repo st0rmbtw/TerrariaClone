@@ -1,4 +1,4 @@
-use bevy::{prelude::{Plugin, Commands, App, AssetServer, Res, ResMut, Assets, default, Transform}, sprite::{TextureAtlas, SpriteSheetBundle, TextureAtlasSprite}, math::{Vec2, Vec3}, transform::TransformBundle};
+use bevy::{prelude::{Plugin, Commands, App, AssetServer, Res, ResMut, Assets, default, Transform}, sprite::{TextureAtlas, SpriteSheetBundle, TextureAtlasSprite}, math::{Vec2}, transform::TransformBundle};
 use bevy_rapier2d::prelude::{Collider, ActiveEvents, RigidBody, Ccd};
 
 const TILE_WIDTH: f32 = 16.;
