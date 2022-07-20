@@ -1,6 +1,5 @@
-use bevy::{prelude::{Plugin, Commands, App, AssetServer, Res, ResMut, Assets, default, Transform}, sprite::{TextureAtlas, SpriteSheetBundle, TextureAtlasSprite}, math::Vec2, hierarchy::BuildChildren};
-use bevy_rapier2d::prelude::{Collider, ActiveEvents, RigidBody};
-
+use bevy::{prelude::{Plugin, Commands, App, AssetServer, Res, ResMut, Assets, default, Transform}, sprite::{TextureAtlas, SpriteSheetBundle, TextureAtlasSprite}, math::{Vec2, Vec3}, transform::TransformBundle};
+use bevy_rapier2d::prelude::{Collider, ActiveEvents, RigidBody, Ccd};
 
 const TILE_WIDTH: f32 = 16.;
 const TILE_HEIGHT: f32 = 16.;
@@ -10,11 +9,11 @@ pub struct WorldPlugin;
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_startup_system(init_sprite_sheet);
+            .add_startup_system(spawn_terrain);
     }
 }
 
-fn init_sprite_sheet(
+fn spawn_terrain(
     mut commands: Commands,
     assets: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>
@@ -35,15 +34,21 @@ fn init_sprite_sheet(
                     ..default()
                 },
                 texture_atlas: texture_atlas_handle.clone(),
-                transform: Transform::from_xyz(x as f32, -20., 0.),
+                transform: Transform::from_xyz(x as f32, -30., 0.),
                 ..default()
             })
             .insert(RigidBody::Fixed)
-            .with_children(|children| {
-                // Collider
-                children.spawn()
-                    .insert(Collider::cuboid(TILE_WIDTH / 2., TILE_HEIGHT / 2.))
-                    .insert(ActiveEvents::COLLISION_EVENTS);
-            });
+            .insert(Ccd::enabled());
+            // .with_children(|children| {
+            //     // Collider
+            //     children.spawn()
+            //         .insert(Collider::cuboid(TILE_WIDTH / 2., TILE_HEIGHT / 2.))
+            //         .insert(ActiveEvents::COLLISION_EVENTS);
+            // });
     }
+
+    commands.spawn()
+        .insert(Collider::cuboid(blocks_count as f32, TILE_HEIGHT / 2.))
+        .insert(ActiveEvents::COLLISION_EVENTS)
+        .insert_bundle(TransformBundle::from_transform(Transform::from_xyz(0., -30., 0.)));
 }
