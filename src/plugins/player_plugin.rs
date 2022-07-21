@@ -1,4 +1,4 @@
-use std::{time::Duration, collections::HashSet};
+use std::{time::Duration, collections::HashSet, option::Option};
 
 use bevy::{prelude::*, sprite::Anchor, math::XY};
 use bevy_inspector_egui::Inspectable;
@@ -235,7 +235,9 @@ fn update_movement_direction(
 ) {
     let (mut movement, axis) = query.single_mut();
 
-    movement.direction = axis.into();
+    if let Some(direction) = axis.into() {
+        movement.direction = direction;
+    }
 }
 
 fn animate_sprite(
@@ -308,12 +310,12 @@ impl Axis {
     }
 }
 
-impl From<&Axis> for FaceDirection {
-    fn from(axis: &Axis) -> Self {
-        match axis.x {
-            x if x > 0. => FaceDirection::RIGHT,
-            x if x < 0. => FaceDirection::LEFT,
-            _ => default()
+impl Into<Option<FaceDirection>> for &Axis {
+    fn into(self) -> Option<FaceDirection> {
+        match self.x {
+            x if x > 0. => Some(FaceDirection::RIGHT),
+            x if x < 0. => Some(FaceDirection::LEFT),
+            _ => None
         }
     }
 }

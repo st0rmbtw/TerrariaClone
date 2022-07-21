@@ -25,11 +25,11 @@ fn spawn_terrain(
     );
     let texture_atlas_handle = texture_atlases.add(texture_atlas);
 
-    let blocks_count = (60 * 16) / 2;
+    let blocks_count_half = (60 * 16) / 2;
 
     let mut rng = rand::thread_rng();
 
-    for x in (-blocks_count..=blocks_count).step_by(16) {
+    for x in (-blocks_count_half..=blocks_count_half).step_by(TILE_WIDTH as usize) {
         commands
             .spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite { 
@@ -51,7 +51,7 @@ fn spawn_terrain(
     }
 
     commands.spawn()
-        .insert(Collider::cuboid(blocks_count as f32, TILE_HEIGHT / 2.))
+        .insert(Collider::cuboid(blocks_count_half as f32, TILE_HEIGHT / 2.))
         .insert(ActiveEvents::COLLISION_EVENTS)
         .insert_bundle(TransformBundle::from_transform(Transform::from_xyz(0., -30., 0.)));
 }
