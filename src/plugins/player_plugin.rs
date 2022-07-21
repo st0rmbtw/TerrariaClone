@@ -1,4 +1,4 @@
-use std::{time::Duration, collections::HashSet, option::Option};
+use std::{time::Duration, option::Option, collections::HashSet};
 
 use bevy::{prelude::*, sprite::Anchor, math::XY};
 use bevy_inspector_egui::Inspectable;
@@ -23,6 +23,7 @@ impl Plugin for PlayerPlugin {
             .add_system(update_coords_text);
     }
 }
+
 #[derive(Component)]
 struct Player;
 
@@ -35,7 +36,7 @@ struct Movement {
     state: MovementState
 }
 
-#[derive(Default, Inspectable)]
+#[derive(Default, Clone, Copy, PartialEq, Eq, Inspectable)]
 enum MovementState {
     #[default]
     IDLE,
@@ -66,7 +67,7 @@ struct Jumpable {
     // jump_cooldown_timer: Timer
 }
 
-#[derive(Component, Default, Inspectable)]
+#[derive(Debug, Component, Default, Inspectable)]
 struct GroundDetection {
     on_ground: bool
 }
@@ -215,24 +216,24 @@ fn update_coords_text(
 }
 
 fn update_movement_state(
-    mut query: Query<(&mut Movement, &Velocity, &GroundDetection), With<Player>>
+    mut query: Query<(&mut Movement, &Velocity, &GroundDetection), With<Player>>,
 ) {
     let (mut movement, velocity, ground_detection) = query.single_mut();
 
     let on_ground = ground_detection.on_ground;
 
-    movement.state = match velocity.linvel.into() {
+    let state = match velocity.linvel.into() {
         XY { x, .. } if x != 0. && on_ground => MovementState::RUNNING,
         _ => match on_ground {
             false => MovementState::FLYING,
             _ => MovementState::IDLE
         },
     };
+
+    movement.state = state;
 }
 
-fn update_movement_direction(
-    mut query: Query<(&mut Movement, &Axis)>
-) {
+fn update_movement_direction(mut query: Query<(&mut Movement, &Axis)>) {
     let (mut movement, axis) = query.single_mut();
 
     if let Some(direction) = axis.into() {

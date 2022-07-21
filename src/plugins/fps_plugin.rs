@@ -39,7 +39,7 @@ fn spawn_fps_text(mut commands: Commands, assets: Res<AssetServer>) {
                 height: Val::Auto 
             },
             margin: Rect {
-                top: Val::Px(10.),
+                bottom: Val::Px(10.),
                 right: Val::Px(10.),
                 ..default()
             },

@@ -1,4 +1,4 @@
-use bevy::{prelude::{Plugin, Commands, App, AssetServer, Res, ResMut, Assets, default, Transform}, sprite::{TextureAtlas, SpriteSheetBundle, TextureAtlasSprite}, math::{Vec2}, transform::TransformBundle};
+use bevy::{prelude::{Plugin, Commands, App, AssetServer, Res, ResMut, Assets, default, Transform}, sprite::{TextureAtlas, SpriteSheetBundle, TextureAtlasSprite}, math::{Vec2}, transform::TransformBundle, core::Name};
 use bevy_rapier2d::prelude::{Collider, ActiveEvents, RigidBody, Ccd};
 use rand::Rng;
 
@@ -41,7 +41,8 @@ fn spawn_terrain(
                 ..default()
             })
             .insert(RigidBody::Fixed)
-            .insert(Ccd::enabled());
+            .insert(Ccd::enabled())
+            .insert(Name::new("Block tile"));
             // .with_children(|children| {
             //     // Collider
             //     children.spawn()
