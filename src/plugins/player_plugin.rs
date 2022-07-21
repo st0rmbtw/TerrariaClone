@@ -235,11 +235,7 @@ fn update_movement_direction(
 ) {
     let (mut movement, axis) = query.single_mut();
 
-    match axis.x {
-        x if x > 0. => movement.direction = FaceDirection::RIGHT,
-        x if x < 0. => movement.direction = FaceDirection::LEFT,
-        _ => ()
-    }
+    movement.direction = axis.into();
 }
 
 fn animate_sprite(
@@ -309,6 +305,16 @@ struct Axis {
 impl Axis {
     fn is_up(&self) -> bool {
         self.y > 0.01
+    }
+}
+
+impl From<&Axis> for FaceDirection {
+    fn from(axis: &Axis) -> Self {
+        match axis.x {
+            x if x > 0. => FaceDirection::RIGHT,
+            x if x < 0. => FaceDirection::LEFT,
+            _ => default()
+        }
     }
 }
 
