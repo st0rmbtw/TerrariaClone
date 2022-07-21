@@ -1,5 +1,6 @@
 use bevy::{prelude::{Plugin, Commands, App, AssetServer, Res, ResMut, Assets, default, Transform}, sprite::{TextureAtlas, SpriteSheetBundle, TextureAtlasSprite}, math::{Vec2}, transform::TransformBundle};
 use bevy_rapier2d::prelude::{Collider, ActiveEvents, RigidBody, Ccd};
+use rand::Rng;
 
 const TILE_WIDTH: f32 = 16.;
 const TILE_HEIGHT: f32 = 16.;
@@ -18,19 +19,21 @@ fn spawn_terrain(
     assets: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>
 ) {
-    let texture_handle = assets.load("sprites/Tiles_0.png");
+    let texture_handle = assets.load("sprites/Tiles_477.png");
     let texture_atlas = TextureAtlas::from_grid_with_padding(
-        texture_handle, Vec2::new(TILE_WIDTH, TILE_HEIGHT), 16, 15, Vec2::new(0., 3.)
+        texture_handle, Vec2::new(TILE_WIDTH, TILE_HEIGHT), 16, 15, Vec2::new(2., 2.)
     );
     let texture_atlas_handle = texture_atlases.add(texture_atlas);
 
     let blocks_count = (60 * 16) / 2;
 
+    let mut rng = rand::thread_rng();
+
     for x in (-blocks_count..=blocks_count).step_by(16) {
         commands
             .spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite { 
-                    index: 5,
+                    index: rng.gen_range(1..3),
                     ..default()
                 },
                 texture_atlas: texture_atlas_handle.clone(),

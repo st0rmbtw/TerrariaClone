@@ -1,12 +1,14 @@
-use bevy::{prelude::{Plugin, Commands, Res, AssetServer, Transform, default, ImageBundle, Handle, Image, Color, NodeBundle}, math::{Size, Rect}, ui::{Style, Val, AlignItems, JustifyContent}, hierarchy::BuildChildren};
+use bevy::{prelude::{Plugin, Commands, Res, AssetServer, Transform, default, ImageBundle, Handle, Image, Color, NodeBundle, ParallelSystemDescriptorCoercion}, math::{Size, Rect}, ui::{Style, Val, AlignItems, JustifyContent}, hierarchy::BuildChildren};
 
 const HOTBAR_SIZE: f32 = 36.;
+
+pub const SPAWN_PLAYER_UI_LABEL: &str = "spawn_player_ui";
 
 pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_startup_system(setup);
+        app.add_startup_system(setup.label(SPAWN_PLAYER_UI_LABEL));
     }
 }
 

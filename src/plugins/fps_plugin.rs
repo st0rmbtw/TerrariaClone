@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use bevy::{prelude::*, diagnostic::{FrameTimeDiagnosticsPlugin, Diagnostics}};
 
+use super::SPAWN_PLAYER_UI_LABEL;
 
 pub struct FpsPlugin;
 
@@ -9,7 +10,7 @@ impl Plugin for FpsPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app
             .add_plugin(FrameTimeDiagnosticsPlugin)
-            .add_startup_system(setup_ui)
+            .add_startup_system(spawn_fps_text.after(SPAWN_PLAYER_UI_LABEL))
             .add_system(update_fps_text);
     }
 } 
@@ -20,7 +21,7 @@ struct FpsText;
 #[derive(Component, Deref, DerefMut)]
 struct FpsTextTimer(Timer);
 
-fn setup_ui(mut commands: Commands, assets: Res<AssetServer>) {
+fn spawn_fps_text(mut commands: Commands, assets: Res<AssetServer>) {
     let text_style = TextStyle {
         font: assets.load("fonts/andyb.ttf"),
         font_size: 22.,

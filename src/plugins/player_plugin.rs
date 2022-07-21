@@ -1,6 +1,7 @@
 use std::{time::Duration, collections::HashSet};
 
 use bevy::{prelude::*, sprite::Anchor, math::XY};
+use bevy_inspector_egui::Inspectable;
 use bevy_rapier2d::{prelude::{RigidBody, Velocity, Sleeping, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
 
 const PLAYER_SPRITE_WIDTH: f32 = 37.;
@@ -13,6 +14,7 @@ impl Plugin for PlayerPlugin {
         app
             .add_startup_system(spawn_player)
             .add_system(spawn_ground_sensor)
+            .add_system(update_axis)
             .add_system(update)
             .add_system(check_is_on_ground)
             .add_system(update_movement_state)
@@ -27,13 +29,13 @@ struct Player;
 #[derive(Component)]
 struct PlayerCoords;
 
-#[derive(Default, Component)]
+#[derive(Default, Component, Inspectable)]
 struct Movement {
     direction: FaceDirection,
     state: MovementState
 }
 
-#[derive(Default)]
+#[derive(Default, Inspectable)]
 enum MovementState {
     #[default]
     IDLE,
@@ -41,7 +43,7 @@ enum MovementState {
     FLYING
 }
 
-#[derive(Default, PartialEq, Eq)]
+#[derive(Default, PartialEq, Eq, Inspectable)]
 enum FaceDirection {
     #[default]
     LEFT,
@@ -64,7 +66,7 @@ struct Jumpable {
     // jump_cooldown_timer: Timer
 }
 
-#[derive(Component, Default)]
+#[derive(Component, Default, Inspectable)]
 struct GroundDetection {
     on_ground: bool
 }
@@ -118,7 +120,9 @@ fn spawn_player(
                 .insert(Collider::cuboid(PLAYER_SPRITE_WIDTH / 2. - 1., PLAYER_SPRITE_HEIGHT / 2.))
                 .insert(ActiveEvents::COLLISION_EVENTS)
                 .insert_bundle(TransformBundle::from(Transform::from_xyz(PLAYER_SPRITE_WIDTH / 2., PLAYER_SPRITE_HEIGHT / 2., 0.)));
-        });
+        })
+        .insert(Name::new("Player"))
+        .insert(Axis::default());
 
     commands
         .spawn_bundle(Text2dBundle {
@@ -139,30 +143,26 @@ fn spawn_player(
 
 fn update(
     time: Res<Time>,
-    keyinput: Res<Input<KeyCode>>,
-    mut query: Query<(&mut Velocity, &mut ExternalForce, &GroundDetection, &mut Jumpable), With<Player>>,
+    mut query: Query<(
+        &mut Velocity, 
+        &mut ExternalForce, 
+        &GroundDetection, 
+        &mut Jumpable,
+        &Axis
+    ), With<Player>>,
 ) {
-    let (mut velocity, mut impulse, ground_detection, mut jumpable) = query.single_mut();
+    let (mut velocity, mut force, ground_detection, mut jumpable, axis) = query.single_mut();
 
-    let left = keyinput.pressed(KeyCode::A) || keyinput.pressed(KeyCode::Left);
-    let right = keyinput.pressed(KeyCode::D) || keyinput.pressed(KeyCode::Right);
-    let up = keyinput.pressed(KeyCode::Space) || keyinput.pressed(KeyCode::Up);
-
-    if up && ground_detection.on_ground {
-        impulse.force = Vec2::Y * 1500.;
+    if axis.is_up() && ground_detection.on_ground {
+        force.force = Vec2::Y * 1500.;
         jumpable.jump_timer.reset();
     }
     
     if !ground_detection.on_ground && jumpable.jump_timer.tick(time.delta()).just_finished() {
-        impulse.force = Vec2::Y * -200.;
+        force.force = (Vec2::Y * -200.).lerp(Vec2::ZERO, 0.3 * time.delta_seconds());
     }
 
-    let x_axis = -(left as i8) + right as i8;
-    let y_axis = up as i8;
-    
-    let delta = Vec2::new(x_axis as f32, y_axis as f32);
-
-    velocity.linvel = Vec2::X * delta.x * 200.;
+    velocity.linvel = Vec2::X * axis.x * 200.;
 }
 
 fn check_is_on_ground(
@@ -231,14 +231,11 @@ fn update_movement_state(
 }
 
 fn update_movement_direction(
-    keyinput: Res<Input<KeyCode>>,
-    mut query: Query<&mut Movement>
+    mut query: Query<(&mut Movement, &Axis)>
 ) {
-    let mut movement = query.single_mut();
+    let (mut movement, axis) = query.single_mut();
 
-    let x = if keyinput.pressed(KeyCode::A) { -1. } else if keyinput.pressed(KeyCode::D) { 1. } else { 0. };
-
-    match x {
+    match axis.x {
         x if x > 0. => movement.direction = FaceDirection::RIGHT,
         x if x < 0. => movement.direction = FaceDirection::LEFT,
         _ => ()
@@ -299,5 +296,32 @@ fn spawn_ground_sensor(
                 }
             }
         }
+    }
+}
+
+
+#[derive(Default, Component, Clone, Copy)]
+struct Axis {
+    x: f32,
+    y: f32
+}
+
+impl Axis {
+    fn is_up(&self) -> bool {
+        self.y > 0.01
+    }
+}
+
+fn update_axis(
+    input: Res<Input<KeyCode>>,
+    mut query: Query<&mut Axis>
+) {
+    for mut axis in query.iter_mut() {
+        let left = input.any_pressed([KeyCode::A, KeyCode::Left]);
+        let right = input.any_pressed([KeyCode::D, KeyCode::Right]);
+        let up = input.any_pressed([KeyCode::Space, KeyCode::Up]);
+
+        axis.x = if left { -1. } else if right { 1. } else { 0. };
+        axis.y = if up { 1. } else { 0. };
     }
 }
