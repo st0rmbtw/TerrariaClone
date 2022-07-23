@@ -10,6 +10,7 @@ bevy = { version = "0.7.0" }
 bevy-inspector-egui = "0.11.0"
 bevy_hanabi = { version = "0.2.0", default-features = false, features = ["2d"] }
 bevy_rapier2d = { version = "0.15.0", features = ["debug-render"] }
+lazy_static = "1.4.0"
 rand = "0.8.5"
 
 [profile.dev]

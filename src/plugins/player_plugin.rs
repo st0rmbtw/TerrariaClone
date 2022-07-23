@@ -2,10 +2,12 @@ use std::{time::Duration, option::Option, collections::HashSet};
 
 use bevy::{prelude::*, sprite::Anchor, math::XY};
 use bevy_inspector_egui::Inspectable;
-use bevy_rapier2d::{prelude::{RigidBody, Velocity, Sleeping, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
+use bevy_rapier2d::{prelude::{RigidBody, Velocity, Sleeping, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce, Friction}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
 
-const PLAYER_SPRITE_WIDTH: f32 = 37.;
-const PLAYER_SPRITE_HEIGHT: f32 = 53.;
+use super::{PlayerAssets, Inventory, FontAssets};
+
+pub const PLAYER_SPRITE_WIDTH: f32 = 37.;
+pub const PLAYER_SPRITE_HEIGHT: f32 = 53.;
 
 pub struct PlayerPlugin;
 
@@ -80,22 +82,16 @@ struct GroundSensor {
 
 fn spawn_player(
     mut commands: Commands,
-    assets: Res<AssetServer>,
-    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+    player_assets: Res<PlayerAssets>,
+    font_assets: Res<FontAssets>
 ) {
-    let texture_handle = assets.load("sprites/npc_22.png");
-    let texture_atlas = TextureAtlas::from_grid_with_padding(
-        texture_handle, Vec2::new(PLAYER_SPRITE_WIDTH, PLAYER_SPRITE_HEIGHT), 1, 16, Vec2::new(0., 3.)
-    );
-    let texture_atlas_handle = texture_atlases.add(texture_atlas);
-
     commands
         .spawn_bundle(SpriteSheetBundle {
             sprite: TextureAtlasSprite {
                 anchor: Anchor::BottomLeft,
                 ..default()
             },
-            texture_atlas: texture_atlas_handle,
+            texture_atlas: player_assets.0,
             ..default()
         })
         .insert(Player)
@@ -106,6 +102,9 @@ fn spawn_player(
             // jump_cooldown_timer: Timer::new(Duration::from_millis(400), true)
         })
         .insert(GroundDetection::default())
+        .insert(Name::new("Player"))
+        .insert(Axis::default())
+        .insert(Inventory::default())
 
         // RigidBody
         .insert(RigidBody::Dynamic)
@@ -120,17 +119,16 @@ fn spawn_player(
             children.spawn()
                 .insert(Collider::cuboid(PLAYER_SPRITE_WIDTH / 2. - 1., PLAYER_SPRITE_HEIGHT / 2.))
                 .insert(ActiveEvents::COLLISION_EVENTS)
+                .insert(Friction::coefficient(0.))
                 .insert_bundle(TransformBundle::from(Transform::from_xyz(PLAYER_SPRITE_WIDTH / 2., PLAYER_SPRITE_HEIGHT / 2., 0.)));
-        })
-        .insert(Name::new("Player"))
-        .insert(Axis::default());
+        });
 
     commands
         .spawn_bundle(Text2dBundle {
             text: Text::with_section(
                 "", 
                 TextStyle {
-                    font: assets.load("fonts/andyb.ttf"),
+                    font: font_assets.andy_bold,
                     font_size: 20.,
                     color: Color::WHITE
                 },

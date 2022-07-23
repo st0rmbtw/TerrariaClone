@@ -1,6 +1,6 @@
 use bevy::{prelude::*, window::PresentMode};
 use bevy_rapier2d::plugin::{RapierPhysicsPlugin, NoUserData, RapierConfiguration};
-use game::plugins::{SetupPlugin, PlayerPlugin, FpsPlugin, WorldPlugin, DebugPlugin, UiPlugin};
+use game::plugins::{SetupPlugin, PlayerPlugin, FpsPlugin, WorldPlugin, DebugPlugin, UiPlugin, AssetsPlugin};
 
 fn main() {
     App::new()
@@ -16,6 +16,7 @@ fn main() {
             ..default()
         })
         .add_plugins(DefaultPlugins)
+        .add_plugin(AssetsPlugin)
         .add_plugin(SetupPlugin)
         .add_plugin(PlayerPlugin)
         .add_plugin(WorldPlugin)
