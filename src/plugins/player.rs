@@ -2,7 +2,7 @@ use std::{time::Duration, option::Option, collections::HashSet};
 
 use bevy::{prelude::*, sprite::Anchor, math::XY};
 use bevy_inspector_egui::Inspectable;
-use bevy_rapier2d::{prelude::{RigidBody, Velocity, Sleeping, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce, Friction, Restitution, ColliderMassProperties, GravityScale}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
+use bevy_rapier2d::{prelude::{RigidBody, Velocity, Sleeping, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce, Friction, GravityScale}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
 
 use super::{PlayerAssets, Inventory, FontAssets, PlayerInventoryPlugin};
 
@@ -106,7 +106,7 @@ fn spawn_player(
         .insert(Name::new("Player"))
         .insert(Axis::default())
         .insert(Inventory::default())
-        .insert(Coefficient::default())
+        .insert(SpeedCoefficient::default())
 
         // RigidBody
         .insert(RigidBody::Dynamic)
@@ -173,7 +173,7 @@ fn update(
         &GroundDetection, 
         &mut Jumpable,
         &Axis,
-        &mut Coefficient
+        &mut SpeedCoefficient
     ), With<Player>>,
 ) {
     let (mut velocity, mut force, ground_detection, mut jumpable, axis, mut coefficient) = query.single_mut();
@@ -323,9 +323,9 @@ impl Into<Option<FaceDirection>> for &Axis {
 }
 
 #[derive(Component, Default, Deref, DerefMut, Clone, Copy, Inspectable)]
-pub struct Coefficient(f32);
+pub struct SpeedCoefficient(f32);
 
-impl Coefficient {
+impl SpeedCoefficient {
     fn reset(&mut self) {
         self.0 = 0.;
     }

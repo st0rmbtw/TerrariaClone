@@ -2,7 +2,7 @@ use bevy::prelude::{Plugin, App};
 use bevy_inspector_egui::{WorldInspectorPlugin, RegisterInspectable};
 use bevy_rapier2d::prelude::RapierDebugRenderPlugin;
 
-use super::{Movement, MovementState, Coefficient};
+use super::{Movement, MovementState, SpeedCoefficient};
 
 pub struct DebugPlugin;
 
@@ -13,7 +13,7 @@ impl Plugin for DebugPlugin {
             .add_plugin(RapierDebugRenderPlugin::default())
             .register_inspectable::<Movement>()
             .register_inspectable::<MovementState>()
-            .register_inspectable::<Coefficient>();
+            .register_inspectable::<SpeedCoefficient>();
     }
 }
 
