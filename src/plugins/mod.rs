@@ -1,17 +1,17 @@
-mod setup_plugin;
-mod player_plugin;
+mod setup;
+mod player;
 mod fps_plugin;
-mod world_plugin;
+mod world;
 mod debug_plugin;
 mod ui_plugin;
-mod player_inventory;
+mod inventory;
 mod assets;
 
-pub use setup_plugin::*;
-pub use player_plugin::*;
+pub use setup::*;
+pub use player::*;
 pub use fps_plugin::*;
-pub use world_plugin::*;
+pub use world::*;
 pub use debug_plugin::*;
 pub use ui_plugin::*;
-pub use player_inventory::*;
+pub use inventory::*;
 pub use assets::*;

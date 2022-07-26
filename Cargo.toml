@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 bevy = { version = "0.7.0" }
 bevy-inspector-egui = "0.11.0"
+bevy_asset_loader = { version = "0.11.0", features = ["2d"] }
 bevy_hanabi = { version = "0.2.0", default-features = false, features = ["2d"] }
 bevy_rapier2d = { version = "0.15.0", features = ["debug-render"] }
 lazy_static = "1.4.0"

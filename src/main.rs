@@ -12,7 +12,7 @@ fn main() {
         .insert_resource(ClearColor(Color::BLACK))
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.))
         .insert_resource(RapierConfiguration {
-            gravity: Vec2::new(0., -2500.),
+            gravity: Vec2::new(0., -30.),
             ..default()
         })
         .add_plugins(DefaultPlugins)
@@ -20,7 +20,7 @@ fn main() {
         .add_plugin(SetupPlugin)
         .add_plugin(PlayerPlugin)
         .add_plugin(WorldPlugin)
-        // .add_plugin(DebugPlugin)
+        .add_plugin(DebugPlugin)
         .add_plugin(UiPlugin)
         .add_plugin(FpsPlugin)
         .run();

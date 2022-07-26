@@ -1,7 +1,5 @@
 use bevy::{prelude::{Plugin, Commands, Res, AssetServer, Transform, default, ImageBundle, Handle, Image, Color, NodeBundle, ParallelSystemDescriptorCoercion}, math::{Size, Rect}, ui::{Style, Val, AlignItems, JustifyContent}, hierarchy::BuildChildren};
 
-pub const SPAWN_PLAYER_UI_LABEL: &str = "spawn_player_ui";
-
 
 pub struct UiPlugin;
 

@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use bevy::{prelude::*, diagnostic::{FrameTimeDiagnosticsPlugin, Diagnostics}};
 
-use super::SPAWN_PLAYER_UI_LABEL;
+use super::{SPAWN_PLAYER_UI_LABEL, FontAssets};
 
 pub struct FpsPlugin;
 
@@ -21,9 +21,9 @@ struct FpsText;
 #[derive(Component, Deref, DerefMut)]
 struct FpsTextTimer(Timer);
 
-fn spawn_fps_text(mut commands: Commands, assets: Res<AssetServer>) {
+fn spawn_fps_text(mut commands: Commands, fonts: Res<FontAssets>) {
     let text_style = TextStyle {
-        font: assets.load("fonts/andyb.ttf"),
+        font: fonts.andy_bold.clone(),
         font_size: 22.,
         color: Color::GREEN,
     };
