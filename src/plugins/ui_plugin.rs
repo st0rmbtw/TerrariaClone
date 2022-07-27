@@ -1,4 +1,4 @@
-use bevy::{prelude::{Plugin, Commands, Res, AssetServer, Transform, default, ImageBundle, Handle, Image, Color, NodeBundle, ParallelSystemDescriptorCoercion}, math::{Size, Rect}, ui::{Style, Val, AlignItems, JustifyContent}, hierarchy::BuildChildren};
+use bevy::prelude::Plugin;
 
 
 pub struct UiPlugin;

@@ -18,6 +18,7 @@ impl Plugin for PlayerPlugin {
             .add_startup_system(spawn_player)
             .add_system(update_axis)
             .add_system(update)
+            .add_system(update_speed_coefficient)
             .add_system(check_is_on_ground)
             .add_system(update_movement_state)
             .add_system(update_movement_direction)
@@ -32,7 +33,7 @@ struct Player;
 #[derive(Component)]
 struct PlayerCoords;
 
-#[derive(Default, Component, Inspectable)]
+#[derive(Default, Component, Inspectable, Clone, Copy)]
 pub struct Movement {
     direction: FaceDirection,
     state: MovementState
@@ -46,11 +47,20 @@ pub enum MovementState {
     FLYING
 }
 
-#[derive(Default, PartialEq, Eq, Inspectable)]
+#[derive(Default, PartialEq, Eq, Inspectable, Clone, Copy)]
 pub enum FaceDirection {
     #[default]
     LEFT,
     RIGHT
+}
+
+impl From<FaceDirection> for f32 {
+    fn from(direction: FaceDirection) -> Self {
+        match direction {
+            FaceDirection::LEFT => -1.,
+            FaceDirection::RIGHT => 1.,
+        }
+    }
 }
 
 impl FaceDirection {
@@ -173,10 +183,13 @@ fn update(
         &GroundDetection, 
         &mut Jumpable,
         &Axis,
-        &mut SpeedCoefficient
+        &mut SpeedCoefficient,
+        &Movement
     ), With<Player>>,
 ) {
-    let (mut velocity, mut force, ground_detection, mut jumpable, axis, mut coefficient) = query.single_mut();
+    let (mut velocity, mut force, ground_detection, mut jumpable, axis, mut coefficient, movement) = query.single_mut();
+
+    let direction = movement.direction;
 
     if input.any_just_pressed([KeyCode::Space, KeyCode::Up]) && ground_detection.on_ground {
         force.force = Vec2::Y * 1000.;
@@ -191,15 +204,7 @@ fn update(
         force.force = (Vec2::Y * -2000.).lerp(Vec2::ZERO, time.delta_seconds());
     }
 
-    if velocity.linvel.x == 0. && coefficient.0 >= 1. {
-        coefficient.reset();
-    }
-
-    velocity.linvel = Vec2::ZERO.lerp(Vec2::X * axis.x * 30. * 2.5, coefficient.0);
-
-    if coefficient.0 < 1.0 && axis.x != 0. {
-        coefficient.0 += 0.9 * time.delta_seconds();
-    }
+    velocity.linvel = Vec2::ZERO.lerp(Vec2::X * f32::from(direction) * 30. * 2.5, coefficient.0);
 }
 
 fn check_is_on_ground(
@@ -225,7 +230,7 @@ fn check_is_on_ground(
         }
 
         if let Ok(mut ground_detection) = ground_detectors.get_mut(ground_sensor.ground_detection_entity) {
-            ground_detection.on_ground = ground_sensor.intersecting_ground_entities.len() > 0;
+            ground_detection.on_ground = !ground_sensor.intersecting_ground_entities.is_empty();
         }
     }
 }
@@ -240,7 +245,7 @@ fn update_coords_text(
     let x = transform.translation.x;
     let y = transform.translation.y;
 
-    let mut new_translation = Vec3::from(transform.translation);
+    let mut new_translation = transform.translation;
 
     new_translation.y += PLAYER_SPRITE_HEIGHT + 10.;
     new_translation.x += PLAYER_SPRITE_WIDTH / 2.;
@@ -291,19 +296,40 @@ fn animate_sprite(
             timer.set_duration(Duration::from_millis((velocity.linvel.x.abs() / 1900.).powi(-1).ceil() as u64));
         }
 
+        match movement.state {
+            MovementState::IDLE => {
+                sprite.index = 0;
+            },
+            MovementState::FLYING => {
+                sprite.index = 1;
+            },
+            _ => {}
+        }
+
         if timer.tick(time.delta()).just_finished() {
             let texture_atlas = texture_atlases.get(texture_atlas_handle).unwrap();
 
             sprite.flip_x = movement.direction.is_right();
 
-            sprite.index = match movement.state {
-                MovementState::IDLE => 0,
-                MovementState::FLYING => 1,
-                MovementState::RUNNING => {
-                    ((sprite.index + 1) % texture_atlas.textures.len()).max(2)
-                },
+            if movement.state == MovementState::RUNNING {
+                sprite.index = ((sprite.index + 1) % texture_atlas.textures.len()).max(2);
             }
         }
+    }
+}
+
+fn update_speed_coefficient(
+    time: Res<Time>,
+    mut query: Query<(&mut SpeedCoefficient, &Axis)>
+) {
+    for (mut coeff, axis) in query.iter_mut() {
+        let new_coeff = coeff.0 + match coeff.0 {
+            c if c < 1. && axis.moving() => (0.9) * time.delta_seconds(),
+            c if c > 0. && !axis.moving() => -((1.1) * time.delta_seconds()),
+            _ => 0.
+        };
+
+        coeff.0 = new_coeff.clamp(0., 1.);
     }
 }
 
@@ -312,9 +338,15 @@ struct Axis {
     x: f32
 }
 
-impl Into<Option<FaceDirection>> for &Axis {
-    fn into(self) -> Option<FaceDirection> {
-        match self.x {
+impl Axis {
+    fn moving(&self) -> bool {
+        self.x != 0.
+    }
+}
+
+impl From<&Axis> for Option<FaceDirection> {
+    fn from(axis: &Axis) -> Self {
+        match axis.x {
             x if x > 0. => Some(FaceDirection::RIGHT),
             x if x < 0. => Some(FaceDirection::LEFT),
             _ => None
@@ -324,12 +356,6 @@ impl Into<Option<FaceDirection>> for &Axis {
 
 #[derive(Component, Default, Deref, DerefMut, Clone, Copy, Inspectable)]
 pub struct SpeedCoefficient(f32);
-
-impl SpeedCoefficient {
-    fn reset(&mut self) {
-        self.0 = 0.;
-    }
-}
 
 fn update_axis(
     input: Res<Input<KeyCode>>,

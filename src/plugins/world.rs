@@ -1,5 +1,5 @@
 use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform}, sprite::{SpriteSheetBundle, TextureAtlasSprite}, transform::TransformBundle, core::Name, math::Vec3};
-use bevy_rapier2d::prelude::{Collider, ActiveEvents, RigidBody, Ccd, Friction, Restitution};
+use bevy_rapier2d::prelude::{Collider, ActiveEvents, Friction};
 use rand::Rng;
 
 use super::{BlockAssets, TILE_SIZE};
@@ -35,7 +35,7 @@ fn spawn_terrain(
             .insert(Name::new("Block tile"));
     }
 
-    for y in ((1 * TILE_SIZE as i32)..=(6 * TILE_SIZE as i32)).step_by(TILE_SIZE as usize) {
+    for y in ((TILE_SIZE as i32)..=(6 * TILE_SIZE as i32)).step_by(TILE_SIZE as usize) {
         commands
             .spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite { 

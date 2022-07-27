@@ -1,6 +1,6 @@
 use std::{collections::HashMap, borrow::Cow};
 
-use bevy::{prelude::{Plugin, App, Commands, Res, NodeBundle, default, Color, ImageBundle, Component, KeyCode, Query, Visibility, ParallelSystemDescriptorCoercion, Changed, With, Entity}, ui::{AlignItems, JustifyContent, Style, Val, FlexDirection, UiImage, Display, UiColor}, math::{Rect, Size}, hierarchy::{BuildChildren, ChildBuilder, Children}, input::Input, core::Name};
+use bevy::{prelude::{Plugin, App, Commands, Res, NodeBundle, default, Color, ImageBundle, Component, KeyCode, Query, ParallelSystemDescriptorCoercion, Changed, With, Entity}, ui::{AlignItems, JustifyContent, Style, Val, FlexDirection, UiImage, Display, UiColor}, math::{Rect, Size}, hierarchy::{BuildChildren, ChildBuilder, Children}, input::Input, core::Name};
 use bevy_inspector_egui::Inspectable;
 
 use crate::{item::{Item, ITEM_WOODEN_PICKAXE}, TRANSPARENT, RectExtensions};
@@ -166,7 +166,7 @@ fn spawn_inventory_ui(
                     children, 
                     ui_assets.iner_panel_background.clone().into(),
                     Rect::horizontal(Val::Px(2.)),
-                    None,
+                    Some(Color::YELLOW),
                     format!("Hotbar Cell #{}", i)
                 )
             }
