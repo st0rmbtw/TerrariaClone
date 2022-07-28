@@ -2,12 +2,15 @@ use std::{time::Duration, option::Option, collections::HashSet};
 
 use bevy::{prelude::*, sprite::Anchor, math::XY};
 use bevy_inspector_egui::Inspectable;
-use bevy_rapier2d::{prelude::{RigidBody, Velocity, Sleeping, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce, Friction, GravityScale}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
+use bevy_rapier2d::{prelude::{RigidBody, Velocity, Sleeping, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce, Friction, GravityScale, MassProperties, ColliderMassProperties}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
 
 use super::{PlayerAssets, Inventory, FontAssets, PlayerInventoryPlugin};
 
 pub const PLAYER_SPRITE_WIDTH: f32 = 37.;
 pub const PLAYER_SPRITE_HEIGHT: f32 = 53.;
+
+
+// region: Plugin
 
 pub struct PlayerPlugin;
 
@@ -17,15 +20,19 @@ impl Plugin for PlayerPlugin {
             .add_plugin(PlayerInventoryPlugin)
             .add_startup_system(spawn_player)
             .add_system(update_axis)
-            .add_system(update)
-            .add_system(update_speed_coefficient)
-            .add_system(check_is_on_ground)
             .add_system(update_movement_state)
             .add_system(update_movement_direction)
+            .add_system(update_speed_coefficient)
+            .add_system(update)
+            .add_system(check_is_on_ground)
             .add_system(animate_sprite)
             .add_system(update_coords_text);
     }
 }
+
+// endregion
+
+// region: Structs
 
 #[derive(Component)]
 struct Player;
@@ -54,6 +61,54 @@ pub enum FaceDirection {
     RIGHT
 }
 
+#[derive(Component, Deref, DerefMut)]
+struct AnimationTimer(Timer);
+
+#[derive(Component)]
+struct Jumpable {
+    jump_timer: Timer,
+    fall_speed: f32
+}
+
+#[derive(Debug, Component, Default, Inspectable)]
+pub struct GroundDetection {
+    on_ground: bool
+}
+
+#[derive(Component)]
+struct GroundSensor {
+    ground_detection_entity: Entity,
+    intersecting_ground_entities: HashSet<Entity>
+}
+
+#[derive(Component, Default, Deref, DerefMut, Clone, Copy, Inspectable)]
+pub struct SpeedCoefficient(f32);
+
+#[derive(Default, Component, Clone, Copy)]
+struct Axis {
+    x: f32
+}
+
+// endregion
+
+// region: Impls
+
+impl Axis {
+    fn is_moving(&self) -> bool {
+        self.x != 0.
+    }
+}
+
+impl From<&Axis> for Option<FaceDirection> {
+    fn from(axis: &Axis) -> Self {
+        match axis.x {
+            x if x > 0. => Some(FaceDirection::RIGHT),
+            x if x < 0. => Some(FaceDirection::LEFT),
+            _ => None
+        }
+    }
+}
+
 impl From<FaceDirection> for f32 {
     fn from(direction: FaceDirection) -> Self {
         match direction {
@@ -70,25 +125,7 @@ impl FaceDirection {
     }
 }
 
-#[derive(Component, Deref, DerefMut)]
-struct AnimationTimer(Timer);
-
-#[derive(Component)]
-struct Jumpable {
-    jump_timer: Timer,
-    // jump_cooldown_timer: Timer
-}
-
-#[derive(Debug, Component, Default, Inspectable)]
-pub struct GroundDetection {
-    on_ground: bool
-}
-
-#[derive(Component)]
-struct GroundSensor {
-    ground_detection_entity: Entity,
-    intersecting_ground_entities: HashSet<Entity>
-}
+// endregion
 
 fn spawn_player(
     mut commands: Commands,
@@ -110,6 +147,7 @@ fn spawn_player(
         .insert(AnimationTimer(Timer::new(Duration::from_millis(50), true)))
         .insert(Jumpable {
             jump_timer: Timer::new(Duration::from_millis(600), true),
+            fall_speed: 0.
             // jump_cooldown_timer: Timer::new(Duration::from_millis(400), true)
         })
         .insert(GroundDetection::default())
@@ -126,6 +164,7 @@ fn spawn_player(
         .insert(LockedAxes::ROTATION_LOCKED)
         .insert(ExternalForce::default())
         .insert(GravityScale::default())
+        .insert(ColliderMassProperties::Mass(1.))
         .with_children(|children| {
 
             let entity = children.parent_entity();
@@ -182,22 +221,17 @@ fn update(
         &mut ExternalForce, 
         &GroundDetection, 
         &mut Jumpable,
-        &Axis,
         &mut SpeedCoefficient,
         &Movement
     ), With<Player>>,
 ) {
-    let (mut velocity, mut force, ground_detection, mut jumpable, axis, mut coefficient, movement) = query.single_mut();
+    let (mut velocity, mut force, ground_detection, mut jumpable, mut coefficient, movement) = query.single_mut();
 
     let direction = movement.direction;
 
     if input.any_just_pressed([KeyCode::Space, KeyCode::Up]) && ground_detection.on_ground {
         force.force = Vec2::Y * 1000.;
         jumpable.jump_timer.reset();
-    }
-
-    if input.any_pressed([KeyCode::Space, KeyCode::Up]) && !ground_detection.on_ground {
-        force.force = Vec2::Y * 2000.;
     }
     
     if !ground_detection.on_ground && jumpable.jump_timer.tick(time.delta()).just_finished() {
@@ -272,7 +306,9 @@ fn update_movement_state(
     };
 }
 
-fn update_movement_direction(mut query: Query<(&mut Movement, &Axis)>) {
+fn update_movement_direction(
+    mut query: Query<(&mut Movement, &Axis)>
+) {
     let (mut movement, axis) = query.single_mut();
 
     if let Some(direction) = axis.into() {
@@ -320,42 +356,22 @@ fn animate_sprite(
 
 fn update_speed_coefficient(
     time: Res<Time>,
-    mut query: Query<(&mut SpeedCoefficient, &Axis)>
+    mut query: Query<(&mut SpeedCoefficient, &Axis, &GroundDetection)>
 ) {
-    for (mut coeff, axis) in query.iter_mut() {
-        let new_coeff = coeff.0 + match coeff.0 {
-            c if c < 1. && axis.moving() => (0.9) * time.delta_seconds(),
-            c if c > 0. && !axis.moving() => -((1.1) * time.delta_seconds()),
-            _ => 0.
-        };
+    for (mut coeff, axis, ground_detection) in query.iter_mut() {
+        if ground_detection.on_ground {
+            let new_coeff = coeff.0 + match coeff.0 {
+                c if c < 1. && axis.is_moving() => 1.2 * time.delta_seconds(),
+                c if c > 0. && !axis.is_moving() => -((1.2) * time.delta_seconds()),
+                _ => 0.
+            };
 
-        coeff.0 = new_coeff.clamp(0., 1.);
-    }
-}
-
-#[derive(Default, Component, Clone, Copy)]
-struct Axis {
-    x: f32
-}
-
-impl Axis {
-    fn moving(&self) -> bool {
-        self.x != 0.
-    }
-}
-
-impl From<&Axis> for Option<FaceDirection> {
-    fn from(axis: &Axis) -> Self {
-        match axis.x {
-            x if x > 0. => Some(FaceDirection::RIGHT),
-            x if x < 0. => Some(FaceDirection::LEFT),
-            _ => None
+            coeff.0 = new_coeff.clamp(0., 1.);
+        } else {
+            coeff.0 = 1.;
         }
     }
 }
-
-#[derive(Component, Default, Deref, DerefMut, Clone, Copy, Inspectable)]
-pub struct SpeedCoefficient(f32);
 
 fn update_axis(
     input: Res<Input<KeyCode>>,

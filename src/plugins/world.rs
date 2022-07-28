@@ -1,4 +1,4 @@
-use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform}, sprite::{SpriteSheetBundle, TextureAtlasSprite}, transform::TransformBundle, core::Name, math::Vec3};
+use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform}, sprite::{SpriteSheetBundle, TextureAtlasSprite}, transform::TransformBundle, core::Name};
 use bevy_rapier2d::prelude::{Collider, ActiveEvents, Friction};
 use rand::Rng;
 
