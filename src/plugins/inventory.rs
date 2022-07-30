@@ -1,9 +1,10 @@
 use std::{collections::HashMap, borrow::Cow};
 
-use bevy::{prelude::{Plugin, App, Commands, Res, NodeBundle, default, Color, ImageBundle, Component, KeyCode, Query, ParallelSystemDescriptorCoercion, Changed, With, Entity}, ui::{AlignItems, JustifyContent, Style, Val, FlexDirection, UiImage, Display, UiColor}, math::{Rect, Size}, hierarchy::{BuildChildren, ChildBuilder, Children}, input::Input, core::Name};
+use bevy::{prelude::{Plugin, App, Commands, Res, NodeBundle, default, Color, ImageBundle, Component, KeyCode, Query, ParallelSystemDescriptorCoercion, Changed, With}, ui::{AlignItems, Style, Val, FlexDirection, UiImage, Display, UiColor}, math::{Rect, Size}, hierarchy::{BuildChildren, ChildBuilder, Children}, input::Input, core::Name};
 use bevy_inspector_egui::Inspectable;
+use smallvec::SmallVec;
 
-use crate::{item::{Item, ITEM_WOODEN_PICKAXE}, util::RectExtensions, TRANSPARENT};
+use crate::{item::Item, util::RectExtensions, TRANSPARENT};
 
 use super::UiAssets;
 
@@ -12,11 +13,16 @@ pub const SPAWN_PLAYER_UI_LABEL: &str = "spawn_player_ui";
 // 5 is a total count of inventory rows. -1 because the hotbar is a first row
 const INVENTORY_ROWS_COUNT: i32 = 5 - 1;
 
-const INVENTORY_CELL_SIZE: f32 = 36.;
+const INVENTORY_CELL_SIZE: f32 = 32.5;
+const INVENTORY_CELL_SIZE_VAL: Val = Val::Px(INVENTORY_CELL_SIZE);
+const INVENTORY_CELL_SIZE_BIGGER_VAL: Val = Val::Px(INVENTORY_CELL_SIZE * 1.3);
+
 const CELL_COUNT_IN_ROW: i32 = 10;
 
+
+
 lazy_static! {
-    static ref KEYCODE_TO_DIGIT: HashMap<KeyCode, i8> = HashMap::from([
+    static ref KEYCODE_TO_DIGIT: HashMap<KeyCode, i32> = HashMap::from([
         (KeyCode::Key1, 0),
         (KeyCode::Key2, 1),
         (KeyCode::Key3, 2),
@@ -36,48 +42,16 @@ impl Plugin for PlayerInventoryPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_startup_system(spawn_inventory_ui.label(SPAWN_PLAYER_UI_LABEL))
-            .add_system(show_on_esc)
+            .add_system(change_visibility)
             .add_system(select_hotbar_cell)
             .add_system(update_inventory_visibility)
             .add_system(update_selected_cell);
     }
 }
 
-#[derive(Clone, Copy)]
-struct Cell {
-    item: Option<&'static Item>
-}
-
-pub struct Hotbar {
-    selected_cell: i8,
-    cells: [Cell; 9]
-}
-
-impl Default for Hotbar {
-    fn default() -> Self {
-        Self { 
-            selected_cell: 0, 
-            cells: {
-                let mut cells: [Cell; 9] = [
-                    Cell {
-                        item: None
-                    };
-                    9
-                ];
-
-                cells[0] = Cell {
-                    item: Some(&ITEM_WOODEN_PICKAXE)
-                };
-
-                cells
-            }
-        }
-    }
-}
-
 #[derive(Component, Default)]
 pub struct Inventory {
-    hotbar: Hotbar
+    items: SmallVec::<[Option<Item>; 50]>
 }
 
 #[derive(Component, Inspectable)]
@@ -85,17 +59,9 @@ struct InventoryUi {
     showing: bool
 }
 
-#[derive(Component)]
-struct HotbarUi;
-
-fn show_on_esc(
-    input: Res<Input<KeyCode>>,
-    mut query: Query<&mut InventoryUi>
-) {
-    if input.just_pressed(KeyCode::Escape) {
-        let mut inventory = query.single_mut();
-        inventory.showing = !inventory.showing;
-    }
+#[derive(Component, Default)]
+struct HotbarUi {
+    selected_cell: i32
 }
 
 fn spawn_inventory_ui(
@@ -105,11 +71,10 @@ fn spawn_inventory_ui(
     commands.spawn_bundle(NodeBundle {
         style: Style {
             align_items: AlignItems::FlexEnd,
-            justify_content: JustifyContent::FlexStart,
             flex_direction: FlexDirection::ColumnReverse,
             margin: Rect { 
-                top: Val::Px(10.),
-                left: Val::Px(10.),
+                top: Val::Px(15.),
+                left: Val::Px(15.),
                 ..default()
             },
             ..default()
@@ -117,11 +82,15 @@ fn spawn_inventory_ui(
         color: TRANSPARENT.into(),
         ..default()
     })
-    .insert(Name::new("InventoryUi"))
+    .insert(Name::new("Inventory Ui"))
     .with_children(|children| {
         // region: Hotbar
 
         children.spawn_bundle(NodeBundle {
+            style: Style {
+                align_items: AlignItems::Center,
+                ..default()
+            },
             color: TRANSPARENT.into(),
             ..default()
         })
@@ -137,7 +106,7 @@ fn spawn_inventory_ui(
                 )
             }
         })
-        .insert(HotbarUi);
+        .insert(HotbarUi::default());
 
         // endregion
 
@@ -176,6 +145,16 @@ fn spawn_inventory_ui(
     });
 }
 
+fn change_visibility(
+    input: Res<Input<KeyCode>>,
+    mut query: Query<&mut InventoryUi>
+) {
+    if input.just_pressed(KeyCode::Escape) {
+        let mut inventory = query.single_mut();
+        inventory.showing = !inventory.showing;
+    }
+}
+
 fn update_inventory_visibility(
     mut query: Query<(&InventoryUi, &mut Style), Changed<InventoryUi>>
 ) {
@@ -185,19 +164,27 @@ fn update_inventory_visibility(
 }
 
 fn update_selected_cell(
-    mut cells: Query<(Entity, &mut UiColor)>,
-    inventories: Query<&Inventory, Changed<Inventory>>,
+    mut cells: Query<(&mut UiColor, &mut Style)>,
+    hotbars: Query<&HotbarUi, Changed<HotbarUi>>,
     hotbar_children: Query<&Children, With<HotbarUi>>,
 ) {
-    for inventory in inventories.iter() {
+    if let Ok(hotbar) = hotbars.get_single() {
         let children = hotbar_children.single();
 
         for (i, child) in children.iter().enumerate() {
-            if let Ok((_, mut color)) = cells.get_mut(*child) {
-                if i as i8 == inventory.hotbar.selected_cell {
+            if let Ok((mut color, mut style)) = cells.get_mut(*child) {
+                let selected = (i as i32) == hotbar.selected_cell;
+
+                if selected {
+
                     *color = Color::YELLOW.into();
+                    style.size = Size::new(INVENTORY_CELL_SIZE_BIGGER_VAL, INVENTORY_CELL_SIZE_BIGGER_VAL);
+
                 } else {
-                    *color = Color::default().into()
+
+                    *color = Color::default().into();
+                    style.size = Size::new(INVENTORY_CELL_SIZE_VAL, INVENTORY_CELL_SIZE_VAL);
+
                 }
             }
         }
@@ -207,7 +194,7 @@ fn update_selected_cell(
 fn spawn_inventory_cell(children: &mut ChildBuilder<'_, '_, '_>, image: UiImage, margin: Rect<Val>, color: Option<Color>, name: impl Into<Cow<'static, str>>) {
     children.spawn_bundle(ImageBundle {
         style: Style {
-            size: Size::new(Val::Px(INVENTORY_CELL_SIZE), Val::Px(INVENTORY_CELL_SIZE)),
+            size: Size::new(INVENTORY_CELL_SIZE_VAL, INVENTORY_CELL_SIZE_VAL),
             margin,
             ..default()
         },
@@ -220,14 +207,14 @@ fn spawn_inventory_cell(children: &mut ChildBuilder<'_, '_, '_>, image: UiImage,
 
 fn select_hotbar_cell(
     input: Res<Input<KeyCode>>,
-    mut query: Query<&mut Inventory>
+    mut query: Query<&mut HotbarUi>
 ) {
     let digit = input
         .get_just_pressed()
         .find_map(|k| KEYCODE_TO_DIGIT.get(k));
 
     if let Some(digit) = digit {
-        let mut inventory = query.single_mut();
-        inventory.hotbar.selected_cell = *digit;
+        let mut hotbar = query.single_mut();
+        hotbar.selected_cell = *digit;
     }
 }

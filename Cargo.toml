@@ -13,6 +13,7 @@ bevy_hanabi = { version = "0.2.0", default-features = false, features = ["2d"] }
 bevy_rapier2d = { version = "0.15.0", features = ["debug-render"] }
 lazy_static = "1.4.0"
 rand = "0.8.5"
+smallvec = "1.9.0"
 
 [profile.dev]
 opt-level = 1

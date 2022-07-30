@@ -146,7 +146,6 @@ fn spawn_player(
             texture_atlas: player_assets.main.clone(),
             ..default()
         })
-        .insert_bundle(OrthographicCameraBundle::new_2d())
         .insert(Player)
         .insert(Movement::default())
         .insert(AnimationTimer(Timer::new(Duration::from_millis(50), true)))
@@ -172,19 +171,29 @@ fn spawn_player(
         .insert(ColliderMassProperties::Mass(1.))
         .with_children(|children| {
 
+            // region: Camera
+            let mut camera = OrthographicCameraBundle::new_2d();
+            camera.orthographic_projection.scale = 0.9;
+
+            children.spawn()
+                .insert_bundle(camera)
+                .insert_bundle(TransformBundle::from_transform(Transform::from_xyz(0., 100., 0.)));
+            // endregion
+
             let entity = children.parent_entity();
 
             let player_half_width = PLAYER_SPRITE_WIDTH / 2.;
             let player_half_height = PLAYER_SPRITE_HEIGHT / 2.;
 
-            // Collider
+            // region: Collider
             children.spawn()
                 .insert(Collider::cuboid(player_half_width - 5., player_half_height - 3.))
                 .insert(ActiveEvents::COLLISION_EVENTS)
                 .insert(Friction::coefficient(0.))
                 .insert_bundle(TransformBundle::from(Transform::from_xyz(player_half_width - 1., player_half_height - 3., 0.)));
+            // endregion
 
-            // Ground sensor
+            // region: Ground sensor
             children.spawn()
                 .insert(Collider::cuboid(player_half_width - 8., 1.))
                 .insert(Ccd::enabled())
@@ -196,6 +205,7 @@ fn spawn_player(
                     ground_detection_entity: entity,
                     intersecting_ground_entities: HashSet::new(),
                 });
+            // endregion
         });
 
     commands
@@ -243,13 +253,12 @@ fn update(
     if jumpable.time_after_jump > 0. && !on_ground {
         jumpable.time_after_jump += time.delta_seconds();
     }
-
-    if on_ground {
-        velocity.linvel.x = 0_f32.lerp(f32::from(direction) * PLAYER_SPEED, coefficient.0);
+    
+    if on_ground && jumpable.time_after_jump > 0. {
         jumpable.time_after_jump = 0.;
-    } else {
-        velocity.linvel.x = axis.x * PLAYER_SPEED;
     }
+
+    velocity.linvel.x = 0_f32.lerp(f32::from(direction) * PLAYER_SPEED, coefficient.0);
 }
 
 fn gravity(
@@ -257,7 +266,7 @@ fn gravity(
     mut query: Query<(&mut Velocity, &GroundDetection, &Jumpable), With<Player>>
 ) {
     for (mut velocity, ground_detection, jumpable) in query.iter_mut() {
-        if !ground_detection.on_ground {
+        if !ground_detection.on_ground && velocity.linvel.y > -500. {
             let new_velocity = 7_f32.lerp(10., jumpable.time_after_jump.clamp(0., 1.)) * 100.;
 
             velocity.linvel.y -= new_velocity * time.delta_seconds();

@@ -20,7 +20,7 @@ fn main() {
         .add_plugin(SetupPlugin)
         .add_plugin(PlayerPlugin)
         .add_plugin(WorldPlugin)
-        // .add_plugin(DebugPlugin)
+        .add_plugin(DebugPlugin)
         .add_plugin(FpsPlugin)
         .run();
 }

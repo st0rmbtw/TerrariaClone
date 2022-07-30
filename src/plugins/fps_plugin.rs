@@ -48,7 +48,9 @@ fn spawn_fps_text(mut commands: Commands, fonts: Res<FontAssets>) {
         color: Color::rgba(0., 0., 0., 0.).into(),
         global_transform: GlobalTransform::from_xyz(0., 0., 1.),
         ..default()
-    }).with_children(|children| {
+    })
+    .insert(Name::new("FpsTextContainer"))
+    .with_children(|children| {
         children.spawn_bundle(TextBundle {
             text: Text {
                 sections: vec![
