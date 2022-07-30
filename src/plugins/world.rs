@@ -39,10 +39,10 @@ fn spawn_terrain(
         commands
             .spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite { 
-                    index: rng.gen_range(1..3),
+                    index: 21,
                     ..default()
-                },
-                texture_atlas: block_assets.grass.clone(),
+                }, 
+                texture_atlas: block_assets.dirt.clone(),
                 transform: Transform::from_xyz(blocks_count_half as f32 / 2., -30. + y as f32, 0.),
                 ..default()
             })

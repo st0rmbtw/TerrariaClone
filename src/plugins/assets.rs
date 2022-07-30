@@ -18,8 +18,12 @@ impl Plugin for AssetsPlugin {
 #[derive(AssetCollection)]
 pub struct BlockAssets {
     #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., rows = 15, columns = 16, padding_x = 2., padding_y = 2.))]
+    #[asset(path = "sprites/tiles/Tiles_0.png")]
+    pub dirt: Handle<TextureAtlas>,
+
+    #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., rows = 15, columns = 16, padding_x = 2., padding_y = 2.))]
     #[asset(path = "sprites/tiles/Tiles_2.png")]
-    pub grass: Handle<TextureAtlas>
+    pub grass: Handle<TextureAtlas>,
 }
 
 #[derive(AssetCollection)]

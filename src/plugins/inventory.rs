@@ -3,7 +3,7 @@ use std::{collections::HashMap, borrow::Cow};
 use bevy::{prelude::{Plugin, App, Commands, Res, NodeBundle, default, Color, ImageBundle, Component, KeyCode, Query, ParallelSystemDescriptorCoercion, Changed, With, Entity}, ui::{AlignItems, JustifyContent, Style, Val, FlexDirection, UiImage, Display, UiColor}, math::{Rect, Size}, hierarchy::{BuildChildren, ChildBuilder, Children}, input::Input, core::Name};
 use bevy_inspector_egui::Inspectable;
 
-use crate::{item::{Item, ITEM_WOODEN_PICKAXE}, TRANSPARENT, RectExtensions};
+use crate::{item::{Item, ITEM_WOODEN_PICKAXE}, util::RectExtensions, TRANSPARENT};
 
 use super::UiAssets;
 
@@ -43,10 +43,9 @@ impl Plugin for PlayerInventoryPlugin {
     }
 }
 
+#[derive(Clone, Copy)]
 struct Cell {
-    index: i8,
-    item: Option<&'static Item>,
-    keycode: KeyCode
+    item: Option<&'static Item>
 }
 
 pub struct Hotbar {
@@ -58,53 +57,20 @@ impl Default for Hotbar {
     fn default() -> Self {
         Self { 
             selected_cell: 0, 
-            cells: [
-                Cell {
-                    index: 0,
-                    item: Some(&ITEM_WOODEN_PICKAXE),
-                    keycode: KeyCode::Key1
-                },
-                Cell {
-                    index: 1,
-                    item: None,
-                    keycode: KeyCode::Key2
-                },
-                Cell {
-                    index: 2,
-                    item: None,
-                    keycode: KeyCode::Key3
-                },
-                Cell {
-                    index: 3,
-                    item: None,
-                    keycode: KeyCode::Key4
-                },
-                Cell {
-                    index: 4,
-                    item: None,
-                    keycode: KeyCode::Key5
-                },
-                Cell {
-                    index: 5,
-                    item: None,
-                    keycode: KeyCode::Key6
-                },
-                Cell {
-                    index: 6,
-                    item: None,
-                    keycode: KeyCode::Key7
-                },
-                Cell {
-                    index: 7,
-                    item: None,
-                    keycode: KeyCode::Key8
-                },
-                Cell {
-                    index: 8,
-                    item: None,
-                    keycode: KeyCode::Key9
-                },
-            ]
+            cells: {
+                let mut cells: [Cell; 9] = [
+                    Cell {
+                        item: None
+                    };
+                    9
+                ];
+
+                cells[0] = Cell {
+                    item: Some(&ITEM_WOODEN_PICKAXE)
+                };
+
+                cells
+            }
         }
     }
 }
@@ -151,7 +117,7 @@ fn spawn_inventory_ui(
         color: TRANSPARENT.into(),
         ..default()
     })
-    .insert(Name::new("Inventory"))
+    .insert(Name::new("InventoryUi"))
     .with_children(|children| {
         // region: Hotbar
 

@@ -2,15 +2,16 @@ use std::{time::Duration, option::Option, collections::HashSet};
 
 use bevy::{prelude::*, sprite::Anchor, math::XY};
 use bevy_inspector_egui::Inspectable;
-use bevy_rapier2d::{prelude::{RigidBody, Velocity, Sleeping, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce, Friction, GravityScale, MassProperties, ColliderMassProperties}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
+use bevy_rapier2d::{prelude::{RigidBody, Velocity, Sleeping, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce, Friction, GravityScale, ColliderMassProperties}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
 
-use crate::utils::Lerp;
+use crate::util::Lerp;
 
 use super::{PlayerAssets, Inventory, FontAssets, PlayerInventoryPlugin};
 
 pub const PLAYER_SPRITE_WIDTH: f32 = 37.;
 pub const PLAYER_SPRITE_HEIGHT: f32 = 53.;
 
+const PLAYER_SPEED: f32 = 30. * 4.5;
 
 // region: Plugin
 
@@ -153,7 +154,6 @@ fn spawn_player(
             jump_timer: Timer::new(Duration::from_millis(600), true),
             fall_speed: 0.,
             time_after_jump: 0.
-            // jump_cooldown_timer: Timer::new(Duration::from_millis(400), true)
         })
         .insert(GroundDetection::default())
         .insert(Name::new("Player"))
@@ -179,14 +179,14 @@ fn spawn_player(
 
             // Collider
             children.spawn()
-                .insert(Collider::cuboid(player_half_width - 2., player_half_height - 3.))
+                .insert(Collider::cuboid(player_half_width - 5., player_half_height - 3.))
                 .insert(ActiveEvents::COLLISION_EVENTS)
                 .insert(Friction::coefficient(0.))
-                .insert_bundle(TransformBundle::from(Transform::from_xyz(player_half_width, player_half_height - 3., 0.)));
+                .insert_bundle(TransformBundle::from(Transform::from_xyz(player_half_width - 1., player_half_height - 3., 0.)));
 
             // Ground sensor
             children.spawn()
-                .insert(Collider::cuboid(player_half_width - 3., 1.))
+                .insert(Collider::cuboid(player_half_width - 8., 1.))
                 .insert(Ccd::enabled())
                 .insert(Sensor)
                 .insert(ActiveEvents::COLLISION_EVENTS)
@@ -222,41 +222,33 @@ fn update(
     input: Res<Input<KeyCode>>,
     time: Res<Time>,
     mut query: Query<(
-        &mut Velocity, 
-        &mut ExternalForce, 
-        &GroundDetection, 
+        &mut Velocity,
+        &GroundDetection,
         &mut Jumpable,
-        &mut SpeedCoefficient,
+        &SpeedCoefficient,
         &Movement,
         &Axis
     ), With<Player>>,
 ) {
-    let (mut velocity, mut force, ground_detection, mut jumpable, mut coefficient, movement, axis) = query.single_mut();
+    let (mut velocity, ground_detection, mut jumpable, coefficient, movement, axis) = query.single_mut();
 
     let on_ground = ground_detection.on_ground;
     let direction = movement.direction;
 
     if input.any_just_pressed([KeyCode::Space, KeyCode::Up]) && on_ground {
-        // force.force = Vec2::Y * 1000.;
-        // jumpable.jump_timer.reset();
         jumpable.time_after_jump = 0.01;
-        velocity.linvel.y = 170.;
+        velocity.linvel.y = 400.;
     }
 
     if jumpable.time_after_jump > 0. && !on_ground {
-        let new_time = jumpable.time_after_jump + time.delta_seconds();
-
-        jumpable.time_after_jump = new_time.clamp(0., 1.)
+        jumpable.time_after_jump += time.delta_seconds();
     }
-    
-    // if !ground_detection.on_ground && jumpable.jump_timer.tick(time.delta()).just_finished() {
-    //     force.force = (Vec2::Y * -2000.).lerp(Vec2::ZERO, time.delta_seconds());
-    // }
 
     if on_ground {
-        velocity.linvel.x = 0f32.lerp(f32::from(direction) * 30. * 3.5, coefficient.0);
+        velocity.linvel.x = 0_f32.lerp(f32::from(direction) * PLAYER_SPEED, coefficient.0);
+        jumpable.time_after_jump = 0.;
     } else {
-        velocity.linvel.x = axis.x * 30. * 3.5;
+        velocity.linvel.x = axis.x * PLAYER_SPEED;
     }
 }
 
@@ -266,16 +258,10 @@ fn gravity(
 ) {
     for (mut velocity, ground_detection, jumpable) in query.iter_mut() {
         if !ground_detection.on_ground {
-            velocity.linvel.y -= 0f32.lerp(500. * time.delta_seconds(), jumpable.time_after_jump);
-        }
+            let new_velocity = 7_f32.lerp(10., jumpable.time_after_jump.clamp(0., 1.)) * 100.;
 
-        // if !ground_detection.on_ground && jumpable.time_after_jump > 0.5 {
-        //     if velocity.linvel.y > 0. {
-        //         velocity.linvel.y -= 500. * time.delta_seconds();
-        //     } else {
-        //         velocity.linvel.y -= 800. * time.delta_seconds();
-        //     }
-        // }
+            velocity.linvel.y -= new_velocity * time.delta_seconds();
+        }
     }
 }
 
@@ -297,7 +283,7 @@ fn check_is_on_ground(
                         ground_sensor.intersecting_ground_entities.remove(a);
                     }
                 }
-                _ => ()
+                _ => {}
             }
         }
 
@@ -367,7 +353,7 @@ fn animate_sprite(
 ) {
     for (mut timer, mut sprite, texture_atlas_handle, movement, velocity) in query.iter_mut() {
         if velocity.linvel.x != 0. {
-            timer.set_duration(Duration::from_millis((velocity.linvel.x.abs() / 1900.).powi(-1).ceil() as u64));
+            timer.set_duration(Duration::from_millis((4500. / velocity.linvel.x.abs()).max(1.) as u64));
         }
 
         match movement.state {
@@ -398,10 +384,10 @@ fn update_speed_coefficient(
 ) {
     for (mut coeff, axis) in query.iter_mut() {
         let new_coeff = coeff.0 + match coeff.0 {
-            c if c < 1. && axis.is_moving() => 1.2 * time.delta_seconds(),
-            c if c > 0. && !axis.is_moving() => -((1.2) * time.delta_seconds()),
+            c if c < 1. && axis.is_moving() => 1.5,
+            c if c > 0. && !axis.is_moving() => -1.6,
             _ => 0.
-        };
+        } * time.delta_seconds();
 
         coeff.0 = new_coeff.clamp(0., 1.);
     }
