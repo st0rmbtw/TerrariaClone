@@ -1,5 +1,8 @@
 use bevy::{prelude::{Plugin, AssetServer, Assets, Handle, App, Image, World}, sprite::TextureAtlas, math::Vec2, text::Font, asset::HandleUntyped};
-use bevy_asset_loader::{AssetCollection, AssetCollectionApp};
+use bevy_asset_loader::{prelude::{AssetCollection, AssetCollectionApp}};
+use bevy::ecs::world::Mut;
+
+use std::collections::HashMap;
 
 pub const TILE_SIZE: f32 = 16.;
 
@@ -11,7 +14,8 @@ impl Plugin for AssetsPlugin {
             .init_collection::<BlockAssets>()
             .init_collection::<UiAssets>()
             .init_collection::<PlayerAssets>()
-            .init_collection::<FontAssets>();
+            .init_collection::<FontAssets>()
+            .init_collection::<ItemAssets>();
     }
 }
 
@@ -29,7 +33,16 @@ pub struct BlockAssets {
 #[derive(AssetCollection)]
 pub struct UiAssets {
     #[asset(path = "sprites/ui/InnerPanelBackground.png")]
-    pub iner_panel_background: Handle<Image>
+    pub iner_panel_background: Handle<Image>,
+
+    #[asset(path = "sprites/ui/PlayerBackground.png")]
+    pub player_background: Handle<Image>,
+
+    #[asset(path = "sprites/Inventory_Back.png")]
+    pub inventory_back: Handle<Image>,
+
+    #[asset(path = "sprites/Inventory_Back14.png")]
+    pub inventory_back14: Handle<Image>,
 }
 
 #[derive(AssetCollection)]
@@ -41,6 +54,15 @@ pub struct PlayerAssets {
 
 #[derive(AssetCollection)]
 pub struct FontAssets {
-    #[asset(path = "fonts/andyb.ttf")]
-    pub andy_bold: Handle<Font>
+    #[asset(path = "fonts/andy_bold.ttf")]
+    pub andy_bold: Handle<Font>,
+
+    #[asset(path = "fonts/andy_regular.otf")]
+    pub andy_regular: Handle<Font>
+}
+
+#[derive(AssetCollection)]
+pub struct ItemAssets {
+    #[asset(path = "sprites/Item_3509.png")]
+    pub copper_pickaxe: Handle<Image>
 }

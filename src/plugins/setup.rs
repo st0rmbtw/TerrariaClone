@@ -1,14 +1,10 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, render::texture::ImageSettings};
 
 pub struct SetupPlugin;
 
 impl Plugin for SetupPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_startup_system(setup);
+        app;
+            // .insert_resource(ImageSettings::default_linear());
     }
-}
-
-fn setup(mut commands: Commands) {
-    commands.spawn_bundle(UiCameraBundle::default());
 }

@@ -38,7 +38,7 @@ fn spawn_fps_text(mut commands: Commands, fonts: Res<FontAssets>) {
                 width: Val::Percent(100.), 
                 height: Val::Auto 
             },
-            margin: Rect {
+            margin: UiRect {
                 bottom: Val::Px(10.),
                 right: Val::Px(10.),
                 ..default()
@@ -83,7 +83,7 @@ fn update_fps_text(
     for (mut text, mut timer) in query.iter_mut() {
         if timer.tick(time.delta()).just_finished() {
             if let Some(fps) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
-                text.sections[1].value = format!("{:.0}", fps.sum());
+                text.sections[1].value = format!("{:.0}", fps.value().unwrap_or(0.));
             }
         }
     }

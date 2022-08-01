@@ -1,7 +1,7 @@
 use std::{time::Duration, option::Option, collections::HashSet};
 
-use bevy::{prelude::*, sprite::Anchor, math::XY};
-use bevy_inspector_egui::Inspectable;
+use bevy::{prelude::*, sprite::Anchor};
+// use bevy_inspector_egui::Inspectable;
 use bevy_rapier2d::{prelude::{RigidBody, Velocity, Sleeping, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce, Friction, GravityScale, ColliderMassProperties}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
 
 use crate::util::Lerp;
@@ -11,7 +11,7 @@ use super::{PlayerAssets, Inventory, FontAssets, PlayerInventoryPlugin};
 pub const PLAYER_SPRITE_WIDTH: f32 = 37.;
 pub const PLAYER_SPRITE_HEIGHT: f32 = 53.;
 
-const PLAYER_SPEED: f32 = 30. * 4.5;
+const PLAYER_SPEED: f32 = 30. * 5.;
 
 // region: Plugin
 
@@ -44,13 +44,13 @@ struct Player;
 #[derive(Component)]
 struct PlayerCoords;
 
-#[derive(Default, Component, Inspectable, Clone, Copy)]
+#[derive(Default, Component, /* Inspectable, */ Clone, Copy)]
 pub struct Movement {
     direction: FaceDirection,
     state: MovementState
 }
 
-#[derive(Default, Clone, Copy, PartialEq, Eq, Inspectable)]
+#[derive(Default, Clone, Copy, PartialEq, Eq, /* Inspectable */)]
 pub enum MovementState {
     #[default]
     IDLE,
@@ -58,7 +58,7 @@ pub enum MovementState {
     FLYING
 }
 
-#[derive(Default, PartialEq, Eq, Inspectable, Clone, Copy)]
+#[derive(Default, PartialEq, Eq, /* Inspectable ,*/ Clone, Copy)]
 pub enum FaceDirection {
     #[default]
     LEFT,
@@ -75,7 +75,7 @@ struct Jumpable {
     time_after_jump: f32
 }
 
-#[derive(Debug, Component, Default, Inspectable)]
+#[derive(Debug, Component, Default, /* Inspectable */)]
 pub struct GroundDetection {
     on_ground: bool
 }
@@ -86,7 +86,7 @@ struct GroundSensor {
     intersecting_ground_entities: HashSet<Entity>
 }
 
-#[derive(Component, Default, Deref, DerefMut, Clone, Copy, Inspectable)]
+#[derive(Component, Default, Deref, DerefMut, Clone, Copy, /* Inspectable */)]
 pub struct SpeedCoefficient(f32);
 
 #[derive(Default, Component, Clone, Copy)]
@@ -172,12 +172,11 @@ fn spawn_player(
         .with_children(|children| {
 
             // region: Camera
-            let mut camera = OrthographicCameraBundle::new_2d();
-            camera.orthographic_projection.scale = 0.9;
+            let mut camera = Camera2dBundle::default();
+            camera.projection.scale = 0.9;
 
             children.spawn()
-                .insert_bundle(camera)
-                .insert_bundle(TransformBundle::from_transform(Transform::from_xyz(0., 100., 0.)));
+                .insert_bundle(camera);
             // endregion
 
             let entity = children.parent_entity();
@@ -210,18 +209,14 @@ fn spawn_player(
 
     commands
         .spawn_bundle(Text2dBundle {
-            text: Text::with_section(
+            text: Text::from_section(
                 "", 
                 TextStyle {
                     font: font_assets.andy_bold.clone(),
                     font_size: 18.,
                     color: Color::WHITE
                 },
-                TextAlignment {
-                    vertical: VerticalAlign::Center,
-                    horizontal: HorizontalAlign::Center
-                }
-            ),
+            ).with_alignment(TextAlignment::CENTER),
             ..default()
         })
         .insert(PlayerCoords);
@@ -258,14 +253,21 @@ fn update(
         jumpable.time_after_jump = 0.;
     }
 
-    velocity.linvel.x = 0_f32.lerp(f32::from(direction) * PLAYER_SPEED, coefficient.0);
+    let vel_sign = velocity.linvel.x.signum();
+    let dir_sign = f32::from(direction);
+
+    if vel_sign != dir_sign && axis.is_moving() {
+        velocity.linvel.x -= (PLAYER_SPEED * 4. * vel_sign) * time.delta_seconds();
+    } else {
+        velocity.linvel.x = 0_f32.lerp(f32::from(direction) * PLAYER_SPEED, coefficient.0);
+    }
 }
 
 fn gravity(
     time: Res<Time>,
     mut query: Query<(&mut Velocity, &GroundDetection, &Jumpable), With<Player>>
 ) {
-    for (mut velocity, ground_detection, jumpable) in query.iter_mut() {
+    for (mut velocity, ground_detection, jumpable) in &mut query {
         if !ground_detection.on_ground && velocity.linvel.y > -500. {
             let new_velocity = 7_f32.lerp(10., jumpable.time_after_jump.clamp(0., 1.)) * 100.;
 
@@ -279,7 +281,7 @@ fn check_is_on_ground(
     mut ground_detectors: Query<&mut GroundDetection>,
     mut collisions: EventReader<CollisionEvent>,
 ) {
-    for (entity, mut ground_sensor) in ground_sensors.iter_mut() {
+    for (entity, mut ground_sensor) in &mut ground_sensors {
         for collision in collisions.iter() {
             match collision {
                 CollisionEvent::Started(a, b, CollisionEventFlags::SENSOR) => {
@@ -330,8 +332,8 @@ fn update_movement_state(
 
     let on_ground = ground_detection.on_ground;
 
-    movement.state = match velocity.linvel.into() {
-        XY { x, .. } if x != 0. && on_ground => MovementState::RUNNING,
+    movement.state = match velocity.linvel {
+        Vec2 { x, .. } if x != 0. && on_ground => MovementState::RUNNING,
         _ => match on_ground {
             false => MovementState::FLYING,
             _ => MovementState::IDLE
@@ -360,7 +362,7 @@ fn animate_sprite(
         &Velocity
     )>,
 ) {
-    for (mut timer, mut sprite, texture_atlas_handle, movement, velocity) in query.iter_mut() {
+    for (mut timer, mut sprite, texture_atlas_handle, movement, velocity) in &mut query {
         if velocity.linvel.x != 0. {
             timer.set_duration(Duration::from_millis((4500. / velocity.linvel.x.abs()).max(1.) as u64));
         }
@@ -389,16 +391,22 @@ fn animate_sprite(
 
 fn update_speed_coefficient(
     time: Res<Time>,
-    mut query: Query<(&mut SpeedCoefficient, &Axis)>
+    mut query: Query<(&mut SpeedCoefficient, &Axis, &Movement, &Velocity)>
 ) {
-    for (mut coeff, axis) in query.iter_mut() {
-        let new_coeff = coeff.0 + match coeff.0 {
-            c if c < 1. && axis.is_moving() => 1.5,
-            c if c > 0. && !axis.is_moving() => -1.6,
-            _ => 0.
-        } * time.delta_seconds();
+    for (mut coeff, axis, movement, velocity) in &mut query {
+        let direction = movement.direction;
 
-        coeff.0 = new_coeff.clamp(0., 1.);
+        coeff.0 = if velocity.linvel.x.signum() != f32::from(direction) {
+            0.
+        } else {
+            let new_coeff = coeff.0 + match coeff.0 {
+                c if c < 1. && axis.is_moving() => 1.5,
+                c if c > 0. && !axis.is_moving() => -1.7,
+                _ => 0.
+            } * time.delta_seconds();
+
+            new_coeff.clamp(0., 1.)
+        }
     }
 }
 
@@ -406,7 +414,7 @@ fn update_axis(
     input: Res<Input<KeyCode>>,
     mut query: Query<&mut Axis>
 ) {
-    for mut axis in query.iter_mut() {
+    for mut axis in &mut query {
         let left = input.any_pressed([KeyCode::A, KeyCode::Left]);
         let right = input.any_pressed([KeyCode::D, KeyCode::Right]);
 

@@ -1,4 +1,4 @@
-use bevy::{reflect::Reflect, math::Rect, prelude::default};
+use bevy::{reflect::Reflect, prelude::default, ui::UiRect};
 
 pub trait Lerp<T> {
     fn lerp(self, other: T, t: f32) -> T;
@@ -14,14 +14,23 @@ impl Lerp<f32> for f32 {
 
 pub trait RectExtensions<T: Reflect + PartialEq> {
     fn horizontal(value: T) -> Self;
+    fn vertical(value: T) -> Self;
     fn top(value: T) -> Self;
 }
 
-impl<T: Reflect + PartialEq + Default + Clone> RectExtensions<T> for Rect<T> {
+impl<T: Reflect + PartialEq + Default + Clone> RectExtensions<T> for UiRect<T> {
     fn horizontal(value: T) -> Self {
         Self {
             left: value.clone(),
             right: value,
+            ..default()
+        }
+    }
+
+    fn vertical(value: T) -> Self {
+        Self {
+            top: value.clone(),
+            bottom: value,
             ..default()
         }
     }
