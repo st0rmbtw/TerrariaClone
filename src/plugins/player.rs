@@ -1,12 +1,12 @@
 use std::{time::Duration, option::Option, collections::HashSet};
 
 use bevy::{prelude::*, sprite::Anchor};
-// use bevy_inspector_egui::Inspectable;
+use bevy_inspector_egui::Inspectable;
 use bevy_rapier2d::{prelude::{RigidBody, Velocity, Sleeping, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce, Friction, GravityScale, ColliderMassProperties}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
 
 use crate::util::Lerp;
 
-use super::{PlayerAssets, Inventory, FontAssets, PlayerInventoryPlugin};
+use super::{PlayerAssets, FontAssets, PlayerInventoryPlugin, MainCamera};
 
 pub const PLAYER_SPRITE_WIDTH: f32 = 37.;
 pub const PLAYER_SPRITE_HEIGHT: f32 = 53.;
@@ -44,13 +44,13 @@ struct Player;
 #[derive(Component)]
 struct PlayerCoords;
 
-#[derive(Default, Component, /* Inspectable, */ Clone, Copy)]
+#[derive(Default, Component, Inspectable, Clone, Copy)]
 pub struct Movement {
     direction: FaceDirection,
     state: MovementState
 }
 
-#[derive(Default, Clone, Copy, PartialEq, Eq, /* Inspectable */)]
+#[derive(Default, Clone, Copy, PartialEq, Eq, Inspectable)]
 pub enum MovementState {
     #[default]
     IDLE,
@@ -58,7 +58,7 @@ pub enum MovementState {
     FLYING
 }
 
-#[derive(Default, PartialEq, Eq, /* Inspectable ,*/ Clone, Copy)]
+#[derive(Default, PartialEq, Eq, Inspectable, Clone, Copy)]
 pub enum FaceDirection {
     #[default]
     LEFT,
@@ -68,14 +68,12 @@ pub enum FaceDirection {
 #[derive(Component, Deref, DerefMut)]
 struct AnimationTimer(Timer);
 
-#[derive(Component)]
+#[derive(Component, Default)]
 struct Jumpable {
-    jump_timer: Timer,
-    fall_speed: f32,
     time_after_jump: f32
 }
 
-#[derive(Debug, Component, Default, /* Inspectable */)]
+#[derive(Debug, Component, Default, Inspectable)]
 pub struct GroundDetection {
     on_ground: bool
 }
@@ -86,7 +84,7 @@ struct GroundSensor {
     intersecting_ground_entities: HashSet<Entity>
 }
 
-#[derive(Component, Default, Deref, DerefMut, Clone, Copy, /* Inspectable */)]
+#[derive(Component, Default, Deref, DerefMut, Clone, Copy, Inspectable)]
 pub struct SpeedCoefficient(f32);
 
 #[derive(Default, Component, Clone, Copy)]
@@ -149,15 +147,10 @@ fn spawn_player(
         .insert(Player)
         .insert(Movement::default())
         .insert(AnimationTimer(Timer::new(Duration::from_millis(50), true)))
-        .insert(Jumpable {
-            jump_timer: Timer::new(Duration::from_millis(600), true),
-            fall_speed: 0.,
-            time_after_jump: 0.
-        })
+        .insert(Jumpable::default())
         .insert(GroundDetection::default())
         .insert(Name::new("Player"))
         .insert(Axis::default())
-        .insert(Inventory::default())
         .insert(SpeedCoefficient::default())
 
         // RigidBody
@@ -176,7 +169,8 @@ fn spawn_player(
             camera.projection.scale = 0.9;
 
             children.spawn()
-                .insert_bundle(camera);
+                .insert_bundle(camera)
+                .insert(MainCamera);
             // endregion
 
             let entity = children.parent_entity();

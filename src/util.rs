@@ -1,4 +1,4 @@
-use bevy::{reflect::Reflect, prelude::default, ui::UiRect};
+use bevy::{reflect::Reflect, prelude::{default, Component}, ui::UiRect, ecs::system::EntityCommands};
 
 pub trait Lerp<T> {
     fn lerp(self, other: T, t: f32) -> T;
@@ -40,5 +40,22 @@ impl<T: Reflect + PartialEq + Default + Clone> RectExtensions<T> for UiRect<T> {
             top: value,
             ..default()
         }
+    }
+}
+
+pub trait EntityCommandsExtensions<'w, 's, 'a> {
+    fn insert_if<F>(&mut self, component: impl Component, predicate: F) -> &mut EntityCommands<'w, 's, 'a>
+    where 
+        F: FnOnce() -> bool;
+}
+
+impl<'w, 's, 'a> EntityCommandsExtensions<'w, 's, 'a> for EntityCommands<'w, 's, 'a> {
+    fn insert_if<F>(&mut self, component: impl Component, predicate: F) -> &mut EntityCommands<'w, 's, 'a>
+    where F: FnOnce() -> bool {
+        if predicate() {
+            self.insert(component);
+        }
+
+        self
     }
 }

@@ -5,7 +5,9 @@ mod world;
 mod debug_plugin;
 mod inventory;
 mod assets;
+mod cursor;
 
+pub use cursor::*;
 pub use setup::*;
 pub use player::*;
 pub use fps_plugin::*;
