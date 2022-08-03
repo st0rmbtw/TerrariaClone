@@ -1,4 +1,4 @@
-use bevy::{reflect::Reflect, prelude::{default, Component}, ui::UiRect, ecs::system::EntityCommands};
+use bevy::{reflect::Reflect, prelude::{default, Component, Vec2}, ui::UiRect, ecs::system::EntityCommands};
 
 pub trait Lerp<T> {
     fn lerp(self, other: T, t: f32) -> T;
@@ -57,5 +57,15 @@ impl<'w, 's, 'a> EntityCommandsExtensions<'w, 's, 'a> for EntityCommands<'w, 's,
         }
 
         self
+    }
+}
+
+pub trait VectorBetween {
+    fn is_between(&self, p1: Vec2, p2: Vec2) -> bool;
+}
+
+impl VectorBetween for Vec2 {
+    fn is_between(&self, p1: Vec2, p2: Vec2) -> bool {
+        (p1.y * self.x - p1.x * self.y) * (p1.y * p2.x - p1.x * p2.y) < 0.
     }
 }

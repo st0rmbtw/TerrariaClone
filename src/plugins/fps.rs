@@ -63,10 +63,7 @@ fn spawn_fps_text(mut commands: Commands, fonts: Res<FontAssets>) {
                         style: text_style
                     },
                 ],
-                alignment: TextAlignment {
-                    horizontal: HorizontalAlign::Center,
-                    vertical: VerticalAlign::Center
-                }
+                alignment: TextAlignment::CENTER
             },
             ..default()
         })

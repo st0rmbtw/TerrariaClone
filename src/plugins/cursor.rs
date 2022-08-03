@@ -1,8 +1,8 @@
-use bevy::{prelude::{Plugin, App, Commands, Res, Camera, With, Query, Vec2, GlobalTransform, NodeBundle, Color, default, Component, Transform, ResMut, ImageBundle, BuildChildren, Without}, window::Windows, render::camera::RenderTarget, ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignContent, AlignSelf}};
+use bevy::{prelude::{Plugin, App, Commands, Res, Camera, With, Query, Vec2, GlobalTransform, NodeBundle, Color, default, Component, Transform, ResMut, ImageBundle, BuildChildren, Without, Name, TextBundle, Deref, DerefMut}, window::Windows, render::camera::RenderTarget, ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignContent, AlignSelf, CalculatedSize, Interaction}, text::{Text, TextStyle}};
 
 use crate::TRANSPARENT;
 
-use super::{MainCamera, CursorAssets};
+use super::{MainCamera, CursorAssets, FontAssets};
 
 // region: Plugin
 
@@ -11,8 +11,11 @@ pub struct CursorPlugin;
 impl Plugin for CursorPlugin {
     fn build(&self, app: &mut App) {
         app
+            .insert_resource(HoveredInfo::default())
+            .insert_resource(Cursor::default())
             .add_startup_system(setup)
-            .add_system(update_cursor_position);
+            .add_system(update_cursor_position)
+            .add_system(update_hovered_info);
     }
 }
 
@@ -21,13 +24,31 @@ impl Plugin for CursorPlugin {
 // region: Components
 
 #[derive(Component)]
-struct Cursor;
+struct CursorContainer;
+
+#[derive(Component)]
+struct CursorBackground;
+
+#[derive(Component)]
+struct CursorForeground;
+
+#[derive(Default)]
+struct Cursor {
+    position: Vec2
+}
+
+#[derive(Default, Deref, DerefMut)]
+pub struct HoveredInfo(pub String);
+
+#[derive(Component)]
+struct HoveredInfoMarker;
 
 // endregion
 
 fn setup(
     mut commands: Commands,
-    cursor_assets: Res<CursorAssets>
+    cursor_assets: Res<CursorAssets>,
+    fonts: Res<FontAssets>
 ) {
     commands.spawn_bundle(NodeBundle {
         style: Style {
@@ -39,6 +60,8 @@ fn setup(
         color: TRANSPARENT.into(),
         ..default()
     }).with_children(|c| {
+        // region: Cursor
+
         c.spawn_bundle(ImageBundle {
             style: Style {
                 justify_content: JustifyContent::Center,
@@ -50,7 +73,9 @@ fn setup(
             image: cursor_assets.cursor_background.clone().into(),
             color: Color::rgb(0.7, 0.7, 0.7).into(),
             ..default()
-        }).with_children(|c| {
+        })
+        .insert(CursorBackground)
+        .with_children(|c| {
             c.spawn_bundle(ImageBundle {
                 style: Style {
                     justify_content: JustifyContent::Center,
@@ -62,15 +87,43 @@ fn setup(
                 image: cursor_assets.cursor.clone().into(),
                 color: Color::PINK.into(),
                 ..default()
-            });
+            })
+            .insert(CursorForeground);
         });
-    }).insert(Cursor);
+
+        // endregion
+
+        // region: Info
+
+        c.spawn_bundle(TextBundle {
+            style: Style {
+                margin: UiRect {
+                    top: Val::Px(60.),
+                    left: Val::Px(5.),
+                    ..default()
+                },
+                ..default()
+            },
+            text: Text::from_section(
+                "", 
+                TextStyle {
+                    font: fonts.andy_regular.clone(),
+                    font_size: 24.,
+                    color: Color::WHITE.into(),
+                }
+            ),
+            ..default()
+        }).insert(HoveredInfoMarker);
+
+        // endregion
+    }).insert(CursorContainer);
 }
 
 fn update_cursor_position(
     mut wnds: ResMut<Windows>,
-    q_camera: Query<(&Camera, &GlobalTransform), (With<MainCamera>, Without<Cursor>)>,
-    mut query: Query<(&mut Style, &mut Transform, &mut GlobalTransform), With<Cursor>>
+    mut cursor: ResMut<Cursor>,
+    q_camera: Query<(&Camera, &GlobalTransform), (With<MainCamera>, Without<CursorContainer>)>,
+    mut query: Query<(&mut Style, &mut Transform, &mut GlobalTransform), With<CursorContainer>>
 ) {
     let (mut style, mut transform, mut global_transform) = query.single_mut();
 
@@ -85,25 +138,34 @@ fn update_cursor_position(
     wnd.set_cursor_visibility(false);
 
     if let Some(screen_pos) = wnd.cursor_position() {
-        let window_size = Vec2::new(wnd.width() as f32, wnd.height() as f32);
-
-        // convert screen position [0..resolution] to ndc [-1..1] (gpu coordinates)
-        let ndc = (screen_pos / window_size) * 2.0 - Vec2::ONE;
-
-        // matrix for undoing the projection and camera transform
-        let ndc_to_world = camera_transform.compute_matrix() * camera.projection_matrix().inverse();
-
-        // use it to convert ndc to world-space coordinates
-        let mut world_pos = ndc_to_world.project_point3(ndc.extend(0.));
-        world_pos.z = 999.9;
-
         style.position = UiRect {
-            left: Val::Px(screen_pos.x),
-            bottom: Val::Px(screen_pos.y - 15.),
+            left: Val::Px(screen_pos.x - 2.),
+            bottom: Val::Px(screen_pos.y - 52.),
             ..default()
         };
 
+        cursor.position = screen_pos;
+
         transform.translation.z = 1.;
         global_transform.affine().translation.z = 1.;
+    }
+}
+
+
+// TODO
+fn cursor_animation(
+    mut cursor_foreground: Query<&mut Style, With<CursorForeground>>,
+    mut cursor_background: Query<&mut Style, With<CursorBackground>>,
+) {
+    let mut cursor_foreground = cursor_foreground.single_mut();
+    let mut cursor_background = cursor_background.single_mut();   
+}
+
+fn update_hovered_info(
+    hovered_info: Res<HoveredInfo>,
+    mut query: Query<&mut Text, With<HoveredInfoMarker>>
+) {
+    for mut text in &mut query {
+        text.sections[0].value = hovered_info.0.clone();
     }
 }

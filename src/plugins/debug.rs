@@ -15,8 +15,4 @@ impl Plugin for DebugPlugin {
             .register_inspectable::<MovementState>()
             .register_inspectable::<SpeedCoefficient>();
     }
-
-    fn name(&self) -> &str {
-        std::any::type_name::<Self>()
-    }
 }

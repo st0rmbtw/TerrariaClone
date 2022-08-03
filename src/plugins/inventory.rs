@@ -1,6 +1,6 @@
 use std::{collections::HashMap, borrow::Cow};
 
-use bevy::{prelude::{Plugin, App, Commands, Res, NodeBundle, default, Color, ImageBundle, Component, KeyCode, Query, ParallelSystemDescriptorCoercion, Changed, With, TextBundle, Image, Handle, Visibility, ResMut}, ui::{AlignItems, Style, Val, FlexDirection, AlignContent, UiRect, Size, AlignSelf, UiImage}, hierarchy::{BuildChildren, ChildBuilder}, input::Input, core::Name, text::{Text, TextAlignment, TextStyle}};
+use bevy::{prelude::{Plugin, App, Commands, Res, NodeBundle, default, Color, ImageBundle, Component, KeyCode, Query, ParallelSystemDescriptorCoercion, Changed, With, TextBundle, Image, Handle, Visibility, ResMut}, ui::{AlignItems, Style, Val, FlexDirection, AlignContent, UiRect, Size, AlignSelf, UiImage, Interaction}, hierarchy::{BuildChildren, ChildBuilder}, input::Input, core::Name, text::{Text, TextAlignment, TextStyle}};
 use bevy_inspector_egui::Inspectable;
 use smallvec::SmallVec;
 
@@ -13,9 +13,9 @@ pub const SPAWN_PLAYER_UI_LABEL: &str = "spawn_player_ui";
 // 5 is a total count of inventory rows. -1 because the hotbar is a first row
 const INVENTORY_ROWS_COUNT: i32 = 5 - 1;
 
-const INVENTORY_CELL_SIZE: f32 = 42.;
-const INVENTORY_CELL_SIZE_VAL: Val = Val::Px(INVENTORY_CELL_SIZE);
-const INVENTORY_CELL_SIZE_BIGGER_VAL: Val = Val::Px(INVENTORY_CELL_SIZE * 1.3);
+const INVENTORY_CELL_SIZE_F: f32 = 42.;
+const INVENTORY_CELL_SIZE_VAL: Val = Val::Px(INVENTORY_CELL_SIZE_F);
+const INVENTORY_CELL_SIZE_BIGGER_VAL: Val = Val::Px(INVENTORY_CELL_SIZE_F * 1.3);
 
 const CELL_COUNT_IN_ROW: i32 = 10;
 
@@ -93,7 +93,9 @@ struct SelectedItemName {
 struct SelectedItemNameMarker;
 
 #[derive(Component)]
-struct InventoryCellMarker;
+struct InventoryCell {
+    index: i32
+}
 
 #[derive(Component)]
 struct InventoryCellItemImage {
@@ -122,7 +124,7 @@ fn spawn_inventory_ui(
         color: TRANSPARENT.into(),
         ..default()
     })
-    .insert(Name::new("Inventory Ui"))
+    .insert(Name::new("Inventory Container"))
     .with_children(|children| {
         // region: Selected Item Name
 
@@ -144,7 +146,9 @@ fn spawn_inventory_ui(
                 }
             ).with_alignment(TextAlignment::CENTER),
             ..default()
-        }).insert(SelectedItemNameMarker);
+        })
+        .insert(Name::new("Selected Item Name"))
+        .insert(SelectedItemNameMarker);
 
         // endregion
 
@@ -178,7 +182,7 @@ fn spawn_inventory_ui(
         // region: Inventory
         children.spawn_bundle(NodeBundle {
             style: Style {
-                flex_direction: FlexDirection::Column,
+                flex_direction: FlexDirection::ColumnReverse,
                 align_items: AlignItems::Center,
                 ..default()
             },
@@ -195,21 +199,26 @@ fn spawn_inventory_ui(
                     },
                     color: TRANSPARENT.into(),
                     ..default()
-                }).with_children(|children| {
+                })
+                .insert(Name::new(format!("Inventory Row #{}", j)))
+                .with_children(|children| {
                     for i in 0..CELL_COUNT_IN_ROW {
+                        // +CELL_COUNT_IN_ROW because hotbar takes first CELL_COUNT_IN_ROW cells
+                        let index = ((j * CELL_COUNT_IN_ROW) + i) + CELL_COUNT_IN_ROW;
+
                         spawn_inventory_cell(
                             children, 
                             UiRect::horizontal(Val::Px(2.)),
-                            format!("Inventory Cell #{}", i),
+                            format!("Inventory Cell #{}", index),
                             ui_assets.inventory_back.clone(),
                             false,
-                            // +10 because hotbar takes first 10 cells
-                            (if j > 0 { i * j } else { i }) + 10
+                            index
                         );
                     }
                 });
             }
         })
+        .insert(Name::new("Inventory"))
         .insert(InventoryUi::default());
         // endregion
     });
@@ -300,8 +309,9 @@ fn spawn_inventory_cell(
             });
         })
         .insert(Name::new(name))
-        .insert(InventoryCellMarker)
-        .insert_if(HotbarCellMarker, || { hotbar_cell });
+        .insert(InventoryCell { index })
+        .insert_if(HotbarCellMarker, || { hotbar_cell })
+        .insert(Interaction::default());
 }
 
 fn select_hotbar_cell(
@@ -384,5 +394,16 @@ fn update_cell_image(
 ) {
     for (mut image, item_image) in &mut item_images {
         image.0 = item_image.item_image.clone();
+    }
+}
+
+fn inventory_cell_hover(
+    query: Query<(&Interaction, &InventoryCell), Changed<Interaction>>,
+    
+) {
+    for (interaction, cell) in &query {
+        if let Interaction::Hovered = interaction {
+            
+        }
     }
 }
