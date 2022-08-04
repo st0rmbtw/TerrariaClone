@@ -6,18 +6,18 @@ use smallvec::SmallVec;
 
 use crate::{item::{Item, ITEM_COPPER_PICKAXE}, util::{RectExtensions, EntityCommandsExtensions}, TRANSPARENT};
 
-use super::{UiAssets, FontAssets, ItemAssets};
+use super::{UiAssets, FontAssets, ItemAssets, HoveredInfo};
 
 pub const SPAWN_PLAYER_UI_LABEL: &str = "spawn_player_ui";
 
 // 5 is a total count of inventory rows. -1 because the hotbar is a first row
-const INVENTORY_ROWS_COUNT: i32 = 5 - 1;
+const INVENTORY_ROWS_COUNT: usize = 5 - 1;
 
 const INVENTORY_CELL_SIZE_F: f32 = 42.;
 const INVENTORY_CELL_SIZE_VAL: Val = Val::Px(INVENTORY_CELL_SIZE_F);
 const INVENTORY_CELL_SIZE_BIGGER_VAL: Val = Val::Px(INVENTORY_CELL_SIZE_F * 1.3);
 
-const CELL_COUNT_IN_ROW: i32 = 10;
+const CELL_COUNT_IN_ROW: usize = 10;
 
 const DEFAULT_CURRENT_ITEM_NAME: &str = "Items";
 const CURRENT_ITEM_NAME_INVENTORY: &str = "Inventory";
@@ -58,7 +58,8 @@ impl Plugin for PlayerInventoryPlugin {
             .add_system(update_selected_item_name)
             .add_system(update_cell)
             .add_system(update_cell_image)
-            .add_system(set_selected_item_name);
+            .add_system(set_selected_item_name)
+            .add_system(inventory_cell_hover);
     }
 }
 
@@ -94,12 +95,12 @@ struct SelectedItemNameMarker;
 
 #[derive(Component)]
 struct InventoryCell {
-    index: i32
+    index: usize
 }
 
 #[derive(Component)]
 struct InventoryCellItemImage {
-    index: i32,
+    index: usize,
     item_image: Handle<Image>
 }
 
@@ -277,7 +278,7 @@ fn spawn_inventory_cell(
     name: impl Into<Cow<'static, str>>, 
     cell_background: Handle<Image>,
     hotbar_cell: bool,
-    index: i32
+    index: usize
 ) {
     let mut background_image = ImageBundle {
         style: Style {
@@ -302,8 +303,7 @@ fn spawn_inventory_cell(
                     ..default()
                 },
                 ..default()
-            })
-            .insert(InventoryCellItemImage {
+            }).insert(InventoryCellItemImage {
                 index,
                 item_image: Handle::default()
             });
@@ -378,7 +378,7 @@ fn update_cell(
 ) {
     for (i, item) in inventory.items.iter().enumerate() {
         for mut cell_image in &mut item_images {
-            if i as i32 == cell_image.index {
+            if i == cell_image.index {
                 cell_image.item_image = if let Some(item) = item {
                     item_assets.get_by_id(item.id)
                 } else {
@@ -399,11 +399,18 @@ fn update_cell_image(
 
 fn inventory_cell_hover(
     query: Query<(&Interaction, &InventoryCell), Changed<Interaction>>,
-    
+    inventory: Res<Inventory<'static>>,
+    mut info: ResMut<HoveredInfo>
 ) {
     for (interaction, cell) in &query {
         if let Interaction::Hovered = interaction {
-            
+            if let Some(Some(item)) = inventory.items.iter().nth(cell.index) {
+                info.0 = item.name.clone();
+            } else {
+                info.0 = "".to_string();
+            }
+        } else {
+            info.0 = "".to_string();
         }
     }
 }

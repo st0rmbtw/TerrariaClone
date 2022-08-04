@@ -15,7 +15,8 @@ impl Plugin for CursorPlugin {
             .insert_resource(Cursor::default())
             .add_startup_system(setup)
             .add_system(update_cursor_position)
-            .add_system(update_hovered_info);
+            .add_system(update_hovered_info)
+            .add_system(update_hovered_info_position);
     }
 }
 
@@ -92,31 +93,23 @@ fn setup(
         });
 
         // endregion
-
-        // region: Info
-
-        c.spawn_bundle(TextBundle {
-            style: Style {
-                margin: UiRect {
-                    top: Val::Px(60.),
-                    left: Val::Px(5.),
-                    ..default()
-                },
-                ..default()
-            },
-            text: Text::from_section(
-                "", 
-                TextStyle {
-                    font: fonts.andy_regular.clone(),
-                    font_size: 24.,
-                    color: Color::WHITE.into(),
-                }
-            ),
-            ..default()
-        }).insert(HoveredInfoMarker);
-
-        // endregion
     }).insert(CursorContainer);
+
+    commands.spawn_bundle(TextBundle {
+        style: Style {
+            position_type: PositionType::Absolute,
+            ..default()
+        },
+        text: Text::from_section(
+            "", 
+            TextStyle {
+                font: fonts.andy_regular.clone(),
+                font_size: 24.,
+                color: Color::WHITE.into(),
+            }
+        ),
+        ..default()
+    }).insert(HoveredInfoMarker);
 }
 
 fn update_cursor_position(
@@ -135,12 +128,12 @@ fn update_cursor_position(
         wnds.get_primary_mut()
     }.unwrap();
 
-    wnd.set_cursor_visibility(false);
+    // wnd.set_cursor_visibility(false);
 
     if let Some(screen_pos) = wnd.cursor_position() {
         style.position = UiRect {
             left: Val::Px(screen_pos.x - 2.),
-            bottom: Val::Px(screen_pos.y - 52.),
+            bottom: Val::Px(screen_pos.y - 20.),
             ..default()
         };
 
@@ -151,6 +144,19 @@ fn update_cursor_position(
     }
 }
 
+
+fn update_hovered_info_position(
+    cursor: Res<Cursor>,
+    mut query: Query<&mut Style, With<HoveredInfoMarker>>
+) {
+    let mut style = query.single_mut();
+
+    style.position = UiRect {
+        left: Val::Px(cursor.position.x + 15.),
+        bottom: Val::Px(cursor.position.y - 45.),
+        ..default()
+    }
+}
 
 // TODO
 fn cursor_animation(
