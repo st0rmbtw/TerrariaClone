@@ -1,4 +1,4 @@
-use bevy::{prelude::{Plugin, App, Commands, Res, Camera, With, Query, Vec2, GlobalTransform, NodeBundle, Color, default, Component, Transform, ResMut, ImageBundle, BuildChildren, Without, Name, TextBundle, Deref, DerefMut}, window::Windows, render::camera::RenderTarget, ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignContent, AlignSelf, CalculatedSize, Interaction}, text::{Text, TextStyle}};
+use bevy::{prelude::{Plugin, App, Commands, Res, Camera, With, Query, Vec2, GlobalTransform, NodeBundle, Color, default, Component, Transform, ResMut, ImageBundle, BuildChildren, Without, TextBundle, Deref, DerefMut}, window::Windows, render::camera::RenderTarget, ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignContent, AlignSelf}, text::{Text, TextStyle}};
 
 use crate::TRANSPARENT;
 
@@ -128,7 +128,7 @@ fn update_cursor_position(
         wnds.get_primary_mut()
     }.unwrap();
 
-    // wnd.set_cursor_visibility(false);
+    wnd.set_cursor_visibility(false);
 
     if let Some(screen_pos) = wnd.cursor_position() {
         style.position = UiRect {
@@ -152,7 +152,7 @@ fn update_hovered_info_position(
     let mut style = query.single_mut();
 
     style.position = UiRect {
-        left: Val::Px(cursor.position.x + 15.),
+        left: Val::Px(cursor.position.x + 20.),
         bottom: Val::Px(cursor.position.y - 45.),
         ..default()
     }

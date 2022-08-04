@@ -1,6 +1,6 @@
 use std::{collections::HashMap, borrow::Cow};
 
-use bevy::{prelude::{Plugin, App, Commands, Res, NodeBundle, default, Color, ImageBundle, Component, KeyCode, Query, ParallelSystemDescriptorCoercion, Changed, With, TextBundle, Image, Handle, Visibility, ResMut}, ui::{AlignItems, Style, Val, FlexDirection, AlignContent, UiRect, Size, AlignSelf, UiImage, Interaction}, hierarchy::{BuildChildren, ChildBuilder}, input::Input, core::Name, text::{Text, TextAlignment, TextStyle}};
+use bevy::{prelude::{Plugin, App, Commands, Res, NodeBundle, default, Color, ImageBundle, Component, KeyCode, Query, ParallelSystemDescriptorCoercion, Changed, With, TextBundle, Image, Handle, Visibility, ResMut, Vec2, Children}, ui::{AlignItems, Style, Val, FlexDirection, AlignContent, UiRect, Size, AlignSelf, UiImage, Interaction, Node}, hierarchy::{BuildChildren, ChildBuilder}, input::Input, core::Name, text::{Text, TextAlignment, TextStyle}};
 use bevy_inspector_egui::Inspectable;
 use smallvec::SmallVec;
 
@@ -59,7 +59,7 @@ impl Plugin for PlayerInventoryPlugin {
             .add_system(update_cell)
             .add_system(update_cell_image)
             .add_system(set_selected_item_name)
-            .add_system(inventory_cell_hover);
+            .add_system(inventory_cell_background_hover);
     }
 }
 
@@ -93,15 +93,31 @@ struct SelectedItemName {
 #[derive(Component)]
 struct SelectedItemNameMarker;
 
+trait Cell {
+    fn index(&self) -> usize;
+}
+
 #[derive(Component)]
 struct InventoryCell {
     index: usize
+}
+
+impl Cell for InventoryCell {
+    fn index(&self) -> usize {
+        self.index
+    }
 }
 
 #[derive(Component)]
 struct InventoryCellItemImage {
     index: usize,
     item_image: Handle<Image>
+}
+
+impl Cell for InventoryCellItemImage {
+    fn index(&self) -> usize {
+        self.index
+    }
 }
 
 // endregion
@@ -281,8 +297,10 @@ fn spawn_inventory_cell(
     index: usize
 ) {
     let mut background_image = ImageBundle {
+        node: Node {
+            size: Vec2::new(INVENTORY_CELL_SIZE_F, INVENTORY_CELL_SIZE_F)
+        },
         style: Style {
-            size: Size::new(INVENTORY_CELL_SIZE_VAL, INVENTORY_CELL_SIZE_VAL),
             margin,
             align_self: AlignSelf::Center,
             ..default()
@@ -306,7 +324,7 @@ fn spawn_inventory_cell(
             }).insert(InventoryCellItemImage {
                 index,
                 item_image: Handle::default()
-            });
+            }).insert(Interaction::default());
         })
         .insert(Name::new(name))
         .insert(InventoryCell { index })
@@ -397,20 +415,23 @@ fn update_cell_image(
     }
 }
 
-fn inventory_cell_hover(
-    query: Query<(&Interaction, &InventoryCell), Changed<Interaction>>,
+fn inventory_cell_background_hover(
+    interactions: Query<&Interaction>,
+    query: Query<(&Interaction, &InventoryCell, &Children), Changed<Interaction>>,
     inventory: Res<Inventory<'static>>,
     mut info: ResMut<HoveredInfo>
 ) {
-    for (interaction, cell) in &query {
-        if let Interaction::Hovered = interaction {
-            if let Some(Some(item)) = inventory.items.iter().nth(cell.index) {
+    for (interaction, cell, children) in &query {
+        if let Some(Some(item)) = inventory.items.iter().nth(cell.index()) {
+            let any_children_hovered = children.iter()
+                .filter_map(|c| interactions.get(*c).ok())
+                .any(|i| matches!(i, Interaction::Hovered));
+
+            if *interaction == Interaction::Hovered || any_children_hovered {
                 info.0 = item.name.clone();
             } else {
                 info.0 = "".to_string();
             }
-        } else {
-            info.0 = "".to_string();
         }
     }
 }

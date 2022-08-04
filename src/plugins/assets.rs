@@ -1,5 +1,5 @@
-use bevy::{prelude::{Plugin, AssetServer, Assets, Handle, App, Image, World}, sprite::{TextureAtlas, Sprite}, math::Vec2, text::Font, asset::HandleUntyped};
-use bevy_asset_loader::{prelude::{AssetCollection, AssetCollectionApp}};
+use bevy::{prelude::{Plugin, AssetServer, Assets, Handle, App, Image, World}, sprite::TextureAtlas, math::Vec2, text::Font, asset::HandleUntyped};
+use bevy_asset_loader::prelude::{AssetCollection, AssetCollectionApp};
 use bevy::ecs::world::Mut;
 
 pub const TILE_SIZE: f32 = 16.;
