@@ -41,7 +41,7 @@ pub struct UiAssets {
     pub inventory_back: Handle<Image>,
 
     #[asset(path = "sprites/Inventory_Back14.png")]
-    pub inventory_back14: Handle<Image>,
+    pub selected_inventory_back: Handle<Image>,
 }
 
 #[derive(AssetCollection)]

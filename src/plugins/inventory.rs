@@ -1,6 +1,6 @@
 use std::{collections::HashMap, borrow::Cow};
 
-use bevy::{prelude::{Plugin, App, Commands, Res, NodeBundle, default, Color, ImageBundle, Component, KeyCode, Query, ParallelSystemDescriptorCoercion, Changed, With, TextBundle, Image, Handle, Visibility, ResMut, Vec2, Children, GlobalTransform, Transform, Vec3}, ui::{AlignItems, Style, Val, FlexDirection, AlignContent, UiRect, Size, AlignSelf, UiImage, Interaction, Node}, hierarchy::{BuildChildren, ChildBuilder}, input::Input, core::Name, text::{Text, TextAlignment, TextStyle}};
+use bevy::{prelude::{Plugin, App, Commands, Res, NodeBundle, default, Color, ImageBundle, Component, KeyCode, Query, ParallelSystemDescriptorCoercion, Changed, With, TextBundle, Image, Handle, Visibility, ResMut, Vec2, Children}, ui::{AlignItems, Style, Val, FlexDirection, AlignContent, UiRect, Size, AlignSelf, UiImage, Interaction, Node}, hierarchy::{BuildChildren, ChildBuilder}, input::Input, core::Name, text::{Text, TextAlignment, TextStyle}};
 use bevy_inspector_egui::Inspectable;
 use smallvec::SmallVec;
 
@@ -93,31 +93,15 @@ struct SelectedItemName {
 #[derive(Component)]
 struct SelectedItemNameMarker;
 
-trait Cell {
-    fn index(&self) -> usize;
-}
-
 #[derive(Component)]
 struct InventoryCell {
     index: usize
-}
-
-impl Cell for InventoryCell {
-    fn index(&self) -> usize {
-        self.index
-    }
 }
 
 #[derive(Component)]
 struct InventoryCellItemImage {
     index: usize,
     item_image: Handle<Image>
-}
-
-impl Cell for InventoryCellItemImage {
-    fn index(&self) -> usize {
-        self.index
-    }
 }
 
 // endregion
@@ -273,7 +257,7 @@ fn update_selected_cell(
     for (i, (mut style, mut image)) in hotbar_cells.iter_mut().enumerate() {
         let selected = (i as i32) == hotbar.selected_cell;
         if selected {
-            image.0 = ui_assets.inventory_back14.clone();
+            image.0 = ui_assets.selected_inventory_back.clone();
 
             if !inventory.showing {
                 style.size = Size::new(INVENTORY_CELL_SIZE_BIGGER_VAL, INVENTORY_CELL_SIZE_BIGGER_VAL);
@@ -423,7 +407,7 @@ fn inventory_cell_background_hover(
     mut info: ResMut<HoveredInfo>
 ) {
     for (interaction, cell, children) in &query {
-        if let Some(Some(item)) = inventory.items.iter().nth(cell.index()) {
+        if let Some(Some(item)) = inventory.items.iter().nth(cell.index) {
             let any_children_hovered = children.iter()
                 .filter_map(|c| interactions.get(*c).ok())
                 .any(|i| matches!(i, Interaction::Hovered));
