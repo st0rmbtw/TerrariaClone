@@ -7,8 +7,8 @@ pub struct SetupPlugin;
 impl Plugin for SetupPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_plugin(CursorPlugin);
-            // .insert_resource(ImageSettings::default_linear());
+            .add_plugin(CursorPlugin)
+            .insert_resource(ImageSettings::default_linear());
     }
 }
 

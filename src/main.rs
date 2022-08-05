@@ -4,6 +4,7 @@ use game::plugins::{PlayerPlugin, FpsPlugin, WorldPlugin, DebugPlugin, AssetsPlu
 
 fn main() {
     App::new()
+        .insert_resource(Msaa { samples: 4 })
         .insert_resource(WindowDescriptor {
             title: "Terraria".to_string(),
             present_mode: PresentMode::Immediate,
