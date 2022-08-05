@@ -1,6 +1,6 @@
-use bevy::{prelude::{Plugin, App, Commands, Res, Camera, With, Query, Vec2, GlobalTransform, NodeBundle, Color, default, Component, Transform, ResMut, ImageBundle, BuildChildren, Without, TextBundle, Deref, DerefMut}, window::Windows, render::camera::RenderTarget, ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignContent, AlignSelf}, text::{Text, TextStyle}};
+use bevy::{prelude::{Plugin, App, Commands, Res, Camera, With, Query, Vec2, GlobalTransform, NodeBundle, Color, default, Component, Transform, ResMut, ImageBundle, BuildChildren, Without, TextBundle, Deref, DerefMut, Vec3}, window::Windows, render::camera::RenderTarget, ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignContent, AlignSelf}, text::{Text, TextStyle}};
 
-use crate::TRANSPARENT;
+use crate::{TRANSPARENT};
 
 use super::{MainCamera, CursorAssets, FontAssets};
 
@@ -60,7 +60,8 @@ fn setup(
         },
         color: TRANSPARENT.into(),
         ..default()
-    }).with_children(|c| {
+    })
+    .with_children(|c| {
         // region: Cursor
 
         c.spawn_bundle(ImageBundle {
@@ -93,7 +94,8 @@ fn setup(
         });
 
         // endregion
-    }).insert(CursorContainer);
+    })
+    .insert(CursorContainer);
 
     commands.spawn_bundle(TextBundle {
         style: Style {
@@ -138,9 +140,6 @@ fn update_cursor_position(
         };
 
         cursor.position = screen_pos;
-
-        transform.translation.z = 1.;
-        global_transform.affine().translation.z = 1.;
     }
 }
 
