@@ -1,4 +1,7 @@
-use bevy::{prelude::{Plugin, App, Commands, Res, Camera, With, Query, Vec2, GlobalTransform, NodeBundle, Color, default, Component, Transform, ResMut, ImageBundle, BuildChildren, Without, TextBundle, Deref, DerefMut, Vec3}, window::Windows, render::camera::RenderTarget, ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignContent, AlignSelf}, text::{Text, TextStyle}};
+use std::time::Duration;
+
+use bevy::{prelude::{Plugin, App, Commands, Res, Camera, With, Query, Vec2, GlobalTransform, NodeBundle, Color, default, Component, Transform, ResMut, ImageBundle, BuildChildren, Without, TextBundle, Deref, DerefMut, Vec3, Name}, window::Windows, render::camera::RenderTarget, ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignContent, AlignSelf, Node}, text::{Text, TextStyle}};
+use bevy_tweening::{Tween, EaseFunction, TweeningType, lens::{TransformPositionLens, TransformScaleLens}, Animator};
 
 use crate::{TRANSPARENT};
 
@@ -51,6 +54,26 @@ fn setup(
     cursor_assets: Res<CursorAssets>,
     fonts: Res<FontAssets>
 ) {
+    let tween1 = Tween::new(
+        EaseFunction::CubicInOut,
+        TweeningType::Loop,
+        Duration::from_secs(1),
+        TransformScaleLens {
+            start: Vec3::ONE,
+            end: Vec3::new(1.5, 1.5, 1.5),
+        },
+    );
+
+    let tween2 = Tween::new(
+        EaseFunction::CubicInOut,
+        TweeningType::Loop,
+        Duration::from_secs(1),
+        TransformScaleLens {
+            start: Vec3::ONE,
+            end: Vec3::new(1.5, 1.5, 1.5),
+        },
+    );
+
     commands.spawn_bundle(NodeBundle {
         style: Style {
             justify_content: JustifyContent::Center,
@@ -90,12 +113,15 @@ fn setup(
                 color: Color::PINK.into(),
                 ..default()
             })
-            .insert(CursorForeground);
-        });
+            .insert(CursorForeground)
+            .insert(Animator::new(tween2));
+        })
+        .insert(Animator::new(tween1));
 
         // endregion
     })
-    .insert(CursorContainer);
+    .insert(CursorContainer)
+    .insert(Name::new("Cursor Container"));
 
     commands.spawn_bundle(TextBundle {
         style: Style {
@@ -163,7 +189,7 @@ fn cursor_animation(
     mut cursor_background: Query<&mut Style, With<CursorBackground>>,
 ) {
     let mut cursor_foreground = cursor_foreground.single_mut();
-    let mut cursor_background = cursor_background.single_mut();   
+    let mut cursor_background = cursor_background.single_mut();
 }
 
 fn update_hovered_info(
