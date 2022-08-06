@@ -4,7 +4,9 @@ use bevy_tweening::TweeningPlugin;
 use game::plugins::{PlayerPlugin, FpsPlugin, WorldPlugin, DebugPlugin, AssetsPlugin, SetupPlugin};
 
 fn main() {
-    App::new()
+    let mut app = App::new();
+
+    app
         .insert_resource(Msaa { samples: 4 })
         .insert_resource(WindowDescriptor {
             title: "Terraria".to_string(),
@@ -23,7 +25,11 @@ fn main() {
         .add_plugin(AssetsPlugin)
         .add_plugin(PlayerPlugin)
         .add_plugin(WorldPlugin)
-        .add_plugin(DebugPlugin)
-        .add_plugin(FpsPlugin)
-        .run();
+        .add_plugin(FpsPlugin);
+    
+    if cfg!(debug_assertions) {
+        app.add_plugin(DebugPlugin);
+    }
+
+    app.run();
 }

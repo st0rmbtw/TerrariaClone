@@ -29,8 +29,11 @@ impl Plugin for PlayerPlugin {
             .add_system(update)
             .add_system(check_is_on_ground)
             .add_system(animate_sprite)
-            .add_system(update_coords_text)
             .add_system(gravity);
+
+        if cfg!(debug_assertions) {
+            app.add_system(update_coords_text);
+        }
     }
 }
 
@@ -201,20 +204,21 @@ fn spawn_player(
             // endregion
         });
 
-    commands
-        .spawn_bundle(Text2dBundle {
-            text: Text::from_section(
-                "", 
-                TextStyle {
-                    font: font_assets.andy_bold.clone(),
-                    font_size: 18.,
-                    color: Color::WHITE
-                },
-            ).with_alignment(TextAlignment::CENTER),
-            ..default()
-        })
-        .insert(PlayerCoords);
-
+    if cfg!(debug_assertions) {
+        commands
+            .spawn_bundle(Text2dBundle {
+                text: Text::from_section(
+                    "", 
+                    TextStyle {
+                        font: font_assets.andy_bold.clone(),
+                        font_size: 18.,
+                        color: Color::WHITE
+                    },
+                ).with_alignment(TextAlignment::CENTER),
+                ..default()
+            })
+            .insert(PlayerCoords);
+    }
 }
 
 fn update(
@@ -298,6 +302,7 @@ fn check_is_on_ground(
     }
 }
 
+#[cfg(debug_assertions)]
 fn update_coords_text(
     mut text_query: Query<(&mut Text, &mut Transform), (With<PlayerCoords>, Without<Player>)>,
     mut player_query: Query<(&Transform, &Velocity), With<Player>>

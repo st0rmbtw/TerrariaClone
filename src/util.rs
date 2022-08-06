@@ -1,4 +1,4 @@
-use bevy::{reflect::Reflect, prelude::{default, Component, Vec2}, ui::UiRect, ecs::system::EntityCommands};
+use bevy::{reflect::Reflect, prelude::{default, Component, Vec2, Color, Vec3}, ui::UiRect, ecs::system::EntityCommands};
 
 pub trait Lerp<T> {
     fn lerp(self, other: T, t: f32) -> T;

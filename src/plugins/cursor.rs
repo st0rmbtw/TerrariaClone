@@ -1,9 +1,9 @@
 use std::time::Duration;
 
-use bevy::{prelude::{Plugin, App, Commands, Res, Camera, With, Query, Vec2, GlobalTransform, NodeBundle, Color, default, Component, Transform, ResMut, ImageBundle, BuildChildren, Without, TextBundle, Deref, DerefMut, Vec3, Name, CoreStage}, window::Windows, render::camera::RenderTarget, ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignContent, AlignSelf, Node}, text::{Text, TextStyle}};
-use bevy_tweening::{Tween, EaseFunction, TweeningType, lens::TransformScaleLens, Animator};
+use bevy::{prelude::{Plugin, App, Commands, Res, Camera, With, Query, Vec2, GlobalTransform, NodeBundle, Color, default, Component, Transform, ResMut, ImageBundle, BuildChildren, Without, TextBundle, Deref, DerefMut, Vec3, Name, ParallelSystemDescriptorCoercion}, window::Windows, render::camera::RenderTarget, ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignContent, AlignSelf, UiColor}, text::{Text, TextStyle}};
+use bevy_tweening::{Tween, EaseFunction, TweeningType, lens::{TransformScaleLens, SpriteColorLens}, Animator, component_animator_system, AnimationSystem, TweeningDirection};
 
-use crate::{TRANSPARENT};
+use crate::{TRANSPARENT, lens::UiColorLens};
 
 use super::{MainCamera, CursorAssets, FontAssets};
 
@@ -19,7 +19,8 @@ impl Plugin for CursorPlugin {
             .add_startup_system(setup)
             .add_system(update_cursor_position)
             .add_system(update_hovered_info)
-            .add_system(update_hovered_info_position);
+            .add_system(update_hovered_info_position)
+            .add_system(component_animator_system::<UiColor>.label(AnimationSystem::AnimationUpdate));
     }
 }
 
@@ -54,15 +55,25 @@ fn setup(
     cursor_assets: Res<CursorAssets>,
     fonts: Res<FontAssets>
 ) {
-    let tween = Tween::new(
+    let animate_scale = Tween::new(
         EaseFunction::CubicInOut,
         TweeningType::PingPong,
         Duration::from_millis(500),
         TransformScaleLens {
             start: Vec3::ONE,
-            end: Vec3::new(1.15, 1.15, 1.15),
+            end: Vec3::new(1.13, 1.13, 1.),
         },
     );
+
+    let animate_color = Tween::new(
+        EaseFunction::CubicInOut,
+        TweeningType::PingPong,
+        Duration::from_millis(500),
+        UiColorLens {
+            start: Color::PINK,
+            end: Color::PINK * 0.7,
+        }
+    ).with_direction(TweeningDirection::Backward);
 
     commands.spawn_bundle(NodeBundle {
         style: Style {
@@ -82,7 +93,7 @@ fn setup(
                 justify_content: JustifyContent::Center,
                 align_content: AlignContent::Center,
                 align_self: AlignSelf::Center,
-                size: Size::new(Val::Px(22.), Val::Px(22.)),
+                size: Size::new(Val::Px(24.), Val::Px(24.)),
                 ..default()
             },
             image: cursor_assets.cursor_background.clone().into(),
@@ -96,21 +107,22 @@ fn setup(
                     justify_content: JustifyContent::Center,
                     align_content: AlignContent::Center,
                     align_self: AlignSelf::Center,
-                    size: Size::new(Val::Px(16.), Val::Px(16.)),
+                    size: Size::new(Val::Px(18.), Val::Px(18.)),
                     ..default()
                 },
                 image: cursor_assets.cursor.clone().into(),
                 color: Color::PINK.into(),
                 ..default()
             })
-            .insert(CursorForeground);
+            .insert(CursorForeground)
+            .insert(Animator::new(animate_color));
         });
 
         // endregion
     })
     .insert(CursorContainer)
     .insert(Name::new("Cursor Container"))
-    .insert(Animator::new(tween));
+    .insert(Animator::new(animate_scale));
 
     commands.spawn_bundle(TextBundle {
         style: Style {
@@ -143,18 +155,20 @@ fn update_cursor_position(
         wnds.get_mut(id)
     } else {
         wnds.get_primary_mut()
-    }.unwrap();
+    };
 
-    wnd.set_cursor_visibility(false);
+    if let Some(wnd) = wnd {
+        wnd.set_cursor_visibility(false);
 
-    if let Some(screen_pos) = wnd.cursor_position() {
-        style.position = UiRect {
-            left: Val::Px(screen_pos.x - 2.),
-            bottom: Val::Px(screen_pos.y - 20.),
-            ..default()
-        };
+        if let Some(screen_pos) = wnd.cursor_position() {
+            style.position = UiRect {
+                left: Val::Px(screen_pos.x - 2.),
+                bottom: Val::Px(screen_pos.y - 20.),
+                ..default()
+            };
 
-        cursor.position = screen_pos;
+            cursor.position = screen_pos;
+        }
     }
 }
 

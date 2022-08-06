@@ -9,3 +9,4 @@ pub mod plugins;
 pub mod item;
 pub mod block;
 pub mod util;
+pub mod lens;
