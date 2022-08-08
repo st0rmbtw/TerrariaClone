@@ -4,7 +4,7 @@ use bevy::{prelude::{Plugin, App, Commands, Res, NodeBundle, default, Color, Ima
 use bevy_inspector_egui::Inspectable;
 use smallvec::SmallVec;
 
-use crate::{item::{Item, ITEM_COPPER_PICKAXE}, util::{RectExtensions, EntityCommandsExtensions}, TRANSPARENT};
+use crate::{item::{Item, ITEM_COPPER_PICKAXE, self}, util::{RectExtensions, EntityCommandsExtensions}, TRANSPARENT};
 
 use super::{UiAssets, FontAssets, ItemAssets, HoveredInfo};
 
@@ -23,7 +23,7 @@ const DEFAULT_CURRENT_ITEM_NAME: &str = "Items";
 const CURRENT_ITEM_NAME_INVENTORY: &str = "Inventory";
 
 lazy_static! {
-    static ref KEYCODE_TO_DIGIT: HashMap<KeyCode, i32> = HashMap::from([
+    static ref KEYCODE_TO_DIGIT: HashMap<KeyCode, usize> = HashMap::from([
         (KeyCode::Key1, 0),
         (KeyCode::Key2, 1),
         (KeyCode::Key3, 2),
@@ -79,7 +79,7 @@ struct InventoryUi {
 
 #[derive(Component, Default)]
 struct HotbarUi {
-    selected_cell: i32
+    selected_cell: usize
 }
 
 #[derive(Component)]
@@ -134,7 +134,7 @@ fn spawn_inventory_ui(
             style: Style {
                 margin: UiRect {
                     top: Val::Px(2.),
-                    ..UiRect::horizontal(Val::Px(10.))
+                    ..UiRect::horizontal(10.)
                 },
                 align_self: AlignSelf::Center,
                 ..default()
@@ -169,7 +169,7 @@ fn spawn_inventory_ui(
             for i in 0..CELL_COUNT_IN_ROW {
                 spawn_inventory_cell(
                     children,
-                    UiRect::horizontal(Val::Px(2.)),
+                    UiRect::horizontal(2.),
                     format!("Hotbar Cell #{}", i),
                     ui_assets.inventory_back.clone(),
                     true,
@@ -195,7 +195,7 @@ fn spawn_inventory_ui(
             for j in 0..INVENTORY_ROWS_COUNT {
                 children.spawn_bundle(NodeBundle {
                     style: Style {
-                        margin: UiRect::vertical(Val::Px(2.)),
+                        margin: UiRect::vertical(2.),
                         align_items: AlignItems::Center,
                         ..default()
                     },
@@ -210,7 +210,7 @@ fn spawn_inventory_ui(
 
                         spawn_inventory_cell(
                             children, 
-                            UiRect::horizontal(Val::Px(2.)),
+                            UiRect::horizontal(2.),
                             format!("Inventory Cell #{}", index),
                             ui_assets.inventory_back.clone(),
                             false,
@@ -255,7 +255,7 @@ fn update_selected_cell(
     let hotbar = hotbars.single();
 
     for (i, (mut style, mut image)) in hotbar_cells.iter_mut().enumerate() {
-        let selected = (i as i32) == hotbar.selected_cell;
+        let selected = i == hotbar.selected_cell;
         if selected {
             image.0 = ui_assets.selected_inventory_back.clone();
 
@@ -337,16 +337,10 @@ fn set_selected_item_name(
     mut selected_item_name: ResMut<SelectedItemName>
 ) {
     if let Ok(hotbar) = hotbars.get_single() {
-        for (i, item) in inventory.items.iter().enumerate() {
-            selected_item_name.name = if i as i32 == hotbar.selected_cell {
-                 if let Some(item) = item {
-                    Some(item.name.clone())
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
+        selected_item_name.name = if let Some(Some(item)) = inventory.items.iter().nth(hotbar.selected_cell) {
+            Some(item.name.clone())
+        } else {
+            None
         }
     }
 }
@@ -379,15 +373,11 @@ fn update_cell(
     mut item_images: Query<&mut InventoryCellItemImage>,
     item_assets: Res<ItemAssets>,
 ) {
-    for (i, item) in inventory.items.iter().enumerate() {
-        for mut cell_image in &mut item_images {
-            if i == cell_image.index {
-                cell_image.item_image = if let Some(item) = item {
-                    item_assets.get_by_id(item.id)
-                } else {
-                    item_assets.no_item()
-                }
-            }
+    for mut cell_image in &mut item_images {
+        cell_image.item_image = if let Some(Some(item)) = inventory.items.iter().nth(cell_image.index) {
+            item_assets.get_by_id(item.id)
+        } else {
+            item_assets.no_item()
         }
     }
 }

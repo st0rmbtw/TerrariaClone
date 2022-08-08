@@ -10,3 +10,4 @@ pub mod item;
 pub mod block;
 pub mod util;
 pub mod lens;
+pub mod world_generator;

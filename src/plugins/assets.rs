@@ -27,6 +27,10 @@ pub struct BlockAssets {
     #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., rows = 15, columns = 16, padding_x = 2., padding_y = 2.))]
     #[asset(path = "sprites/tiles/Tiles_2.png")]
     pub grass: Handle<TextureAtlas>,
+
+    #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., rows = 15, columns = 16, padding_x = 2., padding_y = 2.))]
+    #[asset(path = "sprites/tiles/Tiles_1.png")]
+    pub stone: Handle<TextureAtlas>,
 }
 
 #[derive(AssetCollection)]
@@ -88,6 +92,18 @@ impl ItemAssets {
             0 => self.no_item.clone(),
             3509 => self.copper_pickaxe.clone(),
             _ => self.no_item()
+        }
+    }
+}
+
+impl BlockAssets {
+    
+    pub fn get_by_id(&self, id: u32) -> Option<Handle<TextureAtlas>> {
+        match id {
+            0 => Some(self.dirt.clone()),
+            1 => Some(self.stone.clone()),
+            2 => Some(self.grass.clone()),
+            _ => None
         }
     }
 }

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use bevy::{prelude::{Plugin, App, Commands, Res, Camera, With, Query, Vec2, GlobalTransform, NodeBundle, Color, default, Component, Transform, ResMut, ImageBundle, BuildChildren, Without, TextBundle, Deref, DerefMut, Vec3, Name, ParallelSystemDescriptorCoercion}, window::Windows, render::camera::RenderTarget, ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignContent, AlignSelf, UiColor}, text::{Text, TextStyle}};
+use bevy::{prelude::{Plugin, App, Commands, Res, Camera, With, Query, Vec2, GlobalTransform, NodeBundle, Color, default, Component, Transform, ResMut, ImageBundle, BuildChildren, Without, TextBundle, Deref, DerefMut, Vec3, Name, ParallelSystemDescriptorCoercion}, window::Windows, render::camera::RenderTarget, ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignContent, AlignSelf, UiColor, AlignItems}, text::{Text, TextStyle}};
 use bevy_tweening::{Tween, EaseFunction, TweeningType, lens::{TransformScaleLens, SpriteColorLens}, Animator, component_animator_system, AnimationSystem, TweeningDirection};
 
 use crate::{TRANSPARENT, lens::UiColorLens};
@@ -78,7 +78,7 @@ fn setup(
     commands.spawn_bundle(NodeBundle {
         style: Style {
             justify_content: JustifyContent::Center,
-            align_content: AlignContent::Center,
+            align_items: AlignItems::Center,
             position_type: PositionType::Absolute,
             ..default()
         },
@@ -91,7 +91,7 @@ fn setup(
         c.spawn_bundle(ImageBundle {
             style: Style {
                 justify_content: JustifyContent::Center,
-                align_content: AlignContent::Center,
+                align_items: AlignItems::Center,
                 align_self: AlignSelf::Center,
                 size: Size::new(Val::Px(24.), Val::Px(24.)),
                 ..default()
@@ -105,7 +105,7 @@ fn setup(
             c.spawn_bundle(ImageBundle {
                 style: Style {
                     justify_content: JustifyContent::Center,
-                    align_content: AlignContent::Center,
+                    align_items: AlignItems::Center,
                     align_self: AlignSelf::Center,
                     size: Size::new(Val::Px(18.), Val::Px(18.)),
                     ..default()
@@ -190,7 +190,7 @@ fn update_hovered_info(
     hovered_info: Res<HoveredInfo>,
     mut query: Query<&mut Text, With<HoveredInfoMarker>>
 ) {
-    for mut text in &mut query {
-        text.sections[0].value = hovered_info.0.clone();
-    }
+    let mut text = query.single_mut();
+    
+    text.sections[0].value = hovered_info.0.clone();
 }

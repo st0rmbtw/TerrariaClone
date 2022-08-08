@@ -15,6 +15,9 @@ lazy_static = "1.4.0"
 rand = "0.8.5"
 smallvec = "1.9.0"
 
+ndarray = "0.15.6"
+noise = "0.7.0"
+
 [profile.dev]
 opt-level = 1
 
