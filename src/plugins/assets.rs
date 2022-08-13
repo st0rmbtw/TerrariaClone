@@ -2,7 +2,7 @@ use bevy::{prelude::{Plugin, AssetServer, Assets, Handle, App, Image, World}, sp
 use bevy_asset_loader::prelude::{AssetCollection, AssetCollectionApp};
 use bevy::ecs::world::Mut;
 
-pub const TILE_SIZE: f32 = 16.;
+use crate::block::BlockId;
 
 pub struct AssetsPlugin;
 
@@ -98,7 +98,7 @@ impl ItemAssets {
 
 impl BlockAssets {
     
-    pub fn get_by_id(&self, id: u32) -> Option<Handle<TextureAtlas>> {
+    pub fn get_by_id(&self, id: BlockId) -> Option<Handle<TextureAtlas>> {
         match id {
             0 => Some(self.dirt.clone()),
             1 => Some(self.stone.clone()),

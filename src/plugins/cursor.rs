@@ -1,7 +1,7 @@
 use std::time::Duration;
 
-use bevy::{prelude::{Plugin, App, Commands, Res, Camera, With, Query, Vec2, GlobalTransform, NodeBundle, Color, default, Component, Transform, ResMut, ImageBundle, BuildChildren, Without, TextBundle, Deref, DerefMut, Vec3, Name, ParallelSystemDescriptorCoercion}, window::Windows, render::camera::RenderTarget, ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignContent, AlignSelf, UiColor, AlignItems}, text::{Text, TextStyle}};
-use bevy_tweening::{Tween, EaseFunction, TweeningType, lens::{TransformScaleLens, SpriteColorLens}, Animator, component_animator_system, AnimationSystem, TweeningDirection};
+use bevy::{prelude::{Plugin, App, Commands, Res, Camera, With, Query, Vec2, GlobalTransform, NodeBundle, Color, default, Component, Transform, ResMut, ImageBundle, BuildChildren, Without, TextBundle, Deref, DerefMut, Vec3, Name, ParallelSystemDescriptorCoercion}, window::Windows, render::camera::RenderTarget, ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignSelf, UiColor, AlignItems}, text::{Text, TextStyle}};
+use bevy_tweening::{Tween, EaseFunction, TweeningType, lens::TransformScaleLens, Animator, component_animator_system, AnimationSystem, TweeningDirection};
 
 use crate::{TRANSPARENT, lens::UiColorLens};
 
@@ -93,7 +93,7 @@ fn setup(
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 align_self: AlignSelf::Center,
-                size: Size::new(Val::Px(24.), Val::Px(24.)),
+                size: Size::new(Val::Px(22.), Val::Px(22.)),
                 ..default()
             },
             image: cursor_assets.cursor_background.clone().into(),
@@ -107,7 +107,7 @@ fn setup(
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
                     align_self: AlignSelf::Center,
-                    size: Size::new(Val::Px(18.), Val::Px(18.)),
+                    size: Size::new(Val::Px(16.), Val::Px(16.)),
                     ..default()
                 },
                 image: cursor_assets.cursor.clone().into(),

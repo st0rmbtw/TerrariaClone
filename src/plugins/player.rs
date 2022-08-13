@@ -1,12 +1,12 @@
 use std::{time::Duration, option::Option, collections::HashSet};
 
-use bevy::{prelude::*, sprite::Anchor};
+use bevy::prelude::*;
 use bevy_inspector_egui::Inspectable;
 use bevy_rapier2d::{prelude::{RigidBody, Velocity, Sleeping, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce, Friction, GravityScale, ColliderMassProperties}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
 
 use crate::util::Lerp;
 
-use super::{PlayerAssets, FontAssets, PlayerInventoryPlugin, MainCamera};
+use super::{PlayerAssets, FontAssets, PlayerInventoryPlugin, MainCamera, WorldSettings};
 
 pub const PLAYER_SPRITE_WIDTH: f32 = 37.;
 pub const PLAYER_SPRITE_HEIGHT: f32 = 53.;
@@ -28,8 +28,8 @@ impl Plugin for PlayerPlugin {
             .add_system(update_speed_coefficient)
             .add_system(update)
             .add_system(check_is_on_ground)
-            .add_system(animate_sprite)
-            .add_system(gravity);
+            .add_system(gravity)
+            .add_system(animate_sprite);
 
         if cfg!(debug_assertions) {
             app.add_system(update_coords_text);
@@ -136,14 +136,11 @@ impl FaceDirection {
 fn spawn_player(
     mut commands: Commands,
     player_assets: Res<PlayerAssets>,
-    font_assets: Res<FontAssets>
+    font_assets: Res<FontAssets>,
+    world: Res<WorldSettings>
 ) {
     commands
         .spawn_bundle(SpriteSheetBundle {
-            sprite: TextureAtlasSprite {
-                anchor: Anchor::BottomLeft,
-                ..default()
-            },
             texture_atlas: player_assets.main.clone(),
             ..default()
         })
@@ -165,6 +162,7 @@ fn spawn_player(
         .insert(ExternalForce::default())
         .insert(GravityScale::default())
         .insert(ColliderMassProperties::Mass(1.))
+        .insert(Transform::from_xyz(world.width as f32 / 2., 0., 0.))
         .with_children(|children| {
 
             // region: Camera
@@ -185,8 +183,9 @@ fn spawn_player(
             children.spawn()
                 .insert(Collider::cuboid(player_half_width - 5., player_half_height - 3.))
                 .insert(ActiveEvents::COLLISION_EVENTS)
-                .insert(Friction::coefficient(0.))
-                .insert_bundle(TransformBundle::from(Transform::from_xyz(player_half_width - 1., player_half_height - 3., 0.)));
+                .insert(Ccd::enabled())
+                .insert(Transform::from_xyz(0., -3., 0.))
+                .insert(Friction::coefficient(0.));
             // endregion
 
             // region: Ground sensor
@@ -195,7 +194,7 @@ fn spawn_player(
                 .insert(Ccd::enabled())
                 .insert(Sensor)
                 .insert(ActiveEvents::COLLISION_EVENTS)
-                .insert_bundle(TransformBundle::from(Transform::from_xyz(player_half_width, -2., 0.)))
+                .insert(Transform::from_xyz(0., -player_half_height - 2., 0.))
                 .insert(GlobalTransform::default())
                 .insert(GroundSensor {
                     ground_detection_entity: entity,
@@ -316,7 +315,6 @@ fn update_coords_text(
     let mut new_translation = transform.translation;
 
     new_translation.y += PLAYER_SPRITE_HEIGHT + 10.;
-    new_translation.x += PLAYER_SPRITE_WIDTH / 2.;
 
     let velocity = player_velocity.linvel.x * (42240. / 216000.);
 

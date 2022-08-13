@@ -23,8 +23,8 @@ fn main() {
         .add_plugin(TweeningPlugin)
         .add_plugin(SetupPlugin)
         .add_plugin(AssetsPlugin)
-        .add_plugin(PlayerPlugin)
         .add_plugin(WorldPlugin)
+        .add_plugin(PlayerPlugin)
         .add_plugin(FpsPlugin);
     
     if cfg!(debug_assertions) {
