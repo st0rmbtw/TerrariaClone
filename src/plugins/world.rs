@@ -1,7 +1,7 @@
 use std::{time::{UNIX_EPOCH, SystemTime}, collections::LinkedList};
 
-use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, StartupStage, Vec2, BuildChildren}, sprite::{SpriteSheetBundle, TextureAtlasSprite}, core::Name, math::vec2};
-use bevy_rapier2d::prelude::{Collider, ActiveEvents, Friction, RigidBody, Restitution};
+use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, StartupStage, Vec2, BuildChildren, Visibility}, sprite::{SpriteSheetBundle, TextureAtlasSprite}, core::Name, math::vec2};
+use bevy_rapier2d::prelude::{Collider, ActiveEvents, Friction, RigidBody, Restitution, Sleeping};
 use ndarray::{Array2, s, ArrayView2};
 use rand::Rng;
 
@@ -42,7 +42,7 @@ fn spawn_terrain(
 
 
     println!("Loading chunk...");
-    load_chunk(&mut commands, block_assets, &tiles, (100, 100), ((tiles.ncols()) / 2, 0), true);
+    load_chunk(&mut commands, block_assets, &tiles, (150, 100), ((tiles.ncols()) / 2, 0), true);
 }
 
 // size (width, height)
@@ -59,10 +59,6 @@ fn load_chunk(commands: &mut Commands, block_assets: Res<BlockAssets>, tiles: &A
         let y = offset.1 as f32 + y as f32;
         
         if let Some(texture_atlas) = block_assets.get_by_id(*tile) {
-            if first_chunk {
-                
-            }
-
             let index = rand::thread_rng().gen_range(1..3) + match *tile {
                 BLOCK_DIRT_ID => 16,
                 _ => 0
@@ -91,12 +87,6 @@ fn load_chunk(commands: &mut Commands, block_assets: Res<BlockAssets>, tiles: &A
                 });
         }
     }
-
-    // let coords = find_non_air_block(&chunk);
-
-    // println!("{:#?}", coords);
-
-    // let collider = get_colliders(&chunk, coords);
 }
 
 fn find_non_air_block(tiles: &ArrayView2<BlockId>) -> (u16, u16) {

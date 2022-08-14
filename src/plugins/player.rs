@@ -141,8 +141,33 @@ fn spawn_player(
 ) {
     commands
         .spawn_bundle(SpriteSheetBundle {
-            texture_atlas: player_assets.main.clone(),
+            sprite: TextureAtlasSprite { 
+                index: 0,
+                ..default()
+            },
+            texture_atlas: player_assets.head.clone(),
             ..default()
+        })
+        .with_children(|cmd| {
+            cmd.spawn_bundle(SpriteSheetBundle {
+                sprite: TextureAtlasSprite { 
+                    index: 0,
+                    ..default()
+                },
+                transform: Transform::from_xyz(0., 0., 0.1),
+                texture_atlas: player_assets.arm.clone(),
+                ..default()
+            });
+
+            cmd.spawn_bundle(SpriteSheetBundle {
+                sprite: TextureAtlasSprite { 
+                    index: 0,
+                    ..default()
+                },
+                transform: Transform::from_xyz(1., 0., 0.1),
+                texture_atlas: player_assets.hair.clone(),
+                ..default()
+            });
         })
         .insert(Player)
         .insert(Movement::default())
@@ -156,7 +181,6 @@ fn spawn_player(
         // RigidBody
         .insert(RigidBody::Dynamic)
         .insert(Velocity::zero())
-        .insert(Sleeping::disabled())
         .insert(Ccd::enabled())
         .insert(LockedAxes::ROTATION_LOCKED)
         .insert(ExternalForce::default())
@@ -181,10 +205,10 @@ fn spawn_player(
 
             // region: Collider
             children.spawn()
-                .insert(Collider::cuboid(player_half_width - 5., player_half_height - 3.))
+                .insert(Collider::cuboid(player_half_width - 5., player_half_height - 5.))
                 .insert(ActiveEvents::COLLISION_EVENTS)
                 .insert(Ccd::enabled())
-                .insert(Transform::from_xyz(0., -3., 0.))
+                .insert(Transform::from_xyz(0., -1., 0.))
                 .insert(Friction::coefficient(0.));
             // endregion
 
@@ -314,7 +338,7 @@ fn update_coords_text(
 
     let mut new_translation = transform.translation;
 
-    new_translation.y += PLAYER_SPRITE_HEIGHT + 10.;
+    new_translation.y += (PLAYER_SPRITE_HEIGHT / 2.) + 10.;
 
     let velocity = player_velocity.linvel.x * (42240. / 216000.);
 
@@ -419,4 +443,8 @@ fn update_axis(
 
         axis.x = x as f32;
     }
+}
+
+fn use_item_animation() {
+
 }

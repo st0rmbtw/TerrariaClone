@@ -52,7 +52,19 @@ pub struct UiAssets {
 pub struct PlayerAssets {
     #[asset(texture_atlas(tile_size_x = 37., tile_size_y = 53., columns = 1, rows = 16, padding_x = 0., padding_y = 3.))]
     #[asset(path = "sprites/npc_22.png")]
-    pub main: Handle<TextureAtlas>
+    pub main: Handle<TextureAtlas>,
+
+    #[asset(texture_atlas(tile_size_x = 40., tile_size_y = 48., columns = 1, rows = 20, padding_x = 0., padding_y = 8.))]
+    #[asset(path = "sprites/player/Player_0_0.png")]
+    pub head: Handle<TextureAtlas>,
+
+    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 32., columns = 9, rows = 2, padding_x = 0., padding_y = 16.))]
+    #[asset(path = "sprites/player/Player_0_7.png")]
+    pub arm: Handle<TextureAtlas>,
+    #[asset(texture_atlas(tile_size_x = 42., tile_size_y = 48., columns = 1, rows = 15, padding_x = 0., padding_y = 8.))]
+    #[asset(path = "sprites/player/Player_Hair_1.png")]
+    pub hair: Handle<TextureAtlas>,
+
 }
 
 #[derive(AssetCollection)]

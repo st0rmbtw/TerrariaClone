@@ -7,10 +7,10 @@ const WORLD_SIZE_X: usize = 1750;
 const WORLD_SIZE_Y: usize = 900;
 
 #[derive(Clone, Copy)]
-struct Level {
-    sky: (usize, usize),
-    dirt: (usize, usize),
-    stone: (usize, usize)
+pub struct Level {
+    pub sky: (usize, usize),
+    pub dirt: (usize, usize),
+    pub stone: (usize, usize)
 }
 
 pub fn generate(seed: u32) -> Array2<BlockId> {
@@ -53,11 +53,11 @@ pub fn generate(seed: u32) -> Array2<BlockId> {
     
     insert_dirt_specks_into_stone(&mut world, level, noise.set_seed(seed % rand::random::<u32>()));
     
-    make_caves(&mut world, noise.set_seed(seed % rand::random::<u32>()), level.dirt.0 + 20);
+    make_caves(&mut world, noise.set_seed(seed % rand::random::<u32>()), level.dirt.0 + 20, 0.009, 0.6);
 
     world.slice_collapse(s![level.sky.1.., ..]);
 
-    make_epic_cave(&mut world, epic_cave_noise, 0.0019, 0.015);
+    make_epic_cave(&mut world, epic_cave_noise, 0.0009, 0.011);
     
     make_surface_rough(&mut world, terrain_noise.set_seed(seed % rand::random::<u32>()), level.stone.0, 5., 25., BLOCK_DIRT.id, BLOCK_STONE.id);
     
@@ -85,25 +85,27 @@ fn add_grass(world: &mut Array2<BlockId>, level: Level) {
 
     for x in 0..world.ncols() {
         let mut prev_block: Option<BlockId> = None;
-        let mut y: usize = level.stone.0;
+        let mut y: usize = 0;
 
         loop {
-            if y == 0 { break; }
+            if y >= level.stone.1 {
+                break;
+            }
 
-            let block = world.get((y, x)).and_then(|tile| get_block_by_id(*tile));
+            let block = world
+                .get((y, x))
+                .and_then(|tile| get_block_by_id(*tile))
+                .map(|b| b.id);
+
 
             if let Some(b) = block {
-                if let Some(prev_b) = prev_block {
-
-                    if prev_b == BLOCK_DIRT.id && (b.id == BLOCK_AIR) {
-
-                        world[[y+1, x]] = BLOCK_GRASS.id;
-                    }
+                if b == BLOCK_DIRT.id && matches!(prev_block, None) {
+                    world[[y, x]] = BLOCK_GRASS.id;
                 }
             }
 
-            prev_block = block.map(|b| b.id);
-            y -= 1;
+            prev_block = block;
+            y += 1;
         }
     }
 }
@@ -147,20 +149,20 @@ fn make_epic_cave<F: NoiseFn<[f64; 2]>>(world: &mut Array2<BlockId>, epic_cave_n
     }
 }
 
-fn make_caves<F: NoiseFn<[f64; 2]>>(world: &mut Array2<BlockId>, noise: F, max_level: usize) {
+fn make_caves<F: NoiseFn<[f64; 2]>>(world: &mut Array2<BlockId>, noise: F, max_level: usize, frequency: f64, threshold: f64) {
     println!("Making caves...");
 
     for y in 0..world.nrows() {
         for x in 0..world.ncols() {
-            let mut k = noise.get([x as f64 / (WORLD_SIZE_X as f64 / 30.), y as f64 / (WORLD_SIZE_Y as f64 / 30.)]); 
-                // + noise.get([x as f64 / (WORLD_SIZE_X as f64 / 40.), y as f64 / (WORLD_SIZE_Y as f64 / 40.)])
+            let mut k = noise.get([x as f64 / (WORLD_SIZE_X as f64 * frequency), y as f64 / (WORLD_SIZE_Y as f64 * frequency)])
+                + noise.get([x as f64 / (WORLD_SIZE_X as f64 * frequency * 4.), y as f64 / (WORLD_SIZE_Y as f64 * frequency)]) * 1./4.;
                 // + noise.get([x as f64 / (WORLD_SIZE_X as f64 / 50.), y as f64 / (WORLD_SIZE_Y as f64 / 50.)]);
 
             if y.abs_diff(max_level) < 30 {
                 k *= 0.000000001;
             }
 
-            if k > 0.4 {
+            if k > threshold {
                 world[[y, x]] = BLOCK_AIR;
             }
         }
@@ -170,7 +172,7 @@ fn make_caves<F: NoiseFn<[f64; 2]>>(world: &mut Array2<BlockId>, noise: F, max_l
 }
 
 fn make_small_caves<F: NoiseFn<[f64; 2]>>(world: &mut Array2<BlockId>, noise: F, max_level: usize) {
-    let q = 110.;
+    let q = 120.;
 
     for y in 0..world.nrows() {
         for x in 0..world.ncols() {

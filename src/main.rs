@@ -27,9 +27,9 @@ fn main() {
         .add_plugin(PlayerPlugin)
         .add_plugin(FpsPlugin);
     
-    if cfg!(debug_assertions) {
-        app.add_plugin(DebugPlugin);
-    }
+
+    #[cfg(debug_assertions)]
+    app.add_plugin(DebugPlugin);
 
     app.run();
 }
