@@ -1,7 +1,7 @@
 use bevy::{prelude::*, render::{texture::ImageSettings, camera::WindowOrigin}};
-use bevy_rapier2d::prelude::{Collider, ActiveEvents, Friction, Restitution};
+use bevy_rapier2d::prelude::Collider;
 
-use super::{CursorPlugin, TILE_SIZE};
+use super::CursorPlugin;
 
 pub struct SetupPlugin;
 
@@ -18,8 +18,9 @@ impl Plugin for SetupPlugin {
 #[derive(Component)]
 pub struct MainCamera;
 
+
 const MAX_CAMERA_ZOOM: f32 = 1.;
-const MIN_CAMERA_ZOOM: f32 = 0.55;
+const MIN_CAMERA_ZOOM: f32 = 0.1;
 const CAMERA_ZOOM_STEP: f32 = 0.2;
 
 fn zoom(

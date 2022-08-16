@@ -2,7 +2,7 @@ use std::{time::Duration, option::Option, collections::HashSet};
 
 use bevy::prelude::*;
 use bevy_inspector_egui::Inspectable;
-use bevy_rapier2d::{prelude::{RigidBody, Velocity, Sleeping, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce, Friction, GravityScale, ColliderMassProperties}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
+use bevy_rapier2d::{prelude::{RigidBody, Velocity, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce, Friction, GravityScale, ColliderMassProperties}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
 
 use crate::util::Lerp;
 
@@ -28,8 +28,8 @@ impl Plugin for PlayerPlugin {
             .add_system(update_speed_coefficient)
             .add_system(update)
             .add_system(check_is_on_ground)
-            .add_system(gravity)
-            .add_system(animate_sprite);
+            .add_system(gravity);
+            // .add_system(animate_sprite);
 
         if cfg!(debug_assertions) {
             app.add_system(update_coords_text);
@@ -143,6 +143,7 @@ fn spawn_player(
         .spawn_bundle(SpriteSheetBundle {
             sprite: TextureAtlasSprite { 
                 index: 0,
+                color: Color::rgb(0.92, 0.45, 0.32),
                 ..default()
             },
             texture_atlas: player_assets.head.clone(),
@@ -152,22 +153,55 @@ fn spawn_player(
             cmd.spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite { 
                     index: 0,
+                    color: Color::rgb(40. / 255., 150. / 255., 201. / 255.),
                     ..default()
                 },
-                transform: Transform::from_xyz(0., 0., 0.1),
+                transform: Transform::from_xyz(0., -8., 0.1),
                 texture_atlas: player_assets.arm.clone(),
                 ..default()
-            });
+            }).insert(Name::new("Player arm"));
+
+            cmd.spawn_bundle(SpriteSheetBundle {
+                sprite: TextureAtlasSprite { 
+                    index: 14,
+                    color: Color::rgb(40. / 255., 150. / 255., 201. / 255.),
+                    ..default()
+                },
+                transform: Transform::from_xyz(0., -20., 0.),
+                texture_atlas: player_assets.arm.clone(),
+                ..default()
+            }).insert(Name::new("Player second arm"));
 
             cmd.spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite { 
                     index: 0,
+                    color: Color::rgb(0.55, 0.23, 0.14),
                     ..default()
                 },
-                transform: Transform::from_xyz(1., 0., 0.1),
+                transform: Transform::from_xyz(0., 0., 0.1),
                 texture_atlas: player_assets.hair.clone(),
                 ..default()
-            });
+            }).insert(Name::new("Player hair"));
+
+            cmd.spawn_bundle(SpriteSheetBundle {
+                sprite: TextureAtlasSprite { 
+                    index: 0,
+                    color: Color::rgb(0.58, 0.55, 0.47),
+                    ..default()
+                },
+                texture_atlas: player_assets.chest.clone(),
+                ..default()
+            }).insert(Name::new("Player chest"));
+
+            cmd.spawn_bundle(SpriteSheetBundle {
+                sprite: TextureAtlasSprite { 
+                    index: 0,
+                    color: Color::rgb(190. / 255., 190. / 255., 156. / 255.),
+                    ..default()
+                },
+                texture_atlas: player_assets.feet.clone(),
+                ..default()
+            }).insert(Name::new("Player feet"));
         })
         .insert(Player)
         .insert(Movement::default())
@@ -205,10 +239,10 @@ fn spawn_player(
 
             // region: Collider
             children.spawn()
-                .insert(Collider::cuboid(player_half_width - 5., player_half_height - 5.))
+                .insert(Collider::cuboid(player_half_width - 5., player_half_height - 2.))
                 .insert(ActiveEvents::COLLISION_EVENTS)
                 .insert(Ccd::enabled())
-                .insert(Transform::from_xyz(0., -1., 0.))
+                .insert(Transform::from_xyz(0., -3., 0.))
                 .insert(Friction::coefficient(0.));
             // endregion
 

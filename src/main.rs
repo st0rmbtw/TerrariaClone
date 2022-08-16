@@ -1,4 +1,4 @@
-use bevy::{prelude::*, window::PresentMode};
+use bevy::{prelude::*, window::PresentMode, asset::AssetServerSettings};
 use bevy_rapier2d::plugin::{RapierPhysicsPlugin, NoUserData, RapierConfiguration};
 use bevy_tweening::TweeningPlugin;
 use game::plugins::{PlayerPlugin, FpsPlugin, WorldPlugin, DebugPlugin, AssetsPlugin, SetupPlugin};
@@ -11,6 +11,10 @@ fn main() {
         .insert_resource(WindowDescriptor {
             title: "Terraria".to_string(),
             present_mode: PresentMode::Immediate,
+            ..default()
+        })
+        .insert_resource(AssetServerSettings {
+            watch_for_changes: true,
             ..default()
         })
         .insert_resource(ClearColor(Color::BLACK))

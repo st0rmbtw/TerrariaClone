@@ -1,7 +1,7 @@
 use std::{time::{UNIX_EPOCH, SystemTime}, collections::LinkedList};
 
-use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, StartupStage, Vec2, BuildChildren, Visibility}, sprite::{SpriteSheetBundle, TextureAtlasSprite}, core::Name, math::vec2};
-use bevy_rapier2d::prelude::{Collider, ActiveEvents, Friction, RigidBody, Restitution, Sleeping};
+use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, StartupStage, Vec2, BuildChildren}, sprite::{SpriteSheetBundle, TextureAtlasSprite}, core::Name, math::vec2};
+use bevy_rapier2d::prelude::{Collider, ActiveEvents, Friction, RigidBody, Restitution};
 use ndarray::{Array2, s, ArrayView2};
 use rand::Rng;
 
@@ -42,12 +42,12 @@ fn spawn_terrain(
 
 
     println!("Loading chunk...");
-    load_chunk(&mut commands, block_assets, &tiles, (150, 100), ((tiles.ncols()) / 2, 0), true);
+    load_chunk(&mut commands, block_assets, &tiles, (150, 100), ((tiles.ncols()) / 2, 0));
 }
 
 // size (width, height)
 // offset (width, height)
-fn load_chunk(commands: &mut Commands, block_assets: Res<BlockAssets>, tiles: &Array2<BlockId>, size: (usize, usize), offset: (usize, usize), first_chunk: bool) {
+fn load_chunk(commands: &mut Commands, block_assets: Res<BlockAssets>, tiles: &Array2<BlockId>, size: (usize, usize), offset: (usize, usize)) {
     let half_width = (size.0 / 2) as f32;
 
     let chunk = tiles.slice(s![(offset.1)..(offset.1 + size.1), (offset.0)..(offset.0 + size.0)]);

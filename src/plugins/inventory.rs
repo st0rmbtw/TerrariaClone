@@ -4,7 +4,7 @@ use bevy::{prelude::{Plugin, App, Commands, Res, NodeBundle, default, Color, Ima
 use bevy_inspector_egui::Inspectable;
 use smallvec::SmallVec;
 
-use crate::{item::{Item, ITEM_COPPER_PICKAXE, self}, util::{RectExtensions, EntityCommandsExtensions}, TRANSPARENT};
+use crate::{item::{Item, ITEM_COPPER_PICKAXE}, util::{RectExtensions, EntityCommandsExtensions}, TRANSPARENT};
 
 use super::{UiAssets, FontAssets, ItemAssets, HoveredInfo};
 
