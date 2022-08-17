@@ -66,20 +66,28 @@ pub struct PlayerAssets {
     #[asset(path = "sprites/player/Player_Hair_1.png")]
     pub hair: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 48., columns = 2, rows = 1, padding_x = 8., padding_y = 0.))]
+    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 48., columns = 1, rows = 1, padding_x = 8., padding_y = 0.))]
     #[asset(path = "sprites/player/Player_0_6.png")]
     pub chest: Handle<TextureAtlas>,
 
     #[asset(texture_atlas(tile_size_x = 40., tile_size_y = 64., columns = 1, rows = 20, padding_x = 0., padding_y = 0.))]
     #[asset(path = "sprites/player/Player_0_11.png")]
-    pub feet: Handle<TextureAtlas>
+    pub feet: Handle<TextureAtlas>,
+
+    #[asset(texture_atlas(tile_size_x = 40., tile_size_y = 64., columns = 1, rows = 20, padding_x = 0., padding_y = 0.))]
+    #[asset(path = "sprites/player/Player_0_1.png")]
+    pub eyes_1: Handle<TextureAtlas>,
+
+    #[asset(texture_atlas(tile_size_x = 40., tile_size_y = 64., columns = 1, rows = 20, padding_x = 0., padding_y = 0.))]
+    #[asset(path = "sprites/player/Player_0_2.png")]
+    pub eyes_2: Handle<TextureAtlas>
 }
 
 #[derive(AssetCollection)]
 pub struct FontAssets {
     #[asset(path = "fonts/andy_bold.ttf")]
     pub andy_bold: Handle<Font>,
-
+ 
     #[asset(path = "fonts/andy_regular.otf")]
     pub andy_regular: Handle<Font>
 }

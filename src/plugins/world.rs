@@ -1,6 +1,6 @@
 use std::{time::{UNIX_EPOCH, SystemTime}, collections::LinkedList};
 
-use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, StartupStage, Vec2, BuildChildren}, sprite::{SpriteSheetBundle, TextureAtlasSprite}, core::Name, math::vec2};
+use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, StartupStage, Vec2, BuildChildren, Component}, sprite::{SpriteSheetBundle, TextureAtlasSprite}, core::Name, math::vec2};
 use bevy_rapier2d::prelude::{Collider, ActiveEvents, Friction, RigidBody, Restitution};
 use ndarray::{Array2, s, ArrayView2};
 use rand::Rng;
@@ -24,6 +24,9 @@ pub struct WorldSettings {
     pub width: u16,
     pub height: u16
 }
+
+#[derive(Component)]
+pub struct BlockMarker;
 
 fn spawn_terrain(
     mut commands: Commands,
@@ -52,17 +55,27 @@ fn load_chunk(commands: &mut Commands, block_assets: Res<BlockAssets>, tiles: &A
 
     let chunk = tiles.slice(s![(offset.1)..(offset.1 + size.1), (offset.0)..(offset.0 + size.0)]);
 
-    for ((y, x), tile) in chunk.indexed_iter() {
-        let mut x = (-half_width * TILE_SIZE) + x as f32 * TILE_SIZE;
+    for ((iy, ix), tile) in chunk.indexed_iter() {
+        let mut x = (-half_width * TILE_SIZE) + ix as f32 * TILE_SIZE;
 
         x = offset.0 as f32 + x;
-        let y = offset.1 as f32 + y as f32;
+        let y = offset.1 as f32 + iy as f32;
         
         if let Some(texture_atlas) = block_assets.get_by_id(*tile) {
             let index = rand::thread_rng().gen_range(1..3) + match *tile {
                 BLOCK_DIRT_ID => 16,
                 _ => 0
             };
+
+            if iy == 0 {
+                commands.spawn()
+                    .insert(Transform::from_xyz(x, 0., 0.),)
+                    .insert(Collider::cuboid(TILE_SIZE * 100., TILE_SIZE / 2.))
+                    .insert(ActiveEvents::COLLISION_EVENTS)
+                    .insert(Friction::coefficient(0.))
+                    .insert(Restitution::coefficient(0.))
+                    .insert(Name::new("Terrain Collider"));
+            }
 
             commands
                 .spawn_bundle(SpriteSheetBundle {
@@ -75,15 +88,20 @@ fn load_chunk(commands: &mut Commands, block_assets: Res<BlockAssets>, tiles: &A
                     transform: Transform::from_xyz(x, -y * TILE_SIZE, 0.),
                     ..default()
                 })
+                .insert(BlockMarker)
                 .insert(Name::new("Block Tile"))
                 .insert(RigidBody::Fixed)
                 .with_children(|cmd| {
-                    cmd.spawn()
-                        .insert(Collider::cuboid(TILE_SIZE / 2., TILE_SIZE / 2.))
-                        .insert(ActiveEvents::COLLISION_EVENTS)
-                        .insert(Friction::coefficient(0.))
-                        .insert(Restitution::coefficient(0.))
-                        .insert(Name::new("Terrain Collider"));
+                    if iy <= 1 {
+ 
+                        // cmd.spawn()
+                        //     .insert(Collider::cuboid(TILE_SIZE / 2., TILE_SIZE / 2.))
+                        //     .insert(ActiveEvents::COLLISION_EVENTS)
+                        //     .insert(Friction::coefficient(0.))
+                        //     .insert(Restitution::coefficient(0.))
+                        //     .insert(Name::new("Terrain Collider"));
+
+                    }
                 });
         }
     }
