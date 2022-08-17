@@ -54,23 +54,27 @@ pub struct PlayerAssets {
     #[asset(path = "sprites/npc_22.png")]
     pub main: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 40., tile_size_y = 48., columns = 1, rows = 20, padding_x = 0., padding_y = 8.))]
+    #[asset(texture_atlas(tile_size_x = 40., tile_size_y = 48., columns = 1, rows = 14, padding_x = 0., padding_y = 0.))]
     #[asset(path = "sprites/player/Player_0_0.png")]
     pub head: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 64., columns = 7, rows = 4, padding_x = 0., padding_y = 0.))]
-    #[asset(path = "sprites/player/Player_0_7.png")]
-    pub arm: Handle<TextureAtlas>,
+    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 64., columns = 37, rows = 1, padding_x = 0., padding_y = 0.))]
+    #[asset(path = "sprites/player/Player_Left_Arms.png")]
+    pub left_hand: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 42., tile_size_y = 48., columns = 1, rows = 15, padding_x = 0., padding_y = 8.))]
+    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 64., columns = 18, rows = 1, padding_x = 0., padding_y = 0.))]
+    #[asset(path = "sprites/player/Player_Right_Hand.png")]
+    pub right_hand: Handle<TextureAtlas>,
+ 
+    #[asset(texture_atlas(tile_size_x = 40., tile_size_y = 48., columns = 1, rows = 14, padding_x = 0., padding_y = 0.))]
     #[asset(path = "sprites/player/Player_Hair_1.png")]
     pub hair: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 48., columns = 1, rows = 1, padding_x = 8., padding_y = 0.))]
-    #[asset(path = "sprites/player/Player_0_6.png")]
+    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 64., columns = 1, rows = 14, padding_x = 8., padding_y = 0.))]
+    #[asset(path = "sprites/player/Player_Body.png")]
     pub chest: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 40., tile_size_y = 64., columns = 1, rows = 20, padding_x = 0., padding_y = 0.))]
+    #[asset(texture_atlas(tile_size_x = 40., tile_size_y = 64., columns = 1, rows = 19, padding_x = 0., padding_y = 0.))]
     #[asset(path = "sprites/player/Player_0_11.png")]
     pub feet: Handle<TextureAtlas>,
 

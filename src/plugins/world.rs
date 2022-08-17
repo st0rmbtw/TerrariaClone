@@ -70,7 +70,7 @@ fn load_chunk(commands: &mut Commands, block_assets: Res<BlockAssets>, tiles: &A
             if iy == 0 {
                 commands.spawn()
                     .insert(Transform::from_xyz(x, 0., 0.),)
-                    .insert(Collider::cuboid(TILE_SIZE * 100., TILE_SIZE / 2.))
+                    .insert(Collider::cuboid(TILE_SIZE * 200., 2. * TILE_SIZE / 2.))
                     .insert(ActiveEvents::COLLISION_EVENTS)
                     .insert(Friction::coefficient(0.))
                     .insert(Restitution::coefficient(0.))
