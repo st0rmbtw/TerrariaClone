@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use bevy_inspector_egui::Inspectable;
 use bevy_rapier2d::{prelude::{RigidBody, Velocity, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce, Friction, GravityScale, ColliderMassProperties}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
 
-use crate::util::{Lerp, map_range};
+use crate::{util::{Lerp, map_range}, TRANSPARENT};
 
 use super::{PlayerAssets, FontAssets, PlayerInventoryPlugin, MainCamera, WorldSettings, BlockMarker};
 
@@ -12,6 +12,7 @@ pub const PLAYER_SPRITE_WIDTH: f32 = 37.;
 pub const PLAYER_SPRITE_HEIGHT: f32 = 53.;
 
 const PLAYER_SPEED: f32 = 30. * 5.;
+const WALKING_ANIMATION_MAX_INDEX: usize = 13;
 
 // region: Plugin
 
@@ -118,6 +119,12 @@ struct IdleAnimationData {
     idle: usize
 }
 
+#[derive(Component, Clone, Copy)]
+struct FlyingAnimationData {
+    flying: usize
+}
+
+
 // endregion
 
 // region: Impls
@@ -174,7 +181,7 @@ fn spawn_player(
     commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
-                color: Color::rgba(0., 0., 0., 0.),
+                color: TRANSPARENT,
                 custom_size: Some(Vec2::splat(1.)),
                 ..default()
             },
@@ -185,27 +192,24 @@ fn spawn_player(
             // region: Hair
             cmd.spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite { 
-                    index: 0,
                     color: Color::rgb(0.55, 0.23, 0.14),
                     ..default()
                 },
-                transform: Transform::from_xyz(0.25, 0.3, 0.1),
+                transform: Transform::from_xyz(0., 0., 0.1),
                 texture_atlas: player_assets.hair.clone(),
                 ..default()
             })
-            .insert(AnimationTimer(Timer::new(Duration::from_millis(50), true)))
             .insert(Name::new("Player hair"));
             // endregion
 
             // region: Head
             cmd.spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite { 
-                    index: 0,
                     color: Color::rgb(0.92, 0.45, 0.32),
                     ..default()
                 },
                 texture_atlas: player_assets.head.clone(),
-                transform: Transform::from_xyz(0., -0.2, 0.003),
+                transform: Transform::from_xyz(0., 0., 0.003),
                 ..default()
             }).insert(Name::new("Player head"));
             // endregion
@@ -213,7 +217,6 @@ fn spawn_player(
             // region: Eyes
             cmd.spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite { 
-                    index: 0,
                     color: Color::WHITE,
                     ..default()
                 },
@@ -226,12 +229,10 @@ fn spawn_player(
                 count: 14,
                 ..default()
             })
-            .insert(AnimationTimer(Timer::new(Duration::from_millis(50), true)))
             .insert(Name::new("Player left eye"));
 
             cmd.spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite { 
-                    index: 0,
                     color: Color::rgb(89. / 255., 76. / 255., 64. / 255.),
                     ..default()
                 },
@@ -244,7 +245,6 @@ fn spawn_player(
                 count: 14,
                 ..default()
             })
-            .insert(AnimationTimer(Timer::new(Duration::from_millis(50), true)))
             .insert(Name::new("Player right eye"));
 
             // endregion
@@ -252,7 +252,6 @@ fn spawn_player(
             // region: Arms
             cmd.spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite { 
-                    index: 0,
                     color: Color::rgb(177. / 255., 199. / 255., 235. / 255.),
                     ..default()
                 },
@@ -260,33 +259,36 @@ fn spawn_player(
                 texture_atlas: player_assets.left_hand.clone(),
                 ..default()
             })
-            .insert(AnimationTimer(Timer::new(Duration::from_millis(50), true)))
             .insert(WalkingAnimationData {
-                offset: 15,
-                count: 12
+                offset: 14,
+                count: 13
             })
             .insert(IdleAnimationData {
                 idle: 0
+            })
+            .insert(FlyingAnimationData {
+                flying: 2
             })
             .insert(Name::new("Player left hand"));
 
             cmd.spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite { 
-                    index: 14,
-                    color: Color::rgb(40. / 255., 150. / 255., 201. / 255.),
+                    color: Color::rgb(177. / 255., 199. / 255., 235. / 255.),
                     ..default()
                 },
-                transform: Transform::from_xyz(-0.6, -20., 0.001),
+                transform: Transform::from_xyz(0., -20., 0.001),
                 texture_atlas: player_assets.right_hand.clone(),
                 ..default()
             })
-            .insert(AnimationTimer(Timer::new(Duration::from_millis(50), true)))
             .insert(WalkingAnimationData {
                 count: 13,
                 ..default()
             })
             .insert(IdleAnimationData {
-                idle: 15
+                idle: 14
+            })
+            .insert(FlyingAnimationData {
+                flying: 13
             })
             .insert(Name::new("Player right hand"));
             // endregion
@@ -309,26 +311,25 @@ fn spawn_player(
             // region: Feet
             cmd.spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite { 
-                    index: 0,
                     color: Color::rgb(190. / 255., 190. / 255., 156. / 255.),
                     ..default()
                 },
                 texture_atlas: player_assets.feet.clone(),
-                transform: Transform::from_xyz(0., 0.7, 0.),
                 ..default()
             })
-            .insert(AnimationTimer(Timer::new(Duration::from_millis(50), true)))
             .insert(WalkingAnimationData {
                 offset: 6,
                 count: 13,
                 ..default()
+            })
+            .insert(FlyingAnimationData {
+                flying: 5
             })
             .insert(Name::new("Player feet"));
             // endregion
 
         })
         .insert(Player)
-        .insert(AnimationTimer(Timer::new(Duration::from_millis(50), true)))
         .insert(Jumpable::default())
         .insert(GroundDetection::default())
         .insert(Name::new("Player"))
@@ -572,7 +573,7 @@ fn update_animation_timer_duration(
     let velocity = query.single();
 
     if velocity.linvel.x != 0. {
-        timer.set_duration(Duration::from_millis((4500. / velocity.linvel.x.abs()).max(1.) as u64));
+        timer.set_duration(Duration::from_millis((5000. / velocity.linvel.x.abs()).max(1.) as u64));
     }
 }
 
@@ -582,7 +583,7 @@ fn update_animation_index(
     mut index: ResMut<AnimationIndex>,
 ) {
     if timer.tick(time.delta()).just_finished() {
-        index.0 = (index.0 + 1) % 13;
+        index.0 = (index.0 + 1) % WALKING_ANIMATION_MAX_INDEX;
     }
 }
 
@@ -601,32 +602,41 @@ fn sprite_animation(
     texture_atlases: Res<Assets<TextureAtlas>>,
     index: Res<AnimationIndex>,
     player_query: Query<&Movement, With<Player>>,
-    mut query: Query<(&mut TextureAtlasSprite, &Handle<TextureAtlas>, Option<&WalkingAnimationData>, Option<&IdleAnimationData>), Without<BlockMarker>>,
+    mut query: Query<(
+        &mut TextureAtlasSprite, 
+        &Handle<TextureAtlas>, 
+        Option<&WalkingAnimationData>, 
+        Option<&IdleAnimationData>,
+        Option<&FlyingAnimationData>
+    ), Without<BlockMarker>>,
 ) {
     let movement = player_query.single();
 
-    query.for_each_mut(|(mut sprite, texture_atlas_handle, anim_data, idle_anim_data)| {
+    query.for_each_mut(|(mut sprite, texture_atlas_handle, anim_data, idle_anim_data, flying_anim_data)| {
         let texture_atlas = texture_atlases.get(texture_atlas_handle).unwrap();
 
         let anim_offset = anim_data.map(|data| data.offset).unwrap_or(0);
         let anim_count = anim_data.map(|data| data.count).unwrap_or(texture_atlas.textures.len());
-        let anim_idle_index = idle_anim_data.map(|data| data.idle).unwrap_or(0);
+        let idle_anim_index = idle_anim_data.map(|data| data.idle).unwrap_or(0);
+        let flying_anim_index = flying_anim_data.map(|data| data.flying).unwrap_or(0);
 
         match movement.state {
             MovementState::IDLE => {
-                sprite.index = anim_idle_index;
-                return;
+                sprite.index = idle_anim_index;
+            },
+            MovementState::FLYING => {
+                sprite.index = flying_anim_index;
             },
             MovementState::WALKING => {
-                sprite.index = anim_offset + (map_range((0, 13), (0, anim_count), index.0));
-            },
-            _ => {}
+                sprite.index = anim_offset + map_range((0, WALKING_ANIMATION_MAX_INDEX), (0, anim_count), index.0);
+            }
         }
     });
 }
 
 
 // TODO: Debug function, remove in feature
+#[cfg(debug_assertions)]
 fn set_sprite_index(
     input: Res<Input<KeyCode>>,
     texture_atlases: Res<Assets<TextureAtlas>>,
@@ -639,16 +649,16 @@ fn set_sprite_index(
 
         let mut new_sprite_index = sprite.index;
 
-        if input.just_pressed(KeyCode::J) {
+        if input.pressed(KeyCode::J) {
             new_sprite_index = if sprite.index > 0 { sprite.index - 1 } else { 0 };
         }
     
-        if input.just_pressed(KeyCode::L) {
+        if input.pressed(KeyCode::L) {
             new_sprite_index = sprite.index + 1;
         }
 
         new_sprite_index = if new_sprite_index >= anim_offset { new_sprite_index - anim_offset } else { 0 };
 
-        sprite.index = anim_offset + ((new_sprite_index) % anim_count);
+        sprite.index = anim_offset + map_range((0, WALKING_ANIMATION_MAX_INDEX), (0, anim_count), (new_sprite_index) % WALKING_ANIMATION_MAX_INDEX);
     });
 }

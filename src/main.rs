@@ -1,4 +1,4 @@
-use bevy::{prelude::*, window::PresentMode, asset::AssetServerSettings};
+use bevy::{prelude::*, window::PresentMode, asset::AssetServerSettings, render::texture::ImageSettings};
 use bevy_rapier2d::plugin::{RapierPhysicsPlugin, NoUserData, RapierConfiguration};
 use bevy_tweening::TweeningPlugin;
 use game::plugins::{PlayerPlugin, FpsPlugin, WorldPlugin, DebugPlugin, AssetsPlugin, SetupPlugin};
@@ -7,7 +7,6 @@ fn main() {
     let mut app = App::new();
 
     app
-        .insert_resource(Msaa { samples: 4 })
         .insert_resource(WindowDescriptor {
             title: "Terraria".to_string(),
             present_mode: PresentMode::Immediate,
@@ -17,7 +16,8 @@ fn main() {
             watch_for_changes: true,
             ..default()
         })
-        .insert_resource(ClearColor(Color::BLACK))
+        .insert_resource(ImageSettings::default_nearest())
+        .insert_resource(ClearColor(Color::rgb(110. / 255., 151. / 255., 244. / 255.)))
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.))
         .insert_resource(RapierConfiguration {
             gravity: Vec2::new(0., -30.),
