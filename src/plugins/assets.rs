@@ -58,11 +58,11 @@ pub struct PlayerAssets {
     #[asset(path = "sprites/player/Player_0_0.png")]
     pub head: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 64., columns = 37, rows = 1, padding_x = 0., padding_y = 0.))]
+    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 64., columns = 27, rows = 1, padding_x = 0., padding_y = 0.))]
     #[asset(path = "sprites/player/Player_Left_Shoulder.png")]
     pub left_shoulder: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 64., columns = 37, rows = 1, padding_x = 0., padding_y = 0.))]
+    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 64., columns = 27, rows = 1, padding_x = 0., padding_y = 0.))]
     #[asset(path = "sprites/player/Player_Left_Hand.png")]
     pub left_hand: Handle<TextureAtlas>,
 

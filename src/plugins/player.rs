@@ -253,10 +253,10 @@ fn spawn_player(
             // region: Left arm
             cmd.spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite { 
-                    color: Color::rgb(177. / 255., 199. / 255., 235. / 255.),
+                    color: Color::rgb(0.58, 0.55, 0.47),
                     ..default()
                 },
-                transform: Transform::from_xyz(0., -8., 0.1),
+                transform: Transform::from_xyz(0., -8., 0.2),
                 texture_atlas: player_assets.left_shoulder.clone(),
                 ..default()
             })
@@ -274,10 +274,10 @@ fn spawn_player(
 
             cmd.spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite { 
-                    color: Color::rgb(177. / 255., 199. / 255., 235. / 255.),
+                    color: Color::rgb(0.92, 0.45, 0.32),
                     ..default()
                 },
-                transform: Transform::from_xyz(0., -8., 0.1),
+                transform: Transform::from_xyz(0., -8., 0.2),
                 texture_atlas: player_assets.left_hand.clone(),
                 ..default()
             })
@@ -292,12 +292,12 @@ fn spawn_player(
                 flying: 2
             })
             .insert(Name::new("Player left hand"));
-
             // endregion
+
             // region: Right arm
             cmd.spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite { 
-                    color: Color::rgb(177. / 255., 199. / 255., 235. / 255.),
+                    color: Color::rgb(0.92, 0.45, 0.32),
                     ..default()
                 },
                 transform: Transform::from_xyz(0., -20., 0.001),
@@ -316,6 +316,7 @@ fn spawn_player(
             })
             .insert(Name::new("Player right hand"));
             // endregion
+
             // endregion
 
             // region: Chest
