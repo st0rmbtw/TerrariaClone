@@ -250,6 +250,28 @@ fn spawn_player(
             // endregion
 
             // region: Arms
+            // region: Left arm
+            cmd.spawn_bundle(SpriteSheetBundle {
+                sprite: TextureAtlasSprite { 
+                    color: Color::rgb(177. / 255., 199. / 255., 235. / 255.),
+                    ..default()
+                },
+                transform: Transform::from_xyz(0., -8., 0.1),
+                texture_atlas: player_assets.left_shoulder.clone(),
+                ..default()
+            })
+            .insert(WalkingAnimationData {
+                offset: 14,
+                count: 13
+            })
+            .insert(IdleAnimationData {
+                idle: 0
+            })
+            .insert(FlyingAnimationData {
+                flying: 2
+            })
+            .insert(Name::new("Player left shoulder"));
+
             cmd.spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite { 
                     color: Color::rgb(177. / 255., 199. / 255., 235. / 255.),
@@ -271,13 +293,15 @@ fn spawn_player(
             })
             .insert(Name::new("Player left hand"));
 
+            // endregion
+            // region: Right arm
             cmd.spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite { 
                     color: Color::rgb(177. / 255., 199. / 255., 235. / 255.),
                     ..default()
                 },
                 transform: Transform::from_xyz(0., -20., 0.001),
-                texture_atlas: player_assets.right_hand.clone(),
+                texture_atlas: player_assets.right_arm.clone(),
                 ..default()
             })
             .insert(WalkingAnimationData {
@@ -291,6 +315,7 @@ fn spawn_player(
                 flying: 13
             })
             .insert(Name::new("Player right hand"));
+            // endregion
             // endregion
 
             // region: Chest
