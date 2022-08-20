@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use bevy_inspector_egui::Inspectable;
 use bevy_rapier2d::{prelude::{RigidBody, Velocity, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce, Friction, GravityScale, ColliderMassProperties}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
 
-use crate::{util::{Lerp, map_range}, TRANSPARENT};
+use crate::{util::{Lerp, map_range}, TRANSPARENT, state::GameState};
 
 use super::{PlayerAssets, FontAssets, PlayerInventoryPlugin, MainCamera, WorldSettings, BlockMarker};
 
@@ -24,26 +24,27 @@ impl Plugin for PlayerPlugin {
             .add_plugin(PlayerInventoryPlugin)
             .insert_resource(AnimationIndex::default())
             .insert_resource(AnimationTimer(Timer::new(Duration::from_millis(80), true)))
-            .add_startup_system(spawn_player)
-            .add_system(update_axis)
-            .add_system(update_movement_state)
-            .add_system(update_movement_direction)
-            .add_system(update_speed_coefficient)
-            .add_system(update)
-            .add_system(check_is_on_ground)
-            .add_system(gravity)
+
+            .add_system_set(SystemSet::on_enter(GameState::InGame).with_system(spawn_player))
+            .add_system_set(
+                SystemSet::on_update(GameState::InGame)
+                    .with_system(update_axis)
+                    .with_system(update_movement_state)
+                    .with_system(update_movement_direction)
+                    .with_system(update_speed_coefficient)
+                    .with_system(update)
+                    .with_system(check_is_on_ground)
+                    .with_system(gravity)
+                )
+
             .add_system_set_to_stage(
                 CoreStage::PreUpdate, 
-                SystemSet::new()
+                SystemSet::on_update(GameState::InGame)
                     .with_system(change_flip)
                     .with_system(update_animation_timer_duration)
                     .with_system(update_animation_index)
                     .with_system(sprite_animation)
             );
-
-        if cfg!(debug_assertions) {
-            app.add_system(update_coords_text);
-        }
     }
 }
 
@@ -73,8 +74,8 @@ pub enum MovementState {
 
 #[derive(Default, PartialEq, Eq, Inspectable, Clone, Copy)]
 pub enum FaceDirection {
-    #[default]
     LEFT,
+    #[default]
     RIGHT
 }
 
@@ -154,10 +155,10 @@ impl From<FaceDirection> for f32 {
     }
 }
 
-impl FaceDirection {
+impl FaceDirection {    
     #[inline]
-    fn is_right(&self) -> bool {
-        *self == FaceDirection::RIGHT
+    fn is_left(&self) -> bool {
+        *self == FaceDirection::LEFT
     }
 }
 
@@ -185,6 +186,7 @@ fn spawn_player(
                 custom_size: Some(Vec2::splat(1.)),
                 ..default()
             },
+            computed_visibility: ComputedVisibility::not_visible(),
             ..default()
         })
         .with_children(|cmd| {
@@ -510,27 +512,6 @@ fn check_is_on_ground(
     }
 }
 
-#[cfg(debug_assertions)]
-fn update_coords_text(
-    mut text_query: Query<(&mut Text, &mut Transform), (With<PlayerCoords>, Without<Player>)>,
-    mut player_query: Query<(&Transform, &Velocity), With<Player>>
-) {
-    let (transform, player_velocity) = player_query.single_mut();
-    let (mut player_coords, mut text_transform) = text_query.single_mut();
-
-    let x = transform.translation.x;
-    let y = transform.translation.y;
-
-    let mut new_translation = transform.translation;
-
-    new_translation.y += (PLAYER_SPRITE_HEIGHT / 2.) + 10.;
-
-    let velocity = player_velocity.linvel.x * (42240. / 216000.);
-
-    player_coords.sections[0].value = format!("({:.1}, {:.1}) {:.0}", x, y, velocity.abs());
-    text_transform.translation = new_translation;
-}
-
 fn update_movement_state(
     mut query: Query<(&GroundDetection, &Velocity, &mut Movement), With<Player>>,
 ) {
@@ -614,13 +595,13 @@ fn update_animation_index(
 }
 
 fn change_flip(
-    player_query: Query<&Movement, With<Player>>,
+    player_query: Query<&Movement, (With<Player>, Changed<Movement>)>,
     mut sprite_query: Query<&mut TextureAtlasSprite, Without<BlockMarker>>
 ) {
     let movement = player_query.single();
 
     sprite_query.for_each_mut(|mut sprite| {
-        sprite.flip_x = !movement.direction.is_right();
+        sprite.flip_x = movement.direction.is_left();
     });
 }
 
@@ -646,16 +627,10 @@ fn sprite_animation(
         let idle_anim_index = idle_anim_data.map(|data| data.idle).unwrap_or(0);
         let flying_anim_index = flying_anim_data.map(|data| data.flying).unwrap_or(0);
 
-        match movement.state {
-            MovementState::IDLE => {
-                sprite.index = idle_anim_index;
-            },
-            MovementState::FLYING => {
-                sprite.index = flying_anim_index;
-            },
-            MovementState::WALKING => {
-                sprite.index = anim_offset + map_range((0, WALKING_ANIMATION_MAX_INDEX), (0, anim_count), index.0);
-            }
+        sprite.index = match movement.state {
+            MovementState::IDLE => idle_anim_index,
+            MovementState::FLYING => flying_anim_index,
+            MovementState::WALKING => anim_offset + map_range((0, WALKING_ANIMATION_MAX_INDEX), (0, anim_count), index.0)
         }
     });
 }

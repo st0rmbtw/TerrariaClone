@@ -1,10 +1,10 @@
 use std::{collections::HashMap, borrow::Cow};
 
-use bevy::{prelude::{Plugin, App, Commands, Res, NodeBundle, default, Color, ImageBundle, Component, KeyCode, Query, ParallelSystemDescriptorCoercion, Changed, With, TextBundle, Image, Handle, Visibility, ResMut, Vec2, Children}, ui::{AlignItems, Style, Val, FlexDirection, AlignContent, UiRect, Size, AlignSelf, UiImage, Interaction, Node}, hierarchy::{BuildChildren, ChildBuilder}, input::Input, core::Name, text::{Text, TextAlignment, TextStyle}};
+use bevy::{prelude::{Plugin, App, Commands, Res, NodeBundle, default, Color, ImageBundle, Component, KeyCode, Query, ParallelSystemDescriptorCoercion, Changed, With, TextBundle, Image, Handle, Visibility, ResMut, Vec2, Children, SystemSet}, ui::{AlignItems, Style, Val, FlexDirection, AlignContent, UiRect, Size, AlignSelf, UiImage, Interaction, Node}, hierarchy::{BuildChildren, ChildBuilder}, input::Input, core::Name, text::{Text, TextAlignment, TextStyle}};
 use bevy_inspector_egui::Inspectable;
 use smallvec::SmallVec;
 
-use crate::{item::{Item, ITEM_COPPER_PICKAXE}, util::{RectExtensions, EntityCommandsExtensions}, TRANSPARENT};
+use crate::{item::{Item, ITEM_COPPER_PICKAXE}, util::{RectExtensions, EntityCommandsExtensions}, TRANSPARENT, state::GameState};
 
 use super::{UiAssets, FontAssets, ItemAssets, HoveredInfo};
 
@@ -50,16 +50,24 @@ impl Plugin for PlayerInventoryPlugin {
 
                 inventory
             })
-            .add_startup_system(spawn_inventory_ui.label(SPAWN_PLAYER_UI_LABEL))
-            .add_system(change_visibility)
-            .add_system(select_hotbar_cell)
-            .add_system(update_inventory_visibility)
-            .add_system(update_selected_cell)
-            .add_system(update_selected_item_name)
-            .add_system(update_cell)
-            .add_system(update_cell_image)
-            .add_system(set_selected_item_name)
-            .add_system(inventory_cell_background_hover);
+
+            .add_system_set(
+                SystemSet::on_enter(GameState::InGame)
+                    .with_system(spawn_inventory_ui.label(SPAWN_PLAYER_UI_LABEL))
+            )
+
+            .add_system_set(
+                SystemSet::on_update(GameState::InGame)
+                    .with_system(change_visibility)
+                    .with_system(select_hotbar_cell)
+                    .with_system(update_inventory_visibility)
+                    .with_system(update_selected_cell)
+                    .with_system(update_selected_item_name)
+                    .with_system(update_cell)
+                    .with_system(update_cell_image)
+                    .with_system(set_selected_item_name)
+                    .with_system(inventory_cell_background_hover)
+            );
     }
 }
 

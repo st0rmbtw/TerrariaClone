@@ -2,6 +2,8 @@ use std::time::Duration;
 
 use bevy::{prelude::*, diagnostic::{FrameTimeDiagnosticsPlugin, Diagnostics}};
 
+use crate::state::GameState;
+
 use super::{SPAWN_PLAYER_UI_LABEL, FontAssets};
 
 pub struct FpsPlugin;
@@ -10,8 +12,14 @@ impl Plugin for FpsPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app
             .add_plugin(FrameTimeDiagnosticsPlugin)
-            .add_startup_system(spawn_fps_text.after(SPAWN_PLAYER_UI_LABEL))
-            .add_system(update_fps_text);
+            .add_system_set(
+                SystemSet::on_enter(GameState::InGame)
+                    .with_system(spawn_fps_text.after(SPAWN_PLAYER_UI_LABEL))
+            )
+            .add_system_set(
+                SystemSet::on_update(GameState::InGame)
+                    .with_system(update_fps_text)
+            );
     }
 } 
 
