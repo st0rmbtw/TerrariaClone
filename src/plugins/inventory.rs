@@ -1,6 +1,6 @@
 use std::{collections::HashMap, borrow::Cow};
 
-use bevy::{prelude::{Plugin, App, Commands, Res, NodeBundle, default, Color, ImageBundle, Component, KeyCode, Query, ParallelSystemDescriptorCoercion, Changed, With, TextBundle, Image, Handle, Visibility, ResMut, Children}, ui::{AlignItems, Style, Val, FlexDirection, AlignContent, UiRect, Size, AlignSelf, UiImage, Interaction, FocusPolicy}, hierarchy::{BuildChildren, ChildBuilder}, input::Input, core::Name, text::{Text, TextAlignment, TextStyle}};
+use bevy::{prelude::{Plugin, App, Commands, Res, NodeBundle, default, Color, ImageBundle, Component, KeyCode, Query, ParallelSystemDescriptorCoercion, Changed, With, TextBundle, Image, Handle, Visibility, ResMut}, ui::{AlignItems, Style, Val, FlexDirection, AlignContent, UiRect, Size, AlignSelf, UiImage, Interaction, FocusPolicy}, hierarchy::{BuildChildren, ChildBuilder}, input::Input, core::Name, text::{Text, TextAlignment, TextStyle}};
 use bevy_inspector_egui::Inspectable;
 use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet};
 use smallvec::SmallVec;
@@ -182,7 +182,6 @@ fn spawn_inventory_ui(
             for i in 0..CELL_COUNT_IN_ROW {
                 spawn_inventory_cell(
                     children,
-                    UiRect::horizontal(2.),
                     format!("Hotbar Cell #{}", i),
                     ui_assets.inventory_back.clone(),
                     true,
@@ -223,7 +222,6 @@ fn spawn_inventory_ui(
 
                         spawn_inventory_cell(
                             children, 
-                            UiRect::horizontal(2.),
                             format!("Inventory Cell #{}", index),
                             ui_assets.inventory_back.clone(),
                             false,
@@ -287,7 +285,6 @@ fn update_selected_cell(
 
 fn spawn_inventory_cell(
     children: &mut ChildBuilder<'_, '_, '_>, 
-    margin: UiRect<Val>, 
     name: impl Into<Cow<'static, str>>, 
     cell_background: Handle<Image>,
     hotbar_cell: bool,
@@ -295,7 +292,7 @@ fn spawn_inventory_cell(
 ) {
     let mut background_image = ImageBundle {
         style: Style {
-            margin,
+            margin: UiRect::horizontal(2.),
             size: Size { 
                 width: INVENTORY_CELL_SIZE_VAL, 
                 height: INVENTORY_CELL_SIZE_VAL 

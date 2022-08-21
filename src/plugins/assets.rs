@@ -1,20 +1,27 @@
-use bevy::{prelude::{Plugin, AssetServer, Assets, Handle, App, Image, World}, sprite::TextureAtlas, math::Vec2, text::Font, asset::HandleUntyped};
-use bevy_asset_loader::prelude::{AssetCollection, AssetCollectionApp};
+use bevy::{prelude::{Plugin, AssetServer, Assets, Handle, App, Image, World, Res, ResMut}, sprite::TextureAtlas, math::Vec2, text::Font, asset::HandleUntyped, render::texture::ImageSampler};
+use bevy_asset_loader::prelude::{AssetCollection, LoadingStateAppExt, LoadingState};
 use bevy::ecs::world::Mut;
+use iyes_loopless::prelude::AppLooplessStateExt;
 
-use crate::block::BlockId;
+use crate::{block::BlockId, state::GameState, util::handles};
 
 pub struct AssetsPlugin;
 
 impl Plugin for AssetsPlugin {
     fn build(&self, app: &mut App) {
         app
-            .init_collection::<BlockAssets>()
-            .init_collection::<UiAssets>()
-            .init_collection::<PlayerAssets>()
-            .init_collection::<FontAssets>()
-            .init_collection::<ItemAssets>()
-            .init_collection::<CursorAssets>();
+            .add_loading_state(
+                LoadingState::new(GameState::AssetLoading)
+                    .continue_to_state(GameState::MainMenu)
+                    .with_collection::<BlockAssets>()
+                    .with_collection::<UiAssets>()
+                    .with_collection::<PlayerAssets>()
+                    .with_collection::<FontAssets>()
+                    .with_collection::<ItemAssets>()
+                    .with_collection::<CursorAssets>()
+                    .with_collection::<BackgroundAssets>()
+            )
+            .add_exit_system(GameState::AssetLoading, setup);
     }
 }
 
@@ -33,19 +40,22 @@ pub struct BlockAssets {
     pub stone: Handle<TextureAtlas>,
 }
 
-#[derive(AssetCollection)]
-pub struct UiAssets {
-    #[asset(path = "sprites/ui/InnerPanelBackground.png")]
-    pub iner_panel_background: Handle<Image>,
+handles! {
+    Handle<Image>,
+    #[derive(AssetCollection)]
+    pub struct UiAssets {
+        #[asset(path = "sprites/ui/InnerPanelBackground.png")]
+        pub iner_panel_background: Handle<Image>,
 
-    #[asset(path = "sprites/ui/PlayerBackground.png")]
-    pub player_background: Handle<Image>,
+        #[asset(path = "sprites/ui/PlayerBackground.png")]
+        pub player_background: Handle<Image>,
 
-    #[asset(path = "sprites/Inventory_Back.png")]
-    pub inventory_back: Handle<Image>,
+        #[asset(path = "sprites/Inventory_Back.png")]
+        pub inventory_back: Handle<Image>,
 
-    #[asset(path = "sprites/Inventory_Back14.png")]
-    pub selected_inventory_back: Handle<Image>,
+        #[asset(path = "sprites/Inventory_Back14.png")]
+        pub selected_inventory_back: Handle<Image>,
+    }
 }
 
 #[derive(AssetCollection)]
@@ -69,7 +79,7 @@ pub struct PlayerAssets {
     #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 64., columns = 18, rows = 1, padding_x = 0., padding_y = 0.))]
     #[asset(path = "sprites/player/Player_Right_Arm.png")]
     pub right_arm: Handle<TextureAtlas>,
- 
+
     #[asset(texture_atlas(tile_size_x = 40., tile_size_y = 48., columns = 1, rows = 14, padding_x = 0., padding_y = 0.))]
     #[asset(path = "sprites/player/Player_Hair_1.png")]
     pub hair: Handle<TextureAtlas>,
@@ -88,7 +98,7 @@ pub struct PlayerAssets {
 
     #[asset(texture_atlas(tile_size_x = 40., tile_size_y = 64., columns = 1, rows = 20, padding_x = 0., padding_y = 0.))]
     #[asset(path = "sprites/player/Player_0_2.png")]
-    pub eyes_2: Handle<TextureAtlas>
+    pub eyes_2: Handle<TextureAtlas>,
 }
 
 #[derive(AssetCollection)]
@@ -102,21 +112,52 @@ pub struct FontAssets {
 
 #[derive(AssetCollection)]
 pub struct ItemAssets {
-    #[asset(path = "sprites/Item_0.png")]
+    #[asset(path = "sprites/items/Item_0.png")]
     no_item: Handle<Image>,
 
-    #[asset(path = "sprites/Item_3509.png")]
+    #[asset(path = "sprites/items/Item_3509.png")]
     pub copper_pickaxe: Handle<Image>
 }
 
-#[derive(AssetCollection)]
-pub struct CursorAssets {
-    #[asset(path = "sprites/Cursor_0.png")]
-    pub cursor: Handle<Image>,
+handles! {
+    Handle<Image>,
+    #[derive(AssetCollection)]
+    pub struct CursorAssets {
+        #[asset(path = "sprites/ui/Cursor_0.png")]
+        pub cursor: Handle<Image>,
 
-    #[asset(path = "sprites/Cursor_11.png")]
-    pub cursor_background: Handle<Image>
+        #[asset(path = "sprites/ui/Cursor_11.png")]
+        pub cursor_background: Handle<Image>,
+    }
 }
+
+
+handles! {
+    Handle<TextureAtlas>,
+    #[derive(AssetCollection)]
+    pub struct BackgroundAssets {
+        #[asset(texture_atlas(tile_size_x = 1024., tile_size_y = 600., columns = 1, rows = 1))]
+        #[asset(path = "sprites/backgrounds/Background_7.png")]
+        pub background_7: Handle<TextureAtlas>,
+
+        #[asset(texture_atlas(tile_size_x = 1024., tile_size_y = 600., columns = 1, rows = 1))]
+        #[asset(path = "sprites/backgrounds/Background_90.png")]
+        pub background_90: Handle<TextureAtlas>,
+
+        #[asset(texture_atlas(tile_size_x = 1024., tile_size_y = 600., columns = 1, rows = 1))]
+        #[asset(path = "sprites/backgrounds/Background_91.png")]
+        pub background_91: Handle<TextureAtlas>,
+
+        #[asset(texture_atlas(tile_size_x = 1024., tile_size_y = 600., columns = 1, rows = 1))]
+        #[asset(path = "sprites/backgrounds/Background_92.png")]
+        pub background_92: Handle<TextureAtlas>,
+
+        #[asset(texture_atlas(tile_size_x = 2048., tile_size_y = 434., columns = 1, rows = 1))]
+        #[asset(path = "sprites/backgrounds/Background_112.png")]
+        pub background_112: Handle<TextureAtlas>,
+    }
+}
+
 
 impl ItemAssets {
     pub fn no_item(&self) -> Handle<Image> {
@@ -129,6 +170,30 @@ impl ItemAssets {
             3509 => self.copper_pickaxe.clone(),
             _ => self.no_item()
         }
+    }
+}
+
+fn setup(
+    mut images: ResMut<Assets<Image>>,
+    texture_atlasses: Res<Assets<TextureAtlas>>,
+    background_assets: Res<BackgroundAssets>,
+    ui_assets: Res<UiAssets>,
+    cursor_assets: Res<CursorAssets>
+) {
+    for handle in background_assets.handles() {
+        let atlas = texture_atlasses.get(handle).unwrap();
+        let mut image = images.get_mut(&atlas.texture).unwrap();
+
+        image.sampler_descriptor = ImageSampler::linear();
+    }
+
+    let mut handles = ui_assets.handles();
+    handles.append(&mut cursor_assets.handles());
+
+    for handle in handles.iter() {
+        let mut image = images.get_mut(&handle).unwrap();
+
+        image.sampler_descriptor = ImageSampler::linear();
     }
 }
 

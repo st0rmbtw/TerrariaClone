@@ -1,16 +1,18 @@
 use bevy::{prelude::*, window::PresentMode, asset::AssetServerSettings, render::texture::ImageSettings};
+use game::parallax::ParallaxPlugin;
 use bevy_rapier2d::plugin::{RapierPhysicsPlugin, NoUserData, RapierConfiguration};
-use bevy_tweening::TweeningPlugin;
-use game::{plugins::{PlayerPlugin, FpsPlugin, WorldPlugin, DebugPlugin, AssetsPlugin, SetupPlugin, MenuPlugin}, state::GameState};
+use game::{plugins::{PlayerPlugin, FpsPlugin, WorldPlugin, DebugPlugin, AssetsPlugin, SetupPlugin, MenuPlugin}, state::GameState, plugin::TweeningPlugin};
 use iyes_loopless::prelude::AppLooplessStateExt;
 
 fn main() {
     let mut app = App::new();
 
     app
+        .insert_resource(Msaa { samples: 4 })
         .insert_resource(WindowDescriptor {
             title: "Terraria".to_string(),
             present_mode: PresentMode::Immediate,
+            cursor_visible: false,
             ..default()
         })
         .insert_resource(AssetServerSettings {
@@ -23,12 +25,15 @@ fn main() {
             gravity: Vec2::new(0., -30.),
             ..default()
         })
-        .add_loopless_state(GameState::MainMenu)
+        .add_loopless_state(GameState::AssetLoading)
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.))
         .add_plugins(DefaultPlugins)
         .add_plugin(TweeningPlugin)
         .add_plugin(AssetsPlugin)
         .add_plugin(SetupPlugin)
+        .add_plugin(ParallaxPlugin {
+            initial_speed: 0.3,
+        })
         .add_plugin(MenuPlugin)
         .add_plugin(WorldPlugin)
         .add_plugin(PlayerPlugin)

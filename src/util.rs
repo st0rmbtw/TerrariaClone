@@ -65,3 +65,35 @@ impl<'w, 's, 'a> EntityCommandsExtensions<'w, 's, 'a> for EntityCommands<'w, 's,
 pub fn map_range(from_range: (usize, usize), to_range: (usize, usize), s: usize) -> usize {
     to_range.0 + (s - from_range.0) * (to_range.1 - to_range.0) / (from_range.1 - from_range.0)
 }
+
+macro_rules! handles{
+    (
+     $field_type:ty,
+     // meta data about struct
+     $(#[$meta:meta])* 
+     $vis:vis struct $struct_name:ident {
+        $(
+        // meta data about field
+        $(#[$field_meta:meta])*
+        $field_vis:vis $field_name:ident : $field_t:ty
+        ),*$(,)+
+    }
+    ) => {
+        $(#[$meta])*
+        pub struct $struct_name {
+            $(
+            $(#[$field_meta])*
+            pub $field_name : $field_type,
+            )*
+        }
+
+        impl $struct_name {
+            // This is purely an example—not a good one.
+            fn handles(&self) -> Vec<&$field_type> {
+                vec![$(&self.$field_name),*]
+            }
+        }
+    }
+}
+
+pub(crate) use handles;

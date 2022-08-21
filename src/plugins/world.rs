@@ -1,8 +1,8 @@
 use std::{time::{UNIX_EPOCH, SystemTime}, collections::LinkedList};
 
-use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, StartupStage, Vec2, BuildChildren, Component, SystemSet, ParallelSystemDescriptorCoercion}, sprite::{SpriteSheetBundle, TextureAtlasSprite}, core::Name, math::vec2};
+use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, Vec2, BuildChildren, Component}, sprite::{SpriteSheetBundle, TextureAtlasSprite}, core::Name, math::vec2};
 use bevy_rapier2d::prelude::{Collider, ActiveEvents, Friction, RigidBody, Restitution};
-use iyes_loopless::{prelude::{AppLooplessStateExt, ConditionSet}, state::NextState};
+use iyes_loopless::{prelude::{AppLooplessStateExt}, state::NextState};
 use ndarray::{Array2, s, ArrayView2};
 use rand::Rng;
 
@@ -35,7 +35,6 @@ fn spawn_terrain(
 ) {
     let current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
 
-    
     println!("Generating world...");
     let tiles = generate(current_time.as_millis() as u32);
     
@@ -92,19 +91,19 @@ fn load_chunk(commands: &mut Commands, block_assets: Res<BlockAssets>, tiles: &A
                 })
                 .insert(BlockMarker)
                 .insert(Name::new("Block Tile"))
-                .insert(RigidBody::Fixed)
-                .with_children(|cmd| {
-                    if iy <= 1 {
+                .insert(RigidBody::Fixed);
+                // .with_children(|cmd| {
+                //     if iy <= 1 {
  
-                        // cmd.spawn()
-                        //     .insert(Collider::cuboid(TILE_SIZE / 2., TILE_SIZE / 2.))
-                        //     .insert(ActiveEvents::COLLISION_EVENTS)
-                        //     .insert(Friction::coefficient(0.))
-                        //     .insert(Restitution::coefficient(0.))
-                        //     .insert(Name::new("Terrain Collider"));
+                //         cmd.spawn()
+                //             .insert(Collider::cuboid(TILE_SIZE / 2., TILE_SIZE / 2.))
+                //             .insert(ActiveEvents::COLLISION_EVENTS)
+                //             .insert(Friction::coefficient(0.))
+                //             .insert(Restitution::coefficient(0.))
+                //             .insert(Name::new("Terrain Collider"));
 
-                    }
-                });
+                //     }
+                // });
         }
     }
 }

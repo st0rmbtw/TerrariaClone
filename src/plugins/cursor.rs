@@ -1,9 +1,10 @@
 use std::time::Duration;
 
-use bevy::{prelude::{Plugin, App, Commands, Res, Camera, With, Query, Vec2, GlobalTransform, NodeBundle, Color, default, Component, Transform, ResMut, ImageBundle, BuildChildren, Without, TextBundle, Deref, DerefMut, Vec3, Name, ParallelSystemDescriptorCoercion, CoreStage, SystemSet}, window::Windows, render::camera::RenderTarget, ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignSelf, UiColor, AlignItems}, text::{Text, TextStyle}};
-use bevy_tweening::{Tween, EaseFunction, TweeningType, lens::TransformScaleLens, Animator, component_animator_system, AnimationSystem, TweeningDirection};
+use bevy::{prelude::{Plugin, App, Commands, Res, Camera, With, Query, Vec2, GlobalTransform, NodeBundle, Color, default, Component, Transform, ResMut, ImageBundle, BuildChildren, Without, TextBundle, Deref, DerefMut, Vec3, Name, ExclusiveSystemDescriptorCoercion}, window::Windows, render::camera::RenderTarget, ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignSelf, UiColor, AlignItems}, text::{Text, TextStyle}};
+use interpolation::EaseFunction;
+use iyes_loopless::{prelude::{AppLooplessStateExt, ConditionSet}, condition::IntoConditionalExclusiveSystem};
 
-use crate::{TRANSPARENT, lens::UiColorLens};
+use crate::{TRANSPARENT, lens::UiColorLens, tweenable::Tween, TweeningType, animation::lens::TransformScaleLens, TweeningDirection, Animator, plugin::{component_animator_system, AnimationSystem}, state::GameState};
 
 use super::{MainCamera, CursorAssets, FontAssets};
 
@@ -16,11 +17,20 @@ impl Plugin for CursorPlugin {
         app
             .insert_resource(HoveredInfo::default())
             .insert_resource(Cursor::default())
-            .add_startup_system(setup)
-            .add_system(update_cursor_position)
-            .add_system(update_hovered_info_position)
-            .add_system(update_hovered_info)
-            .add_system(component_animator_system::<UiColor>.label(AnimationSystem::AnimationUpdate));
+            .add_enter_system(GameState::MainMenu, setup)
+            .add_system_set(
+                ConditionSet::new()
+                    .run_not_in_state(GameState::AssetLoading)
+                    .with_system(update_cursor_position)
+                    .with_system(update_hovered_info_position)
+                    .with_system(update_hovered_info)
+                    .into()
+            )
+            .add_system(
+                component_animator_system::<UiColor>
+                    .run_not_in_state(GameState::AssetLoading)
+                    .label(AnimationSystem::AnimationUpdate)
+            );
     }
 }
 
@@ -56,24 +66,24 @@ fn setup(
     fonts: Res<FontAssets>
 ) {
     let animate_scale = Tween::new(
-        EaseFunction::CubicInOut,
+        EaseFunction::QuadraticInOut,
         TweeningType::PingPong,
         Duration::from_millis(500),
         TransformScaleLens {
-            start: Vec3::ONE,
-            end: Vec3::new(1.13, 1.13, 1.),
+            start: Vec3::new(1., 1., 1.),
+            end: Vec3::new(1.15, 1.15, 1.),
         },
     );
 
     let animate_color = Tween::new(
-        EaseFunction::CubicInOut,
+        EaseFunction::QuadraticInOut,
         TweeningType::PingPong,
         Duration::from_millis(500),
         UiColorLens {
-            start: Color::PINK,
-            end: Color::PINK * 0.7,
+            start: Color::PINK * 0.7,
+            end: Color::PINK,
         }
-    ).with_direction(TweeningDirection::Backward);
+    );
 
     commands.spawn_bundle(NodeBundle {
         style: Style {
@@ -82,8 +92,6 @@ fn setup(
             position_type: PositionType::Absolute,
             ..default()
         },
-        transform: Transform::from_xyz(0., 0., 0.3),
-        global_transform: GlobalTransform::from_xyz(0., 0., 0.3),
         color: TRANSPARENT.into(),
         ..default()
     })
@@ -144,26 +152,21 @@ fn setup(
 }
 
 fn update_cursor_position(
-    mut wnds: ResMut<Windows>,
+    wnds: Res<Windows>,
     mut cursor: ResMut<Cursor>,
     cemera_query: Query<(&Camera, &GlobalTransform), (With<MainCamera>, Without<CursorContainer>)>,
     mut cursor_query: Query<(&mut Style, &mut Transform, &mut GlobalTransform), With<CursorContainer>>
 ) {
     let (mut style, mut transform, mut global_transform) = cursor_query.single_mut();
 
-    transform.translation.z = 0.2;
-    global_transform.translation_mut().z = 0.2;
-
     if let Ok((camera, camera_transform)) = cemera_query.get_single() {
         let wnd = if let RenderTarget::Window(id) = camera.target {
-            wnds.get_mut(id)
+            wnds.get(id)
         } else {
-            wnds.get_primary_mut()
+            wnds.get_primary()
         };
 
         if let Some(wnd) = wnd {
-            wnd.set_cursor_visibility(false);
-
             if let Some(screen_pos) = wnd.cursor_position() {
                 style.position = UiRect {
                     left: Val::Px(screen_pos.x - 2.),
@@ -174,9 +177,7 @@ fn update_cursor_position(
                 cursor.position = screen_pos;
             }
         }
-    }
-
-    
+    } 
 }
 
 
