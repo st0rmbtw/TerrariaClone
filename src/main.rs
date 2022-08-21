@@ -2,6 +2,7 @@ use bevy::{prelude::*, window::PresentMode, asset::AssetServerSettings, render::
 use bevy_rapier2d::plugin::{RapierPhysicsPlugin, NoUserData, RapierConfiguration};
 use bevy_tweening::TweeningPlugin;
 use game::{plugins::{PlayerPlugin, FpsPlugin, WorldPlugin, DebugPlugin, AssetsPlugin, SetupPlugin, MenuPlugin}, state::GameState};
+use iyes_loopless::prelude::AppLooplessStateExt;
 
 fn main() {
     let mut app = App::new();
@@ -22,16 +23,16 @@ fn main() {
             gravity: Vec2::new(0., -30.),
             ..default()
         })
-        .add_state(GameState::MainMenu)
+        .add_loopless_state(GameState::MainMenu)
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.))
         .add_plugins(DefaultPlugins)
         .add_plugin(TweeningPlugin)
         .add_plugin(AssetsPlugin)
         .add_plugin(SetupPlugin)
-        .add_plugin(MenuPlugin);
-        // .add_plugin(WorldPlugin)
-        // .add_plugin(PlayerPlugin)
-        // .add_plugin(FpsPlugin);
+        .add_plugin(MenuPlugin)
+        .add_plugin(WorldPlugin)
+        .add_plugin(PlayerPlugin)
+        .add_plugin(FpsPlugin);
     
 
     #[cfg(debug_assertions)]

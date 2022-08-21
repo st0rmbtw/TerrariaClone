@@ -3,10 +3,11 @@ use std::{time::Duration, option::Option, collections::HashSet};
 use bevy::prelude::*;
 use bevy_inspector_egui::Inspectable;
 use bevy_rapier2d::{prelude::{RigidBody, Velocity, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce, Friction, GravityScale, ColliderMassProperties}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
+use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet};
 
 use crate::{util::{Lerp, map_range}, TRANSPARENT, state::GameState};
 
-use super::{PlayerAssets, FontAssets, PlayerInventoryPlugin, MainCamera, WorldSettings, BlockMarker};
+use super::{PlayerAssets, FontAssets, PlayerInventoryPlugin, MainCamera, WorldSettings, BlockMarker, SelectedItem};
 
 pub const PLAYER_SPRITE_WIDTH: f32 = 37.;
 pub const PLAYER_SPRITE_HEIGHT: f32 = 53.;
@@ -22,12 +23,15 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_plugin(PlayerInventoryPlugin)
+
             .insert_resource(AnimationIndex::default())
             .insert_resource(AnimationTimer(Timer::new(Duration::from_millis(80), true)))
 
-            .add_system_set(SystemSet::on_enter(GameState::InGame).with_system(spawn_player))
+            .add_enter_system(GameState::InGame, spawn_player)
+            
             .add_system_set(
-                SystemSet::on_update(GameState::InGame)
+                ConditionSet::new()
+                    .run_in_state(GameState::InGame)
                     .with_system(update_axis)
                     .with_system(update_movement_state)
                     .with_system(update_movement_direction)
@@ -35,15 +39,18 @@ impl Plugin for PlayerPlugin {
                     .with_system(update)
                     .with_system(check_is_on_ground)
                     .with_system(gravity)
+                    .into()
                 )
 
             .add_system_set_to_stage(
                 CoreStage::PreUpdate, 
-                SystemSet::on_update(GameState::InGame)
+                ConditionSet::new()
+                    .run_in_state(GameState::InGame)
                     .with_system(change_flip)
                     .with_system(update_animation_timer_duration)
                     .with_system(update_animation_index)
                     .with_system(sprite_animation)
+                    .into()
             );
     }
 }
@@ -635,6 +642,12 @@ fn sprite_animation(
     });
 }
 
+// TODO
+fn use_item(
+    selected_item: Res<SelectedItem<'static>>
+) {
+    
+}
 
 // TODO: Debug function, remove in feature
 #[cfg(debug_assertions)]

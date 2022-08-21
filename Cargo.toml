@@ -17,6 +17,7 @@ smallvec = "1.9.0"
 
 ndarray = "0.15.6"
 noise = "0.7.0"
+iyes_loopless = "0.7.1"
 
 [profile.dev]
 opt-level = 1

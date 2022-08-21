@@ -1,7 +1,8 @@
 use std::{time::{UNIX_EPOCH, SystemTime}, collections::LinkedList};
 
-use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, StartupStage, Vec2, BuildChildren, Component, SystemSet}, sprite::{SpriteSheetBundle, TextureAtlasSprite}, core::Name, math::vec2};
+use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, StartupStage, Vec2, BuildChildren, Component, SystemSet, ParallelSystemDescriptorCoercion}, sprite::{SpriteSheetBundle, TextureAtlasSprite}, core::Name, math::vec2};
 use bevy_rapier2d::prelude::{Collider, ActiveEvents, Friction, RigidBody, Restitution};
+use iyes_loopless::{prelude::{AppLooplessStateExt, ConditionSet}, state::NextState};
 use ndarray::{Array2, s, ArrayView2};
 use rand::Rng;
 
@@ -16,9 +17,7 @@ pub struct WorldPlugin;
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_system_set(
-                SystemSet::on_enter(GameState::InGame).with_system(spawn_terrain)
-            );
+            .add_enter_system(GameState::WorldLoading, spawn_terrain);
     }
 }
 
@@ -45,9 +44,10 @@ fn spawn_terrain(
         height: tiles.nrows() as u16
     });
 
-
     println!("Loading chunk...");
     load_chunk(&mut commands, block_assets, &tiles, (150, 100), ((tiles.ncols()) / 2, 0));
+
+    commands.insert_resource(NextState(GameState::InGame));
 }
 
 // size (width, height)

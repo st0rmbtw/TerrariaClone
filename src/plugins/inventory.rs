@@ -1,7 +1,8 @@
 use std::{collections::HashMap, borrow::Cow};
 
-use bevy::{prelude::{Plugin, App, Commands, Res, NodeBundle, default, Color, ImageBundle, Component, KeyCode, Query, ParallelSystemDescriptorCoercion, Changed, With, TextBundle, Image, Handle, Visibility, ResMut, Vec2, Children, SystemSet}, ui::{AlignItems, Style, Val, FlexDirection, AlignContent, UiRect, Size, AlignSelf, UiImage, Interaction, Node}, hierarchy::{BuildChildren, ChildBuilder}, input::Input, core::Name, text::{Text, TextAlignment, TextStyle}};
+use bevy::{prelude::{Plugin, App, Commands, Res, NodeBundle, default, Color, ImageBundle, Component, KeyCode, Query, ParallelSystemDescriptorCoercion, Changed, With, TextBundle, Image, Handle, Visibility, ResMut, Children}, ui::{AlignItems, Style, Val, FlexDirection, AlignContent, UiRect, Size, AlignSelf, UiImage, Interaction, FocusPolicy}, hierarchy::{BuildChildren, ChildBuilder}, input::Input, core::Name, text::{Text, TextAlignment, TextStyle}};
 use bevy_inspector_egui::Inspectable;
+use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet};
 use smallvec::SmallVec;
 
 use crate::{item::{Item, ITEM_COPPER_PICKAXE}, util::{RectExtensions, EntityCommandsExtensions}, TRANSPARENT, state::GameState};
@@ -14,13 +15,15 @@ pub const SPAWN_PLAYER_UI_LABEL: &str = "spawn_player_ui";
 const INVENTORY_ROWS_COUNT: usize = 5 - 1;
 
 const INVENTORY_CELL_SIZE_F: f32 = 42.;
+const INVENTORY_CELL_SIZE_BIGGER_F: f32 = INVENTORY_CELL_SIZE_F * 1.3;
+
 const INVENTORY_CELL_SIZE_VAL: Val = Val::Px(INVENTORY_CELL_SIZE_F);
-const INVENTORY_CELL_SIZE_BIGGER_VAL: Val = Val::Px(INVENTORY_CELL_SIZE_F * 1.3);
+const INVENTORY_CELL_SIZE_BIGGER_VAL: Val = Val::Px(INVENTORY_CELL_SIZE_BIGGER_F);
 
 const CELL_COUNT_IN_ROW: usize = 10;
 
-const DEFAULT_CURRENT_ITEM_NAME: &str = "Items";
-const CURRENT_ITEM_NAME_INVENTORY: &str = "Inventory";
+const ITEMS: &str = "Items";
+const INVENTORY: &str = "Inventory";
 
 lazy_static! {
     static ref KEYCODE_TO_DIGIT: HashMap<KeyCode, usize> = HashMap::from([
@@ -43,30 +46,28 @@ pub struct PlayerInventoryPlugin;
 impl Plugin for PlayerInventoryPlugin {
     fn build(&self, app: &mut App) {
         app
-            .insert_resource(SelectedItemName::default())
+            .init_resource::<SelectedItem>()
             .insert_resource({
                 let mut inventory = Inventory::default();
                 inventory.items.insert(0, Some(&ITEM_COPPER_PICKAXE));
 
                 inventory
             })
+            .add_enter_system(GameState::InGame, spawn_inventory_ui.label(SPAWN_PLAYER_UI_LABEL))
 
             .add_system_set(
-                SystemSet::on_enter(GameState::InGame)
-                    .with_system(spawn_inventory_ui.label(SPAWN_PLAYER_UI_LABEL))
-            )
-
-            .add_system_set(
-                SystemSet::on_update(GameState::InGame)
+                ConditionSet::new()
+                    .run_in_state(GameState::InGame)
                     .with_system(change_visibility)
+                    .with_system(set_selected_item)
                     .with_system(select_hotbar_cell)
                     .with_system(update_inventory_visibility)
                     .with_system(update_selected_cell)
                     .with_system(update_selected_item_name)
                     .with_system(update_cell)
                     .with_system(update_cell_image)
-                    .with_system(set_selected_item_name)
                     .with_system(inventory_cell_background_hover)
+                    .into()
             );
     }
 }
@@ -78,6 +79,12 @@ impl Plugin for PlayerInventoryPlugin {
 #[derive(Component, Default)]
 pub struct Inventory<'a> {
     pub items: SmallVec::<[Option<&'a Item>; 50]>
+}
+
+impl<'a> Inventory<'a> {
+    fn get_item(&self, index: usize) -> Option<&'a Item> {
+        self.items.iter().nth(index).and_then(|a| *a)
+    }
 }
 
 #[derive(Component, Default, Inspectable)]
@@ -93,11 +100,6 @@ struct HotbarUi {
 #[derive(Component)]
 struct HotbarCellMarker;
 
-#[derive(Default)]
-struct SelectedItemName {
-    name: Option<String>
-}
-
 #[derive(Component)]
 struct SelectedItemNameMarker;
 
@@ -111,6 +113,9 @@ struct InventoryCellItemImage {
     index: usize,
     item_image: Handle<Image>
 }
+
+#[derive(Component, Default)]
+pub struct SelectedItem<'a>(Option<&'a Item>);
 
 // endregion
 
@@ -204,7 +209,7 @@ fn spawn_inventory_ui(
                 children.spawn_bundle(NodeBundle {
                     style: Style {
                         margin: UiRect::vertical(2.),
-                        align_items: AlignItems::Center,
+                        // align_items: AlignItems::Center,
                         ..default()
                     },
                     color: TRANSPARENT.into(),
@@ -254,13 +259,12 @@ fn update_inventory_visibility(
 
 fn update_selected_cell(
     mut hotbar_cells: Query<(&mut Style, &mut UiImage), With<HotbarCellMarker>>,
-    hotbars: Query<&HotbarUi>,
-    inventories: Query<&InventoryUi>,
+    hotbar_query: Query<&HotbarUi>,
+    inventory_query: Query<&InventoryUi>,
     ui_assets: Res<UiAssets>
 ) {
-    let inventory = inventories.single();
-
-    let hotbar = hotbars.single();
+    let inventory = inventory_query.single();
+    let hotbar = hotbar_query.single();
 
     for (i, (mut style, mut image)) in hotbar_cells.iter_mut().enumerate() {
         let selected = i == hotbar.selected_cell;
@@ -290,11 +294,12 @@ fn spawn_inventory_cell(
     index: usize
 ) {
     let mut background_image = ImageBundle {
-        node: Node {
-            size: Vec2::new(INVENTORY_CELL_SIZE_F, INVENTORY_CELL_SIZE_F)
-        },
         style: Style {
             margin,
+            size: Size { 
+                width: INVENTORY_CELL_SIZE_VAL, 
+                height: INVENTORY_CELL_SIZE_VAL 
+            },
             align_self: AlignSelf::Center,
             ..default()
         },
@@ -308,9 +313,10 @@ fn spawn_inventory_cell(
         .spawn_bundle(background_image)
         .with_children(|c| {
             c.spawn_bundle(ImageBundle {
+                focus_policy: FocusPolicy::Pass,
                 style: Style {
                     flex_direction: FlexDirection::Column,
-                    margin: UiRect::all(Val::Px(10.)),
+                    margin: UiRect::all(Val::Px(8.)),
                     ..default()
                 },
                 ..default()
@@ -339,39 +345,34 @@ fn select_hotbar_cell(
     }
 }
 
-fn set_selected_item_name(
-    hotbars: Query<&HotbarUi, Changed<HotbarUi>>,
+fn set_selected_item(
     inventory: Res<Inventory<'static>>,
-    mut selected_item_name: ResMut<SelectedItemName>
+    mut selected_item: ResMut<SelectedItem<'static>>,
+    hotbar_query: Query<&HotbarUi, Changed<HotbarUi>>,
 ) {
-    if let Ok(hotbar) = hotbars.get_single() {
-        selected_item_name.name = if let Some(Some(item)) = inventory.items.iter().nth(hotbar.selected_cell) {
-            Some(item.name.clone())
-        } else {
-            None
-        }
+    if let Ok(hotbar) = hotbar_query.get_single() {
+        selected_item.0 = inventory.get_item(hotbar.selected_cell).map(|item| item);
     }
 }
 
 fn update_selected_item_name(
     inventories: Query<&InventoryUi>,
     mut query: Query<(&mut Text, &mut Style), With<SelectedItemNameMarker>>,
-    current_item_name: Res<SelectedItemName>
+    current_item: Res<SelectedItem<'static>>
 ) {
     let (mut text, mut style) = query.single_mut();
 
     let inventory = inventories.single();
 
     if inventory.showing {
-        text.sections[0].value = CURRENT_ITEM_NAME_INVENTORY.to_string();
+        text.sections[0].value = INVENTORY.to_string();
         style.align_self = AlignSelf::FlexStart;
     } else {
         style.align_self = AlignSelf::Center;
-        text.sections[0].value = if let Some(name) = &current_item_name.name {
+        text.sections[0].value = if let Some(name) = current_item.0.map(|item| &item.name) {
             name.clone()
         } else {
-            // TODO: Cyrillic symbols are showed incorrectly
-            DEFAULT_CURRENT_ITEM_NAME.to_string()
+            ITEMS.to_string()
         }
     }
 }
@@ -382,11 +383,10 @@ fn update_cell(
     item_assets: Res<ItemAssets>,
 ) {
     for mut cell_image in &mut item_images {
-        cell_image.item_image = if let Some(Some(item)) = inventory.items.iter().nth(cell_image.index) {
-            item_assets.get_by_id(item.id)
-        } else {
-            item_assets.no_item()
-        }
+        cell_image.item_image = inventory
+            .get_item(cell_image.index)
+            .map(|item| item_assets.get_by_id(item.id))
+            .unwrap_or(item_assets.no_item()) 
     }
 }
 
@@ -399,18 +399,13 @@ fn update_cell_image(
 }
 
 fn inventory_cell_background_hover(
-    interactions: Query<&Interaction>,
-    query: Query<(&Interaction, &InventoryCell, &Children), Changed<Interaction>>,
+    query: Query<(&Interaction, &InventoryCell), Changed<Interaction>>,
     inventory: Res<Inventory<'static>>,
     mut info: ResMut<HoveredInfo>
 ) {
-    for (interaction, cell, children) in &query {
-        if let Some(Some(item)) = inventory.items.iter().nth(cell.index) {
-            let any_children_hovered = children.iter()
-                .filter_map(|c| interactions.get(*c).ok())
-                .any(|i| matches!(i, Interaction::Hovered));
-
-            if *interaction == Interaction::Hovered || any_children_hovered {
+    for (interaction, cell) in &query {
+        if let Some(item) = inventory.get_item(cell.index) {
+            if *interaction == Interaction::Hovered  {
                 info.0 = item.name.clone();
             } else {
                 info.0 = "".to_string();

@@ -1,4 +1,5 @@
-use bevy::{prelude::{App, Plugin, Commands, TextBundle, Res, Color, SystemSet, NodeBundle, default, BuildChildren, Camera2dBundle, ButtonBundle, Changed, Query, Component, Transform, Vec3, Entity, With}, text::TextStyle, ui::{Style, Size, Val, JustifyContent, AlignItems, FlexDirection, UiRect, Interaction}};
+use bevy::{prelude::{App, Plugin, Commands, TextBundle, Res, Color, NodeBundle, default, BuildChildren, Camera2dBundle, ButtonBundle, Changed, Query, Component, Transform, Vec3, Entity, With, Button, DespawnRecursiveExt, EventWriter}, text::TextStyle, ui::{Style, Size, Val, JustifyContent, AlignItems, FlexDirection, UiRect, Interaction}, app::AppExit};
+use iyes_loopless::prelude::*;
 
 use crate::{state::GameState, TRANSPARENT, util::RectExtensions};
 
@@ -11,18 +12,17 @@ impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_startup_system(setup)
+            .add_enter_system(GameState::MainMenu, setup_main_menu)
             .add_system_set(
-                SystemSet::on_enter(GameState::MainMenu)
-                    .with_system(setup_main_menu)
-            )
-            .add_system_set(
-                SystemSet::on_update(GameState::MainMenu)
+                ConditionSet::new()
+                    .run_in_state(GameState::MainMenu)
                     .with_system(update_buttons)
+                    .with_system(single_player_btn.run_if(on_btn_clicked::<SinglePlayerButton>))
+                    .with_system(exit_btn.run_if(on_btn_clicked::<ExitButton>))
+                    .into()
             )
-            .add_system_set(
-                SystemSet::on_exit(GameState::MainMenu)
-                    .with_system(despawn_camera)
-            );
+            .add_exit_system(GameState::MainMenu, despawn_with::<MainCamera>)
+            .add_exit_system(GameState::MainMenu, despawn_with::<Menu>);
     }
 }
 // endregion
@@ -36,18 +36,34 @@ struct SettingsButton;
 #[derive(Component)]
 struct ExitButton;
 
+#[derive(Component)]
+struct Menu;
+
 fn setup(mut commands: Commands) {
     commands
         .spawn_bundle(Camera2dBundle::default())
         .insert(MainCamera);
 }
 
-fn despawn_camera(
-    query: Query<Entity, With<MainCamera>>,
+fn on_btn_clicked<B: Component>(
+    query: Query<&Interaction, (Changed<Interaction>, With<Button>, With<B>)>,
+) -> bool {
+    for interaction in query.iter() {
+        if *interaction == Interaction::Clicked {
+            return true;
+        }
+    }
+
+    false
+}
+
+fn despawn_with<C: Component>(
+    query: Query<Entity, With<C>>,
     mut commands: Commands
 ) {
-    let entity = query.single();
-    commands.entity(entity).despawn();
+    for entity in &query {
+        commands.entity(entity).despawn_recursive();
+    }
 }
 
 fn setup_main_menu(
@@ -69,6 +85,7 @@ fn setup_main_menu(
             color: TRANSPARENT.into(),
             ..default()
         })
+        .insert(Menu)
         .with_children(|children| {
             children.spawn_bundle(ButtonBundle {
                 style: Style {
@@ -139,7 +156,7 @@ fn setup_main_menu(
 }
 
 fn update_buttons(
-    mut query: Query<(&Interaction, &mut Transform), Changed<Interaction>>
+    mut query: Query<(&Interaction, &mut Transform), (With<Button>, Changed<Interaction>)>
 ) {
     for (interaction, mut transform) in query.iter_mut() {
         match interaction {
@@ -152,4 +169,16 @@ fn update_buttons(
             }
         }
     }
+}
+
+fn single_player_btn(
+    mut commands: Commands,
+) {
+    commands.insert_resource(NextState(GameState::WorldLoading));
+}
+
+fn exit_btn(
+    mut ev: EventWriter<AppExit>
+) {
+    ev.send(AppExit);
 }

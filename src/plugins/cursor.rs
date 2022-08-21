@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use bevy::{prelude::{Plugin, App, Commands, Res, Camera, With, Query, Vec2, GlobalTransform, NodeBundle, Color, default, Component, Transform, ResMut, ImageBundle, BuildChildren, Without, TextBundle, Deref, DerefMut, Vec3, Name, ParallelSystemDescriptorCoercion}, window::Windows, render::camera::RenderTarget, ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignSelf, UiColor, AlignItems}, text::{Text, TextStyle}};
+use bevy::{prelude::{Plugin, App, Commands, Res, Camera, With, Query, Vec2, GlobalTransform, NodeBundle, Color, default, Component, Transform, ResMut, ImageBundle, BuildChildren, Without, TextBundle, Deref, DerefMut, Vec3, Name, ParallelSystemDescriptorCoercion, CoreStage, SystemSet}, window::Windows, render::camera::RenderTarget, ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignSelf, UiColor, AlignItems}, text::{Text, TextStyle}};
 use bevy_tweening::{Tween, EaseFunction, TweeningType, lens::TransformScaleLens, Animator, component_animator_system, AnimationSystem, TweeningDirection};
 
 use crate::{TRANSPARENT, lens::UiColorLens};
@@ -18,8 +18,8 @@ impl Plugin for CursorPlugin {
             .insert_resource(Cursor::default())
             .add_startup_system(setup)
             .add_system(update_cursor_position)
-            .add_system(update_hovered_info)
             .add_system(update_hovered_info_position)
+            .add_system(update_hovered_info)
             .add_system(component_animator_system::<UiColor>.label(AnimationSystem::AnimationUpdate));
     }
 }
@@ -82,6 +82,8 @@ fn setup(
             position_type: PositionType::Absolute,
             ..default()
         },
+        transform: Transform::from_xyz(0., 0., 0.3),
+        global_transform: GlobalTransform::from_xyz(0., 0., 0.3),
         color: TRANSPARENT.into(),
         ..default()
     })
@@ -144,32 +146,37 @@ fn setup(
 fn update_cursor_position(
     mut wnds: ResMut<Windows>,
     mut cursor: ResMut<Cursor>,
-    q_camera: Query<(&Camera, &GlobalTransform), (With<MainCamera>, Without<CursorContainer>)>,
-    mut query: Query<(&mut Style, &mut Transform, &mut GlobalTransform), With<CursorContainer>>
+    cemera_query: Query<(&Camera, &GlobalTransform), (With<MainCamera>, Without<CursorContainer>)>,
+    mut cursor_query: Query<(&mut Style, &mut Transform, &mut GlobalTransform), With<CursorContainer>>
 ) {
-    let (mut style, mut transform, mut global_transform) = query.single_mut();
+    let (mut style, mut transform, mut global_transform) = cursor_query.single_mut();
 
-    let (camera, camera_transform) = q_camera.single();
-    
-    let wnd = if let RenderTarget::Window(id) = camera.target {
-        wnds.get_mut(id)
-    } else {
-        wnds.get_primary_mut()
-    };
+    transform.translation.z = 0.2;
+    global_transform.translation_mut().z = 0.2;
 
-    if let Some(wnd) = wnd {
-        wnd.set_cursor_visibility(false);
+    if let Ok((camera, camera_transform)) = cemera_query.get_single() {
+        let wnd = if let RenderTarget::Window(id) = camera.target {
+            wnds.get_mut(id)
+        } else {
+            wnds.get_primary_mut()
+        };
 
-        if let Some(screen_pos) = wnd.cursor_position() {
-            style.position = UiRect {
-                left: Val::Px(screen_pos.x - 2.),
-                bottom: Val::Px(screen_pos.y - 20.),
-                ..default()
-            };
+        if let Some(wnd) = wnd {
+            wnd.set_cursor_visibility(false);
 
-            cursor.position = screen_pos;
+            if let Some(screen_pos) = wnd.cursor_position() {
+                style.position = UiRect {
+                    left: Val::Px(screen_pos.x - 2.),
+                    bottom: Val::Px(screen_pos.y - 20.),
+                    ..default()
+                };
+
+                cursor.position = screen_pos;
+            }
         }
     }
+
+    
 }
 
 
