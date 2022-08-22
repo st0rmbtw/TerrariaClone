@@ -1,6 +1,6 @@
 use bevy::{prelude::{Color, Vec4}, ui::UiColor};
 
-use crate::animation::lens::Lens;
+use crate::animation::Lens;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct UiColorLens {

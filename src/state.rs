@@ -1,3 +1,5 @@
+use bevy_inspector_egui::Inspectable;
+
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum GameState {
@@ -6,4 +8,13 @@ pub enum GameState {
     WorldLoading,
     InGame,
     Paused
+}
+
+#[derive(Default, Clone, Copy, PartialEq, Eq, Inspectable)]
+pub enum MovementState {
+    #[default]
+    IDLE,
+    WALKING,
+    FLYING,
+    FALLING
 }

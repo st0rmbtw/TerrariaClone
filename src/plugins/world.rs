@@ -1,6 +1,6 @@
 use std::{time::{UNIX_EPOCH, SystemTime}, collections::LinkedList};
 
-use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, Vec2, BuildChildren, Component}, sprite::{SpriteSheetBundle, TextureAtlasSprite}, core::Name, math::vec2};
+use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, Vec2, Component}, sprite::{SpriteSheetBundle, TextureAtlasSprite}, core::Name, math::vec2};
 use bevy_rapier2d::prelude::{Collider, ActiveEvents, Friction, RigidBody, Restitution};
 use iyes_loopless::{prelude::{AppLooplessStateExt}, state::NextState};
 use ndarray::{Array2, s, ArrayView2};

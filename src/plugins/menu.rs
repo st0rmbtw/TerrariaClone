@@ -1,7 +1,7 @@
 use std::time::Duration;
 
-use bevy::{prelude::{App, Plugin, Commands, TextBundle, Res, Color, NodeBundle, default, BuildChildren, Camera2dBundle, ButtonBundle, Changed, Query, Component, Transform, Vec3, Entity, With, Button, DespawnRecursiveExt, EventWriter, Children, Vec2, ResMut}, text::{TextStyle, Text}, ui::{Style, Size, Val, JustifyContent, AlignItems, FlexDirection, UiRect, Interaction}, app::AppExit, window::Windows};
-use crate::{animation::{EaseFunction, lens::TransformScaleLens, Animator, AnimatorState}, TweeningType, tweenable::Tween, TweeningDirection, parallax::{LayerData, ParallaxResource, ParallaxCameraComponent}};
+use bevy::{prelude::{App, Plugin, Commands, TextBundle, Res, Color, NodeBundle, default, BuildChildren, Camera2dBundle, ButtonBundle, Changed, Query, Component, Transform, Vec3, Entity, With, Button, DespawnRecursiveExt, EventWriter, Children, Vec2, ResMut, ChildBuilder}, text::{TextStyle, Text}, ui::{Style, Size, Val, JustifyContent, AlignItems, FlexDirection, UiRect, Interaction}, app::AppExit, window::Windows};
+use crate::{animation::{EaseFunction, Animator, AnimatorState, Tween, TweeningType, TransformScaleLens, TweeningDirection}, parallax::{LayerData, ParallaxResource, ParallaxCameraComponent}};
 use iyes_loopless::prelude::*;
 
 use crate::{state::GameState, TRANSPARENT, util::RectExtensions};
@@ -169,6 +169,27 @@ fn setup_background(
     });
 }
 
+fn menu_button(children: &mut ChildBuilder, text_style: TextStyle, button_name: &str, marker: impl Component) {
+    children.spawn_bundle(ButtonBundle {
+        style: Style {
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
+            margin: UiRect::vertical(7.),
+            ..default()
+        },
+        color: TRANSPARENT.into(),
+        ..default()
+    })
+    .insert(Animator::new(text_tween()).with_state(AnimatorState::Paused))
+    .insert(marker)
+    .with_children(|c| {
+        c.spawn_bundle(TextBundle::from_section(
+            button_name, 
+            text_style.clone()
+        ));
+    });
+}
+
 fn setup_main_menu(
     mut commands: Commands,
     fonts: Res<FontAssets>
@@ -196,62 +217,9 @@ fn setup_main_menu(
         })
         .insert(Menu)
         .with_children(|children| {
-            children.spawn_bundle(ButtonBundle {
-                style: Style {
-                    justify_content: JustifyContent::Center,
-                    align_items: AlignItems::Center,
-                    margin: UiRect::vertical(7.),
-                    ..default()
-                },
-                color: TRANSPARENT.into(),
-                ..default()
-            })
-            .insert(Animator::new(text_tween()).with_state(AnimatorState::Paused))
-            .insert(SinglePlayerButton)
-            .with_children(|c| {
-                c.spawn_bundle(TextBundle::from_section(
-                    "Single Player", 
-                    text_style.clone()
-                ));
-            });
-
-            children.spawn_bundle(ButtonBundle {
-                style: Style {
-                    justify_content: JustifyContent::Center,
-                    align_items: AlignItems::Center,
-                    margin: UiRect::vertical(10.),
-                    ..default()
-                },
-                color: TRANSPARENT.into(),
-                ..default()
-            })
-            .insert(Animator::new(text_tween()).with_state(AnimatorState::Paused))
-            .insert(SettingsButton)
-            .with_children(|c| {
-                c.spawn_bundle(TextBundle::from_section(
-                    "Settings", 
-                    text_style.clone()
-                ));
-            });
-
-            children.spawn_bundle(ButtonBundle {
-                style: Style {
-                    justify_content: JustifyContent::Center,
-                    align_items: AlignItems::Center,
-                    margin: UiRect::vertical(10.),
-                    ..default()
-                },
-                color: TRANSPARENT.into(),
-                ..default()
-            })
-            .insert(Animator::new(text_tween()).with_state(AnimatorState::Paused))
-            .insert(ExitButton)
-            .with_children(|c| {
-                c.spawn_bundle(TextBundle::from_section(
-                    "Exit", 
-                    text_style.clone()
-                ));
-            });
+            menu_button(children, text_style.clone(), "Single Player", SinglePlayerButton);
+            menu_button(children, text_style.clone(), "Settings", SettingsButton);
+            menu_button(children, text_style.clone(), "Exit", ExitButton);
         });
 }
 

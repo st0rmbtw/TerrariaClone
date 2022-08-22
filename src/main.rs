@@ -1,7 +1,7 @@
 use bevy::{prelude::*, window::PresentMode, asset::AssetServerSettings, render::texture::ImageSettings};
-use game::parallax::ParallaxPlugin;
+use game::{parallax::ParallaxPlugin, animation::TweeningPlugin};
 use bevy_rapier2d::plugin::{RapierPhysicsPlugin, NoUserData, RapierConfiguration};
-use game::{plugins::{PlayerPlugin, FpsPlugin, WorldPlugin, DebugPlugin, AssetsPlugin, SetupPlugin, MenuPlugin}, state::GameState, plugin::TweeningPlugin};
+use game::{plugins::{PlayerPlugin, FpsPlugin, WorldPlugin, AssetsPlugin, SetupPlugin, MenuPlugin}, state::GameState};
 use iyes_loopless::prelude::AppLooplessStateExt;
 
 fn main() {
@@ -41,7 +41,7 @@ fn main() {
     
 
     #[cfg(debug_assertions)]
-    app.add_plugin(DebugPlugin);
+    app.add_plugin(game::plugins::DebugPlugin);
 
     app.run();
 }

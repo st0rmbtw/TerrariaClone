@@ -5,7 +5,7 @@ use bevy_inspector_egui::Inspectable;
 use bevy_rapier2d::{prelude::{RigidBody, Velocity, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce, Friction, GravityScale, ColliderMassProperties}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
 use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet};
 
-use crate::{util::{Lerp, map_range}, TRANSPARENT, state::GameState};
+use crate::{util::{Lerp, map_range}, TRANSPARENT, state::{GameState, MovementState}};
 
 use super::{PlayerAssets, FontAssets, PlayerInventoryPlugin, MainCamera, WorldSettings, BlockMarker, SelectedItem};
 
@@ -69,15 +69,7 @@ struct PlayerCoords;
 pub struct Movement {
     direction: FaceDirection,
     state: MovementState
-}
-
-#[derive(Default, Clone, Copy, PartialEq, Eq, Inspectable)]
-pub enum MovementState {
-    #[default]
-    IDLE,
-    WALKING,
-    FLYING
-}
+}   
 
 #[derive(Default, PartialEq, Eq, Inspectable, Clone, Copy)]
 pub enum FaceDirection {
@@ -132,6 +124,10 @@ struct FlyingAnimationData {
     flying: usize
 }
 
+#[derive(Component, Clone, Copy)]
+struct FallingAnimationData {
+    falling: usize
+}
 
 // endregion
 
@@ -279,6 +275,9 @@ fn spawn_player(
             .insert(FlyingAnimationData {
                 flying: 2
             })
+            .insert(FallingAnimationData {
+                falling: 13
+            })
             .insert(Name::new("Player left shoulder"));
 
             cmd.spawn_bundle(SpriteSheetBundle {
@@ -299,6 +298,9 @@ fn spawn_player(
             })
             .insert(FlyingAnimationData {
                 flying: 2
+            })
+            .insert(FallingAnimationData {
+                falling: 13
             })
             .insert(Name::new("Player left hand"));
             // endregion
@@ -322,6 +324,9 @@ fn spawn_player(
             })
             .insert(FlyingAnimationData {
                 flying: 13
+            })
+            .insert(FallingAnimationData {
+                falling: 0
             })
             .insert(Name::new("Player right hand"));
             // endregion
@@ -529,7 +534,10 @@ fn update_movement_state(
     movement.state = match velocity.linvel {
         Vec2 { x, .. } if x != 0. && on_ground => MovementState::WALKING,
         _ => match on_ground {
-            false => MovementState::FLYING,
+            false => match velocity.linvel {
+                Vec2 { y, .. } if y < 0. => MovementState::FLYING,
+                _ => MovementState::FALLING
+            },
             _ => MovementState::IDLE
         },
     };
@@ -621,22 +629,32 @@ fn sprite_animation(
         &Handle<TextureAtlas>, 
         Option<&WalkingAnimationData>, 
         Option<&IdleAnimationData>,
-        Option<&FlyingAnimationData>
+        Option<&FlyingAnimationData>,
+        Option<&FallingAnimationData>,
     ), Without<BlockMarker>>,
 ) {
     let movement = player_query.single();
 
-    query.for_each_mut(|(mut sprite, texture_atlas_handle, anim_data, idle_anim_data, flying_anim_data)| {
+    query.for_each_mut(|(
+        mut sprite, 
+        texture_atlas_handle, 
+        anim_data, 
+        idle_anim_data, 
+        flying_anim_data, 
+        falling_anim_data
+    )| {
         let texture_atlas = texture_atlases.get(texture_atlas_handle).unwrap();
 
         let anim_offset = anim_data.map(|data| data.offset).unwrap_or(0);
         let anim_count = anim_data.map(|data| data.count).unwrap_or(texture_atlas.textures.len());
         let idle_anim_index = idle_anim_data.map(|data| data.idle).unwrap_or(0);
         let flying_anim_index = flying_anim_data.map(|data| data.flying).unwrap_or(0);
+        let falling_anim_index = falling_anim_data.map(|data| data.falling).unwrap_or(flying_anim_index);
 
         sprite.index = match movement.state {
             MovementState::IDLE => idle_anim_index,
             MovementState::FLYING => flying_anim_index,
+            MovementState::FALLING => falling_anim_index,
             MovementState::WALKING => anim_offset + map_range((0, WALKING_ANIMATION_MAX_INDEX), (0, anim_count), index.0)
         }
     });
@@ -644,7 +662,7 @@ fn sprite_animation(
 
 // TODO
 fn use_item(
-    selected_item: Res<SelectedItem<'static>>
+    selected_item: Res<SelectedItem>
 ) {
     
 }

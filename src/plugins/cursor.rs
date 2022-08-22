@@ -1,10 +1,10 @@
 use std::time::Duration;
 
-use bevy::{prelude::{Plugin, App, Commands, Res, Camera, With, Query, Vec2, GlobalTransform, NodeBundle, Color, default, Component, Transform, ResMut, ImageBundle, BuildChildren, Without, TextBundle, Deref, DerefMut, Vec3, Name, ExclusiveSystemDescriptorCoercion}, window::Windows, render::camera::RenderTarget, ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignSelf, UiColor, AlignItems}, text::{Text, TextStyle}};
+use bevy::{prelude::{Plugin, App, Commands, Res, Camera, With, Query, Vec2, GlobalTransform, NodeBundle, Color, default, Component, Transform, ResMut, ImageBundle, BuildChildren, Without, TextBundle, Deref, DerefMut, Vec3, Name}, window::Windows, render::camera::RenderTarget, ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignSelf, UiColor, AlignItems}, text::{Text, TextStyle}};
 use interpolation::EaseFunction;
-use iyes_loopless::{prelude::{AppLooplessStateExt, ConditionSet}, condition::IntoConditionalExclusiveSystem};
+use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet, IntoConditionalSystem};
 
-use crate::{TRANSPARENT, lens::UiColorLens, tweenable::Tween, TweeningType, animation::lens::TransformScaleLens, TweeningDirection, Animator, plugin::{component_animator_system, AnimationSystem}, state::GameState};
+use crate::{TRANSPARENT, lens::UiColorLens, state::GameState, animation::{component_animator_system, AnimationSystem, Tween, TweeningType, TransformScaleLens, Animator}};
 
 use super::{MainCamera, CursorAssets, FontAssets};
 

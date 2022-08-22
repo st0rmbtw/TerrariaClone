@@ -1,11 +1,11 @@
 use std::{collections::HashMap, borrow::Cow};
 
-use bevy::{prelude::{Plugin, App, Commands, Res, NodeBundle, default, Color, ImageBundle, Component, KeyCode, Query, ParallelSystemDescriptorCoercion, Changed, With, TextBundle, Image, Handle, Visibility, ResMut}, ui::{AlignItems, Style, Val, FlexDirection, AlignContent, UiRect, Size, AlignSelf, UiImage, Interaction, FocusPolicy}, hierarchy::{BuildChildren, ChildBuilder}, input::Input, core::Name, text::{Text, TextAlignment, TextStyle}};
+use bevy::{prelude::{Plugin, App, Commands, Res, NodeBundle, default, Color, ImageBundle, Component, KeyCode, Query, ParallelSystemDescriptorCoercion, Changed, With, TextBundle, Image, Handle, Visibility, ResMut}, ui::{AlignItems, Style, Val, FlexDirection, AlignContent, UiRect, Size, AlignSelf, UiImage, Interaction, FocusPolicy, JustifyContent}, hierarchy::{BuildChildren, ChildBuilder}, input::Input, core::Name, text::{Text, TextAlignment, TextStyle}};
 use bevy_inspector_egui::Inspectable;
 use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet};
 use smallvec::SmallVec;
 
-use crate::{item::{Item, ITEM_COPPER_PICKAXE}, util::{RectExtensions, EntityCommandsExtensions}, TRANSPARENT, state::GameState};
+use crate::{item::{Item, ITEM_COPPER_PICKAXE, ITEM_DATA, ItemId, ItemData}, util::{RectExtensions, EntityCommandsExtensions}, TRANSPARENT, state::GameState};
 
 use super::{UiAssets, FontAssets, ItemAssets, HoveredInfo};
 
@@ -14,16 +14,18 @@ pub const SPAWN_PLAYER_UI_LABEL: &str = "spawn_player_ui";
 // 5 is a total count of inventory rows. -1 because the hotbar is a first row
 const INVENTORY_ROWS_COUNT: usize = 5 - 1;
 
+// region: Inventory cell size
 const INVENTORY_CELL_SIZE_F: f32 = 42.;
 const INVENTORY_CELL_SIZE_BIGGER_F: f32 = INVENTORY_CELL_SIZE_F * 1.3;
 
 const INVENTORY_CELL_SIZE_VAL: Val = Val::Px(INVENTORY_CELL_SIZE_F);
 const INVENTORY_CELL_SIZE_BIGGER_VAL: Val = Val::Px(INVENTORY_CELL_SIZE_BIGGER_F);
+// endregion
 
 const CELL_COUNT_IN_ROW: usize = 10;
 
-const ITEMS: &str = "Items";
-const INVENTORY: &str = "Inventory";
+const ITEMS_STRING: &str = "Items";
+const INVENTORY_STRING: &str = "Inventory";
 
 lazy_static! {
     static ref KEYCODE_TO_DIGIT: HashMap<KeyCode, usize> = HashMap::from([
@@ -49,7 +51,7 @@ impl Plugin for PlayerInventoryPlugin {
             .init_resource::<SelectedItem>()
             .insert_resource({
                 let mut inventory = Inventory::default();
-                inventory.items.insert(0, Some(&ITEM_COPPER_PICKAXE));
+                inventory.items.insert(0, Some(ITEM_COPPER_PICKAXE));
 
                 inventory
             })
@@ -77,12 +79,12 @@ impl Plugin for PlayerInventoryPlugin {
 // region: Structs
 
 #[derive(Component, Default)]
-pub struct Inventory<'a> {
-    pub items: SmallVec::<[Option<&'a Item>; 50]>
+pub struct Inventory {
+    pub items: SmallVec::<[Option<Item>; 50]>
 }
 
-impl<'a> Inventory<'a> {
-    fn get_item(&self, index: usize) -> Option<&'a Item> {
+impl Inventory {
+    fn get_item(&self, index: usize) -> Option<Item> {
         self.items.iter().nth(index).and_then(|a| *a)
     }
 }
@@ -115,9 +117,15 @@ struct InventoryCellItemImage {
 }
 
 #[derive(Component, Default)]
-pub struct SelectedItem<'a>(Option<&'a Item>);
+pub struct SelectedItem(Option<Item>);
 
 // endregion
+
+
+fn get_item_data_by_id<'a>(id: &ItemId) -> &'a ItemData {
+    ITEM_DATA.get(id).expect("Item not found")
+}
+
 
 fn spawn_inventory_ui(
     mut commands: Commands,
@@ -198,6 +206,7 @@ fn spawn_inventory_ui(
             style: Style {
                 flex_direction: FlexDirection::ColumnReverse,
                 align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
                 ..default()
             },
             color: TRANSPARENT.into(),
@@ -208,7 +217,8 @@ fn spawn_inventory_ui(
                 children.spawn_bundle(NodeBundle {
                     style: Style {
                         margin: UiRect::vertical(2.),
-                        // align_items: AlignItems::Center,
+                        align_items: AlignItems::Center,
+                        justify_content: JustifyContent::Center,
                         ..default()
                     },
                     color: TRANSPARENT.into(),
@@ -256,7 +266,7 @@ fn update_inventory_visibility(
 }
 
 fn update_selected_cell(
-    mut hotbar_cells: Query<(&mut Style, &mut UiImage), With<HotbarCellMarker>>,
+    mut hotbar_cells: Query<(&InventoryCell, &mut Style, &mut UiImage), With<HotbarCellMarker>>,
     hotbar_query: Query<&HotbarUi>,
     inventory_query: Query<&InventoryUi>,
     ui_assets: Res<UiAssets>
@@ -264,17 +274,16 @@ fn update_selected_cell(
     let inventory = inventory_query.single();
     let hotbar = hotbar_query.single();
 
-    for (i, (mut style, mut image)) in hotbar_cells.iter_mut().enumerate() {
-        let selected = i == hotbar.selected_cell;
+    for (cell, mut style, mut image) in hotbar_cells.iter_mut() {
+        let selected = cell.index == hotbar.selected_cell;
         if selected {
-            image.0 = ui_assets.selected_inventory_back.clone();
-
-            if !inventory.showing {
-                style.size = Size::new(INVENTORY_CELL_SIZE_BIGGER_VAL, INVENTORY_CELL_SIZE_BIGGER_VAL);
+            style.size = if inventory.showing {
+                Size::new(INVENTORY_CELL_SIZE_VAL, INVENTORY_CELL_SIZE_VAL)
             } else {
-                style.size = Size::new(INVENTORY_CELL_SIZE_VAL, INVENTORY_CELL_SIZE_VAL);
-            }
+                Size::new(INVENTORY_CELL_SIZE_BIGGER_VAL, INVENTORY_CELL_SIZE_BIGGER_VAL)
+            };
 
+            image.0 = ui_assets.selected_inventory_back.clone();
         } else {
             style.size = Size::new(INVENTORY_CELL_SIZE_VAL, INVENTORY_CELL_SIZE_VAL);
 
@@ -343,39 +352,44 @@ fn select_hotbar_cell(
 }
 
 fn set_selected_item(
-    inventory: Res<Inventory<'static>>,
-    mut selected_item: ResMut<SelectedItem<'static>>,
+    inventory: Res<Inventory>,
+    mut selected_item: ResMut<SelectedItem>,
     hotbar_query: Query<&HotbarUi, Changed<HotbarUi>>,
 ) {
     if let Ok(hotbar) = hotbar_query.get_single() {
-        selected_item.0 = inventory.get_item(hotbar.selected_cell).map(|item| item);
+        selected_item.0 = inventory
+            .get_item(hotbar.selected_cell)
+            .map(|item| item);
     }
 }
 
 fn update_selected_item_name(
     inventories: Query<&InventoryUi>,
     mut query: Query<(&mut Text, &mut Style), With<SelectedItemNameMarker>>,
-    current_item: Res<SelectedItem<'static>>
+    current_item: Res<SelectedItem>
 ) {
     let (mut text, mut style) = query.single_mut();
 
     let inventory = inventories.single();
 
     if inventory.showing {
-        text.sections[0].value = INVENTORY.to_string();
+        text.sections[0].value = INVENTORY_STRING.to_string();
         style.align_self = AlignSelf::FlexStart;
     } else {
         style.align_self = AlignSelf::Center;
-        text.sections[0].value = if let Some(name) = current_item.0.map(|item| &item.name) {
-            name.clone()
+
+        let name = current_item.0.map(|item| get_item_data_by_id(&item.id).name);
+
+        text.sections[0].value = if let Some(name) = name {
+            name.to_string()
         } else {
-            ITEMS.to_string()
+            ITEMS_STRING.to_string()
         }
     }
 }
 
 fn update_cell(
-    inventory: Res<Inventory<'static>>,
+    inventory: Res<Inventory>,
     mut item_images: Query<&mut InventoryCellItemImage>,
     item_assets: Res<ItemAssets>,
 ) {
@@ -397,13 +411,13 @@ fn update_cell_image(
 
 fn inventory_cell_background_hover(
     query: Query<(&Interaction, &InventoryCell), Changed<Interaction>>,
-    inventory: Res<Inventory<'static>>,
+    inventory: Res<Inventory>,
     mut info: ResMut<HoveredInfo>
 ) {
     for (interaction, cell) in &query {
         if let Some(item) = inventory.get_item(cell.index) {
-            if *interaction == Interaction::Hovered  {
-                info.0 = item.name.clone();
+            if *interaction != Interaction::None {
+                info.0 = get_item_data_by_id(&item.id).name.to_string();
             } else {
                 info.0 = "".to_string();
             }

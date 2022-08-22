@@ -2,7 +2,8 @@ use bevy::prelude::{Plugin, App};
 use bevy_inspector_egui::{WorldInspectorPlugin, RegisterInspectable};
 use bevy_rapier2d::prelude::RapierDebugRenderPlugin;
 
-use super::{Movement, MovementState, SpeedCoefficient};
+use super::{Movement, SpeedCoefficient};
+use crate::{state::MovementState};
 
 pub struct DebugPlugin;
 

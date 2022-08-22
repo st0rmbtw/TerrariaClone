@@ -20,7 +20,7 @@ pub struct MainCamera;
 
 const MAX_CAMERA_ZOOM: f32 = 1.;
 const MIN_CAMERA_ZOOM: f32 = 0.4;
-const CAMERA_ZOOM_STEP: f32 = 0.2;
+const CAMERA_ZOOM_STEP: f32 = 0.3;
 
 fn zoom(
     time: Res<Time>,

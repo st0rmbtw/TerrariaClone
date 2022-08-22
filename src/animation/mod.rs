@@ -1,6 +1,10 @@
-pub mod lens;
-pub mod plugin;
-pub mod tweenable;
+mod lens;
+mod plugin;
+mod tweenable;
+
+pub use lens::*;
+pub use plugin::*;
+pub use tweenable::*;
 
 use std::time::Duration;
 
