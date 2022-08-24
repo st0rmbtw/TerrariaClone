@@ -1,5 +1,4 @@
-use bevy::{prelude::*, render::camera::WindowOrigin};
-use bevy_rapier2d::prelude::Collider;
+use bevy::prelude::*;
 
 use super::CursorPlugin;
 
@@ -19,7 +18,7 @@ pub struct MainCamera;
 
 
 const MAX_CAMERA_ZOOM: f32 = 1.;
-const MIN_CAMERA_ZOOM: f32 = 0.4;
+const MIN_CAMERA_ZOOM: f32 = 0.5;
 const CAMERA_ZOOM_STEP: f32 = 0.3;
 
 fn zoom(
@@ -40,24 +39,4 @@ fn zoom(
             projection.scale = scale.min(MAX_CAMERA_ZOOM);
         }
     }
-}
-
-fn camera_view_check(
-    mut camera_query: Query<(&Camera, &GlobalTransform, &OrthographicProjection), Changed<GlobalTransform>>,
-    mut draw_query: Query<(&mut Visibility, &Transform), (Without<Node>, With<Collider>)>,
-) {
-    const THRESHOLD: f32 = 1.0;
-
-    camera_query.for_each_mut(|(camera, camera_transform, ortho_proj)| {
-        draw_query.for_each_mut(|(mut visibility, transform)| {
-            
-            let visual_check = camera.projection_matrix().transform_point3(Vec3::from(
-                camera_transform.translation() - transform.translation
-            ));
-
-            if matches!(ortho_proj.window_origin, WindowOrigin::Center) {
-                visibility.is_visible = visual_check[0].abs() <= THRESHOLD || visual_check[1].abs() <= THRESHOLD;
-            }
-        });
-    });
 }

@@ -1,12 +1,12 @@
-use std::{time::{UNIX_EPOCH, SystemTime}, collections::LinkedList};
+use std::time::{UNIX_EPOCH, SystemTime};
 
-use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, Vec2, Component}, sprite::{SpriteSheetBundle, TextureAtlasSprite}, core::Name, math::vec2};
+use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, Vec2, Component}, sprite::{SpriteSheetBundle, TextureAtlasSprite}, core::Name};
 use bevy_rapier2d::prelude::{Collider, ActiveEvents, Friction, RigidBody, Restitution};
-use iyes_loopless::{prelude::{AppLooplessStateExt}, state::NextState};
-use ndarray::{Array2, s, ArrayView2};
+use iyes_loopless::{prelude::AppLooplessStateExt, state::NextState};
+use ndarray::{Array2, s};
 use rand::Rng;
 
-use crate::{world_generator::generate, block::{get_block_by_id, BLOCK_DIRT_ID, BlockId}, state::GameState};
+use crate::{world_generator::generate, block::{BLOCK_DIRT_ID, BlockId}, state::GameState};
 
 use super::BlockAssets;
 
@@ -106,50 +106,4 @@ fn load_chunk(commands: &mut Commands, block_assets: Res<BlockAssets>, tiles: &A
                 // });
         }
     }
-}
-
-fn find_non_air_block(tiles: &ArrayView2<BlockId>) -> (u16, u16) {
-    let mut coords: (u16, u16) = (0, 0);
-
-    for ((y, x), tile) in tiles.indexed_iter() {
-        let block = get_block_by_id(*tile);
-
-        if block.is_some() {
-            coords = (x as u16, y as u16);
-            break;
-        }
-    }
-
-    coords
-}
-
-fn get_colliders(tiles: &ArrayView2<BlockId>, start: (u16, u16)) -> Vec<Vec2> {
-    let mut blocks: Vec<Vec2> = Vec::new();
-
-    let check = |x: u16, y: u16| -> bool {
-        tiles.get((y as usize, x as usize)).and_then(|tile| get_block_by_id(*tile)).is_some()
-    };
-
-    let mut q: LinkedList<(u16, u16)> = LinkedList::new();
-    q.push_back(start);
-
-    while !q.is_empty() {
-        let (x, y) = q.pop_back().unwrap();
-
-        blocks.push(vec2(x as f32, y as f32));
-
-        if check(x + 1, y) {
-            q.push_back((x + 1, y));
-        }
-
-        if check(x, y + 1) {
-            q.push_back((x, y + 1));
-        }
-
-        if x == tiles.ncols() as u16 - 1 && y == tiles.nrows() as u16 - 1 {
-            break;
-        }
-    }
-
-    blocks
 }

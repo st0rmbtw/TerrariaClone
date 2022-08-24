@@ -11,7 +11,7 @@ fn main() {
         .insert_resource(Msaa { samples: 4 })
         .insert_resource(WindowDescriptor {
             title: "Terraria".to_string(),
-            present_mode: PresentMode::Immediate,
+            present_mode: PresentMode::Fifo,
             cursor_visible: false,
             ..default()
         })

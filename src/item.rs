@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 
+use bevy::{prelude::Vec2, math::vec2};
+
 pub type ItemId = u16;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ItemType {
     Pickaxe
 }
@@ -10,11 +12,26 @@ pub enum ItemType {
 #[derive(Clone, Copy)]
 pub struct Item {
     pub id: ItemId,
-    pub item_type: ItemType
+    pub item_type: ItemType,
+    pub stack: u16
 }
 
 pub struct ItemData {
-    pub name: &'static str
+    pub name: &'static str,
+    pub max_stack: u16
+}
+
+lazy_static! {
+    pub static ref ITEM_ANIMATION_DATA: HashMap<ItemType, Vec<Vec2>> = HashMap::from([
+        (
+            ItemType::Pickaxe, 
+            vec![
+                vec2(-5., 4.),
+                vec2(5., 3.),
+                vec2(5., -7.),
+            ]
+        )
+    ]);
 }
 
 lazy_static! {
@@ -22,7 +39,8 @@ lazy_static! {
         (
             3509, 
             ItemData {
-                name: "Copper Pickaxe"
+                name: "Copper Pickaxe",
+                max_stack: 1
             }
         )
     ]);
@@ -31,6 +49,7 @@ lazy_static! {
 
 pub const ITEM_COPPER_PICKAXE: Item = Item {
     id: 3509,
-    item_type: ItemType::Pickaxe
+    item_type: ItemType::Pickaxe,
+    stack: 1
 };
 

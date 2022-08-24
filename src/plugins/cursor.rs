@@ -185,12 +185,14 @@ fn update_hovered_info_position(
     cursor: Res<Cursor>,
     mut query: Query<&mut Style, With<HoveredInfoMarker>>
 ) {
-    let mut style = query.single_mut();
+    if cursor.is_changed() {
+        let mut style = query.single_mut();
 
-    style.position = UiRect {
-        left: Val::Px(cursor.position.x + 20.),
-        bottom: Val::Px(cursor.position.y - 45.),
-        ..default()
+        style.position = UiRect {
+            left: Val::Px(cursor.position.x + 20.),
+            bottom: Val::Px(cursor.position.y - 45.),
+            ..default()
+        }
     }
 }
 
@@ -198,7 +200,9 @@ fn update_hovered_info(
     hovered_info: Res<HoveredInfo>,
     mut query: Query<&mut Text, With<HoveredInfoMarker>>
 ) {
-    let mut text = query.single_mut();
-    
-    text.sections[0].value = hovered_info.0.clone();
+    if hovered_info.is_changed() {
+        let mut text = query.single_mut();
+        
+        text.sections[0].value = hovered_info.0.clone();
+    }
 }

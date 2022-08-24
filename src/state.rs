@@ -1,3 +1,4 @@
+use bevy::prelude::Component;
 use bevy_inspector_egui::Inspectable;
 
 
@@ -10,7 +11,7 @@ pub enum GameState {
     Paused
 }
 
-#[derive(Default, Clone, Copy, PartialEq, Eq, Inspectable)]
+#[derive(Default, Clone, Copy, PartialEq, Eq, Inspectable, Component)]
 pub enum MovementState {
     #[default]
     IDLE,
