@@ -1,6 +1,6 @@
 use std::time::{UNIX_EPOCH, SystemTime};
 
-use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, Vec2, Component}, sprite::{SpriteSheetBundle, TextureAtlasSprite}, core::Name};
+use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, Component}, sprite::{SpriteSheetBundle, TextureAtlasSprite}, core::Name};
 use bevy_rapier2d::prelude::{Collider, ActiveEvents, Friction, RigidBody, Restitution};
 use iyes_loopless::{prelude::AppLooplessStateExt, state::NextState};
 use ndarray::{Array2, s};
@@ -44,7 +44,7 @@ fn spawn_terrain(
     });
 
     println!("Loading chunk...");
-    load_chunk(&mut commands, block_assets, &tiles, (150, 100), ((tiles.ncols()) / 2, 0));
+    load_chunk(&mut commands, block_assets, &tiles, (150, 100), (0, 0));
 
     commands.insert_resource(NextState(GameState::InGame));
 }
@@ -52,15 +52,14 @@ fn spawn_terrain(
 // size (width, height)
 // offset (width, height)
 fn load_chunk(commands: &mut Commands, block_assets: Res<BlockAssets>, tiles: &Array2<BlockId>, size: (usize, usize), offset: (usize, usize)) {
-    let half_width = (size.0 / 2) as f32;
-
     let chunk = tiles.slice(s![(offset.1)..(offset.1 + size.1), (offset.0)..(offset.0 + size.0)]);
 
-    for ((iy, ix), tile) in chunk.indexed_iter() {
-        let mut x = (-half_width * TILE_SIZE) + ix as f32 * TILE_SIZE;
+    let tiles_offset_x = offset.0 as f32 * TILE_SIZE;
+    let tiles_offset_y = offset.1 as f32 * TILE_SIZE;
 
-        x = offset.0 as f32 + x;
-        let y = offset.1 as f32 + iy as f32;
+    for ((iy, ix), tile) in chunk.indexed_iter() {
+        let x = tiles_offset_x + ix as f32 * TILE_SIZE - ix as f32;
+        let y = tiles_offset_y + iy as f32 * TILE_SIZE - iy as f32;
         
         if let Some(texture_atlas) = block_assets.get_by_id(*tile) {
             let index = rand::thread_rng().gen_range(1..3) + match *tile {
@@ -68,25 +67,14 @@ fn load_chunk(commands: &mut Commands, block_assets: Res<BlockAssets>, tiles: &A
                 _ => 0
             };
 
-            if iy == 0 {
-                commands.spawn()
-                    .insert(Transform::from_xyz(x, 0., 0.),)
-                    .insert(Collider::cuboid(TILE_SIZE * 200., 2. * TILE_SIZE / 2.))
-                    .insert(ActiveEvents::COLLISION_EVENTS)
-                    .insert(Friction::coefficient(0.))
-                    .insert(Restitution::coefficient(0.))
-                    .insert(Name::new("Terrain Collider"));
-            }
-
             commands
                 .spawn_bundle(SpriteSheetBundle {
                     sprite: TextureAtlasSprite {
                         index,
-                        custom_size: Some(Vec2::splat(TILE_SIZE)),
                         ..default()
                     },
                     texture_atlas,
-                    transform: Transform::from_xyz(x, -y * TILE_SIZE, 0.),
+                    transform: Transform::from_xyz(x, -y, 0.),
                     ..default()
                 })
                 .insert(BlockMarker)
@@ -106,4 +94,11 @@ fn load_chunk(commands: &mut Commands, block_assets: Res<BlockAssets>, tiles: &A
                 // });
         }
     }
+    commands.spawn()
+        .insert(Transform::from_xyz(0., 0., 0.),)
+        .insert(Collider::cuboid(TILE_SIZE * 200., 2. * TILE_SIZE / 2.))
+        .insert(ActiveEvents::COLLISION_EVENTS)
+        .insert(Friction::coefficient(0.))
+        .insert(Restitution::coefficient(0.))
+        .insert(Name::new("Terrain Collider"));
 }

@@ -40,8 +40,8 @@ fn main() {
         .add_plugin(FpsPlugin);
     
 
-    #[cfg(debug_assertions)]
-    app.add_plugin(game::plugins::DebugPlugin);
+    // #[cfg(debug_assertions)]
+    // app.add_plugin(game::plugins::DebugPlugin);
 
     app.run();
 }
