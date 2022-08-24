@@ -117,7 +117,7 @@ struct InventoryCellItemImage {
 }
 
 #[derive(Component, Default)]
-pub struct SelectedItem(Option<Item>);
+pub struct SelectedItem(pub Option<Item>);
 
 // endregion
 
