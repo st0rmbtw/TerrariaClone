@@ -5,8 +5,6 @@ use bevy::prelude::*;
 pub struct LayerData {
     /// Relative speed of layer to the camera movement
     pub speed: f32,
-    /// Path to layer texture file
-    pub path: String,
     
     pub image: Handle<TextureAtlas>,
     /// Scale of the texture
@@ -23,7 +21,6 @@ impl Default for LayerData {
     fn default() -> Self {
         Self {
             speed: 1.0,
-            path: "".to_string(),
             image: Handle::default(),
             scale: 1.0,
             z: 0.0,

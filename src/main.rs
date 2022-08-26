@@ -1,5 +1,5 @@
 use bevy::{prelude::*, window::PresentMode, asset::AssetServerSettings, render::texture::ImageSettings};
-use game::{parallax::ParallaxPlugin, animation::TweeningPlugin};
+use game::{parallax::ParallaxPlugin, animation::TweeningPlugin, plugins::BackgroundPlugin};
 use bevy_rapier2d::plugin::{RapierPhysicsPlugin, NoUserData, RapierConfiguration};
 use game::{plugins::{PlayerPlugin, FpsPlugin, WorldPlugin, AssetsPlugin, SetupPlugin, MenuPlugin}, state::GameState};
 use iyes_loopless::prelude::AppLooplessStateExt;
@@ -32,8 +32,9 @@ fn main() {
         .add_plugin(AssetsPlugin)
         .add_plugin(SetupPlugin)
         .add_plugin(ParallaxPlugin {
-            initial_speed: 0.3,
+            initial_speed: 3.,
         })
+        .add_plugin(BackgroundPlugin)
         .add_plugin(MenuPlugin)
         .add_plugin(WorldPlugin)
         .add_plugin(PlayerPlugin)

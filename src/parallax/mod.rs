@@ -5,7 +5,7 @@ mod layer;
 pub use layer::*;
 
 use self::layer::LayerComponent;
-use iyes_loopless::prelude::*;
+use iyes_loopless::{prelude::*, condition::ConditionalSystemDescriptor};
 
 pub struct ParallaxPlugin {
     pub initial_speed: f32
@@ -18,8 +18,11 @@ impl Plugin for ParallaxPlugin {
                 speed: self.initial_speed
             })
             .add_system(initialize_parallax_system.run_if_resource_added::<ParallaxResource>())
-            .add_system(follow_camera_system.run_if_resource_exists::<ParallaxResource>().label("follow_camera"))
-            .add_system(update_layer_textures_system.run_if_resource_exists::<ParallaxResource>().after("follow_camera"));
+            .add_system(
+                update_layer_textures_system
+                    .run_if_resource_exists::<ParallaxResource>()
+                    .after("follow_camera")
+            );
     }
 }
 
@@ -174,6 +177,11 @@ impl ParallaxResource {
 #[derive(Component)]
 pub struct ParallaxCameraComponent;
 
+#[inline(always)]
+pub fn move_background_system() -> ConditionalSystemDescriptor {
+    follow_camera_system.run_if_resource_exists::<ParallaxResource>().label("follow_camera")
+}
+
 /// Initialize the parallax resource
 fn initialize_parallax_system(
     mut commands: Commands,
@@ -214,10 +222,10 @@ fn update_layer_textures_system(
         ),
         Without<ParallaxCameraComponent>,
     >,
-    camera_query: Query<&Transform, With<ParallaxCameraComponent>>,
+    camera_query: Query<(&GlobalTransform, &OrthographicProjection), With<ParallaxCameraComponent>>,
     parallax_resource: Res<ParallaxResource>,
 ) {
-    if let Some(camera_transform) = camera_query.iter().next() {
+    if let Some((camera_transform, projection)) = camera_query.iter().next() {
         for (layer, children) in layer_query.iter() {
             for &child in children.iter() {
                 let (texture_gtransform, mut texture_transform, layer_texture) =
@@ -226,13 +234,16 @@ fn update_layer_textures_system(
                 let texture_gtransform = texture_gtransform.compute_transform();
 
                 // Move right-most texture to left side of layer when camera is approaching left-most end
-                if camera_transform.translation.x - texture_gtransform.translation.x
+                if camera_transform.translation().x 
+                    + (projection.left * projection.scale)
+                    - texture_gtransform.translation.x
                     + ((layer_texture.width * texture_gtransform.scale.x) / 2.0)
                     < -(parallax_resource.window_size.x * layer.transition_factor)
                 {
                     texture_transform.translation.x -= layer_texture.width * layer.texture_count;
                 // Move left-most texture to right side of layer when camera is approaching right-most end
-                } else if camera_transform.translation.x
+                } else if camera_transform.translation().x
+                    + (projection.right * projection.scale)
                     - texture_gtransform.translation.x
                     - ((layer_texture.width * texture_gtransform.scale.x) / 2.0)
                     > parallax_resource.window_size.x * layer.transition_factor

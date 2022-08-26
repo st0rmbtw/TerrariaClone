@@ -1,12 +1,12 @@
 use std::time::Duration;
 
-use bevy::{prelude::{App, Plugin, Commands, TextBundle, Res, Color, NodeBundle, default, BuildChildren, Camera2dBundle, ButtonBundle, Changed, Query, Component, Transform, Vec3, Entity, With, Button, DespawnRecursiveExt, EventWriter, Children, Vec2, ResMut, ChildBuilder}, text::{TextStyle, Text}, ui::{Style, Size, Val, JustifyContent, AlignItems, FlexDirection, UiRect, Interaction}, app::AppExit, window::Windows};
-use crate::{animation::{EaseFunction, Animator, AnimatorState, Tween, TweeningType, TransformScaleLens, TweeningDirection}, parallax::{LayerData, ParallaxResource, ParallaxCameraComponent}};
+use bevy::{prelude::{App, Plugin, Commands, TextBundle, Res, Color, NodeBundle, default, BuildChildren, Camera2dBundle, ButtonBundle, Changed, Query, Component, Transform, Vec3, Entity, With, Button, DespawnRecursiveExt, EventWriter, Children, ChildBuilder}, text::{TextStyle, Text}, ui::{Style, Size, Val, JustifyContent, AlignItems, FlexDirection, UiRect, Interaction}, app::AppExit};
+use crate::{animation::{EaseFunction, Animator, AnimatorState, Tween, TweeningType, TransformScaleLens, TweeningDirection}, parallax::{ParallaxCameraComponent, move_background_system}};
 use iyes_loopless::prelude::*;
 
 use crate::{state::GameState, TRANSPARENT, util::RectExtensions};
 
-use super::{FontAssets, MainCamera, BackgroundAssets};
+use super::{FontAssets, MainCamera};
 
 // region: Plugin
 pub struct MenuPlugin;
@@ -15,19 +15,18 @@ impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_startup_system(setup_camera)
-            .add_enter_system(GameState::MainMenu, setup_background)
             .add_enter_system(GameState::MainMenu, setup_main_menu)
             .add_system_set(
                 ConditionSet::new()
                     .run_in_state(GameState::MainMenu)
+                    .with_system(move_background_system())
                     .with_system(update_buttons)
                     .with_system(single_player_btn.run_if(on_btn_clicked::<SinglePlayerButton>))
                     .with_system(exit_btn.run_if(on_btn_clicked::<ExitButton>))
                     .into()
             )
             .add_exit_system(GameState::MainMenu, despawn_with::<MainCamera>)
-            .add_exit_system(GameState::MainMenu, despawn_with::<Menu>)
-            .add_exit_system(GameState::MainMenu, despawn_background);
+            .add_exit_system(GameState::MainMenu, despawn_with::<Menu>);
     }
 }
 // endregion
@@ -68,13 +67,6 @@ fn despawn_with<C: Component>(
     }
 }
 
-fn despawn_background(
-    mut commands: Commands,
-    mut parallax: ResMut<ParallaxResource>
-) {
-    parallax.despawn_layers(&mut commands);
-}
-
 #[inline(always)]
 fn text_tween() -> Tween<Transform> {
     Tween::new(
@@ -96,77 +88,6 @@ fn setup_camera(mut commands: Commands) {
         .spawn_bundle(Camera2dBundle::default())
         .insert(ParallaxCameraComponent)
         .insert(MainCamera);
-}
-
-fn setup_background(
-    wnds: Res<Windows>,
-    mut commands: Commands,
-    backgrounds: Res<BackgroundAssets>
-) {
-    let window = wnds.get_primary().unwrap();
-
-    // 600 is the background image height
-    let height = window.height() - 600.;
-
-    commands.insert_resource(ParallaxResource {
-        layer_data: vec![
-            LayerData {
-                speed: 0.9,
-                image: backgrounds.background_112.clone(),
-                z: 0.0,
-                transition_factor: 1.,
-                scale: 2.,
-                position: Vec2::NEG_Y * height + 400.,
-                ..default()
-            },
-            LayerData {
-                speed: 0.9,
-                image: backgrounds.background_7.clone(),
-                z: 0.1,
-                transition_factor: 1.,
-                position: Vec2::NEG_Y * height,
-                scale: 1.5,
-                ..default()
-            },
-            LayerData {
-                speed: 0.8,
-                image: backgrounds.background_90.clone(),
-                z: 1.0,
-                transition_factor: 1.,
-                position: Vec2::NEG_Y * height - 200.,
-                scale: 1.5,
-                ..default()
-            },
-            LayerData {
-                speed: 0.7,
-                image: backgrounds.background_91.clone(),
-                z: 2.0,
-                transition_factor: 1.,
-                position: Vec2::NEG_Y * height - 300.,
-                scale: 1.5,
-                ..default()
-            },
-            LayerData {
-                speed: 0.6,
-                image: backgrounds.background_92.clone(),
-                z: 3.0,
-                transition_factor: 1.,
-                position: Vec2::NEG_Y * height - 400.,
-                scale: 1.5,
-                ..default()
-            },
-            LayerData {
-                speed: 0.7,
-                image: backgrounds.background_112.clone(),
-                z: 4.0,
-                transition_factor: 1.,
-                scale: 1.2,
-                position: Vec2::NEG_Y * height + 200.,
-                ..default()
-            },
-        ],
-        ..default()
-    });
 }
 
 fn menu_button(children: &mut ChildBuilder, text_style: TextStyle, button_name: &str, marker: impl Component) {

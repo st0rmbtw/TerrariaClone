@@ -136,6 +136,10 @@ handles! {
     Handle<TextureAtlas>,
     #[derive(AssetCollection)]
     pub struct BackgroundAssets {
+        #[asset(texture_atlas(tile_size_x = 48., tile_size_y = 1400., columns = 1, rows = 1))]
+        #[asset(path = "sprites/backgrounds/Background_0.png")]
+        pub background_0: Handle<TextureAtlas>,
+
         #[asset(texture_atlas(tile_size_x = 1024., tile_size_y = 600., columns = 1, rows = 1))]
         #[asset(path = "sprites/backgrounds/Background_7.png")]
         pub background_7: Handle<TextureAtlas>,
@@ -155,6 +159,7 @@ handles! {
         #[asset(texture_atlas(tile_size_x = 2048., tile_size_y = 434., columns = 1, rows = 1))]
         #[asset(path = "sprites/backgrounds/Background_112.png")]
         pub background_112: Handle<TextureAtlas>,
+
     }
 }
 

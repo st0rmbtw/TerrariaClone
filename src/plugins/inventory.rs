@@ -65,7 +65,8 @@ impl Plugin for PlayerInventoryPlugin {
                     .with_system(select_hotbar_cell)
                     .with_system(update_inventory_visibility)
                     .with_system(update_selected_cell)
-                    .with_system(update_selected_item_name)
+                    .with_system(update_selected_item_name_style)
+                    .with_system(update_selected_item_name_text)
                     .with_system(update_cell)
                     .with_system(update_cell_image)
                     .with_system(inventory_cell_background_hover)
@@ -419,29 +420,37 @@ fn set_selected_item(
     }
 }
 
-fn update_selected_item_name(
+fn update_selected_item_name_style(
     inventory_query: Query<&InventoryUi, Changed<InventoryUi>>,
-    mut selected_item_name_query: Query<(&mut Text, &mut Style), With<SelectedItemNameMarker>>,
-    current_item: Res<SelectedItem>
+    mut selected_item_name_query: Query<&mut Style, With<SelectedItemNameMarker>>,
 ) {
-    let (mut text, mut style) = selected_item_name_query.single_mut();
-
+    let mut style = selected_item_name_query.single_mut();
     let inventory_query_result = inventory_query.get_single();
 
     if let Ok(inventory) = inventory_query_result {
-        if inventory.showing {
-            text.sections[0].value = INVENTORY_STRING.to_string();
-            style.align_self = AlignSelf::FlexStart;
+        style.align_self = if inventory.showing {
+            AlignSelf::FlexStart
         } else {
-            style.align_self = AlignSelf::Center;
+            AlignSelf::Center
+        }
+    }
+}
 
+fn update_selected_item_name_text(
+    inventory_query: Query<&InventoryUi, Changed<InventoryUi>>,
+    mut selected_item_name_query: Query<&mut Text, With<SelectedItemNameMarker>>,
+    current_item: Res<SelectedItem>
+) {
+    let mut text = selected_item_name_query.single_mut();
+    let inventory_query_result = inventory_query.get_single();
+
+    if let Ok(inventory) = inventory_query_result {
+        text.sections[0].value = if inventory.showing {
+            INVENTORY_STRING.to_string()
+        } else {
             let name = current_item.0.map(|item| get_item_data_by_id(&item.id).name);
 
-            text.sections[0].value = if let Some(name) = name {
-                name.to_string()
-            } else {
-                ITEMS_STRING.to_string()
-            }
+            name.map(|name| name.to_string()).unwrap_or(ITEMS_STRING.to_string())
         }
     }
 }
@@ -499,11 +508,13 @@ fn inventory_cell_background_hover(
 ) {
     for (interaction, cell) in &query {
         if let Some(item) = inventory.get_item(cell.index) {
-            if *interaction != Interaction::None {
-                info.0 = get_item_data_by_id(&item.id).name.to_string();
+            let name = if *interaction != Interaction::None {
+                get_item_data_by_id(&item.id).name
             } else {
-                info.0 = "".to_string();
-            }
+                ""
+            };
+
+            info.0 = name.to_string();
         }
     }
 }

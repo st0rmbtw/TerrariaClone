@@ -44,14 +44,14 @@ fn spawn_terrain(
     });
 
     println!("Loading chunk...");
-    load_chunk(&mut commands, block_assets, &tiles, (150, 100), (0, 0));
+    load_chunk(&mut commands, &block_assets, &tiles, (150, 100), (0, 0));
 
     commands.insert_resource(NextState(GameState::InGame));
 }
 
 // size (width, height)
 // offset (width, height)
-fn load_chunk(commands: &mut Commands, block_assets: Res<BlockAssets>, tiles: &Array2<BlockId>, size: (usize, usize), offset: (usize, usize)) {
+fn load_chunk(commands: &mut Commands, block_assets: &BlockAssets, tiles: &Array2<BlockId>, size: (usize, usize), offset: (usize, usize)) {
     let chunk = tiles.slice(s![(offset.1)..(offset.1 + size.1), (offset.0)..(offset.0 + size.0)]);
 
     let tiles_offset_x = offset.0 as f32 * TILE_SIZE;
@@ -96,7 +96,7 @@ fn load_chunk(commands: &mut Commands, block_assets: Res<BlockAssets>, tiles: &A
     }
     commands.spawn()
         .insert(Transform::from_xyz(0., 0., 0.),)
-        .insert(Collider::cuboid(TILE_SIZE * 200., 2. * TILE_SIZE / 2.))
+        .insert(Collider::cuboid(TILE_SIZE * 300., 2. * TILE_SIZE / 2.))
         .insert(ActiveEvents::COLLISION_EVENTS)
         .insert(Friction::coefficient(0.))
         .insert(Restitution::coefficient(0.))

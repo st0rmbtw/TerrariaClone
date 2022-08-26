@@ -5,7 +5,7 @@ use bevy_inspector_egui::Inspectable;
 use bevy_rapier2d::{prelude::{RigidBody, Velocity, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce, Friction, GravityScale, ColliderMassProperties}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
 use iyes_loopless::prelude::*;
 
-use crate::{util::{Lerp, map_range}, TRANSPARENT, state::{GameState, MovementState}, item::{ITEM_ANIMATION_DATA}};
+use crate::{util::{Lerp, map_range}, TRANSPARENT, state::{GameState, MovementState}, item::{ITEM_ANIMATION_DATA}, parallax::{ParallaxCameraComponent}};
 
 use super::{PlayerAssets, PlayerInventoryPlugin, MainCamera, WorldSettings, ItemAssets, SelectedItem};
 
@@ -42,6 +42,7 @@ impl Plugin for PlayerPlugin {
             .add_system_set(
                 ConditionSet::new()
                     .run_in_state(GameState::InGame)
+                    // .with_system(asdasd.run_if_resource_exists::<ParallaxResource>().label("follow_camera"))
                     .with_system(update_axis)
                     .with_system(update_movement_state)
                     .with_system(update_face_direction)
@@ -81,7 +82,6 @@ impl Plugin for PlayerPlugin {
                     .with_system(set_using_item_rotation_on_player_direction_change)
                     .with_system(use_item_animation.run_if_resource_equals::<UseItemAnimation>(UseItemAnimation(true)))
                     .with_system(player_using_item)
-                    // .with_system(set_item_default_rotation.run_if_not(player_using_item))
                     .into()
             );
     }
@@ -481,11 +481,15 @@ fn spawn_player(
         .with_children(|children| {
 
             // region: Camera
-            let mut camera = Camera2dBundle::default();
-            camera.projection.scale = 0.9;
-
             children.spawn()
-                .insert_bundle(camera)
+                .insert_bundle(Camera2dBundle {
+                    projection: OrthographicProjection {
+                        scale: 0.9,
+                        ..default()
+                    },
+                    ..default()
+                })
+                .insert(ParallaxCameraComponent)
                 .insert(MainCamera);
             // endregion
 
@@ -767,9 +771,11 @@ fn set_using_item_image(
 ) {
     let mut image = using_item_query.single_mut();
 
-    let item_id = selected_item.unwrap().id;
+    if selected_item.is_some() {
+        let item_id = selected_item.unwrap().id;
 
-    *image = item_assets.get_by_id(item_id);
+        *image = item_assets.get_by_id(item_id);
+    }
 }
 
 fn set_using_item_position(
@@ -779,15 +785,16 @@ fn set_using_item_position(
     player_query: Query<&FaceDirection, With<Player>>
 ) {
     let mut transform = using_item_query.single_mut();
-
     let direction = player_query.single();
 
-    let item_type = selected_item.unwrap().item_type;
+    if selected_item.is_some() {
+        let item_type = selected_item.unwrap().item_type;
 
-    let position = ITEM_ANIMATION_DATA.get(&item_type).unwrap()[index.0];
+        let position = ITEM_ANIMATION_DATA.get(&item_type).unwrap()[index.0];
 
-    transform.translation.x = position.x * f32::from(*direction);
-    transform.translation.y = position.y;
+        transform.translation.x = position.x * f32::from(*direction);
+        transform.translation.y = position.y;
+    }
 }
 
 
@@ -826,16 +833,18 @@ fn set_using_item_rotation(
     let direction = player_query.single();
     let mut transform = using_item_query.single_mut();
 
-    let item_type = selected_item.unwrap().item_type;
-    let direction_f = f32::from(*direction);
+    if selected_item.is_some() {
+        let item_type = selected_item.unwrap().item_type;
+        let direction_f = f32::from(*direction);
 
-    let position = ITEM_ANIMATION_DATA.get(&item_type).unwrap()[index.0];
+        let position = ITEM_ANIMATION_DATA.get(&item_type).unwrap()[index.0];
 
-    if index.0 == 0 && index.is_changed() {
-       transform.rotation = get_rotation_by_direction(*direction);
+        if index.0 == 0 && index.is_changed() {
+        transform.rotation = get_rotation_by_direction(*direction);
+        }
+
+        transform.rotate_around(position.extend(0.15), Quat::from_rotation_z(ROTATION_STEP * direction_f * time.delta_seconds()));
     }
-
-    transform.rotate_around(position.extend(0.15), Quat::from_rotation_z(ROTATION_STEP * direction_f * time.delta_seconds()));
 }
 
 fn update_use_item_animation_index(
