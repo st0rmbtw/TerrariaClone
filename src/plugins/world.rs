@@ -1,6 +1,6 @@
 use std::time::{UNIX_EPOCH, SystemTime};
 
-use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, Component}, sprite::{SpriteSheetBundle, TextureAtlasSprite}, core::Name};
+use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, Component, BuildChildren}, sprite::{SpriteSheetBundle, TextureAtlasSprite}, core::Name};
 use bevy_rapier2d::prelude::{Collider, ActiveEvents, Friction, RigidBody, Restitution};
 use iyes_loopless::{prelude::AppLooplessStateExt, state::NextState};
 use ndarray::{Array2, s};
@@ -101,6 +101,8 @@ fn load_chunk(commands: &mut Commands, block_assets: &BlockAssets, tiles: &Array
                 16 * 3 + rand + 5
             } else if slope.right && !slope.left && !slope.top && !slope.bottom {
                 (rand - 1) * 16 + 9
+            } else if slope.left && !slope.right && !slope.top && !slope.bottom {
+                (rand - 1) * 16 + 12
             } else {
                 rand + 16
             };
@@ -117,26 +119,22 @@ fn load_chunk(commands: &mut Commands, block_assets: &BlockAssets, tiles: &Array
                 })
                 .insert(BlockMarker)
                 .insert(Name::new("Block Tile"))
-                .insert(RigidBody::Fixed);
-                // .with_children(|cmd| {
-                //     if iy <= 1 {
- 
-                //         cmd.spawn()
-                //             .insert(Collider::cuboid(TILE_SIZE / 2., TILE_SIZE / 2.))
-                //             .insert(ActiveEvents::COLLISION_EVENTS)
-                //             .insert(Friction::coefficient(0.))
-                //             .insert(Restitution::coefficient(0.))
-                //             .insert(Name::new("Terrain Collider"));
-
-                //     }
-                // });
+                .insert(RigidBody::Fixed)
+                .with_children(|cmd| {
+                    cmd.spawn()
+                        .insert(Collider::cuboid(TILE_SIZE / 2., TILE_SIZE / 2.))
+                        .insert(ActiveEvents::COLLISION_EVENTS)
+                        .insert(Friction::coefficient(0.))
+                        .insert(Restitution::coefficient(0.))
+                        .insert(Name::new("Terrain Collider"));
+                });
         }
     }
-    commands.spawn()
-        .insert(Transform::from_xyz(0., 0., 0.),)
-        .insert(Collider::cuboid(TILE_SIZE * 300., 2. * TILE_SIZE / 2.))
-        .insert(ActiveEvents::COLLISION_EVENTS)
-        .insert(Friction::coefficient(0.))
-        .insert(Restitution::coefficient(0.))
-        .insert(Name::new("Terrain Collider"));
+    // commands.spawn()
+    //     .insert(Transform::from_xyz(0., 0., 0.),)
+    //     .insert(Collider::cuboid(TILE_SIZE * 300., 2. * TILE_SIZE / 2.))
+    //     .insert(ActiveEvents::COLLISION_EVENTS)
+    //     .insert(Friction::coefficient(0.))
+    //     .insert(Restitution::coefficient(0.))
+    //     .insert(Name::new("Terrain Collider"));
 }
