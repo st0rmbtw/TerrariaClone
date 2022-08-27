@@ -437,7 +437,7 @@ fn update_selected_item_name_style(
 }
 
 fn update_selected_item_name_text(
-    inventory_query: Query<&InventoryUi, Changed<InventoryUi>>,
+    inventory_query: Query<&InventoryUi>,
     mut selected_item_name_query: Query<&mut Text, With<SelectedItemNameMarker>>,
     current_item: Res<SelectedItem>
 ) {

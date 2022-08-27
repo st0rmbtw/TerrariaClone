@@ -235,7 +235,7 @@ fn update_layer_textures_system(
 
                 // Move right-most texture to left side of layer when camera is approaching left-most end
                 if camera_transform.translation().x 
-                    + (projection.left * projection.scale)
+                    + (projection.left /* * projection.scale */)
                     - texture_gtransform.translation.x
                     + ((layer_texture.width * texture_gtransform.scale.x) / 2.0)
                     < -(parallax_resource.window_size.x * layer.transition_factor)
@@ -243,7 +243,7 @@ fn update_layer_textures_system(
                     texture_transform.translation.x -= layer_texture.width * layer.texture_count;
                 // Move left-most texture to right side of layer when camera is approaching right-most end
                 } else if camera_transform.translation().x
-                    + (projection.right * projection.scale)
+                    + (projection.right /* * projection.scale */)
                     - texture_gtransform.translation.x
                     - ((layer_texture.width * texture_gtransform.scale.x) / 2.0)
                     > parallax_resource.window_size.x * layer.transition_factor

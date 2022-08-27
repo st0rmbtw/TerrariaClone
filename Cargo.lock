@@ -179,6 +179,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
+name = "autodefault"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "976847e448316b6cb8fda60cda1067bc645268a8209f80b96f4e1d66c1029087"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "base64"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1490,6 +1501,7 @@ dependencies = [
 name = "game"
 version = "0.1.0"
 dependencies = [
+ "autodefault",
  "bevy",
  "bevy-inspector-egui",
  "bevy_asset_loader",
