@@ -1,13 +1,13 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Plugin, App, Commands, Query, Changed, Entity, Component, Color, With, Button, Name, TextBundle, ParallelSystemDescriptorCoercion, NodeBundle, BuildChildren}, text::{Text, TextStyle, TextAlignment}, ui::{Interaction, Style, JustifyContent, AlignItems, UiRect, Val, Size}};
+use bevy::{prelude::{Plugin, App, Commands, Query, Changed, Entity, Component, Color, With, Button, Name, TextBundle, ParallelSystemDescriptorCoercion, NodeBundle, BuildChildren, Visibility, EventReader}, text::{Text, TextStyle, TextAlignment}, ui::{Interaction, Style, JustifyContent, AlignItems, UiRect, Val, Size}};
 use interpolation::EaseFunction;
 use iyes_loopless::prelude::*;
 
 use crate::{animation::{Animator, TweeningDirection, Tween, TweeningType, component_animator_system, AnimationSystem}, state::GameState, lens::TextFontSizeLens, TRANSPARENT};
 
-use super::FontAssets;
+use super::{FontAssets, ToggleExtraUiEvent};
 
 // region: Plugin
 pub struct SettingsPlugin;
@@ -19,6 +19,7 @@ impl Plugin for SettingsPlugin {
                 ConditionSet::new()
                     .run_in_state(GameState::InGame)
                     .with_system(update)
+                    .with_system(set_btn_visibility)
                     .into()
             )
             .add_system(component_animator_system::<Text>.label(AnimationSystem::AnimationUpdate));
@@ -54,6 +55,9 @@ pub fn spawn_ingame_settings_button(
                 height: Val::Px(38.),
             }
         },
+        visibility: Visibility {
+            is_visible: false
+        },
         color: TRANSPARENT.into()
     }).with_children(|c| {
         c.spawn_bundle(TextBundle {
@@ -77,6 +81,17 @@ pub fn spawn_ingame_settings_button(
         .insert(Animator::new(tween));
     })
     .id()
+}
+
+fn set_btn_visibility(
+    mut query: Query<&mut Visibility, With<SettingsButton>>,
+    mut events: EventReader<ToggleExtraUiEvent>
+) {
+    for event in events.iter() {
+        for mut visibility in &mut query {
+            visibility.is_visible = event.0;
+        }
+    }
 }
 
 fn update(

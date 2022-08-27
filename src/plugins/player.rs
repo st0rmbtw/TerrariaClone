@@ -74,10 +74,10 @@ impl Plugin for PlayerPlugin {
                     .run_in_state(GameState::InGame)
                     .label(USE_ITEM_ANIMATION_LABEL)
                     .after(MOVEMENT_ANIMATION_LABEL)
+                    .with_system(set_using_item_visibility)
                     .with_system(set_using_item_image.run_if_resource_equals::<UseItemAnimation>(UseItemAnimation(true)))
                     .with_system(set_using_item_position.run_if_resource_equals::<UseItemAnimation>(UseItemAnimation(true)))
                     .with_system(set_using_item_rotation.run_if_resource_equals::<UseItemAnimation>(UseItemAnimation(true)))
-                    .with_system(set_using_item_visible)
                     .with_system(update_use_item_animation_index.run_if_resource_equals::<UseItemAnimation>(UseItemAnimation(true)))
                     .with_system(set_using_item_rotation_on_player_direction_change)
                     .with_system(use_item_animation.run_if_resource_equals::<UseItemAnimation>(UseItemAnimation(true)))
@@ -755,7 +755,7 @@ fn player_using_item(
     }
 }
 
-fn set_using_item_visible(
+fn set_using_item_visibility(
     anim: Res<UseItemAnimation>,
     mut using_item_query: Query<&mut Visibility, With<UsingItemMarker>>
 ) {
@@ -787,10 +787,8 @@ fn set_using_item_position(
     let mut transform = using_item_query.single_mut();
     let direction = player_query.single();
 
-    if selected_item.is_some() {
-        let item_type = selected_item.unwrap().item_type;
-
-        let position = ITEM_ANIMATION_DATA.get(&item_type).unwrap()[index.0];
+    if let Some(item) = selected_item.0 {
+        let position = ITEM_ANIMATION_DATA.get(&item.item_type).unwrap()[index.0];
 
         transform.translation.x = position.x * f32::from(*direction);
         transform.translation.y = position.y;
