@@ -71,7 +71,7 @@ fn load_chunk(commands: &mut Commands, block_assets: &BlockAssets, tiles: &Array
 
             let rand: usize = thread_rng().gen_range(1..3);
 
-            // Yeah, i know this is look horrible, but i dont know how write it in another way
+            // Yeah, i know this looks horrible, but i dont know how to write it in another way
 
             let index: usize = if slope.is_all() {
                 rand + 16
