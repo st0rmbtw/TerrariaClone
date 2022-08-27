@@ -1,7 +1,11 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Plugin, App, Commands, Query, Changed, Entity, Component, Color, With, Button, Name, TextBundle, ParallelSystemDescriptorCoercion, NodeBundle, BuildChildren, Visibility, EventReader}, text::{Text, TextStyle, TextAlignment}, ui::{Interaction, Style, JustifyContent, AlignItems, UiRect, Val, Size}};
+use bevy::{
+    prelude::{Plugin, App, Commands, Query, Changed, Entity, Component, Color, With, Button, Name, TextBundle, ParallelSystemDescriptorCoercion, NodeBundle, BuildChildren, Visibility, EventReader}, 
+    text::{Text, TextStyle, TextAlignment}, 
+    ui::{Interaction, Style, JustifyContent, AlignItems, UiRect, Val, Size}
+};
 use interpolation::EaseFunction;
 use iyes_loopless::prelude::*;
 
@@ -27,8 +31,12 @@ impl Plugin for SettingsPlugin {
 }
 // endregion
 
+
 #[derive(Component)]
-struct SettingsButton;
+struct SettingsButtonContainer;
+
+#[derive(Component)]
+struct SettingsButtonText;
 
 #[autodefault(except(TextFontSizeLens))]
 pub fn spawn_ingame_settings_button(
@@ -59,7 +67,9 @@ pub fn spawn_ingame_settings_button(
             is_visible: false
         },
         color: TRANSPARENT.into()
-    }).with_children(|c| {
+    })
+    .insert(SettingsButtonContainer)
+    .with_children(|c| {
         c.spawn_bundle(TextBundle {
             style: Style {
                 margin: UiRect::all(Val::Auto),
@@ -77,14 +87,14 @@ pub fn spawn_ingame_settings_button(
         .insert(Button)
         .insert(Name::new("Settings button"))
         .insert(Interaction::default())
-        .insert(SettingsButton)
+        .insert(SettingsButtonText)
         .insert(Animator::new(tween));
     })
     .id()
 }
 
 fn set_btn_visibility(
-    mut query: Query<&mut Visibility, With<SettingsButton>>,
+    mut query: Query<&mut Visibility, With<SettingsButtonContainer>>,
     mut events: EventReader<ToggleExtraUiEvent>
 ) {
     for event in events.iter() {

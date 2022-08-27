@@ -42,7 +42,6 @@ impl Plugin for PlayerPlugin {
             .add_system_set(
                 ConditionSet::new()
                     .run_in_state(GameState::InGame)
-                    // .with_system(asdasd.run_if_resource_exists::<ParallaxResource>().label("follow_camera"))
                     .with_system(update_axis)
                     .with_system(update_movement_state)
                     .with_system(update_face_direction)

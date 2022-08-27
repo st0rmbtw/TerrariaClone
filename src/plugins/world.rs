@@ -35,8 +35,8 @@ fn spawn_terrain(
 ) {
     let current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
 
-    // let seed = current_time.as_millis() as u32;
-    let seed = 3700092736;
+    let seed = current_time.as_millis() as u32;
+    // let seed = 3700092736;
 
     println!("The world's seed is {}", seed);
 
