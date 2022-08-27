@@ -1,4 +1,4 @@
-use bevy::{prelude::{default, Component}, ui::{UiRect, Val}, ecs::system::EntityCommands};
+use bevy::{prelude::{default, Component, Query, Changed, With, Button}, ui::{UiRect, Val, Interaction}, ecs::system::EntityCommands};
 
 pub trait Lerp<T> {
     fn lerp(self, other: T, t: f32) -> T;
@@ -97,3 +97,16 @@ macro_rules! handles{
 }
 
 pub(crate) use handles;
+
+
+pub fn on_btn_clicked<B: Component>(
+    query: Query<&Interaction, (Changed<Interaction>, With<Button>, With<B>)>,
+) -> bool {
+    for interaction in query.iter() {
+        if *interaction == Interaction::Clicked {
+            return true;
+        }
+    }
+
+    false
+}
