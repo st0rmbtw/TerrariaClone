@@ -15,7 +15,7 @@ use smallvec::SmallVec;
 
 use crate::{item::{Item, ITEM_COPPER_PICKAXE, ITEM_DATA, ItemId, ItemData}, util::{RectExtensions, EntityCommandsExtensions}, TRANSPARENT, state::GameState};
 
-use super::{UiAssets, FontAssets, ItemAssets, HoveredInfo, ToggleExtraUiEvent, ExtraUiVisibility};
+use super::{UiAssets, FontAssets, ItemAssets, HoveredInfo, ToggleExtraUiEvent, ExtraUiVisibility, UiVisibility};
 
 pub const SPAWN_PLAYER_UI_LABEL: &str = "spawn_player_ui";
 
@@ -68,7 +68,14 @@ impl Plugin for PlayerInventoryPlugin {
                 ConditionSet::new()
                     .run_in_state(GameState::InGame)
                     .with_system(set_selected_item)
-                    .with_system(select_hotbar_cell)
+                    .with_system(select_item)
+                    .into()
+            )
+            
+            .add_system_set(
+                ConditionSet::new()
+                    .run_in_state(GameState::InGame)
+                    .run_if_resource_equals(UiVisibility::default())
                     .with_system(update_inventory_visibility)
                     .with_system(update_selected_cell_size)
                     .with_system(update_selected_cell)
@@ -98,16 +105,23 @@ impl Inventory {
     fn get_item(&self, index: usize) -> Option<Item> {
         self.items.iter().nth(index).and_then(|a| *a)
     }
+
+    fn select_item(&mut self, index: usize) -> Option<Item> {
+        assert!(index <= 9);
+        self.selected_item = index;
+        self.get_item(index)
+    }
+
+    fn selected_item(&self) -> Option<Item> {
+        self.get_item(self.selected_item)
+    }
 }
 
 #[derive(Component, Default, Inspectable)]
 struct InventoryUi;
 
 #[derive(Component, Default)]
-struct HotbarUi {
-    selected_cell: usize
-}
-
+struct HotbarUi;
 #[derive(Component)]
 struct HotbarCellMarker;
 
@@ -262,14 +276,12 @@ fn update_inventory_visibility(
 }
 
 fn update_selected_cell_size(
+    inventory: Res<Inventory>,
     mut hotbar_cells: Query<(&InventoryCell, &mut Style), With<HotbarCellMarker>>,
-    hotbar_query: Query<&HotbarUi>,
     visibility: Res<ExtraUiVisibility>
 ) {
-    let hotbar = hotbar_query.single();
-
     for (cell, mut style) in hotbar_cells.iter_mut() {
-        let selected = cell.index == hotbar.selected_cell;
+        let selected = cell.index == inventory.selected_item;
 
         style.size = match selected {
             true if !visibility.0 => Size::new(INVENTORY_CELL_SIZE_BIGGER_VAL, INVENTORY_CELL_SIZE_BIGGER_VAL),
@@ -279,14 +291,12 @@ fn update_selected_cell_size(
 }
 
 fn update_selected_cell(
+    inventory: Res<Inventory>,
     mut hotbar_cells: Query<(&InventoryCell, &mut UiImage), With<HotbarCellMarker>>,
-    hotbar_query: Query<&HotbarUi>,
     ui_assets: Res<UiAssets>
 ) {
-    let hotbar = hotbar_query.single();
-
     for (cell, mut image) in hotbar_cells.iter_mut() {
-        let selected = cell.index == hotbar.selected_cell;
+        let selected = cell.index == inventory.selected_item;
         
         image.0 = if selected {
             ui_assets.selected_inventory_back.clone()
@@ -394,29 +404,25 @@ fn spawn_inventory_cell(
         .insert(Interaction::default());
 }
 
-fn select_hotbar_cell(
+fn select_item(
+    mut inventory: ResMut<Inventory>,
     input: Res<Input<KeyCode>>,
-    mut query: Query<&mut HotbarUi>
 ) {
     let digit = input
         .get_just_pressed()
         .find_map(|k| KEYCODE_TO_DIGIT.get(k));
 
-    if let Some(digit) = digit {
-        let mut hotbar = query.single_mut();
-        hotbar.selected_cell = *digit;
+    if let Some(index) = digit {
+        inventory.select_item(*index);
     }
 }
 
 fn set_selected_item(
     inventory: Res<Inventory>,
     mut selected_item: ResMut<SelectedItem>,
-    hotbar_query: Query<&HotbarUi, Changed<HotbarUi>>,
 ) {
-    if let Ok(hotbar) = hotbar_query.get_single() {
-        selected_item.0 = inventory
-            .get_item(hotbar.selected_cell)
-            .map(|item| item);
+    if inventory.is_changed() {
+        selected_item.0 = inventory.selected_item();
     }
 }
 
