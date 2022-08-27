@@ -7,6 +7,8 @@ mod debug;
 mod inventory;
 mod assets;
 mod cursor;
+mod menu;
+mod background;
 
 pub use cursor::*;
 pub use setup::*;
@@ -17,3 +19,5 @@ pub use world::*;
 pub use debug::*;
 pub use inventory::*;
 pub use assets::*;
+pub use menu::*;
+pub use background::*;

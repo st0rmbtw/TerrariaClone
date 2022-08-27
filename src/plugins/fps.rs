@@ -1,6 +1,9 @@
 use std::time::Duration;
 
 use bevy::{prelude::*, diagnostic::{FrameTimeDiagnosticsPlugin, Diagnostics}};
+use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet};
+
+use crate::state::GameState;
 
 use super::{SPAWN_PLAYER_UI_LABEL, FontAssets};
 
@@ -10,8 +13,13 @@ impl Plugin for FpsPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app
             .add_plugin(FrameTimeDiagnosticsPlugin)
-            .add_startup_system(spawn_fps_text.after(SPAWN_PLAYER_UI_LABEL))
-            .add_system(update_fps_text);
+            .add_enter_system(GameState::InGame, spawn_fps_text.after(SPAWN_PLAYER_UI_LABEL))
+            .add_system_set(
+                ConditionSet::new()
+                    .run_in_state(GameState::InGame)
+                    .with_system(update_fps_text)
+                    .into()
+            );
     }
 } 
 

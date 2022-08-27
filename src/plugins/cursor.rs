@@ -1,9 +1,10 @@
 use std::time::Duration;
 
-use bevy::{prelude::{Plugin, App, Commands, Res, Camera, With, Query, Vec2, GlobalTransform, NodeBundle, Color, default, Component, Transform, ResMut, ImageBundle, BuildChildren, Without, TextBundle, Deref, DerefMut, Vec3, Name, ParallelSystemDescriptorCoercion}, window::Windows, render::camera::RenderTarget, ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignContent, AlignSelf, UiColor}, text::{Text, TextStyle}};
-use bevy_tweening::{Tween, EaseFunction, TweeningType, lens::{TransformScaleLens, SpriteColorLens}, Animator, component_animator_system, AnimationSystem, TweeningDirection};
+use bevy::{prelude::{Plugin, App, Commands, Res, Camera, With, Query, Vec2, GlobalTransform, NodeBundle, Color, default, Component, Transform, ResMut, ImageBundle, BuildChildren, Without, TextBundle, Deref, DerefMut, Vec3, Name}, window::Windows, render::camera::RenderTarget, ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignSelf, UiColor, AlignItems}, text::{Text, TextStyle}};
+use interpolation::EaseFunction;
+use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet, IntoConditionalSystem};
 
-use crate::{TRANSPARENT, lens::UiColorLens};
+use crate::{TRANSPARENT, lens::UiColorLens, state::GameState, animation::{component_animator_system, AnimationSystem, Tween, TweeningType, TransformScaleLens, Animator}};
 
 use super::{MainCamera, CursorAssets, FontAssets};
 
@@ -16,11 +17,20 @@ impl Plugin for CursorPlugin {
         app
             .insert_resource(HoveredInfo::default())
             .insert_resource(Cursor::default())
-            .add_startup_system(setup)
-            .add_system(update_cursor_position)
-            .add_system(update_hovered_info)
-            .add_system(update_hovered_info_position)
-            .add_system(component_animator_system::<UiColor>.label(AnimationSystem::AnimationUpdate));
+            .add_enter_system(GameState::MainMenu, setup)
+            .add_system_set(
+                ConditionSet::new()
+                    .run_not_in_state(GameState::AssetLoading)
+                    .with_system(update_cursor_position)
+                    .with_system(update_hovered_info_position)
+                    .with_system(update_hovered_info)
+                    .into()
+            )
+            .add_system(
+                component_animator_system::<UiColor>
+                    .run_not_in_state(GameState::AssetLoading)
+                    .label(AnimationSystem::AnimationUpdate)
+            );
     }
 }
 
@@ -56,29 +66,29 @@ fn setup(
     fonts: Res<FontAssets>
 ) {
     let animate_scale = Tween::new(
-        EaseFunction::CubicInOut,
+        EaseFunction::QuadraticInOut,
         TweeningType::PingPong,
         Duration::from_millis(500),
         TransformScaleLens {
-            start: Vec3::ONE,
-            end: Vec3::new(1.13, 1.13, 1.),
+            start: Vec3::new(1., 1., 1.),
+            end: Vec3::new(1.15, 1.15, 1.),
         },
     );
 
     let animate_color = Tween::new(
-        EaseFunction::CubicInOut,
+        EaseFunction::QuadraticInOut,
         TweeningType::PingPong,
         Duration::from_millis(500),
         UiColorLens {
-            start: Color::PINK,
-            end: Color::PINK * 0.7,
+            start: Color::PINK * 0.7,
+            end: Color::PINK,
         }
-    ).with_direction(TweeningDirection::Backward);
+    );
 
     commands.spawn_bundle(NodeBundle {
         style: Style {
             justify_content: JustifyContent::Center,
-            align_content: AlignContent::Center,
+            align_items: AlignItems::Center,
             position_type: PositionType::Absolute,
             ..default()
         },
@@ -91,9 +101,9 @@ fn setup(
         c.spawn_bundle(ImageBundle {
             style: Style {
                 justify_content: JustifyContent::Center,
-                align_content: AlignContent::Center,
+                align_items: AlignItems::Center,
                 align_self: AlignSelf::Center,
-                size: Size::new(Val::Px(24.), Val::Px(24.)),
+                size: Size::new(Val::Px(22.), Val::Px(22.)),
                 ..default()
             },
             image: cursor_assets.cursor_background.clone().into(),
@@ -105,9 +115,9 @@ fn setup(
             c.spawn_bundle(ImageBundle {
                 style: Style {
                     justify_content: JustifyContent::Center,
-                    align_content: AlignContent::Center,
+                    align_items: AlignItems::Center,
                     align_self: AlignSelf::Center,
-                    size: Size::new(Val::Px(18.), Val::Px(18.)),
+                    size: Size::new(Val::Px(16.), Val::Px(16.)),
                     ..default()
                 },
                 image: cursor_assets.cursor.clone().into(),
@@ -142,34 +152,32 @@ fn setup(
 }
 
 fn update_cursor_position(
-    mut wnds: ResMut<Windows>,
+    wnds: Res<Windows>,
     mut cursor: ResMut<Cursor>,
-    q_camera: Query<(&Camera, &GlobalTransform), (With<MainCamera>, Without<CursorContainer>)>,
-    mut query: Query<(&mut Style, &mut Transform, &mut GlobalTransform), With<CursorContainer>>
+    cemera_query: Query<(&Camera, &GlobalTransform), (With<MainCamera>, Without<CursorContainer>)>,
+    mut cursor_query: Query<(&mut Style, &mut Transform, &mut GlobalTransform), With<CursorContainer>>
 ) {
-    let (mut style, mut transform, mut global_transform) = query.single_mut();
+    let (mut style, mut transform, mut global_transform) = cursor_query.single_mut();
 
-    let (camera, camera_transform) = q_camera.single();
-    
-    let wnd = if let RenderTarget::Window(id) = camera.target {
-        wnds.get_mut(id)
-    } else {
-        wnds.get_primary_mut()
-    };
+    if let Ok((camera, camera_transform)) = cemera_query.get_single() {
+        let wnd = if let RenderTarget::Window(id) = camera.target {
+            wnds.get(id)
+        } else {
+            wnds.get_primary()
+        };
 
-    if let Some(wnd) = wnd {
-        wnd.set_cursor_visibility(false);
+        if let Some(wnd) = wnd {
+            if let Some(screen_pos) = wnd.cursor_position() {
+                style.position = UiRect {
+                    left: Val::Px(screen_pos.x - 2.),
+                    bottom: Val::Px(screen_pos.y - 20.),
+                    ..default()
+                };
 
-        if let Some(screen_pos) = wnd.cursor_position() {
-            style.position = UiRect {
-                left: Val::Px(screen_pos.x - 2.),
-                bottom: Val::Px(screen_pos.y - 20.),
-                ..default()
-            };
-
-            cursor.position = screen_pos;
+                cursor.position = screen_pos;
+            }
         }
-    }
+    } 
 }
 
 
@@ -177,12 +185,14 @@ fn update_hovered_info_position(
     cursor: Res<Cursor>,
     mut query: Query<&mut Style, With<HoveredInfoMarker>>
 ) {
-    let mut style = query.single_mut();
+    if cursor.is_changed() {
+        let mut style = query.single_mut();
 
-    style.position = UiRect {
-        left: Val::Px(cursor.position.x + 20.),
-        bottom: Val::Px(cursor.position.y - 45.),
-        ..default()
+        style.position = UiRect {
+            left: Val::Px(cursor.position.x + 20.),
+            bottom: Val::Px(cursor.position.y - 45.),
+            ..default()
+        }
     }
 }
 
@@ -190,7 +200,9 @@ fn update_hovered_info(
     hovered_info: Res<HoveredInfo>,
     mut query: Query<&mut Text, With<HoveredInfoMarker>>
 ) {
-    for mut text in &mut query {
+    if hovered_info.is_changed() {
+        let mut text = query.single_mut();
+        
         text.sections[0].value = hovered_info.0.clone();
     }
 }
