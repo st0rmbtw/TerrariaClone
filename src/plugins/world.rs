@@ -119,22 +119,22 @@ fn load_chunk(commands: &mut Commands, block_assets: &BlockAssets, tiles: &Array
                 })
                 .insert(BlockMarker)
                 .insert(Name::new("Block Tile"))
-                .insert(RigidBody::Fixed)
-                .with_children(|cmd| {
-                    cmd.spawn()
-                        .insert(Collider::cuboid(TILE_SIZE / 2., TILE_SIZE / 2.))
-                        .insert(ActiveEvents::COLLISION_EVENTS)
-                        .insert(Friction::coefficient(0.))
-                        .insert(Restitution::coefficient(0.))
-                        .insert(Name::new("Terrain Collider"));
-                });
+                .insert(RigidBody::Fixed);
+                // .with_children(|cmd| {
+                //     cmd.spawn()
+                //         .insert(Collider::cuboid(TILE_SIZE / 2., TILE_SIZE / 2.))
+                //         .insert(ActiveEvents::COLLISION_EVENTS)
+                //         .insert(Friction::coefficient(0.))
+                //         .insert(Restitution::coefficient(0.))
+                //         .insert(Name::new("Terrain Collider"));
+                // });
         }
     }
-    // commands.spawn()
-    //     .insert(Transform::from_xyz(0., 0., 0.),)
-    //     .insert(Collider::cuboid(TILE_SIZE * 300., 2. * TILE_SIZE / 2.))
-    //     .insert(ActiveEvents::COLLISION_EVENTS)
-    //     .insert(Friction::coefficient(0.))
-    //     .insert(Restitution::coefficient(0.))
-    //     .insert(Name::new("Terrain Collider"));
+    commands.spawn()
+        .insert(Transform::from_xyz(0., 0., 0.),)
+        .insert(Collider::cuboid(TILE_SIZE * 300., 2. * TILE_SIZE / 2.))
+        .insert(ActiveEvents::COLLISION_EVENTS)
+        .insert(Friction::coefficient(0.))
+        .insert(Restitution::coefficient(0.))
+        .insert(Name::new("Terrain Collider"));
 }

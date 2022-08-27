@@ -1,8 +1,8 @@
 use std::{collections::HashMap, borrow::Cow};
 
-use bevy::{prelude::{Plugin, App, Commands, Res, NodeBundle, default, Color, ImageBundle, Component, KeyCode, Query, ParallelSystemDescriptorCoercion, Changed, With, TextBundle, Image, Handle, Visibility, ResMut, DerefMut, Deref}, ui::{AlignItems, Style, Val, FlexDirection, AlignContent, UiRect, Size, AlignSelf, UiImage, Interaction, FocusPolicy, JustifyContent, PositionType}, hierarchy::{BuildChildren, ChildBuilder}, input::Input, core::Name, text::{Text, TextAlignment, TextStyle}};
+use bevy::{prelude::{Plugin, App, Commands, Res, NodeBundle, default, Color, ImageBundle, Component, KeyCode, Query, ParallelSystemDescriptorCoercion, Changed, With, TextBundle, Image, Handle, Visibility, ResMut, DerefMut, Deref, ExclusiveSystemDescriptorCoercion, Entity}, ui::{AlignItems, Style, Val, FlexDirection, AlignContent, UiRect, Size, AlignSelf, UiImage, Interaction, FocusPolicy, JustifyContent, PositionType}, hierarchy::{BuildChildren, ChildBuilder}, input::Input, core::Name, text::{Text, TextAlignment, TextStyle}};
 use bevy_inspector_egui::Inspectable;
-use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet};
+use iyes_loopless::{prelude::{AppLooplessStateExt, ConditionSet}, condition::IntoConditionalExclusiveSystem};
 use smallvec::SmallVec;
 
 use crate::{item::{Item, ITEM_COPPER_PICKAXE, ITEM_DATA, ItemId, ItemData}, util::{RectExtensions, EntityCommandsExtensions}, TRANSPARENT, state::GameState};
@@ -55,7 +55,6 @@ impl Plugin for PlayerInventoryPlugin {
 
                 inventory
             })
-            .add_enter_system(GameState::InGame, spawn_inventory_ui.label(SPAWN_PLAYER_UI_LABEL))
 
             .add_system_set(
                 ConditionSet::new()
@@ -130,11 +129,11 @@ fn get_item_data_by_id<'a>(id: &ItemId) -> &'a ItemData {
 }
 
 
-fn spawn_inventory_ui(
-    mut commands: Commands,
-    ui_assets: Res<UiAssets>,
-    fonts: Res<FontAssets>
-) {
+pub fn spawn_inventory_ui(
+    commands: &mut Commands,
+    ui_assets: &UiAssets,
+    fonts: &FontAssets,
+) -> Entity {
     commands.spawn_bundle(NodeBundle {
         style: Style {
             align_items: AlignItems::Center,
@@ -248,7 +247,8 @@ fn spawn_inventory_ui(
         .insert(Name::new("Inventory"))
         .insert(InventoryUi::default());
         // endregion
-    });
+    })
+    .id()
 }
 
 fn change_inventory_visibility(

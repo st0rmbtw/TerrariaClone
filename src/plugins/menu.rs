@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use bevy::{prelude::{App, Plugin, Commands, TextBundle, Res, Color, NodeBundle, default, BuildChildren, Camera2dBundle, ButtonBundle, Changed, Query, Component, Transform, Vec3, Entity, With, Button, DespawnRecursiveExt, EventWriter, Children, ChildBuilder}, text::{TextStyle, Text}, ui::{Style, Size, Val, JustifyContent, AlignItems, FlexDirection, UiRect, Interaction}, app::AppExit};
-use crate::{animation::{EaseFunction, Animator, AnimatorState, Tween, TweeningType, TransformScaleLens, TweeningDirection}, parallax::{ParallaxCameraComponent, move_background_system}};
+use crate::{animation::{EaseFunction, Animator, AnimatorState, Tween, TweeningType, TransformScaleLens, TweeningDirection}, parallax::{ParallaxCameraComponent, move_background_system}, util::on_btn_clicked};
 use iyes_loopless::prelude::*;
 
 use crate::{state::GameState, TRANSPARENT, util::RectExtensions};
@@ -46,18 +46,6 @@ struct Menu;
 
 // endregion
 
-fn on_btn_clicked<B: Component>(
-    query: Query<&Interaction, (Changed<Interaction>, With<Button>, With<B>)>,
-) -> bool {
-    for interaction in query.iter() {
-        if *interaction == Interaction::Clicked {
-            return true;
-        }
-    }
-
-    false
-}
-
 fn despawn_with<C: Component>(
     query: Query<Entity, With<C>>,
     mut commands: Commands
@@ -68,7 +56,7 @@ fn despawn_with<C: Component>(
 }
 
 #[inline(always)]
-fn text_tween() -> Tween<Transform> {
+pub fn text_tween() -> Tween<Transform> {
     Tween::new(
         EaseFunction::QuadraticInOut, 
         TweeningType::Once, 

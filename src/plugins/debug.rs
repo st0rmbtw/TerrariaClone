@@ -3,7 +3,7 @@ use bevy_inspector_egui::{WorldInspectorPlugin, RegisterInspectable};
 use bevy_rapier2d::prelude::RapierDebugRenderPlugin;
 
 use super::{SpeedCoefficient, FaceDirection};
-use crate::{state::MovementState};
+use crate::state::MovementState;
 
 pub struct DebugPlugin;
 
