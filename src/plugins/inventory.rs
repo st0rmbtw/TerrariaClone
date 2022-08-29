@@ -306,6 +306,7 @@ fn update_selected_cell(
     }
 }
 
+#[autodefault(except(InventoryCell))]
 fn spawn_inventory_cell(
     children: &mut ChildBuilder<'_, '_, '_>, 
     name: impl Into<Cow<'static, str>>, 
@@ -321,11 +322,9 @@ fn spawn_inventory_cell(
                 width: INVENTORY_CELL_SIZE_VAL, 
                 height: INVENTORY_CELL_SIZE_VAL 
             },
-            align_self: AlignSelf::Center,
-            ..default()
+            align_self: AlignSelf::Center
         },
-        image: cell_background.into(),
-        ..default()
+        image: cell_background.into()
     };
 
     background_image.color = (*background_image.color.0.set_a(0.8)).into();
@@ -337,10 +336,8 @@ fn spawn_inventory_cell(
                 focus_policy: FocusPolicy::Pass,
                 style: Style {
                     flex_direction: FlexDirection::Column,
-                    margin: UiRect::all(Val::Px(8.)),
-                    ..default()
-                },
-                ..default()
+                    margin: UiRect::all(Val::Px(8.))
+                }
             })
             .insert(InventoryCell {
                 index
@@ -357,38 +354,36 @@ fn spawn_inventory_cell(
                         flex_direction: FlexDirection::ColumnReverse,
                         justify_content: JustifyContent::SpaceBetween,
                         align_items: AlignItems::FlexStart,
-                        align_content: AlignContent::FlexStart,
-                        ..default()
+                        align_content: AlignContent::FlexStart
                     },
                     color: TRANSPARENT.into(),
-                    focus_policy: FocusPolicy::Pass,
-                    ..default()
+                    focus_policy: FocusPolicy::Pass
                 }).with_children(|c| {
 
                     // Hotbar cell index
                     c.spawn_bundle(TextBundle {
                         focus_policy: FocusPolicy::Pass,
-                        text: Text::from_section(((index + 1) % 10).to_string(), TextStyle { 
-                            font: fonts.andy_bold.clone(),
-                            font_size: 16.,
-                            color: Color::WHITE
-                        }),
-                        ..default()
+                        text: Text::from_section(
+                            ((index + 1) % 10).to_string(), 
+                            TextStyle { 
+                                font: fonts.andy_bold.clone(),
+                                font_size: 16.,
+                                color: Color::WHITE
+                            }
+                        )
                     });
 
                     // Item stack
                     c.spawn_bundle(TextBundle {
                         style: Style {
-                            align_self: AlignSelf::Center,
-                            ..default()
+                            align_self: AlignSelf::Center
                         },
                         focus_policy: FocusPolicy::Pass,
                         text: Text::from_section("", TextStyle { 
                             font: fonts.andy_regular.clone(),
                             font_size: 16.,
                             color: Color::WHITE
-                        }),
-                        ..default()
+                        })
                     })
                     .insert(InventoryCell {
                         index

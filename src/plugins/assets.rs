@@ -55,6 +55,9 @@ handles! {
 
         #[asset(path = "sprites/Inventory_Back14.png")]
         pub selected_inventory_back: Handle<Image>,
+
+        #[asset(path = "sprites/ui/Radial.png")]
+        pub radial: Handle<Image>,
     }
 }
 
