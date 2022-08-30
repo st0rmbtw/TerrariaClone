@@ -1,12 +1,12 @@
-use std::time::{UNIX_EPOCH, SystemTime};
+use std::{time::{UNIX_EPOCH, SystemTime}, collections::HashMap};
 
-use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, Component, BuildChildren, Vec3, Handle}, sprite::{SpriteSheetBundle, TextureAtlasSprite, Anchor, TextureAtlas}, core::Name, math::{vec2, vec3}};
-use bevy_rapier2d::prelude::{Collider, ActiveEvents, Friction, RigidBody, Restitution};
+use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, Component, Vec3, Handle, GlobalTransform}, sprite::{SpriteSheetBundle, TextureAtlasSprite, TextureAtlas}, core::Name};
+use bevy_rapier2d::prelude::{Collider, Friction, RigidBody, Restitution};
 use iyes_loopless::{prelude::AppLooplessStateExt, state::NextState};
-use ndarray::{Array2, s};
+use ndarray::{Array2, s, ArrayView2};
 use rand::{Rng, thread_rng};
 
-use crate::{world_generator::{generate, Tile, Slope}, state::GameState};
+use crate::{world_generator::{generate, Tile, Slope}, state::GameState, block::BLOCK_AIR};
 
 use super::BlockAssets;
 
@@ -79,13 +79,7 @@ fn load_chunk(
         }
     }
 
-    // commands.spawn()
-    //     .insert(Transform::from_xyz(0., -16., 0.),)
-    //     .insert(Collider::cuboid(TILE_SIZE * 300., 2. * TILE_SIZE / 2.))
-    //     .insert(ActiveEvents::COLLISION_EVENTS)
-    //     .insert(Friction::coefficient(0.))
-    //     .insert(Restitution::coefficient(0.))
-    //     .insert(Name::new("Terrain Collider"));
+    spawn_colliders(commands, &chunk);
 }
 
 fn spawn_tile(
@@ -109,15 +103,7 @@ fn spawn_tile(
         })
         .insert(BlockMarker)
         .insert(Name::new(format!("Block Tile {} {}", ix, iy)))
-        .insert(RigidBody::Fixed)
-        .with_children(|cmd| {
-            cmd.spawn()
-                .insert(Collider::cuboid(TILE_SIZE / 2., TILE_SIZE / 2.))
-                .insert(ActiveEvents::COLLISION_EVENTS)
-                .insert(Friction::coefficient(0.))
-                .insert(Restitution::coefficient(0.))
-                .insert(Name::new("Terrain Collider"));
-        });
+        .insert(RigidBody::Fixed);
 }
 
 fn get_sprite_index_by_slope(slope: Slope) -> usize {
@@ -157,5 +143,105 @@ fn get_sprite_index_by_slope(slope: Slope) -> usize {
         (rand - 1) * 16 + 12
     } else {
         rand + 16
+    }
+}
+
+fn spawn_colliders(
+    commands: &mut Commands,
+    chunk: &ArrayView2<Tile>
+) {
+    #[derive(Copy, Clone, Eq, PartialEq, Debug, Default, Hash)]
+    struct Plate {
+        left: usize,
+        right: usize,
+    }
+
+    #[derive(Copy, Clone, Eq, PartialEq, Debug, Default, Hash)]
+    struct Rect {
+        left: usize,
+        right: usize,
+        top: usize,
+        bottom: usize,
+    }
+
+    let mut plate_stack: Vec<Vec<Plate>> = Vec::new();
+
+    for y in 0..chunk.nrows() - 1 {
+        let mut row_plates: Vec<Plate> = Vec::new();
+        let mut plate_start = None;
+
+        for x in 0..chunk.ncols() + 1 {
+            let is_solid = matches!(chunk.get((y, x)), Some(tile) if tile.id != BLOCK_AIR); 
+
+            match (plate_start, is_solid) {
+                (Some(s), false) => {
+                    row_plates.push(Plate { 
+                        left: s, 
+                        right: x - 1
+                    });
+                    plate_start = None;
+                },
+                (None, true) => plate_start = Some(x),
+                _ => ()
+            }
+        }
+
+        plate_stack.push(row_plates);
+    }
+
+    let mut tile_rects: Vec<Rect> = Vec::new();
+    let mut previous_rects: HashMap<Plate, Rect> = HashMap::new();
+
+    // an extra empty row so the algorithm "terminates" the rects that touch the top
+    // edge
+    plate_stack.push(Vec::new());
+
+    for (y, row) in plate_stack.iter().enumerate() {
+        let mut current_rects: HashMap<Plate, Rect> = HashMap::new();
+
+        for plate in row {
+            if let Some(previous_rect) = previous_rects.remove(plate) {
+                current_rects.insert(
+                    *plate,
+                    Rect {
+                        top: previous_rect.top + 1,
+                        ..previous_rect
+                    },
+                );
+            } else {
+                current_rects.insert(
+                    *plate,
+                    Rect {
+                        bottom: y,
+                        top: y,
+                        left: plate.left,
+                        right: plate.right,
+                    },
+                );
+            }
+        }
+
+        // Any plates that weren't removed above have terminated
+        tile_rects.append(&mut previous_rects.values().copied().collect());
+        previous_rects = current_rects;
+    }
+
+    for tile_rect in tile_rects {
+        commands
+            .spawn()
+            .insert(Collider::cuboid(
+                (tile_rect.right as f32 - tile_rect.left as f32 + 1.) * TILE_SIZE / 2.,
+                (tile_rect.top as f32 - tile_rect.bottom as f32 + 1.) * TILE_SIZE / 2.,
+            ))
+            .insert(RigidBody::Fixed)
+            .insert(Friction::new(0.))
+            .insert(Restitution::new(0.))
+            .insert(Transform::from_xyz(
+                (tile_rect.left + tile_rect.right) as f32 * TILE_SIZE / 2., 
+                -((tile_rect.bottom + tile_rect.top) as f32 * TILE_SIZE / 2.), 
+                0.
+            ))
+            .insert(GlobalTransform::default())
+            .insert(Name::new("Terrain Collider"));
     }
 }
