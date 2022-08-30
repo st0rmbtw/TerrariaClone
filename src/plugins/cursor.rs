@@ -253,8 +253,8 @@ fn update_tile_grid_position(
     if cursor.is_changed() {
         let mut transform = query.single_mut();
 
-        let x = cursor.world_position.x + 5.;
-        let y = cursor.world_position.y;
+        let x = cursor.world_position.x + 10.;
+        let y = cursor.world_position.y - 5.;
 
         transform.translation.x = x - x % 16.;
         transform.translation.y = y - y % 16.;

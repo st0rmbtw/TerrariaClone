@@ -69,8 +69,8 @@ impl Plugin for PlayerInventoryPlugin {
             .add_system_set(
                 ConditionSet::new()
                     .run_in_state(GameState::InGame)
-                    .with_system(select_item)
                     .with_system(scroll_select_item)
+                    .with_system(select_item)
                     .with_system(set_selected_item)
                     .into()
             )
@@ -81,7 +81,7 @@ impl Plugin for PlayerInventoryPlugin {
                     .run_if_resource_equals(UiVisibility::default())
                     .with_system(update_inventory_visibility)
                     .with_system(update_selected_cell_size)
-                    .with_system(update_selected_cell)
+                    .with_system(update_selected_cell_image)
                     .with_system(update_selected_item_name_alignment)
                     .with_system(update_selected_item_name_text)
                     .with_system(update_cell)
@@ -131,9 +131,7 @@ struct HotbarCellMarker;
 struct SelectedItemNameMarker;
 
 #[derive(Component)]
-struct InventoryCell {
-    index: usize
-}
+struct InventoryCellIndex(usize);
 
 #[derive(Component, Default)]
 struct InventoryCellItemImage(Handle<Image>);
@@ -279,11 +277,11 @@ fn update_inventory_visibility(
 
 fn update_selected_cell_size(
     inventory: Res<Inventory>,
-    mut hotbar_cells: Query<(&InventoryCell, &mut Style), With<HotbarCellMarker>>,
+    mut hotbar_cells: Query<(&InventoryCellIndex, &mut Style), With<HotbarCellMarker>>,
     visibility: Res<ExtraUiVisibility>
 ) {
-    for (cell, mut style) in hotbar_cells.iter_mut() {
-        let selected = cell.index == inventory.selected_item_index;
+    for (cell_index, mut style) in hotbar_cells.iter_mut() {
+        let selected = cell_index.0 == inventory.selected_item_index;
 
         style.size = match selected {
             true if !visibility.0 => Size::new(INVENTORY_CELL_SIZE_BIGGER_VAL, INVENTORY_CELL_SIZE_BIGGER_VAL),
@@ -292,13 +290,13 @@ fn update_selected_cell_size(
     }
 }
 
-fn update_selected_cell(
+fn update_selected_cell_image(
     inventory: Res<Inventory>,
-    mut hotbar_cells: Query<(&InventoryCell, &mut UiImage), With<HotbarCellMarker>>,
+    mut hotbar_cells: Query<(&InventoryCellIndex, &mut UiImage), With<HotbarCellMarker>>,
     ui_assets: Res<UiAssets>
 ) {
-    for (cell, mut image) in hotbar_cells.iter_mut() {
-        let selected = cell.index == inventory.selected_item_index;
+    for (cell_index, mut image) in hotbar_cells.iter_mut() {
+        let selected = cell_index.0 == inventory.selected_item_index;
         
         image.0 = if selected {
             ui_assets.selected_inventory_back.clone()
@@ -341,9 +339,7 @@ fn spawn_inventory_cell(
                     margin: UiRect::all(Val::Px(8.))
                 }
             })
-            .insert(InventoryCell {
-                index
-            })
+            .insert(InventoryCellIndex(index))
             .insert(InventoryCellItemImage::default())
             .insert(Interaction::default());
 
@@ -387,16 +383,14 @@ fn spawn_inventory_cell(
                             color: Color::WHITE
                         })
                     })
-                    .insert(InventoryCell {
-                        index
-                    })
+                    .insert(InventoryCellIndex(index))
                     .insert(InventoryItemStack::default());
                 });
             }
 
         })
         .insert(Name::new(name))
-        .insert(InventoryCell { index })
+        .insert(InventoryCellIndex(index))
         .insert_if(HotbarCellMarker, || { hotbar_cell })
         .insert(Interaction::default());
 }
@@ -420,7 +414,8 @@ fn scroll_select_item(
 ) {
     for event in events.iter() {
         let selected_item_index = inventory.selected_item_index as f32;
-        let new_index = (((selected_item_index + event.y) % HOTBAR_LENGTH as f32) + HOTBAR_LENGTH as f32) % HOTBAR_LENGTH as f32;
+        let hotbar_length = HOTBAR_LENGTH as f32;
+        let new_index = (((selected_item_index + event.y.signum()) % hotbar_length) + hotbar_length) % hotbar_length;
 
         inventory.select_item(new_index as usize);
     }
@@ -466,13 +461,13 @@ fn update_selected_item_name_text(
 
 fn update_cell(
     inventory: Res<Inventory>,
-    mut item_images: Query<(&mut InventoryCellItemImage, &InventoryCell)>,
+    mut item_images: Query<(&mut InventoryCellItemImage, &InventoryCellIndex)>,
     item_assets: Res<ItemAssets>,
 ) {
     if inventory.is_changed() {
-        for (mut cell_image, cell) in &mut item_images {
+        for (mut cell_image, cell_index) in &mut item_images {
             cell_image.0 = inventory
-                .get_item(cell.index)
+                .get_item(cell_index.0)
                 .map(|item| item_assets.get_by_id(item.id))
                 .unwrap_or(item_assets.no_item());
         }
@@ -489,11 +484,11 @@ fn update_cell_image(
 
 fn update_item_stack(
     inventory: Res<Inventory>,
-    mut query: Query<(&mut InventoryItemStack, &InventoryCell)>
+    mut query: Query<(&mut InventoryItemStack, &InventoryCellIndex)>
 ) {
     if inventory.is_changed() {
-        for (mut item_stack, cell) in &mut query {
-            if let Some(item) = inventory.items.get(cell.index).and_then(|item| *item) {
+        for (mut item_stack, cell_index) in &mut query {
+            if let Some(item) = inventory.items.get(cell_index.0).and_then(|item| *item) {
                 item_stack.0 = item.stack;
             }
         }
@@ -511,12 +506,12 @@ fn update_item_stack_text(
 }
 
 fn inventory_cell_background_hover(
-    query: Query<(&Interaction, &InventoryCell), Changed<Interaction>>,
+    query: Query<(&Interaction, &InventoryCellIndex), Changed<Interaction>>,
     inventory: Res<Inventory>,
     mut info: ResMut<HoveredInfo>
 ) {
-    for (interaction, cell) in &query {
-        if let Some(item) = inventory.get_item(cell.index) {
+    for (interaction, cell_index) in &query {
+        if let Some(item) = inventory.get_item(cell_index.0) {
             let name = if *interaction != Interaction::None {
                 get_item_data_by_id(&item.id).name
             } else {
