@@ -5,7 +5,7 @@ use bevy::{
     prelude::*, 
     ui::{AlignItems, Style, Val, FlexDirection, AlignContent, UiRect, Size, AlignSelf, UiImage, Interaction, FocusPolicy, JustifyContent, PositionType}, 
     hierarchy::{BuildChildren, ChildBuilder}, 
-    input::Input, 
+    input::{Input, mouse::MouseWheel}, 
     core::Name, 
     text::{Text, TextAlignment, TextStyle}
 };
@@ -18,6 +18,9 @@ use crate::{item::{Item, ITEM_COPPER_PICKAXE, ITEM_DATA, ItemId, ItemData}, util
 use super::{UiAssets, FontAssets, ItemAssets, HoveredInfo, ToggleExtraUiEvent, ExtraUiVisibility, UiVisibility};
 
 pub const SPAWN_PLAYER_UI_LABEL: &str = "spawn_player_ui";
+
+const ITEMS_STRING: &str = "Items";
+const INVENTORY_STRING: &str = "Inventory";
 
 // 5 is a total count of inventory rows. -1 because the hotbar is a first row
 const INVENTORY_ROWS_COUNT: usize = 5 - 1;
@@ -32,8 +35,7 @@ const INVENTORY_CELL_SIZE_BIGGER_VAL: Val = Val::Px(INVENTORY_CELL_SIZE_BIGGER_F
 
 const CELL_COUNT_IN_ROW: usize = 10;
 
-const ITEMS_STRING: &str = "Items";
-const INVENTORY_STRING: &str = "Inventory";
+const HOTBAR_LENGTH: usize = 10;
 
 lazy_static! {
     static ref KEYCODE_TO_DIGIT: HashMap<KeyCode, usize> = HashMap::from([
@@ -67,8 +69,9 @@ impl Plugin for PlayerInventoryPlugin {
             .add_system_set(
                 ConditionSet::new()
                     .run_in_state(GameState::InGame)
-                    .with_system(set_selected_item)
                     .with_system(select_item)
+                    .with_system(scroll_select_item)
+                    .with_system(set_selected_item)
                     .into()
             )
             
@@ -98,7 +101,7 @@ impl Plugin for PlayerInventoryPlugin {
 #[derive(Component, Default)]
 pub struct Inventory {
     pub items: SmallVec::<[Option<Item>; 50]>,
-    pub selected_item: usize
+    pub selected_item_index: usize
 }
 
 impl Inventory {
@@ -106,14 +109,13 @@ impl Inventory {
         self.items.iter().nth(index).and_then(|a| *a)
     }
 
-    fn select_item(&mut self, index: usize) -> Option<Item> {
+    fn select_item(&mut self, index: usize) {
         assert!(index <= 9);
-        self.selected_item = index;
-        self.get_item(index)
+        self.selected_item_index = index;
     }
 
     fn selected_item(&self) -> Option<Item> {
-        self.get_item(self.selected_item)
+        self.get_item(self.selected_item_index)
     }
 }
 
@@ -281,7 +283,7 @@ fn update_selected_cell_size(
     visibility: Res<ExtraUiVisibility>
 ) {
     for (cell, mut style) in hotbar_cells.iter_mut() {
-        let selected = cell.index == inventory.selected_item;
+        let selected = cell.index == inventory.selected_item_index;
 
         style.size = match selected {
             true if !visibility.0 => Size::new(INVENTORY_CELL_SIZE_BIGGER_VAL, INVENTORY_CELL_SIZE_BIGGER_VAL),
@@ -296,7 +298,7 @@ fn update_selected_cell(
     ui_assets: Res<UiAssets>
 ) {
     for (cell, mut image) in hotbar_cells.iter_mut() {
-        let selected = cell.index == inventory.selected_item;
+        let selected = cell.index == inventory.selected_item_index;
         
         image.0 = if selected {
             ui_assets.selected_inventory_back.clone()
@@ -364,7 +366,7 @@ fn spawn_inventory_cell(
                     c.spawn_bundle(TextBundle {
                         focus_policy: FocusPolicy::Pass,
                         text: Text::from_section(
-                            ((index + 1) % 10).to_string(), 
+                            ((index + 1) % HOTBAR_LENGTH).to_string(), 
                             TextStyle { 
                                 font: fonts.andy_bold.clone(),
                                 font_size: 16.,
@@ -409,6 +411,18 @@ fn select_item(
 
     if let Some(index) = digit {
         inventory.select_item(*index);
+    }
+}
+
+fn scroll_select_item(
+    mut inventory: ResMut<Inventory>,
+    mut events: EventReader<MouseWheel>
+) {
+    for event in events.iter() {
+        let selected_item_index = inventory.selected_item_index as f32;
+        let new_index = (((selected_item_index + event.y) % HOTBAR_LENGTH as f32) + HOTBAR_LENGTH as f32) % HOTBAR_LENGTH as f32;
+
+        inventory.select_item(new_index as usize);
     }
 }
 
