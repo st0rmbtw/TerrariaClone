@@ -8,8 +8,8 @@ edition = "2021"
 [dependencies]
 bevy = { version = "0.8.0", default-features = false, features = ["bevy_sprite", "bevy_text", "bevy_ui", "bevy_render", "bevy_core_pipeline", "bevy_winit", "dynamic", "png", "filesystem_watcher"] }
 bevy-inspector-egui = "0.12.1"
-bevy_asset_loader = { version = "0.12.0", features = ["2d", "stageless"] }
-bevy_rapier2d = { version = "0.16.0", features = ["debug-render"] }
+bevy_asset_loader = { version = "0.12.1", features = ["2d", "stageless"] }
+bevy_rapier2d = { version = "0.16.2", features = ["debug-render"] }
 lazy_static = "1.4.0"
 rand = "0.8.5"
 smallvec = "1.9.0"

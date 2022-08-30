@@ -5,9 +5,9 @@ use bevy_inspector_egui::Inspectable;
 use bevy_rapier2d::{prelude::{RigidBody, Velocity, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce, Friction, GravityScale, ColliderMassProperties}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
 use iyes_loopless::prelude::*;
 
-use crate::{util::{Lerp, map_range}, TRANSPARENT, state::{GameState, MovementState}, item::{ITEM_ANIMATION_DATA}, parallax::{ParallaxCameraComponent}};
+use crate::{util::{Lerp, map_range}, TRANSPARENT, state::{GameState, MovementState}, item::ITEM_ANIMATION_DATA, parallax::ParallaxCameraComponent};
 
-use super::{PlayerAssets, PlayerInventoryPlugin, MainCamera, WorldSettings, ItemAssets, SelectedItem};
+use super::{PlayerAssets, PlayerInventoryPlugin, MainCamera, ItemAssets, SelectedItem};
 
 pub const PLAYER_SPRITE_WIDTH: f32 = 37.;
 pub const PLAYER_SPRITE_HEIGHT: f32 = 53.;
@@ -227,8 +227,7 @@ impl Default for WalkingAnimationData {
 
 fn spawn_player(
     mut commands: Commands,
-    player_assets: Res<PlayerAssets>,
-    world: Res<WorldSettings>
+    player_assets: Res<PlayerAssets>
 ) {
     commands
         .spawn_bundle(SpriteBundle {
@@ -476,7 +475,7 @@ fn spawn_player(
         .insert(ExternalForce::default())
         .insert(GravityScale::default())
         .insert(ColliderMassProperties::Mass(1.))
-        .insert(Transform::from_xyz(world.width as f32 / 2., 6., 0.))
+        .insert(Transform::from_xyz(0., 10., 0.))
         .with_children(|children| {
 
             // region: Camera
