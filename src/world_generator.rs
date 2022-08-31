@@ -1,10 +1,9 @@
 use autodefault::autodefault;
-use bevy::prelude::default;
 use ndarray::prelude::*;
 use noise::{NoiseFn, Seedable, SuperSimplex, OpenSimplex};
 use rand::{SeedableRng, rngs::StdRng, Rng};
 
-use crate::block::{BLOCK_STONE, BLOCK_DIRT, BLOCK_AIR, BLOCK_GRASS, get_block_by_id, BlockId};
+use crate::{block::Block, wall::Wall as WallType};
 
 const WORLD_SIZE_X: usize = 1750;
 const WORLD_SIZE_Y: usize = 900;
@@ -16,7 +15,7 @@ pub struct Level {
     pub stone: (usize, usize)
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Slope {
     pub top: bool,
     pub bottom: bool,
@@ -34,14 +33,25 @@ impl Slope {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct Wall {
+    pub wall_type: WallType,
+    pub slope: Slope
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Tile {
-    pub id: BlockId,
+    pub tile_type: Block,
     pub slope: Slope
 }   
+#[derive(Clone, Copy, PartialEq, Eq, Default)]
+pub struct Cell {
+    pub tile: Option<Tile>,
+    pub wall: Option<Wall>
+}
 
-#[autodefault(except(Level))]
-pub fn generate(seed: u32) -> Array2<Tile> {
+#[autodefault(except(Level, Tile, Wall))]
+pub fn generate(seed: u32) -> Array2<Cell> {
 
     // region: Init world
 
@@ -49,10 +59,16 @@ pub fn generate(seed: u32) -> Array2<Tile> {
 
     println!("Initializing world...");
 
-    let mut world = Array2::<Tile>::default((WORLD_SIZE_Y, WORLD_SIZE_X));
-    world.fill(Tile { 
-        id: BLOCK_STONE.id, 
-        ..default()
+    let mut world = Array2::<Cell>::default((WORLD_SIZE_Y, WORLD_SIZE_X));
+    world.fill(Cell { 
+        tile: Some(Tile {
+            tile_type: Block::Stone,
+            slope: Slope::default()
+        }),
+        wall: Some(Wall {
+            wall_type: WallType::DirtWall,
+            slope: Slope::default()
+        })
     });
 
     let level = Level {
@@ -80,7 +96,11 @@ pub fn generate(seed: u32) -> Array2<Tile> {
 
     // endregion
     
-    replace(&mut world.slice_mut(s![..level.dirt.1, ..]), Tile { id: BLOCK_STONE.id, ..default() }, Tile { id: BLOCK_DIRT.id, ..default() });
+    replace(
+        &mut world.slice_mut(s![..level.dirt.1, ..]), 
+        Some(Block::Stone),
+        Some(Block::Dirt),
+    );
 
     insert_stone_specks_into_dirt(&mut world, level, noise.set_seed(seed % rng.gen::<u32>()));
     
@@ -92,9 +112,9 @@ pub fn generate(seed: u32) -> Array2<Tile> {
 
     make_epic_cave(&mut world, epic_cave_noise, 0.0009, 0.011);
     
-    make_surface_rough(&mut world, terrain_noise.set_seed(seed % rng.gen::<u32>()), level.stone.0, 5., 25., Tile { id: BLOCK_DIRT.id }, Tile { id: BLOCK_STONE.id });
+    make_surface_rough(&mut world, terrain_noise.set_seed(seed % rng.gen::<u32>()), level.stone.0, 5., 25., Some(Block::Dirt), Some(Block::Stone));
     
-    make_surface_rough(&mut world, terrain_noise.set_seed(seed % rng.gen::<u32>()), level.sky.1, 4., (WORLD_SIZE_X / 110) as f64, Tile { id: BLOCK_AIR }, Tile { id: BLOCK_DIRT.id });
+    make_surface_rough(&mut world, terrain_noise.set_seed(seed % rng.gen::<u32>()), level.sky.1, 4., (WORLD_SIZE_X / 110) as f64, None, Some(Block::Dirt));
     
     add_grass(&mut world, level);
 
@@ -103,24 +123,26 @@ pub fn generate(seed: u32) -> Array2<Tile> {
     world
 }
 
-fn insert_specks<F: NoiseFn<[f64; 2]>>(world: &mut ArrayViewMut2<Tile>, noise: F, frequency: f64, size: f64, speck_block: Tile) {
+fn insert_specks<F: NoiseFn<[f64; 2]>>(world: &mut ArrayViewMut2<Cell>, noise: F, frequency: f64, size: f64, speck_block: Block) {
     for y in 0..world.nrows() {
         for x in 0..world.ncols() {
             let a = noise.get([x as f64 / (WORLD_SIZE_X as f64 / 30. * size), y as f64 / (WORLD_SIZE_Y as f64 / 30. * size)]);
 
             if a > (frequency * 10.).powi(-1) {
-                world[[y, x]] = speck_block;
+                world[[y, x]].tile = Some(Tile { 
+                    tile_type: speck_block,
+                    slope: Slope::default()
+                });
             }
         }
     }
 }
 
-#[autodefault]
-fn add_grass(world: &mut Array2<Tile>, level: Level) {
+fn add_grass(world: &mut Array2<Cell>, level: Level) {
     println!("Adding grass...");
 
     for x in 0..world.ncols() {
-        let mut prev_block: Option<BlockId> = None;
+        let mut prev_block: Option<Block> = None;
         let mut y: usize = 0;
 
         loop {
@@ -130,13 +152,15 @@ fn add_grass(world: &mut Array2<Tile>, level: Level) {
 
             let block = world
                 .get((y, x))
-                .and_then(|tile| get_block_by_id(tile.id))
-                .map(|b| b.id);
+                .and_then(|cell| cell.tile)
+                .map(|tile| tile.tile_type);
 
-
-            if let Some(b) = block {
-                if b == BLOCK_DIRT.id && matches!(prev_block, None) {
-                    world[[y, x]] = Tile { id: BLOCK_GRASS.id };
+            if let Some(Block::Dirt) = block {
+                if prev_block.is_none() {
+                    world[[y, x]].tile = Some(Tile { 
+                        tile_type: Block::Grass, 
+                        slope: Slope::default() 
+                    });
                 }
             }
 
@@ -146,7 +170,7 @@ fn add_grass(world: &mut Array2<Tile>, level: Level) {
     }
 }
 
-fn make_surface_rough<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Tile>, terrain_noise: F, start_y: usize, q: f64, height: f64, down: Tile, up: Tile) {
+fn make_surface_rough<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Cell>, terrain_noise: F, start_y: usize, q: f64, height: f64, down: Option<Block>, up: Option<Block>) {
     for x in 0..world.ncols() {
 
         let a = terrain_noise.get([x as f64 / (world.ncols() as f64 / q), x as f64 / (world.nrows() as f64 / q)]);
@@ -164,7 +188,7 @@ fn make_surface_rough<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Tile>, terrain_no
 }
 
 #[autodefault]
-fn make_epic_cave<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Tile>, epic_cave_noise: F, frequency: f64, threshold: f64) {
+fn make_epic_cave<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Cell>, epic_cave_noise: F, frequency: f64, threshold: f64) {
     println!("Making epic cave...");
 
     for y in 0..world.nrows() {
@@ -180,14 +204,14 @@ fn make_epic_cave<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Tile>, epic_cave_nois
             ).abs();
 
             if k < threshold {
-                world[[y, x]] = Tile { id: BLOCK_AIR };
+                world[[y, x]].tile = None;
             }
         }
     }
 }
 
 #[autodefault]
-fn make_caves<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Tile>, noise: F, max_level: usize, frequency: f64, threshold: f64) {
+fn make_caves<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Cell>, noise: F, max_level: usize, frequency: f64, threshold: f64) {
     println!("Making caves...");
 
     for y in 0..world.nrows() {
@@ -201,7 +225,7 @@ fn make_caves<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Tile>, noise: F, max_leve
             }
 
             if k > threshold {
-                world[[y, x]] = Tile { id: BLOCK_AIR };
+                world[[y, x]].tile = None;
             }
         }
     }
@@ -210,7 +234,7 @@ fn make_caves<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Tile>, noise: F, max_leve
 }
 
 #[autodefault]
-fn make_small_caves<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Tile>, noise: F, max_level: usize) {
+fn make_small_caves<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Cell>, noise: F, max_level: usize) {
     let q = 120.;
 
     for y in 0..world.nrows() {
@@ -224,41 +248,45 @@ fn make_small_caves<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Tile>, noise: F, ma
             }
 
             if k > 0.8 {
-                world[[y, x]] = Tile { id: BLOCK_AIR };
+                world[[y, x]].tile = None;
             }
         }
     }
 }
 
-fn replace<D: Dimension>(world: &mut ArrayViewMut<Tile, D>, replace: Tile, replacement: Tile) {
-    for tile in world.iter_mut().filter(|tile| **tile == replace) {
-        *tile = replacement;
+fn replace<D: Dimension>(world: &mut ArrayViewMut<Cell, D>, replace: Option<Block>, replacement: Option<Block>) {
+    for cell in world.iter_mut() {
+        if cell.tile.map(|tile| tile.tile_type) == replace {
+            cell.tile = replacement.map(|block| Tile { 
+                tile_type: block, 
+                slope: Slope::default() 
+            })
+        }
     }
 }
 
 #[inline]
 #[autodefault]
-fn insert_stone_specks_into_dirt<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Tile>, level: Level, noise: F) {
+fn insert_stone_specks_into_dirt<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Cell>, level: Level, noise: F) {
     println!("Inserting stone specks into dirt...");
 
-    insert_specks(&mut world.slice_mut(s![level.dirt.0+40..level.dirt.1, ..]), noise, 0.5, 0.7, Tile { id: BLOCK_STONE.id });
+    insert_specks(&mut world.slice_mut(s![level.dirt.0+40..level.dirt.1, ..]), noise, 0.5, 0.7, Block::Stone);
 }
 
 #[inline]
 #[autodefault]
-fn insert_dirt_specks_into_stone<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Tile>, level: Level, noise: F) {
+fn insert_dirt_specks_into_stone<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Cell>, level: Level, noise: F) {
     println!("Inserting dirt specks into stone...");
 
-    insert_specks(&mut world.slice_mut(s![level.stone.0..level.stone.1, ..]), noise, 0.2, 0.1, Tile { id: BLOCK_DIRT.id });
+    insert_specks(&mut world.slice_mut(s![level.stone.0..level.stone.1, ..]), noise, 0.2, 0.1, Block::Dirt);
 }
 
-fn set_tile_slope(world: &mut Array2<Tile>) {
+fn set_tile_slope(world: &mut Array2<Cell>) {
     for y in 0..WORLD_SIZE_Y {
         for x in 0..WORLD_SIZE_X {
-            if let Some(mut tile) = world.get_mut((y, x)).cloned() {
-                if tile.id == BLOCK_AIR {
-                    continue;
-                }
+            if let Some(cell) = world.get((y, x)).cloned() {
+                let mut new_tile = cell.tile;
+                let mut new_wall = cell.wall;
 
                 let prev_y_option = y.checked_sub(1);
                 let prev_x_option = x.checked_sub(1);
@@ -269,13 +297,35 @@ fn set_tile_slope(world: &mut Array2<Tile>) {
                 let prev_x = prev_x_option.unwrap_or(x);
                 let next_y = next_y_option.unwrap_or(y);
                 let next_x = next_x_option.unwrap_or(x);
-                
-                tile.slope.left = matches!(prev_x_option.and(world.get((y, prev_x))), Some(t) if t.id != BLOCK_AIR);
-                tile.slope.right = matches!(next_x_option.and(world.get((y, next_x))), Some(t) if t.id != BLOCK_AIR);
-                tile.slope.top = matches!(prev_y_option.and(world.get((prev_y, x))), Some(t) if t.id != BLOCK_AIR);
-                tile.slope.bottom = matches!(next_y_option.and(world.get((next_y, x))), Some(t) if t.id != BLOCK_AIR);
 
-                world[[y, x]] = tile
+                if cell.tile.is_some() {
+                    new_tile = Some(Tile {
+                        slope: Slope { 
+                            left: prev_x_option.and(world.get((y, prev_x))).and_then(|t| t.tile).is_some(),
+                            right: next_x_option.and(world.get((y, next_x))).and_then(|t| t.tile).is_some(),
+                            top: prev_y_option.and(world.get((prev_y, x))).and_then(|t| t.tile).is_some(),
+                            bottom: next_y_option.and(world.get((next_y, x))).and_then(|t| t.tile).is_some()
+                        },
+                        ..cell.tile.unwrap()
+                    });
+                }
+                
+                if cell.wall.is_some() {
+                    new_wall = Some(Wall {
+                        slope: Slope { 
+                            left: prev_x_option.and(world.get((y, prev_x))).and_then(|t| t.wall).is_some(),
+                            right: next_x_option.and(world.get((y, next_x))).and_then(|t| t.wall).is_some(),
+                            top: prev_y_option.and(world.get((prev_y, x))).and_then(|t| t.wall).is_some(),
+                            bottom: next_y_option.and(world.get((next_y, x))).and_then(|t| t.wall).is_some()
+                        },
+                        ..cell.wall.unwrap()
+                    });
+                }
+
+                world[[y, x]] = Cell {
+                    tile: new_tile,
+                    wall: new_wall
+                };
             }
         }
     }

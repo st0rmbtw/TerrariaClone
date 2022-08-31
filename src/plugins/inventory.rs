@@ -13,7 +13,7 @@ use bevy_inspector_egui::Inspectable;
 use iyes_loopless::prelude::ConditionSet;
 use smallvec::SmallVec;
 
-use crate::{item::{Item, ITEM_COPPER_PICKAXE, ITEM_DATA, ItemId, ItemData}, util::{RectExtensions, EntityCommandsExtensions}, TRANSPARENT, state::GameState};
+use crate::{item::{Item, ITEM_DATA, ItemId, ItemData, Items}, util::{RectExtensions, EntityCommandsExtensions}, TRANSPARENT, state::GameState};
 
 use super::{UiAssets, FontAssets, ItemAssets, HoveredInfo, ToggleExtraUiEvent, ExtraUiVisibility, UiVisibility};
 
@@ -61,7 +61,7 @@ impl Plugin for PlayerInventoryPlugin {
             .init_resource::<SelectedItem>()
             .insert_resource({
                 let mut inventory = Inventory::default();
-                inventory.items.insert(0, Some(ITEM_COPPER_PICKAXE));
+                inventory.items.insert(0, Some(Items::COPPER_PICKAXE));
 
                 inventory
             })

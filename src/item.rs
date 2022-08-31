@@ -46,10 +46,13 @@ lazy_static! {
     ]);
 }
 
+pub struct Items;
 
-pub const ITEM_COPPER_PICKAXE: Item = Item {
-    id: 3509,
-    item_type: ItemType::Pickaxe,
-    stack: 1
-};
+impl Items {
+    pub const COPPER_PICKAXE: Item = Item {
+        id: 3509,
+        item_type: ItemType::Pickaxe,
+        stack: 1
+    };
+}
 

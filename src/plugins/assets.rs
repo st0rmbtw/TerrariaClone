@@ -3,7 +3,7 @@ use bevy_asset_loader::prelude::{AssetCollection, LoadingStateAppExt, LoadingSta
 use bevy::ecs::world::Mut;
 use iyes_loopless::prelude::AppLooplessStateExt;
 
-use crate::{block::BlockId, state::GameState, util::handles, item::ItemId};
+use crate::{state::GameState, util::handles, item::ItemId, block::Block, wall::Wall};
 
 pub struct AssetsPlugin;
 
@@ -20,6 +20,7 @@ impl Plugin for AssetsPlugin {
                     .with_collection::<ItemAssets>()
                     .with_collection::<CursorAssets>()
                     .with_collection::<BackgroundAssets>()
+                    .with_collection::<WallAssets>()
             )
             .add_exit_system(GameState::AssetLoading, setup);
     }
@@ -166,6 +167,22 @@ handles! {
     }
 }
 
+#[derive(AssetCollection)]
+pub struct WallAssets {
+    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 32., columns = 13, rows = 5))]
+    #[asset(path = "sprites/walls/Wall_2.png")]
+    pub wall_2: Handle<TextureAtlas>,
+}
+
+impl WallAssets {
+    pub fn get_by_wall(&self, id: Wall) -> Option<Handle<TextureAtlas>> {
+        match id {
+            Wall::DirtWall => Some(self.wall_2.clone()),
+            _ => None
+        }
+    }
+}
+
 
 impl ItemAssets {
     pub fn no_item(&self) -> Handle<Image> {
@@ -207,12 +224,11 @@ fn setup(
 
 impl BlockAssets {
     
-    pub fn get_by_id(&self, id: BlockId) -> Option<Handle<TextureAtlas>> {
-        match id {
-            0 => Some(self.dirt.clone()),
-            1 => Some(self.stone.clone()),
-            2 => Some(self.grass.clone()),
-            _ => None
+    pub fn get_by_block(&self, block: Block) -> Option<Handle<TextureAtlas>> {
+        match block {
+            Block::Dirt => Some(self.dirt.clone()),
+            Block::Stone => Some(self.stone.clone()),
+            Block::Grass => Some(self.grass.clone()),
         }
     }
 }

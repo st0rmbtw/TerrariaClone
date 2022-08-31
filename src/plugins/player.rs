@@ -475,7 +475,7 @@ fn spawn_player(
         .insert(ExternalForce::default())
         .insert(GravityScale::default())
         .insert(ColliderMassProperties::Mass(1.))
-        .insert(Transform::from_xyz(0., 10., 0.))
+        .insert(Transform::from_xyz(5., 10., 0.))
         .with_children(|children| {
 
             // region: Camera
