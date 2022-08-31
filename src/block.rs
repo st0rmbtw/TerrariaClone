@@ -16,7 +16,13 @@ lazy_static! {
         (
             Block::Dirt,
             BlockData {
-                name: "Dirt"
+                name: "Dirt Block"
+            }
+        ),
+        (
+            Block::Stone,
+            BlockData {
+                name: "Stone Block"
             }
         )
     ]);
