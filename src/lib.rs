@@ -14,3 +14,4 @@ pub mod lens;
 pub mod world_generator;
 pub mod state;
 pub mod parallax;
+pub mod wall;

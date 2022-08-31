@@ -26,7 +26,7 @@ fn main() {
             ..default()
         })
         .add_loopless_state(GameState::AssetLoading)
-        .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.))
+        .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(DefaultPlugins)
         .add_plugin(TweeningPlugin)
         .add_plugin(AssetsPlugin)
