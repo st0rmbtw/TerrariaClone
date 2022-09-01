@@ -1,12 +1,13 @@
 use autodefault::autodefault;
+use bevy::prelude::{Entity, default};
 use ndarray::prelude::*;
 use noise::{NoiseFn, Seedable, SuperSimplex, OpenSimplex};
 use rand::{SeedableRng, rngs::StdRng, Rng};
 
 use crate::{block::Block, wall::Wall as WallType};
 
-const WORLD_SIZE_X: usize = 1750;
-const WORLD_SIZE_Y: usize = 900;
+pub const WORLD_SIZE_X: usize = 1750;
+pub const WORLD_SIZE_Y: usize = 900;
 
 #[derive(Clone, Copy)]
 pub struct Level {
@@ -36,7 +37,7 @@ impl Slope {
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Wall {
     pub wall_type: WallType,
-    pub slope: Slope
+    pub slope: Slope,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -47,7 +48,9 @@ pub struct Tile {
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub struct Cell {
     pub tile: Option<Tile>,
-    pub wall: Option<Wall>
+    pub tile_entity: Option<Entity>,
+    pub wall: Option<Wall>,
+    pub wall_entity: Option<Entity>
 }
 
 #[autodefault(except(Level, Tile, Wall))]
@@ -63,7 +66,7 @@ pub fn generate(seed: u32) -> Array2<Cell> {
     world.fill(Cell { 
         tile: Some(Tile {
             tile_type: Block::Stone,
-            slope: Slope::default()
+            slope: Slope::default(),
         }),
         wall: Some(Wall {
             wall_type: WallType::DirtWall,
@@ -159,7 +162,7 @@ fn add_grass(world: &mut Array2<Cell>, level: Level) {
                 if prev_block.is_none() {
                     world[[y, x]].tile = Some(Tile { 
                         tile_type: Block::Grass, 
-                        slope: Slope::default() 
+                        slope: Slope::default()
                     });
                 }
             }
@@ -187,7 +190,6 @@ fn make_surface_rough<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Cell>, terrain_no
     }
 }
 
-#[autodefault]
 fn make_epic_cave<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Cell>, epic_cave_noise: F, frequency: f64, threshold: f64) {
     println!("Making epic cave...");
 
@@ -210,7 +212,6 @@ fn make_epic_cave<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Cell>, epic_cave_nois
     }
 }
 
-#[autodefault]
 fn make_caves<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Cell>, noise: F, max_level: usize, frequency: f64, threshold: f64) {
     println!("Making caves...");
 
@@ -233,7 +234,6 @@ fn make_caves<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Cell>, noise: F, max_leve
     make_small_caves(world, noise, max_level);
 }
 
-#[autodefault]
 fn make_small_caves<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Cell>, noise: F, max_level: usize) {
     let q = 120.;
 
@@ -259,14 +259,13 @@ fn replace<D: Dimension>(world: &mut ArrayViewMut<Cell, D>, replace: Option<Bloc
         if cell.tile.map(|tile| tile.tile_type) == replace {
             cell.tile = replacement.map(|block| Tile { 
                 tile_type: block, 
-                slope: Slope::default() 
+                slope: Slope::default()
             })
         }
     }
 }
 
 #[inline]
-#[autodefault]
 fn insert_stone_specks_into_dirt<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Cell>, level: Level, noise: F) {
     println!("Inserting stone specks into dirt...");
 
@@ -274,7 +273,6 @@ fn insert_stone_specks_into_dirt<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Cell>,
 }
 
 #[inline]
-#[autodefault]
 fn insert_dirt_specks_into_stone<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Cell>, level: Level, noise: F) {
     println!("Inserting dirt specks into stone...");
 
@@ -324,7 +322,8 @@ fn set_tile_slope(world: &mut Array2<Cell>) {
 
                 world[[y, x]] = Cell {
                     tile: new_tile,
-                    wall: new_wall
+                    wall: new_wall,
+                    ..default()
                 };
             }
         }

@@ -91,7 +91,7 @@ impl Plugin for PlayerPlugin {
 // region: Structs
 
 #[derive(Component)]
-struct Player;
+pub struct Player;
 
 #[derive(Default, PartialEq, Eq, Inspectable, Clone, Copy, Component)]
 pub enum FaceDirection {
@@ -511,7 +511,7 @@ fn spawn_player(
                 .insert(Ccd::enabled())
                 .insert(Sensor)
                 .insert(ActiveEvents::COLLISION_EVENTS)
-                .insert(Transform::from_xyz(0., -player_half_height - 2., 0.))
+                .insert(Transform::from_xyz(0., -player_half_height - 6., 0.))
                 .insert(GlobalTransform::default())
                 .insert(GroundSensor {
                     ground_detection_entity: entity,
@@ -582,14 +582,10 @@ fn check_is_on_ground(
         for collision in collisions.iter() {
             match collision {
                 CollisionEvent::Started(a, b, CollisionEventFlags::SENSOR) => {
-                    if *b == entity {
-                        ground_sensor.intersecting_ground_entities.insert(*a);
-                    }
+                    ground_sensor.intersecting_ground_entities.insert(*a);
                 },
                 CollisionEvent::Stopped(a, b, CollisionEventFlags::SENSOR) => {
-                    if *b == entity {
-                        ground_sensor.intersecting_ground_entities.remove(a);
-                    }
+                    ground_sensor.intersecting_ground_entities.remove(a);
                 }
                 _ => {}
             }
