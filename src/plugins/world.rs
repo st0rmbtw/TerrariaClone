@@ -1,4 +1,4 @@
-use std::{time::{UNIX_EPOCH, SystemTime}, collections::HashMap};
+use std::{time::{UNIX_EPOCH, SystemTime}, collections::HashMap, ops::Mul};
 
 use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, Component, Vec3, Handle, GlobalTransform, With, Query, Changed, OrthographicProjection, ResMut, Entity}, sprite::{SpriteSheetBundle, TextureAtlasSprite, TextureAtlas}, core::Name};
 use bevy_rapier2d::prelude::{Collider, Friction, RigidBody, Restitution};
@@ -6,11 +6,14 @@ use iyes_loopless::{prelude::{AppLooplessStateExt, ConditionSet}, state::NextSta
 use ndarray::{Array2, s, ArrayView2};
 use rand::{Rng, thread_rng};
 
-use crate::{world_generator::{generate, Slope, Cell}, state::GameState};
+use crate::{world_generator::{generate, Slope, Cell, Wall, Tile}, state::GameState};
 
 use super::{BlockAssets, WallAssets, MainCamera};
 
 pub const TILE_SIZE: f32 = 16.;
+
+const CHUNK_WIDTH: usize = 50;
+const CHUNK_HEIGHT: usize = 50; 
 
 pub struct WorldPlugin;
 
@@ -54,18 +57,99 @@ pub struct FRect {
     bottom: f32,
 }
 
+impl FRect {
+    fn inside(&self, rect: FRect) -> bool {
+        inside_f((self.bottom, self.left), rect) || 
+        inside_f((self.top, self.right), rect) ||
+        inside_f((self.bottom, self.right), rect) ||
+        inside_f((self.top, self.left), rect)
+    }
+}
+
+impl Mul<f32> for FRect {
+    type Output = FRect;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        FRect {
+            left: self.left * rhs,
+            right: self.right * rhs,
+            top: self.top * rhs,
+            bottom: self.bottom * rhs,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Default)]
 pub struct ColliderData {
-    rect: URect,
+    rect: FRect,
     entity: Option<Entity>
 }
 
 pub struct WorldData {
     pub width: u16,
     pub height: u16,
-    pub cells: Box<Array2<Cell>>,
+    pub chunks: Vec<Chunk>,
     pub colliders: Vec<ColliderData>
 }
+
+pub struct Chunk {
+    pub bounds: FRect,
+    pub cells: Array2<Cell>,
+    pub spawned: bool,
+}
+
+impl Chunk {
+    fn spawn(
+        &mut self, 
+        commands: &mut Commands,
+        block_assets: &BlockAssets,
+        wall_assets: &WallAssets,
+    ) {
+        self.spawned = true;
+
+        for ((iy, ix), cell) in self.cells.indexed_iter_mut() {
+            let x = self.bounds.left + ix as f32 * TILE_SIZE;
+            let y = self.bounds.top - iy as f32 * TILE_SIZE;
+
+            if let Some(tile) = cell.tile {
+                if let Some(texture_atlas) = block_assets.get_by_block(tile.tile_type) {
+                    if cell.tile_entity.is_none() {
+                        let entity = spawn_tile(commands, texture_atlas, tile, ix, x, iy, y);
+                        
+                        cell.tile_entity = Some(entity);
+                    }
+                }
+            }
+    
+            if let Some(wall) = cell.wall {
+                if let Some(texture_atlas) = wall_assets.get_by_wall(wall.wall_type) {
+                    if cell.wall_entity.is_none() {
+                        let entity = spawn_wall(commands, texture_atlas, wall, ix, x, iy, y);
+
+                        cell.wall_entity = Some(entity);
+                    }
+                }
+            }
+        }
+    }
+
+    fn despawn(&mut self, commands: &mut Commands) {
+        self.spawned = false;
+
+        for cell in self.cells.iter_mut() {
+            if let Some(entity) = cell.tile_entity {
+                commands.entity(entity).despawn();
+                cell.tile_entity = None;
+            }
+
+            if let Some(entity) = cell.wall_entity {
+                commands.entity(entity).despawn();
+                cell.wall_entity = None;
+            }
+        }
+    }
+}
+
 
 #[derive(Component)]
 pub struct BlockMarker;
@@ -84,12 +168,15 @@ fn spawn_terrain(
 
     println!("Generating world...");
     let tiles = generate(seed);
+
     let colliders = get_colliders(&tiles.view());
+
+    let chunks = get_chunks(&tiles.view());
 
     commands.insert_resource(WorldData {
         width: tiles.ncols() as u16,
         height: tiles.nrows() as u16,
-        cells: Box::new(tiles),
+        chunks,
         colliders
     });
 
@@ -99,15 +186,43 @@ fn spawn_terrain(
     commands.insert_resource(NextState(GameState::InGame));
 }
 
+fn get_chunks(world: &ArrayView2<Cell>) -> Vec<Chunk> {
+    let mut chunks = vec![];
+
+    for offset_y in (0..world.nrows()).step_by(CHUNK_HEIGHT) {
+        for offset_x in (0..world.ncols()).step_by(CHUNK_WIDTH) {
+
+            let cells: Array2<Cell> = world.slice(s![offset_y..(offset_y + CHUNK_HEIGHT).clamp(0, world.nrows()), offset_x..(offset_x + CHUNK_WIDTH).clamp(0, world.ncols())]).to_owned();
+
+            if cells.nrows() > 0 && cells.ncols() > 0 {
+                chunks.push(Chunk {
+                    bounds: FRect { 
+                        left: offset_x as f32 * TILE_SIZE,
+                        right: (offset_x as f32 * TILE_SIZE + cells.ncols() as f32 * TILE_SIZE),
+                        top: -(offset_y as f32) * TILE_SIZE,
+                        bottom: -(offset_y as f32 * TILE_SIZE + cells.nrows() as f32 * TILE_SIZE)
+                    },
+                    cells,
+                    spawned: false,
+                });
+            }
+        }
+    }
+
+    chunks
+}
+
 fn spawn_tile(
     commands: &mut Commands,
     texture_atlas: Handle<TextureAtlas>,
-    index: usize,
+    tile: Tile,
     ix: usize,
     x: f32,
     iy: usize,
     y: f32
 ) -> Entity {
+    let index = get_tile_sprite_index(tile.slope);
+
     commands
         .spawn_bundle(SpriteSheetBundle {
             sprite: TextureAtlasSprite {
@@ -115,7 +230,7 @@ fn spawn_tile(
                 ..default()
             },
             texture_atlas,
-            transform: Transform::from_xyz(x, -y, 0.1).with_scale(Vec3::splat(1.05)),
+            transform: Transform::from_xyz(x, y, 0.1).with_scale(Vec3::splat(1.05)),
             ..default()
         })
         .insert(BlockMarker)
@@ -127,12 +242,14 @@ fn spawn_tile(
 fn spawn_wall(
     commands: &mut Commands,
     texture_atlas: Handle<TextureAtlas>,
-    index: usize,
+    wall: Wall,
     ix: usize,
     x: f32,
     iy: usize,
     y: f32
 ) -> Entity {
+    let index = get_wall_sprite_index(wall.slope);
+
     commands
         .spawn_bundle(SpriteSheetBundle {
             sprite: TextureAtlasSprite {
@@ -140,10 +257,35 @@ fn spawn_wall(
                 ..default()
             },
             texture_atlas,
-            transform: Transform::from_xyz(x, -y, 0.).with_scale(Vec3::splat(1.05)),
+            transform: Transform::from_xyz(x, y, 0.).with_scale(Vec3::splat(1.05)),
             ..default()
         })
         .insert(Name::new(format!("Wall {} {}", ix, iy)))
+        .id()
+}
+
+fn spawn_collider(
+    commands: &mut Commands,
+    rect: FRect,
+    offset_x: f32,
+    offset_y: f32
+) -> Entity{
+    commands
+        .spawn()
+        .insert(Collider::cuboid(
+            (rect.right - rect.left + 1.) * TILE_SIZE / 2.,
+            (rect.top - rect.bottom + 1.) * TILE_SIZE / 2.,
+        ))
+        .insert(RigidBody::Fixed)
+        .insert(Friction::new(0.))
+        .insert(Restitution::new(0.))
+        .insert(Transform::from_xyz(
+            offset_x + ((rect.left + rect.right) * TILE_SIZE / 2.),
+            offset_y + -((rect.bottom + rect.top) * TILE_SIZE / 2.), 
+            0.
+        ))
+        .insert(GlobalTransform::default())
+        .insert(Name::new("Terrain Collider"))
         .id()
 }
 
@@ -294,32 +436,9 @@ fn get_colliders(
     }
 
     tile_rects.iter().map(|rect| ColliderData {
-        rect: *rect,
+        rect: rect.to_frect(),
         ..default()
     }).collect()
-}
-
-fn spawn_collider(
-    commands: &mut Commands,
-    rect: URect
-) -> Entity{
-    commands
-        .spawn()
-        .insert(Collider::cuboid(
-            (rect.right as f32 - rect.left as f32 + 1.) * TILE_SIZE / 2.,
-            (rect.top as f32 - rect.bottom as f32 + 1.) * TILE_SIZE / 2.,
-        ))
-        .insert(RigidBody::Fixed)
-        .insert(Friction::new(0.))
-        .insert(Restitution::new(0.))
-        .insert(Transform::from_xyz(
-            (rect.left + rect.right) as f32 * TILE_SIZE / 2., 
-            -((rect.bottom + rect.top) as f32 * TILE_SIZE / 2.), 
-            0.
-        ))
-        .insert(GlobalTransform::default())
-        .insert(Name::new("Terrain Collider"))
-        .id()
 }
 
 fn update(
@@ -334,78 +453,49 @@ fn update(
         let camera_y = camera_transform.translation().y;
 
         let camera_fov = FRect {
-            left: camera_x + projection.left,
-            right: camera_x + projection.right,
-            top: camera_y.abs() - projection.top,
-            bottom: camera_y.abs() - projection.bottom
+            left: camera_x + projection.left - 5. * TILE_SIZE,
+            right: camera_x + projection.right + 5. * TILE_SIZE,
+            top: camera_y - projection.top - 5. * TILE_SIZE,
+            bottom: camera_y - projection.bottom + 5. * TILE_SIZE
         };
-
-        let start_x = ((camera_fov.left / TILE_SIZE) - 5.).clamp(0., world_data.cells.ncols() as f32) as usize;
-        let end_x = ((camera_fov.right / TILE_SIZE) + 5.).clamp(0., world_data.cells.ncols() as f32) as usize;
-        let start_y = ((camera_fov.top / TILE_SIZE) - 5.).clamp(0., world_data.cells.nrows() as f32) as usize;
-        let end_y = ((camera_fov.bottom / TILE_SIZE) + 5.).clamp(0., world_data.cells.nrows() as f32) as usize;
         
-        // Despawn all tiles and walls that are not in the camera fov
-        for ((y, x), cell) in world_data.cells.indexed_iter_mut() {
-            if (x < start_x || x > end_x) || (y < start_y || y > end_y) {
-                if let Some(entity) = cell.tile_entity {
-                    commands.entity(entity).despawn();
-                }
+        for chunk in world_data.chunks.iter_mut() {
+            let inside = chunk.bounds.inside(camera_fov);
 
-                if let Some(entity) = cell.wall_entity {
-                    commands.entity(entity).despawn();
-                }
-
-                cell.tile_entity = None;
-                cell.wall_entity = None;
-            }   
-        }
-
-        // Spawn all tiles and walls that are in the camera fov
-        for ((iy, ix), cell) in world_data.cells.slice_mut(s![start_y..end_y, start_x..end_x]).indexed_iter_mut() {
-            let x = start_x as f32 * TILE_SIZE + ix as f32 * TILE_SIZE;
-            let y = start_y as f32 * TILE_SIZE + iy as f32 * TILE_SIZE;
-
-            if let Some(tile) = cell.tile {
-                if let Some(texture_atlas) = block_assets.get_by_block(tile.tile_type) {
-                    if cell.tile_entity.is_none() {
-                        let index = get_tile_sprite_index(tile.slope);
-
-                        let entity = spawn_tile(&mut commands, texture_atlas, index, ix, x, iy, y);
-                        
-                        cell.tile_entity = Some(entity);
-                    }
-                }
-            }
-    
-            if let Some(wall) = cell.wall {
-                if let Some(texture_atlas) = wall_assets.get_by_wall(wall.wall_type) {
-                    if cell.wall_entity.is_none() {
-                        let index = get_wall_sprite_index(wall.slope);
-
-                        let entity = spawn_wall(&mut commands, texture_atlas, index, ix, x, iy, y);
-
-                        cell.wall_entity = Some(entity);
-                    }
-                }
+            match inside {
+                true if !chunk.spawned => {
+                    chunk.spawn(&mut commands, &block_assets, &wall_assets);
+                },
+                false if chunk.spawned => {
+                    chunk.despawn(&mut commands);
+                },
+                _ => ()
             }
         }
-        
-        // Spawn colliders for tiles that are in the camera fov
+
         for collider in world_data.colliders.iter_mut() {
-            let rect = collider.rect.to_frect();
+            let inside = (collider.rect * (TILE_SIZE / 2.)).inside(camera_fov);
 
-            let inside = inside((rect.bottom * TILE_SIZE, rect.left * TILE_SIZE), camera_fov) || 
-                    inside((rect.top * TILE_SIZE, rect.right * TILE_SIZE), camera_fov);
-
-            if inside && collider.entity.is_none() {
-                let entity = spawn_collider(&mut commands, collider.rect);
-                collider.entity = Some(entity);
-            };
+            match collider.entity {
+                None if inside => {
+                    let entity = spawn_collider(&mut commands, collider.rect, 0., 0.);
+                    collider.entity = Some(entity);
+                    
+                },
+                Some(entity) if !inside => {
+                    commands.entity(entity).despawn();
+                    collider.entity = None;
+                },
+                _ => ()
+            }
         }
     }
 }
 
-fn inside(p: (f32, f32), rect: FRect) -> bool {
+fn inside_f(p: (f32, f32), rect: FRect) -> bool {
+    p.0 < rect.bottom && p.0 > rect.top && p.1 > rect.left && p.1 < rect.right
+}
+
+fn inside_u(p: (usize, usize), rect: URect) -> bool {
     p.0 < rect.bottom && p.0 > rect.top && p.1 > rect.left && p.1 < rect.right
 }

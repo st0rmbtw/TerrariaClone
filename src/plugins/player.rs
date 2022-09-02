@@ -511,7 +511,7 @@ fn spawn_player(
                 .insert(Ccd::enabled())
                 .insert(Sensor)
                 .insert(ActiveEvents::COLLISION_EVENTS)
-                .insert(Transform::from_xyz(0., -player_half_height - 6., 0.))
+                .insert(Transform::from_xyz(0., -player_half_height - 4., 0.))
                 .insert(GlobalTransform::default())
                 .insert(GroundSensor {
                     ground_detection_entity: entity,
