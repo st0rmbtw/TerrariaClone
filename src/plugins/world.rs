@@ -1,6 +1,6 @@
 use std::{time::{UNIX_EPOCH, SystemTime}, collections::HashMap, ops::Mul};
 
-use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, Component, Vec3, Handle, GlobalTransform, With, Query, Changed, OrthographicProjection, ResMut, Entity}, sprite::{SpriteSheetBundle, TextureAtlasSprite, TextureAtlas}, core::Name};
+use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, Component, Vec3, Handle, GlobalTransform, With, Query, Changed, OrthographicProjection, ResMut, Entity}, sprite::{SpriteSheetBundle, TextureAtlasSprite, TextureAtlas}, core::Name, render::view::NoFrustumCulling};
 use bevy_rapier2d::prelude::{Collider, Friction, RigidBody, Restitution};
 use iyes_loopless::{prelude::{AppLooplessStateExt, ConditionSet}, state::NextState};
 use ndarray::{Array2, s, ArrayView2};
@@ -63,6 +63,10 @@ impl FRect {
         inside_f((self.top, self.right), rect) ||
         inside_f((self.bottom, self.right), rect) ||
         inside_f((self.top, self.left), rect)
+    }
+
+    fn intersect(&self, rect: FRect) -> bool {
+        self.left < rect.right && self.right > rect.left && self.bottom > rect.top && self.top > -rect.bottom.abs()
     }
 }
 
@@ -154,15 +158,11 @@ impl Chunk {
 #[derive(Component)]
 pub struct BlockMarker;
 
-fn spawn_terrain(
-    mut commands: Commands,
-    block_assets: Res<BlockAssets>,
-    wall_assets: Res<WallAssets>
-) {
+fn spawn_terrain(mut commands: Commands) {
     let current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
 
-    let seed = current_time.as_millis() as u32;
-    // let seed = 4118821582;
+    // let seed = current_time.as_millis() as u32;
+    let seed = 4289917359;
 
     println!("The world's seed is {}", seed);
 
@@ -179,9 +179,6 @@ fn spawn_terrain(
         chunks,
         colliders
     });
-
-    println!("Loading chunk...");
-    // load_chunk(&mut commands, &block_assets, &wall_assets, &tiles, (150, 50), (0, 0));
 
     commands.insert_resource(NextState(GameState::InGame));
 }
@@ -236,6 +233,7 @@ fn spawn_tile(
         .insert(BlockMarker)
         .insert(Name::new(format!("Block Tile {} {}", ix, iy)))
         .insert(RigidBody::Fixed)
+        .insert(NoFrustumCulling)
         .id()
 }
 
@@ -261,6 +259,7 @@ fn spawn_wall(
             ..default()
         })
         .insert(Name::new(format!("Wall {} {}", ix, iy)))
+        .insert(NoFrustumCulling)
         .id()
 }
 
@@ -474,7 +473,7 @@ fn update(
         }
 
         for collider in world_data.colliders.iter_mut() {
-            let inside = (collider.rect * (TILE_SIZE / 2.)).inside(camera_fov);
+            let inside = (collider.rect * (TILE_SIZE)).intersect(camera_fov);
 
             match collider.entity {
                 None if inside => {
@@ -493,9 +492,5 @@ fn update(
 }
 
 fn inside_f(p: (f32, f32), rect: FRect) -> bool {
-    p.0 < rect.bottom && p.0 > rect.top && p.1 > rect.left && p.1 < rect.right
-}
-
-fn inside_u(p: (usize, usize), rect: URect) -> bool {
     p.0 < rect.bottom && p.0 > rect.top && p.1 > rect.left && p.1 < rect.right
 }
