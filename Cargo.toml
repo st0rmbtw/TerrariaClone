@@ -18,6 +18,7 @@ ndarray = "0.15.6"
 noise = "0.7.0"
 iyes_loopless = "0.7.1"
 autodefault = "2.0.0"
+bevy_hanabi = { version = "0.3.1", default-features = false, features = ["2d"] }
 
 [profile.dev]
 opt-level = 1

@@ -1,6 +1,8 @@
 use std::{time::Duration, option::Option, collections::HashSet};
 
+use autodefault::autodefault;
 use bevy::{prelude::*, sprite::Anchor};
+use bevy_hanabi::{EffectAsset, Gradient, Spawner, PositionSphereModifier, ShapeDimension, AccelModifier, ColorOverLifetimeModifier, ParticleEffectBundle, ParticleEffect, SizeOverLifetimeModifier, ParticleLifetimeModifier};
 use bevy_inspector_egui::Inspectable;
 use bevy_rapier2d::{prelude::{RigidBody, Velocity, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce, Friction, GravityScale, ColliderMassProperties}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
 use iyes_loopless::prelude::*;
@@ -53,7 +55,7 @@ impl Plugin for PlayerPlugin {
                 )
 
             .add_system_to_stage(CoreStage::PostUpdate, flip_player)
-            // .add_system_to_stage(CoreStage::PostUpdate, set_sprite_index)
+            .add_system_to_stage(CoreStage::PostUpdate, spawn_particles)
 
             .add_system_set_to_stage(
                 CoreStage::PreUpdate, 
@@ -156,27 +158,32 @@ struct WalkingAnimationData {
     count: usize
 }
 
-#[derive(Component, Clone, Copy)]
+#[derive(Component, Clone, Copy, Default)]
 struct IdleAnimationData {
     idle: usize
 }
 
-#[derive(Component, Clone, Copy)]
+#[derive(Component, Clone, Copy, Default)]
 struct FlyingAnimationData {
     flying: usize
 }
 
-#[derive(Component, Clone, Copy)]
+#[derive(Component, Clone, Copy, Default)]
 struct FallingAnimationData {
     falling: usize
 }
 
-#[derive(Component, Clone, Copy)]
+#[derive(Component, Clone, Copy, Default)]
 struct UseItemAnimationData {
     offset: usize
 }
 
 // endregion
+
+#[derive(Component)]
+struct PlayerParticleEffects {
+    walking: Entity
+}
 
 // endregion
 
@@ -225,19 +232,19 @@ impl Default for WalkingAnimationData {
 
 // endregion
 
+#[autodefault(except(GroundSensor, PlayerParticleEffects))]
 fn spawn_player(
     mut commands: Commands,
-    player_assets: Res<PlayerAssets>
+    player_assets: Res<PlayerAssets>,
+    mut effects: ResMut<Assets<EffectAsset>>
 ) {
-    commands
+    let player = commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
                 color: TRANSPARENT,
                 custom_size: Some(Vec2::splat(1.)),
-                ..default()
             },
             computed_visibility: ComputedVisibility::not_visible(),
-            ..default()
         })
         .with_children(|cmd| {
 
@@ -245,11 +252,9 @@ fn spawn_player(
             cmd.spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite { 
                     color: Color::rgb(0.55, 0.23, 0.14),
-                    ..default()
                 },
                 transform: Transform::from_xyz(0., 0., 0.1),
                 texture_atlas: player_assets.hair.clone(),
-                ..default()
             })
             .insert(ChangeFlip)
             .insert(PlayerBodySprite)
@@ -260,11 +265,9 @@ fn spawn_player(
             cmd.spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite { 
                     color: Color::rgb(0.92, 0.45, 0.32),
-                    ..default()
                 },
                 texture_atlas: player_assets.head.clone(),
                 transform: Transform::from_xyz(0., 0., 0.003),
-                ..default()
             })
             .insert(ChangeFlip)
             .insert(PlayerBodySprite)
@@ -275,36 +278,30 @@ fn spawn_player(
             cmd.spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite { 
                     color: Color::WHITE,
-                    ..default()
                 },
                 transform: Transform::from_xyz(0., 0., 0.1),
                 texture_atlas: player_assets.eyes_1.clone(),
-                ..default()
             })
             .insert(ChangeFlip)
             .insert(PlayerBodySprite)
             .insert(WalkingAnimationData {
                 offset: 6,
                 count: 14,
-                ..default()
             })
             .insert(Name::new("Player left eye"));
 
             cmd.spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite { 
                     color: Color::rgb(89. / 255., 76. / 255., 64. / 255.),
-                    ..default()
                 },
                 transform: Transform::from_xyz(0., 0., 0.01),
                 texture_atlas: player_assets.eyes_2.clone(),
-                ..default()
             })
             .insert(ChangeFlip)
             .insert(PlayerBodySprite)
             .insert(WalkingAnimationData {
                 offset: 6,
                 count: 14,
-                ..default()
             })
             .insert(Name::new("Player right eye"));
 
@@ -315,11 +312,9 @@ fn spawn_player(
             cmd.spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite { 
                     color: Color::rgb(0.58, 0.55, 0.47),
-                    ..default()
                 },
                 transform: Transform::from_xyz(0., -8., 0.2),
                 texture_atlas: player_assets.left_shoulder.clone(),
-                ..default()
             })
             .insert(ChangeFlip)
             .insert(PlayerBodySprite)
@@ -344,11 +339,9 @@ fn spawn_player(
             cmd.spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite { 
                     color: Color::rgb(0.92, 0.45, 0.32),
-                    ..default()
                 },
                 transform: Transform::from_xyz(0., -8., 0.2),
                 texture_atlas: player_assets.left_hand.clone(),
-                ..default()
             })
             .insert(ChangeFlip)
             .insert(PlayerBodySprite)
@@ -375,17 +368,14 @@ fn spawn_player(
             cmd.spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite { 
                     color: Color::rgb(0.92, 0.45, 0.32),
-                    ..default()
                 },
                 transform: Transform::from_xyz(0., -20., 0.001),
                 texture_atlas: player_assets.right_arm.clone(),
-                ..default()
             })
             .insert(ChangeFlip)
             .insert(PlayerBodySprite)
             .insert(WalkingAnimationData {
                 count: 13,
-                ..default()
             })
             .insert(IdleAnimationData {
                 idle: 14
@@ -409,11 +399,9 @@ fn spawn_player(
                 sprite: TextureAtlasSprite { 
                     index: 0,
                     color: Color::rgb(0.58, 0.55, 0.47),
-                    ..default()
                 },
                 transform: Transform::from_xyz(0., 0., 0.002),
                 texture_atlas: player_assets.chest.clone(),
-                ..default()
             })
             .insert(ChangeFlip)
             .insert(PlayerBodySprite)
@@ -425,17 +413,14 @@ fn spawn_player(
             cmd.spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite { 
                     color: Color::rgb(190. / 255., 190. / 255., 156. / 255.),
-                    ..default()
                 },
                 texture_atlas: player_assets.feet.clone(),
-                ..default()
             })
             .insert(ChangeFlip)
             .insert(PlayerBodySprite)
             .insert(WalkingAnimationData {
                 offset: 6,
                 count: 13,
-                ..default()
             })
             .insert(FlyingAnimationData {
                 flying: 5
@@ -447,10 +432,8 @@ fn spawn_player(
             cmd.spawn_bundle(SpriteBundle {
                 sprite: Sprite {
                     anchor: Anchor::BottomLeft,
-                    ..default()
                 },
                 transform: Transform::from_xyz(0., 0., 0.15),
-                ..default()
             })
             .insert(ChangeFlip)
             .insert(UsingItemMarker)
@@ -483,9 +466,7 @@ fn spawn_player(
                 .insert_bundle(Camera2dBundle {
                     projection: OrthographicProjection {
                         scale: 0.9,
-                        ..default()
                     },
-                    ..default()
                 })
                 .insert(ParallaxCameraComponent)
                 .insert(MainCamera);
@@ -518,6 +499,55 @@ fn spawn_player(
                     intersecting_ground_entities: HashSet::new(),
                 });
             // endregion
+        })
+        .id();
+
+
+    let mut gradient = Gradient::new();
+    gradient.add_key(0.0, Vec4::new(39. / 255., 24. / 255., 13. / 255., 1.)); // Red
+    // gradient.add_key(1.0, Vec4::new(0., 0., 0., 0.)); // Transparent
+
+    let spawner = Spawner::rate(10.0.into());
+
+    // Create the effect asset
+    let effect = effects.add(EffectAsset {
+            name: "MyEffect".to_string(),
+            // Maximum number of particles alive at a time
+            capacity: 500,
+            spawner
+        }
+        // On spawn, randomly initialize the position and velocity
+        // of the particle over a sphere of radius 2 units, with a
+        // radial initial velocity of 6 units/sec away from the
+        // sphere center.
+        .init(PositionSphereModifier {
+            radius: 0.1,
+            dimension: ShapeDimension::Surface,
+            speed: 10.0.into(),
+        })
+        // Every frame, add a gravity-like acceleration downward
+        .update(AccelModifier {
+            accel: Vec3::new(0., 3., 0.),
+        })
+        // Render the particles with a color gradient over their
+        // lifetime.
+        .render(SizeOverLifetimeModifier {
+            gradient: Gradient::constant(Vec2::splat(5.)),
+        })
+        .init(ParticleLifetimeModifier { lifetime: 2. })
+        .render(ColorOverLifetimeModifier { gradient })
+    );
+
+    let effect_entity = commands
+        .spawn_bundle(ParticleEffectBundle::new(effect).with_spawner(spawner))
+        .insert(Name::new("Particle Spawner"))
+        .id();
+
+    commands.entity(player).add_child(effect_entity);
+
+    commands.entity(player)
+        .insert(PlayerParticleEffects {
+            walking: effect_entity
         });
 }
 
@@ -557,6 +587,25 @@ fn update(
         velocity.linvel.x -= (PLAYER_SPEED * 4. * vel_sign) * time.delta_seconds();
     } else {
         velocity.linvel.x = 0_f32.lerp(dir_sign * PLAYER_SPEED, coefficient.0);
+    }
+}
+
+fn spawn_particles(
+    player: Query<(&MovementState, &FaceDirection, &PlayerParticleEffects), With<Player>>,
+    mut effects: Query<(&mut ParticleEffect, &mut Transform)>,
+) {
+    for (movement_state, face_direction, particle_effects) in &player {
+        let (mut effect, mut effect_transform) = effects.get_mut(particle_effects.walking).unwrap();
+
+        effect_transform.translation = match face_direction {
+            FaceDirection::LEFT => Vec3::new(0., -PLAYER_SPRITE_HEIGHT / 2. + 2., 0.),
+            FaceDirection::RIGHT => Vec3::new(0., -PLAYER_SPRITE_HEIGHT / 2. + 2., 0.),
+        };
+
+        effect
+            .maybe_spawner()
+            .unwrap()
+            .set_active(*movement_state == MovementState::WALKING);
     }
 }
 
