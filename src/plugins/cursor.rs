@@ -6,7 +6,7 @@ use bevy::{
     window::Windows,
     render::camera::RenderTarget, 
     ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignSelf, UiColor, AlignItems}, 
-    text::{Text, TextStyle}, sprite::{SpriteBundle, Sprite}
+    text::{Text, TextStyle}, sprite::{SpriteBundle}
 };
 use interpolation::EaseFunction;
 use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet, IntoConditionalSystem};

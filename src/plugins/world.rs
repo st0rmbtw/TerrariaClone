@@ -1,7 +1,7 @@
 use std::{time::{UNIX_EPOCH, SystemTime}, collections::HashMap, ops::Mul};
 
 use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, Component, Vec3, Handle, GlobalTransform, With, Query, Changed, OrthographicProjection, ResMut, Entity}, sprite::{SpriteSheetBundle, TextureAtlasSprite, TextureAtlas}, core::Name, render::view::NoFrustumCulling};
-use bevy_rapier2d::prelude::{Collider, Friction, RigidBody, Restitution};
+use bevy_rapier2d::prelude::{Collider, Friction, RigidBody, Restitution, Sleeping};
 use iyes_loopless::{prelude::{AppLooplessStateExt, ConditionSet}, state::NextState};
 use ndarray::{Array2, s, ArrayView2};
 use rand::{Rng, thread_rng};
@@ -234,6 +234,10 @@ fn spawn_tile(
         .insert(Name::new(format!("Block Tile {} {}", ix, iy)))
         .insert(RigidBody::Fixed)
         .insert(NoFrustumCulling)
+        .insert(Sleeping {
+            sleeping: true,
+            ..default()
+        })
         .id()
 }
 

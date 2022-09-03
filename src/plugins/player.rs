@@ -1,6 +1,6 @@
 use std::{time::Duration, option::Option, collections::HashSet};
 
-use bevy::{prelude::*, sprite::Anchor};
+use bevy::{prelude::*, sprite::Anchor, render::camera::ScalingMode};
 use bevy_inspector_egui::Inspectable;
 use bevy_rapier2d::{prelude::{RigidBody, Velocity, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce, Friction, GravityScale}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
 use iyes_loopless::prelude::*;
@@ -9,8 +9,8 @@ use crate::{util::{Lerp, map_range}, TRANSPARENT, state::{GameState, MovementSta
 
 use super::{PlayerAssets, PlayerInventoryPlugin, MainCamera, ItemAssets, SelectedItem, TILE_SIZE};
 
-pub const PLAYER_SPRITE_WIDTH: f32 = 2. * TILE_SIZE * 1.05;
-pub const PLAYER_SPRITE_HEIGHT: f32 = 3. * TILE_SIZE * 1.05;
+pub const PLAYER_SPRITE_WIDTH: f32 = 2. * TILE_SIZE * 0.75;
+pub const PLAYER_SPRITE_HEIGHT: f32 = 3. * TILE_SIZE * 0.95;
 
 const PLAYER_SPEED: f32 = 30. * 5.;
 
@@ -48,7 +48,6 @@ impl Plugin for PlayerPlugin {
                     .with_system(update_speed_coefficient)
                     .with_system(update)
                     .with_system(check_is_on_ground)
-                    // .with_system(gravity)
                     .into()
                 )
 
@@ -503,7 +502,7 @@ fn spawn_player(
                 .insert(Collider::cuboid(player_half_width, player_half_height))
                 .insert(ActiveEvents::COLLISION_EVENTS)
                 .insert(Ccd::enabled())
-                .insert(Transform::from_xyz(0., -2., 0.))
+                .insert(Transform::from_xyz(0., -4.5, 0.))
                 .insert(Friction::coefficient(0.));
             // endregion
 
@@ -513,7 +512,7 @@ fn spawn_player(
                 .insert(Ccd::enabled())
                 .insert(Sensor)
                 .insert(ActiveEvents::COLLISION_EVENTS)
-                .insert(Transform::from_xyz(0., -player_half_height - 3., 0.))
+                .insert(Transform::from_xyz(0., -player_half_height - 5.5, 0.))
                 .insert(GlobalTransform::default())
                 .insert(GroundSensor {
                     ground_detection_entity: entity,
@@ -563,12 +562,6 @@ fn update(
     if input.just_released(KeyCode::Space) {
         jumpable.is_jumping = false;
     }
-
-    // if !on_ground {
-    //     gravity_scale.0 = 25.;
-    // } else {
-    //     gravity_scale.0 = 1.;
-    // }
 
     let vel_sign = velocity.linvel.x.signum();
     let dir_sign = f32::from(*direction);
