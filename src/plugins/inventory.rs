@@ -31,6 +31,16 @@ const INVENTORY_CELL_SIZE_BIGGER_F: f32 = INVENTORY_CELL_SIZE_F * 1.3;
 
 const INVENTORY_CELL_SIZE_VAL: Val = Val::Px(INVENTORY_CELL_SIZE_F);
 const INVENTORY_CELL_SIZE_BIGGER_VAL: Val = Val::Px(INVENTORY_CELL_SIZE_BIGGER_F);
+
+const INVENTORY_CELL_SIZE_S: Size<Val> = Size::<Val> {
+    width: INVENTORY_CELL_SIZE_VAL,
+    height: INVENTORY_CELL_SIZE_VAL
+};
+
+const INVENTORY_CELL_SIZE_BIGGER_S: Size<Val> = Size::<Val> {
+    width: INVENTORY_CELL_SIZE_BIGGER_VAL,
+    height: INVENTORY_CELL_SIZE_BIGGER_VAL
+};
 // endregion
 
 const CELL_COUNT_IN_ROW: usize = 10;
@@ -284,8 +294,8 @@ fn update_selected_cell_size(
         let selected = cell_index.0 == inventory.selected_item_index;
 
         style.size = match selected {
-            true if !visibility.0 => Size::new(INVENTORY_CELL_SIZE_BIGGER_VAL, INVENTORY_CELL_SIZE_BIGGER_VAL),
-            _ => Size::new(INVENTORY_CELL_SIZE_VAL, INVENTORY_CELL_SIZE_VAL)
+            true if !visibility.0 => INVENTORY_CELL_SIZE_BIGGER_S,
+            _ => INVENTORY_CELL_SIZE_S
         };
     }
 }
@@ -318,10 +328,7 @@ fn spawn_inventory_cell(
     let mut background_image = ImageBundle {
         style: Style {
             margin: UiRect::horizontal(2.),
-            size: Size { 
-                width: INVENTORY_CELL_SIZE_VAL, 
-                height: INVENTORY_CELL_SIZE_VAL 
-            },
+            size: INVENTORY_CELL_SIZE_S,
             align_self: AlignSelf::Center
         },
         image: cell_background.into()

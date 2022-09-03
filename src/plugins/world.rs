@@ -12,8 +12,8 @@ use super::{BlockAssets, WallAssets, MainCamera};
 
 pub const TILE_SIZE: f32 = 16.;
 
-const CHUNK_WIDTH: usize = 50;
-const CHUNK_HEIGHT: usize = 50; 
+const CHUNK_WIDTH: usize = 25;
+const CHUNK_HEIGHT: usize = 25; 
 
 pub struct WorldPlugin;
 
@@ -266,8 +266,6 @@ fn spawn_wall(
 fn spawn_collider(
     commands: &mut Commands,
     rect: FRect,
-    offset_x: f32,
-    offset_y: f32
 ) -> Entity{
     commands
         .spawn()
@@ -279,8 +277,8 @@ fn spawn_collider(
         .insert(Friction::new(0.))
         .insert(Restitution::new(0.))
         .insert(Transform::from_xyz(
-            offset_x + ((rect.left + rect.right) * TILE_SIZE / 2.),
-            offset_y + -((rect.bottom + rect.top) * TILE_SIZE / 2.), 
+            (rect.left + rect.right) * TILE_SIZE / 2.,
+            -(rect.bottom + rect.top) * TILE_SIZE / 2., 
             0.
         ))
         .insert(GlobalTransform::default())
@@ -452,10 +450,10 @@ fn update(
         let camera_y = camera_transform.translation().y;
 
         let camera_fov = FRect {
-            left: camera_x + projection.left - 5. * TILE_SIZE,
-            right: camera_x + projection.right + 5. * TILE_SIZE,
-            top: camera_y - projection.top - 5. * TILE_SIZE,
-            bottom: camera_y - projection.bottom + 5. * TILE_SIZE
+            left: camera_x + projection.left - 2. * TILE_SIZE,
+            right: camera_x + projection.right + 2. * TILE_SIZE,
+            top: camera_y - projection.top - 2. * TILE_SIZE,
+            bottom: camera_y - projection.bottom + 2. * TILE_SIZE
         };
         
         for chunk in world_data.chunks.iter_mut() {
@@ -477,7 +475,7 @@ fn update(
 
             match collider.entity {
                 None if inside => {
-                    let entity = spawn_collider(&mut commands, collider.rect, 0., 0.);
+                    let entity = spawn_collider(&mut commands, collider.rect);
                     collider.entity = Some(entity);
                     
                 },

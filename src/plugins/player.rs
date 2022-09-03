@@ -48,7 +48,7 @@ impl Plugin for PlayerPlugin {
                     .with_system(update_speed_coefficient)
                     .with_system(update)
                     .with_system(check_is_on_ground)
-                    .with_system(gravity)
+                    // .with_system(gravity)
                     .into()
                 )
 
@@ -111,7 +111,8 @@ struct UseItemAnimation(bool);
 
 #[derive(Component, Default)]
 struct Jumpable {
-    time_after_jump: f32
+    jump_time_counter: f32,
+    is_jumping: bool
 }
 
 #[derive(Debug, Component, Default, Inspectable)]
@@ -473,8 +474,8 @@ fn spawn_player(
         .insert(Ccd::enabled())
         .insert(LockedAxes::ROTATION_LOCKED)
         .insert(ExternalForce::default())
-        .insert(GravityScale::default())
-        .insert(ColliderMassProperties::Mass(1.))
+        .insert(GravityScale(40.))
+        // .insert(ColliderMassProperties::Mass(1.))
         .insert(Transform::from_xyz(5., 10., 0.))
         .with_children(|children| {
 
@@ -533,22 +534,40 @@ fn update(
         &FaceDirection
     ), With<Player>>,
 ) {
-    let (mut velocity, ground_detection, mut jumpable, coefficient, direction) = query.single_mut();
+    let (
+        mut velocity, 
+        ground_detection,
+        mut jumpable, 
+        coefficient, 
+        direction,
+    ) = query.single_mut();
 
     let on_ground = ground_detection.on_ground;
 
-    if input.any_just_pressed([KeyCode::Space, KeyCode::Up]) && on_ground {
-        jumpable.time_after_jump = 0.01;
+    if input.just_pressed(KeyCode::Space) && on_ground {
+        jumpable.is_jumping = true;
+        jumpable.jump_time_counter = 0.15;
         velocity.linvel.y = 400.;
     }
 
-    if jumpable.time_after_jump > 0. && !on_ground {
-        jumpable.time_after_jump += time.delta_seconds();
+    if input.pressed(KeyCode::Space) && jumpable.is_jumping && jumpable.jump_time_counter > 0. {
+        if jumpable.jump_time_counter > 0. {
+            velocity.linvel.y = 400.;
+            jumpable.jump_time_counter -= time.delta_seconds();
+        } else {
+            jumpable.is_jumping = false;
+        }
     }
-    
-    if on_ground && jumpable.time_after_jump > 0. {
-        jumpable.time_after_jump = 0.;
+
+    if input.just_released(KeyCode::Space) {
+        jumpable.is_jumping = false;
     }
+
+    // if !on_ground {
+    //     gravity_scale.0 = 25.;
+    // } else {
+    //     gravity_scale.0 = 1.;
+    // }
 
     let vel_sign = velocity.linvel.x.signum();
     let dir_sign = f32::from(*direction);
@@ -557,19 +576,6 @@ fn update(
         velocity.linvel.x -= (PLAYER_SPEED * 4. * vel_sign) * time.delta_seconds();
     } else {
         velocity.linvel.x = 0_f32.lerp(dir_sign * PLAYER_SPEED, coefficient.0);
-    }
-}
-
-fn gravity(
-    time: Res<Time>,
-    mut query: Query<(&mut Velocity, &GroundDetection, &Jumpable), With<Player>>
-) {
-    for (mut velocity, ground_detection, jumpable) in &mut query {
-        if !ground_detection.on_ground && velocity.linvel.y > -500. {
-            let new_velocity = 7_f32.lerp(10., jumpable.time_after_jump.clamp(0., 1.)) * 100.;
-
-            velocity.linvel.y -= new_velocity * time.delta_seconds();
-        }
     }
 }
 
@@ -670,7 +676,12 @@ fn update_movement_animation_timer_duration(
     let velocity = query.single();
 
     if velocity.linvel.x != 0. {
-        timer.set_duration(Duration::from_millis((5000. / velocity.linvel.x.abs()).max(1.) as u64));
+        let mut time = 5000. / velocity.linvel.x.abs();
+        if time < 1. {
+            time = 1.;
+        }
+
+        timer.set_duration(Duration::from_millis(time as u64));
     }
 }
 
