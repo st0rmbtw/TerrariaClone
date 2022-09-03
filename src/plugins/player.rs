@@ -2,15 +2,15 @@ use std::{time::Duration, option::Option, collections::HashSet};
 
 use bevy::{prelude::*, sprite::Anchor};
 use bevy_inspector_egui::Inspectable;
-use bevy_rapier2d::{prelude::{RigidBody, Velocity, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce, Friction, GravityScale, ColliderMassProperties}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
+use bevy_rapier2d::{prelude::{RigidBody, Velocity, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce, Friction, GravityScale}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
 use iyes_loopless::prelude::*;
 
 use crate::{util::{Lerp, map_range}, TRANSPARENT, state::{GameState, MovementState}, item::ITEM_ANIMATION_DATA, parallax::ParallaxCameraComponent};
 
-use super::{PlayerAssets, PlayerInventoryPlugin, MainCamera, ItemAssets, SelectedItem};
+use super::{PlayerAssets, PlayerInventoryPlugin, MainCamera, ItemAssets, SelectedItem, TILE_SIZE};
 
-pub const PLAYER_SPRITE_WIDTH: f32 = 37.;
-pub const PLAYER_SPRITE_HEIGHT: f32 = 53.;
+pub const PLAYER_SPRITE_WIDTH: f32 = 2. * TILE_SIZE * 1.05;
+pub const PLAYER_SPRITE_HEIGHT: f32 = 3. * TILE_SIZE * 1.05;
 
 const PLAYER_SPEED: f32 = 30. * 5.;
 
@@ -429,6 +429,7 @@ fn spawn_player(
                     ..default()
                 },
                 texture_atlas: player_assets.feet.clone(),
+                transform: Transform::from_xyz(0., 0., 0.15),
                 ..default()
             })
             .insert(ChangeFlip)
@@ -476,7 +477,7 @@ fn spawn_player(
         .insert(ExternalForce::default())
         .insert(GravityScale(40.))
         // .insert(ColliderMassProperties::Mass(1.))
-        .insert(Transform::from_xyz(5., 10., 0.))
+        .insert(Transform::from_xyz(5., 10., 0.1))
         .with_children(|children| {
 
             // region: Camera
@@ -499,20 +500,20 @@ fn spawn_player(
 
             // region: Collider
             children.spawn()
-                .insert(Collider::cuboid(player_half_width - 5., player_half_height - 2.))
+                .insert(Collider::cuboid(player_half_width, player_half_height))
                 .insert(ActiveEvents::COLLISION_EVENTS)
                 .insert(Ccd::enabled())
-                .insert(Transform::from_xyz(0., -3., 0.))
+                .insert(Transform::from_xyz(0., -2., 0.))
                 .insert(Friction::coefficient(0.));
             // endregion
 
             // region: Ground sensor
             children.spawn()
-                .insert(Collider::cuboid(player_half_width - 8., 1.))
+                .insert(Collider::cuboid(player_half_width - 2., 1.))
                 .insert(Ccd::enabled())
                 .insert(Sensor)
                 .insert(ActiveEvents::COLLISION_EVENTS)
-                .insert(Transform::from_xyz(0., -player_half_height - 4., 0.))
+                .insert(Transform::from_xyz(0., -player_half_height - 3., 0.))
                 .insert(GlobalTransform::default())
                 .insert(GroundSensor {
                     ground_detection_entity: entity,
