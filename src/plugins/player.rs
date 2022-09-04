@@ -2,17 +2,17 @@ use std::{time::Duration, option::Option, collections::HashSet};
 
 use autodefault::autodefault;
 use bevy::{prelude::*, sprite::Anchor};
-use bevy_hanabi::{EffectAsset, Gradient, Spawner, PositionSphereModifier, ShapeDimension, AccelModifier, ColorOverLifetimeModifier, ParticleEffectBundle, ParticleEffect, SizeOverLifetimeModifier, ParticleLifetimeModifier};
+use bevy_hanabi::{ParticleEffect, ParticleLifetimeModifier, ColorOverLifetimeModifier, ParticleEffectBundle, SizeOverLifetimeModifier, AccelModifier, ShapeDimension, Gradient, Spawner, EffectAsset, PositionCone3dModifier};
 use bevy_inspector_egui::Inspectable;
-use bevy_rapier2d::{prelude::{RigidBody, Velocity, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce, Friction, GravityScale, ColliderMassProperties}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
+use bevy_rapier2d::{prelude::{RigidBody, Velocity, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce, Friction, GravityScale}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
 use iyes_loopless::prelude::*;
 
 use crate::{util::{Lerp, map_range}, TRANSPARENT, state::{GameState, MovementState}, item::ITEM_ANIMATION_DATA, parallax::ParallaxCameraComponent};
 
-use super::{PlayerAssets, PlayerInventoryPlugin, MainCamera, ItemAssets, SelectedItem};
+use super::{PlayerAssets, PlayerInventoryPlugin, MainCamera, ItemAssets, SelectedItem, TILE_SIZE};
 
-pub const PLAYER_SPRITE_WIDTH: f32 = 37.;
-pub const PLAYER_SPRITE_HEIGHT: f32 = 53.;
+pub const PLAYER_SPRITE_WIDTH: f32 = 2. * TILE_SIZE * 0.75;
+pub const PLAYER_SPRITE_HEIGHT: f32 = 3. * TILE_SIZE * 0.95;
 
 const PLAYER_SPEED: f32 = 30. * 5.;
 
@@ -50,7 +50,6 @@ impl Plugin for PlayerPlugin {
                     .with_system(update_speed_coefficient)
                     .with_system(update)
                     .with_system(check_is_on_ground)
-                    .with_system(gravity)
                     .into()
                 )
 
@@ -113,10 +112,11 @@ struct UseItemAnimation(bool);
 
 #[derive(Component, Default)]
 struct Jumpable {
-    time_after_jump: f32
+    jump_time_counter: f32,
+    is_jumping: bool
 }
 
-#[derive(Debug, Component, Default, Inspectable)]
+#[derive(Component, Default, Inspectable)]
 pub struct GroundDetection {
     on_ground: bool
 }
@@ -415,6 +415,8 @@ fn spawn_player(
                     color: Color::rgb(190. / 255., 190. / 255., 156. / 255.),
                 },
                 texture_atlas: player_assets.feet.clone(),
+                transform: Transform::from_xyz(0., 0., 0.15),
+                ..default()
             })
             .insert(ChangeFlip)
             .insert(PlayerBodySprite)
@@ -456,9 +458,9 @@ fn spawn_player(
         .insert(Ccd::enabled())
         .insert(LockedAxes::ROTATION_LOCKED)
         .insert(ExternalForce::default())
-        .insert(GravityScale::default())
-        .insert(ColliderMassProperties::Mass(1.))
-        .insert(Transform::from_xyz(5., 10., 0.))
+        .insert(GravityScale(40.))
+        // .insert(ColliderMassProperties::Mass(1.))
+        .insert(Transform::from_xyz(5., 10., 0.1))
         .with_children(|children| {
 
             // region: Camera
@@ -479,20 +481,20 @@ fn spawn_player(
 
             // region: Collider
             children.spawn()
-                .insert(Collider::cuboid(player_half_width - 5., player_half_height - 2.))
+                .insert(Collider::cuboid(player_half_width, player_half_height))
                 .insert(ActiveEvents::COLLISION_EVENTS)
                 .insert(Ccd::enabled())
-                .insert(Transform::from_xyz(0., -3., 0.))
+                .insert(Transform::from_xyz(0., -4.4, 0.))
                 .insert(Friction::coefficient(0.));
             // endregion
 
             // region: Ground sensor
             children.spawn()
-                .insert(Collider::cuboid(player_half_width - 8., 1.))
+                .insert(Collider::cuboid(player_half_width - 2., 1.))
                 .insert(Ccd::enabled())
                 .insert(Sensor)
                 .insert(ActiveEvents::COLLISION_EVENTS)
-                .insert(Transform::from_xyz(0., -player_half_height - 4., 0.))
+                .insert(Transform::from_xyz(0., -player_half_height - 5.4, 0.))
                 .insert(GlobalTransform::default())
                 .insert(GroundSensor {
                     ground_detection_entity: entity,
@@ -504,8 +506,7 @@ fn spawn_player(
 
 
     let mut gradient = Gradient::new();
-    gradient.add_key(0.0, Vec4::new(39. / 255., 24. / 255., 13. / 255., 1.)); // Red
-    // gradient.add_key(1.0, Vec4::new(0., 0., 0., 0.)); // Transparent
+    gradient.add_key(0.0, Vec4::new(114. / 255., 81. / 255., 56. / 255., 1.));
 
     let spawner = Spawner::rate(10.0.into());
 
@@ -513,28 +514,25 @@ fn spawn_player(
     let effect = effects.add(EffectAsset {
             name: "MyEffect".to_string(),
             // Maximum number of particles alive at a time
-            capacity: 500,
+            capacity: 10,
             spawner
         }
-        // On spawn, randomly initialize the position and velocity
-        // of the particle over a sphere of radius 2 units, with a
-        // radial initial velocity of 6 units/sec away from the
-        // sphere center.
-        .init(PositionSphereModifier {
-            radius: 0.1,
-            dimension: ShapeDimension::Surface,
+        .init(PositionCone3dModifier {
+            base_radius: 0.2,
+            top_radius: 0.1,
+            height: 2.,
+            dimension: ShapeDimension::Volume,
             speed: 10.0.into(),
         })
-        // Every frame, add a gravity-like acceleration downward
         .update(AccelModifier {
-            accel: Vec3::new(0., 3., 0.),
+            accel: Vec3::new(2., 0.5, 0.),
         })
         // Render the particles with a color gradient over their
         // lifetime.
         .render(SizeOverLifetimeModifier {
-            gradient: Gradient::constant(Vec2::splat(5.)),
+            gradient: Gradient::constant(Vec2::splat(3.)),
         })
-        .init(ParticleLifetimeModifier { lifetime: 2. })
+        .init(ParticleLifetimeModifier { lifetime: 0.2 })
         .render(ColorOverLifetimeModifier { gradient })
     );
 
@@ -563,21 +561,33 @@ fn update(
         &FaceDirection
     ), With<Player>>,
 ) {
-    let (mut velocity, ground_detection, mut jumpable, coefficient, direction) = query.single_mut();
+    let (
+        mut velocity, 
+        ground_detection,
+        mut jumpable, 
+        coefficient, 
+        direction,
+    ) = query.single_mut();
 
     let on_ground = ground_detection.on_ground;
 
-    if input.any_just_pressed([KeyCode::Space, KeyCode::Up]) && on_ground {
-        jumpable.time_after_jump = 0.01;
+    if input.just_pressed(KeyCode::Space) && on_ground {
+        jumpable.is_jumping = true;
+        jumpable.jump_time_counter = 0.15;
         velocity.linvel.y = 400.;
     }
 
-    if jumpable.time_after_jump > 0. && !on_ground {
-        jumpable.time_after_jump += time.delta_seconds();
+    if input.pressed(KeyCode::Space) && jumpable.is_jumping && jumpable.jump_time_counter > 0. {
+        if jumpable.jump_time_counter > 0. {
+            velocity.linvel.y = 400.;
+            jumpable.jump_time_counter -= time.delta_seconds();
+        } else {
+            jumpable.is_jumping = false;
+        }
     }
-    
-    if on_ground && jumpable.time_after_jump > 0. {
-        jumpable.time_after_jump = 0.;
+
+    if input.just_released(KeyCode::Space) {
+        jumpable.is_jumping = false;
     }
 
     let vel_sign = velocity.linvel.x.signum();
@@ -591,15 +601,19 @@ fn update(
 }
 
 fn spawn_particles(
-    player: Query<(&MovementState, &FaceDirection, &PlayerParticleEffects), With<Player>>,
+    player: Query<(
+        &MovementState,
+        &FaceDirection,
+        &PlayerParticleEffects
+    ), With<Player>>,
     mut effects: Query<(&mut ParticleEffect, &mut Transform)>,
 ) {
     for (movement_state, face_direction, particle_effects) in &player {
         let (mut effect, mut effect_transform) = effects.get_mut(particle_effects.walking).unwrap();
 
         effect_transform.translation = match face_direction {
-            FaceDirection::LEFT => Vec3::new(0., -PLAYER_SPRITE_HEIGHT / 2. + 2., 0.),
-            FaceDirection::RIGHT => Vec3::new(0., -PLAYER_SPRITE_HEIGHT / 2. + 2., 0.),
+            FaceDirection::LEFT => Vec3::new(0., -PLAYER_SPRITE_HEIGHT / 2. + 1., 0.),
+            FaceDirection::RIGHT => Vec3::new(0., -PLAYER_SPRITE_HEIGHT / 2. + 1., 0.),
         };
 
         effect
@@ -609,31 +623,18 @@ fn spawn_particles(
     }
 }
 
-fn gravity(
-    time: Res<Time>,
-    mut query: Query<(&mut Velocity, &GroundDetection, &Jumpable), With<Player>>
-) {
-    for (mut velocity, ground_detection, jumpable) in &mut query {
-        if !ground_detection.on_ground && velocity.linvel.y > -500. {
-            let new_velocity = 7_f32.lerp(10., jumpable.time_after_jump.clamp(0., 1.)) * 100.;
-
-            velocity.linvel.y -= new_velocity * time.delta_seconds();
-        }
-    }
-}
-
 fn check_is_on_ground(
-    mut ground_sensors: Query<(Entity, &mut GroundSensor)>,
+    mut ground_sensors: Query<&mut GroundSensor>,
     mut ground_detectors: Query<&mut GroundDetection>,
     mut collisions: EventReader<CollisionEvent>,
 ) {
-    for (entity, mut ground_sensor) in &mut ground_sensors {
+    for mut ground_sensor in &mut ground_sensors {
         for collision in collisions.iter() {
             match collision {
-                CollisionEvent::Started(a, b, CollisionEventFlags::SENSOR) => {
+                CollisionEvent::Started(a, _, CollisionEventFlags::SENSOR) => {
                     ground_sensor.intersecting_ground_entities.insert(*a);
                 },
-                CollisionEvent::Stopped(a, b, CollisionEventFlags::SENSOR) => {
+                CollisionEvent::Stopped(a, _, CollisionEventFlags::SENSOR) => {
                     ground_sensor.intersecting_ground_entities.remove(a);
                 }
                 _ => {}
@@ -649,12 +650,10 @@ fn check_is_on_ground(
 fn update_movement_state(
     mut query: Query<(&GroundDetection, &Velocity, &mut MovementState), With<Player>>,
 ) {
-    let (ground_detection, velocity, mut movement_state) = query.single_mut();
-
-    let on_ground = ground_detection.on_ground;
+    let (GroundDetection { on_ground }, velocity, mut movement_state) = query.single_mut();
 
     *movement_state = match velocity.linvel {
-        Vec2 { x, .. } if x != 0. && on_ground => MovementState::WALKING,
+        Vec2 { x, .. } if x != 0. && *on_ground => MovementState::WALKING,
         _ => match on_ground {
             false => match velocity.linvel {
                 Vec2 { y, .. } if y < 0. => MovementState::FLYING,
@@ -704,8 +703,8 @@ fn update_axis(
     input: Res<Input<KeyCode>>,
     mut axis: ResMut<Axis>
 ) {
-    let left = input.any_pressed([KeyCode::A, KeyCode::Left]);
-    let right = input.any_pressed([KeyCode::D, KeyCode::Right]);
+    let left = input.pressed(KeyCode::A);
+    let right = input.pressed(KeyCode::D);
 
     let x = -(left as i8) + right as i8;
 
@@ -719,7 +718,12 @@ fn update_movement_animation_timer_duration(
     let velocity = query.single();
 
     if velocity.linvel.x != 0. {
-        timer.set_duration(Duration::from_millis((5000. / velocity.linvel.x.abs()).max(1.) as u64));
+        let mut time = 5000. / velocity.linvel.x.abs();
+        if time < 1. {
+            time = 1.;
+        }
+
+        timer.set_duration(Duration::from_millis(time as u64));
     }
 }
 

@@ -2,6 +2,7 @@
 name = "game"
 version = "0.1.0"
 edition = "2021"
+authors = ["st0rmbtw"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -18,7 +19,7 @@ ndarray = "0.15.6"
 noise = "0.7.0"
 iyes_loopless = "0.7.1"
 autodefault = "2.0.0"
-bevy_hanabi = { version = "0.3.1", default-features = false, features = ["2d"] }
+bevy_hanabi = { git = "https://github.com/djeedai/bevy_hanabi", default-features = false, features = ["2d"] }
 
 [profile.dev]
 opt-level = 1

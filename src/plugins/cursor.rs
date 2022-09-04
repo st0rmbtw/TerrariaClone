@@ -2,18 +2,18 @@ use std::time::Duration;
 
 use autodefault::autodefault;
 use bevy::{
-    prelude::{Plugin, App, Commands, Res, Camera, With, Query, Vec2, GlobalTransform, NodeBundle, Color, default, Component, ResMut, ImageBundle, BuildChildren, Without, TextBundle, Deref, DerefMut, Vec3, Name, Transform}, 
+    prelude::{Plugin, App, Commands, Res, Camera, With, Query, Vec2, GlobalTransform, NodeBundle, Color, default, Component, ResMut, ImageBundle, BuildChildren, Without, TextBundle, Deref, DerefMut, Vec3, Name, Transform, CoreStage, Visibility}, 
     window::Windows,
     render::camera::RenderTarget, 
     ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignSelf, UiColor, AlignItems}, 
-    text::{Text, TextStyle}, sprite::SpriteBundle
+    text::{Text, TextStyle}, sprite::{SpriteBundle}
 };
 use interpolation::EaseFunction;
 use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet, IntoConditionalSystem};
 
 use crate::{TRANSPARENT, lens::UiColorLens, state::GameState, animation::{component_animator_system, AnimationSystem, Tween, TweeningType, TransformScaleLens, Animator}};
 
-use super::{MainCamera, CursorAssets, FontAssets, UiAssets};
+use super::{MainCamera, CursorAssets, FontAssets, UiAssets, UiVisibility};
 
 // region: Plugin
 
@@ -26,17 +26,29 @@ impl Plugin for CursorPlugin {
             .insert_resource(CursorPosition::default())
             .add_enter_system(GameState::MainMenu, setup)
             .add_enter_system(GameState::InGame, spawn_tile_grid)
+
+            .add_system_set(
+                ConditionSet::new()
+                    .run_in_state(GameState::InGame)
+                    .with_system(set_visibility::<TileGrid>)
+                    .with_system(set_visibility::<CursorContainer>)
+                    .into()
+            )
+
             .add_system_set(
                 ConditionSet::new()
                     .run_not_in_state(GameState::AssetLoading)
+                    .run_if_resource_equals(UiVisibility(true))
                     .with_system(update_cursor_position)
                     .with_system(update_hovered_info_position)
                     .with_system(update_hovered_info)
                     .into()
             )
-            .add_system_set(
+            .add_system_set_to_stage(
+                CoreStage::PreUpdate,
                 ConditionSet::new()
                     .run_in_state(GameState::InGame)
+                    .run_if_resource_equals(UiVisibility(true))
                     .with_system(update_tile_grid_position)
                     .into()
             )
@@ -219,6 +231,16 @@ fn update_cursor_position(
     }
 }
 
+fn set_visibility<C: Component>(
+    ui_visibility: Res<UiVisibility>,
+    mut query: Query<&mut Visibility, With<C>>
+) {
+    if ui_visibility.is_changed() {
+        for mut visibility in &mut query {
+            visibility.is_visible = ui_visibility.0;
+        }
+    }
+}
 
 fn update_hovered_info_position(
     cursor: Res<CursorPosition>,
@@ -253,8 +275,8 @@ fn update_tile_grid_position(
     if cursor.is_changed() {
         let mut transform = query.single_mut();
 
-        let x = cursor.world_position.x + 10.;
-        let y = cursor.world_position.y - 5.;
+        let x = cursor.world_position.x /* + 10. */;
+        let y = cursor.world_position.y /* - 5. */;
 
         transform.translation.x = x - x % 16.;
         transform.translation.y = y - y % 16.;

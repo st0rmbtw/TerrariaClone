@@ -1,7 +1,7 @@
 use std::{time::{UNIX_EPOCH, SystemTime}, collections::HashMap, ops::Mul};
 
-use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, Component, Vec3, Handle, GlobalTransform, With, Query, Changed, OrthographicProjection, ResMut, Entity}, sprite::{SpriteSheetBundle, TextureAtlasSprite, TextureAtlas}, core::Name, render::view::NoFrustumCulling};
-use bevy_rapier2d::prelude::{Collider, Friction, RigidBody, Restitution};
+use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, Vec3, Handle, GlobalTransform, With, Query, Changed, OrthographicProjection, ResMut, Entity}, sprite::{SpriteSheetBundle, TextureAtlasSprite, TextureAtlas}, core::Name, render::view::NoFrustumCulling};
+use bevy_rapier2d::prelude::{Collider, Friction, RigidBody, Restitution, Sleeping};
 use iyes_loopless::{prelude::{AppLooplessStateExt, ConditionSet}, state::NextState};
 use ndarray::{Array2, s, ArrayView2};
 use rand::{Rng, thread_rng};
@@ -12,8 +12,8 @@ use super::{BlockAssets, WallAssets, MainCamera};
 
 pub const TILE_SIZE: f32 = 16.;
 
-const CHUNK_WIDTH: usize = 50;
-const CHUNK_HEIGHT: usize = 50; 
+const CHUNK_WIDTH: usize = 25;
+const CHUNK_HEIGHT: usize = 25; 
 
 pub struct WorldPlugin;
 
@@ -154,10 +154,6 @@ impl Chunk {
     }
 }
 
-
-#[derive(Component)]
-pub struct BlockMarker;
-
 fn spawn_terrain(mut commands: Commands) {
     let current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
 
@@ -230,10 +226,14 @@ fn spawn_tile(
             transform: Transform::from_xyz(x, y, 0.1).with_scale(Vec3::splat(1.05)),
             ..default()
         })
-        .insert(BlockMarker)
+        .insert(tile.tile_type)
         .insert(Name::new(format!("Block Tile {} {}", ix, iy)))
         .insert(RigidBody::Fixed)
         .insert(NoFrustumCulling)
+        .insert(Sleeping {
+            sleeping: true,
+            ..default()
+        })
         .id()
 }
 
@@ -266,8 +266,6 @@ fn spawn_wall(
 fn spawn_collider(
     commands: &mut Commands,
     rect: FRect,
-    offset_x: f32,
-    offset_y: f32
 ) -> Entity{
     commands
         .spawn()
@@ -279,8 +277,8 @@ fn spawn_collider(
         .insert(Friction::new(0.))
         .insert(Restitution::new(0.))
         .insert(Transform::from_xyz(
-            offset_x + ((rect.left + rect.right) * TILE_SIZE / 2.),
-            offset_y + -((rect.bottom + rect.top) * TILE_SIZE / 2.), 
+            (rect.left + rect.right) * TILE_SIZE / 2.,
+            -(rect.bottom + rect.top) * TILE_SIZE / 2., 
             0.
         ))
         .insert(GlobalTransform::default())
@@ -452,10 +450,10 @@ fn update(
         let camera_y = camera_transform.translation().y;
 
         let camera_fov = FRect {
-            left: camera_x + projection.left - 5. * TILE_SIZE,
-            right: camera_x + projection.right + 5. * TILE_SIZE,
-            top: camera_y - projection.top - 5. * TILE_SIZE,
-            bottom: camera_y - projection.bottom + 5. * TILE_SIZE
+            left: camera_x + projection.left - 2. * TILE_SIZE,
+            right: camera_x + projection.right + 2. * TILE_SIZE,
+            top: camera_y - projection.top - 2. * TILE_SIZE,
+            bottom: camera_y - projection.bottom + 2. * TILE_SIZE
         };
         
         for chunk in world_data.chunks.iter_mut() {
@@ -477,7 +475,7 @@ fn update(
 
             match collider.entity {
                 None if inside => {
-                    let entity = spawn_collider(&mut commands, collider.rect, 0., 0.);
+                    let entity = spawn_collider(&mut commands, collider.rect);
                     collider.entity = Some(entity);
                     
                 },

@@ -29,7 +29,7 @@ fn main() {
         .insert_resource(ImageSettings::default_nearest())
         .insert_resource(ClearColor(Color::rgb(110. / 255., 151. / 255., 244. / 255.)))
         .insert_resource(RapierConfiguration {
-            gravity: Vec2::new(0., -30.),
+            gravity: Vec2::new(0., -35.),
             ..default()
         })
         .add_loopless_state(GameState::AssetLoading)
@@ -51,8 +51,8 @@ fn main() {
         .add_plugin(FpsPlugin);
     
 
-    #[cfg(debug_assertions)]
-    app.add_plugin(game::plugins::DebugPlugin);
+    // #[cfg(debug_assertions)]
+    // app.add_plugin(game::plugins::DebugPlugin);
 
     app.run();
 }
