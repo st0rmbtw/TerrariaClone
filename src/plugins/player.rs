@@ -484,7 +484,7 @@ fn spawn_player(
                 .insert(Collider::cuboid(player_half_width, player_half_height))
                 .insert(ActiveEvents::COLLISION_EVENTS)
                 .insert(Ccd::enabled())
-                .insert(Transform::from_xyz(0., -4.4, 0.))
+                .insert(Transform::from_xyz(0., -4.5, 0.))
                 .insert(Friction::coefficient(0.));
             // endregion
 
@@ -494,7 +494,7 @@ fn spawn_player(
                 .insert(Ccd::enabled())
                 .insert(Sensor)
                 .insert(ActiveEvents::COLLISION_EVENTS)
-                .insert(Transform::from_xyz(0., -player_half_height - 5.4, 0.))
+                .insert(Transform::from_xyz(0., -player_half_height - 5.5, 0.))
                 .insert(GlobalTransform::default())
                 .insert(GroundSensor {
                     ground_detection_entity: entity,
@@ -525,7 +525,7 @@ fn spawn_player(
             speed: 10.0.into(),
         })
         .update(AccelModifier {
-            accel: Vec3::new(2., 0.5, 0.),
+            accel: Vec3::new(0., 0.1, 0.),
         })
         // Render the particles with a color gradient over their
         // lifetime.
