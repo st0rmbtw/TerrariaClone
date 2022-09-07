@@ -19,11 +19,11 @@ fn main() {
         .insert_resource(WindowDescriptor {
             title: "Terraria".to_string(),
             present_mode: PresentMode::Fifo,
-            cursor_visible: false,
+            cursor_visible: true,
             ..default()
         })
         .insert_resource(AssetServerSettings {
-            watch_for_changes: true,
+            watch_for_changes: false,
             ..default()
         })
         .insert_resource(ImageSettings::default_nearest())

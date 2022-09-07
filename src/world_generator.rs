@@ -121,9 +121,36 @@ pub fn generate(seed: u32) -> Array2<Cell> {
     
     add_grass(&mut world, level);
 
+    remove_extra_walls(&mut world);
+
     set_tile_slope(&mut world);
 
     world
+}
+
+fn remove_extra_walls(world: &mut Array2<Cell>) { 
+    for x in 0..WORLD_SIZE_X {
+        let mut y: usize = 0;
+
+        loop {
+            let cell = world.get((y, x));
+
+            if let Some(cell) = cell {
+                if let Some(tile) = cell.tile {
+
+                    if tile.tile_type == Block::Grass {
+                        for cell in world.slice_mut(s![..y + 1, x]).iter_mut() {
+                            cell.wall = None;
+                        }
+
+                        break;
+                    }
+                }
+            }
+
+            y += 1;
+        }
+    }
 }
 
 fn insert_specks<F: NoiseFn<[f64; 2]>>(world: &mut ArrayViewMut2<Cell>, noise: F, frequency: f64, size: f64, speck_block: Block) {

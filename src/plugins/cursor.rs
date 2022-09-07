@@ -6,14 +6,14 @@ use bevy::{
     window::Windows,
     render::camera::RenderTarget, 
     ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignSelf, UiColor, AlignItems}, 
-    text::{Text, TextStyle}, sprite::{SpriteBundle}
+    text::{Text, TextStyle}, sprite::{SpriteBundle, Sprite}, time::Time
 };
 use interpolation::EaseFunction;
 use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet, IntoConditionalSystem};
+use crate::{TRANSPARENT, lens::UiColorLens, state::{GameState, MovementState}, animation::{component_animator_system, AnimationSystem, Tween, TweeningType, TransformScaleLens, Animator}};
+use super::{MainCamera, CursorAssets, FontAssets, UiAssets, UiVisibility, SpeedCoefficient, Player};
 
-use crate::{TRANSPARENT, lens::UiColorLens, state::GameState, animation::{component_animator_system, AnimationSystem, Tween, TweeningType, TransformScaleLens, Animator}};
-
-use super::{MainCamera, CursorAssets, FontAssets, UiAssets, UiVisibility};
+const MAX_TILE_GRID_OPACITY: f32 = 0.8;
 
 // region: Plugin
 
@@ -32,6 +32,7 @@ impl Plugin for CursorPlugin {
                     .run_in_state(GameState::InGame)
                     .with_system(set_visibility::<TileGrid>)
                     .with_system(set_visibility::<CursorContainer>)
+                    .with_system(update_tile_grid_opacity)
                     .into()
             )
 
@@ -74,9 +75,9 @@ struct CursorBackground;
 struct CursorForeground;
 
 #[derive(Default)]
-struct CursorPosition {
-    position: Vec2,
-    world_position: Vec2
+pub struct CursorPosition {
+    pub position: Vec2,
+    pub world_position: Vec2
 }
 
 #[derive(Default, Deref, DerefMut)]
@@ -181,6 +182,9 @@ fn spawn_tile_grid(
     ui_assets: Res<UiAssets>
 ) {
     commands.spawn_bundle(SpriteBundle {
+        sprite: Sprite {
+            color: Color::rgba(1., 1., 1., MAX_TILE_GRID_OPACITY),
+        },
         texture: ui_assets.radial.clone().into(),
         transform: Transform::from_xyz(0., 0., 1.)
     })
@@ -272,13 +276,34 @@ fn update_tile_grid_position(
     cursor: Res<CursorPosition>,
     mut query: Query<&mut Transform, With<TileGrid>>
 ) {
-    if cursor.is_changed() {
-        let mut transform = query.single_mut();
+    let mut transform = query.single_mut();
+    let x = cursor.world_position.x /* + 10. */;
+    let y = cursor.world_position.y /* - 5. */;
 
-        let x = cursor.world_position.x /* + 10. */;
-        let y = cursor.world_position.y /* - 5. */;
+    transform.translation.x = x - x % 16.;
+    transform.translation.y = y - y % 16.;
+}
 
-        transform.translation.x = x - x % 16.;
-        transform.translation.y = y - y % 16.;
+fn update_tile_grid_opacity(
+    time: Res<Time>,
+    player: Query<(&SpeedCoefficient, &MovementState), With<Player>>,
+    mut tile_grid: Query<&mut Sprite, With<TileGrid>>
+) {
+    if let Ok((SpeedCoefficient(speed_coefficient), movement_state)) = player.get_single() {
+        let mut sprite = tile_grid.single_mut();
+
+        let opacity = match movement_state {
+            MovementState::WALKING => {
+                (1. - speed_coefficient).clamp(0.2, MAX_TILE_GRID_OPACITY)
+            },
+            MovementState::FLYING | MovementState::FALLING => {
+                let a = sprite.color.a();
+
+                (a - time.delta_seconds() * 0.5).clamp(0., MAX_TILE_GRID_OPACITY)
+            },
+            _ => 1.
+        };
+
+        sprite.color = *sprite.color.set_a(opacity);
     }
 }

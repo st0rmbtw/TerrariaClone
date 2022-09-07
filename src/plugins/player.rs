@@ -7,9 +7,9 @@ use bevy_inspector_egui::Inspectable;
 use bevy_rapier2d::{prelude::{RigidBody, Velocity, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce, Friction, GravityScale}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
 use iyes_loopless::prelude::*;
 
-use crate::{util::{Lerp, map_range}, TRANSPARENT, state::{GameState, MovementState}, item::ITEM_ANIMATION_DATA, parallax::ParallaxCameraComponent};
+use crate::{util::{Lerp, map_range}, TRANSPARENT, state::{GameState, MovementState}, item::ITEM_ANIMATION_DATA};
 
-use super::{PlayerAssets, PlayerInventoryPlugin, MainCamera, ItemAssets, SelectedItem, TILE_SIZE};
+use super::{PlayerAssets, PlayerInventoryPlugin, ItemAssets, SelectedItem, TILE_SIZE, CursorPosition};
 
 pub const PLAYER_SPRITE_WIDTH: f32 = 2. * TILE_SIZE * 0.75;
 pub const PLAYER_SPRITE_HEIGHT: f32 = 3. * TILE_SIZE * 0.95;
@@ -50,6 +50,7 @@ impl Plugin for PlayerPlugin {
                     .with_system(update_speed_coefficient)
                     .with_system(update)
                     .with_system(check_is_on_ground)
+                    .with_system(break_block)
                     .into()
                 )
 
@@ -128,7 +129,7 @@ struct GroundSensor {
 }
 
 #[derive(Component, Default, Deref, DerefMut, Clone, Copy, Inspectable)]
-pub struct SpeedCoefficient(f32);
+pub struct SpeedCoefficient(pub f32);
 
 #[derive(Default, Clone, Copy)]
 struct Axis {
@@ -462,18 +463,6 @@ fn spawn_player(
         // .insert(ColliderMassProperties::Mass(1.))
         .insert(Transform::from_xyz(5., 10., 0.1))
         .with_children(|children| {
-
-            // region: Camera
-            children.spawn()
-                .insert_bundle(Camera2dBundle {
-                    projection: OrthographicProjection {
-                        scale: 0.9,
-                    },
-                })
-                .insert(ParallaxCameraComponent)
-                .insert(MainCamera);
-            // endregion
-
             let entity = children.parent_entity();
 
             let player_half_width = PLAYER_SPRITE_WIDTH / 2.;
@@ -579,7 +568,9 @@ fn update(
 
     if input.pressed(KeyCode::Space) && jumpable.is_jumping && jumpable.jump_time_counter > 0. {
         if jumpable.jump_time_counter > 0. {
-            velocity.linvel.y = 400.;
+            if jumpable.jump_time_counter < 0.13 {
+                velocity.linvel.y = 400.;
+            }
             jumpable.jump_time_counter -= time.delta_seconds();
         } else {
             jumpable.is_jumping = false;
@@ -885,7 +876,7 @@ fn set_using_item_rotation(
         let position = ITEM_ANIMATION_DATA.get(&item_type).unwrap()[index.0];
 
         if index.0 == 0 && index.is_changed() {
-        transform.rotation = get_rotation_by_direction(*direction);
+            transform.rotation = get_rotation_by_direction(*direction);
         }
 
         transform.rotate_around(position.extend(0.15), Quat::from_rotation_z(ROTATION_STEP * direction_f * time.delta_seconds()));
@@ -919,6 +910,17 @@ fn use_item_animation(
         
         sprite.index = use_item_anim_offset + index.0;
     });
+}
+
+fn break_block(
+    input: Res<Input<MouseButton>>,
+    cursor_positon: Res<CursorPosition>
+) {
+    let world_position = (cursor_positon.world_position / 16.);
+
+    if input.just_pressed(MouseButton::Left) {
+        dbg!(world_position);
+    }
 }
 
 // TODO: Debug function, remove in feature
