@@ -88,6 +88,12 @@ pub struct WorldData {
     pub colliders: Vec<ColliderData>
 }
 
+impl WorldData {
+    fn get_chunk_by_coords() {
+
+    }
+}
+
 pub struct Chunk {
     pub bounds: FRect,
     pub cells: Array2<Cell>,
@@ -490,8 +496,10 @@ fn update(
     }
 }
 
-fn handle_block_place(
-   mut events: EventReader<BlockPlaceEvent>
-) {
-
-}
+// TODO
+// fn handle_block_place(
+//     mut world_data: ResMut<WorldData>,
+//     mut events: EventReader<BlockPlaceEvent>
+// ) {
+//     world_data.
+// }
