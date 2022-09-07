@@ -110,3 +110,15 @@ pub fn on_btn_clicked<B: Component>(
 
     false
 }
+
+#[derive(Copy, Clone, PartialEq, Debug, Default)]
+pub struct FRect {
+    pub left: f32,
+    pub right: f32,
+    pub top: f32,
+    pub bottom: f32,
+}
+
+pub fn inside_f(p: (f32, f32), rect: FRect) -> bool {
+    p.0 < rect.bottom && p.0 > rect.top && p.1 > rect.left && p.1 < rect.right
+}

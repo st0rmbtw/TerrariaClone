@@ -1,12 +1,12 @@
 use std::{time::{UNIX_EPOCH, SystemTime}, collections::HashMap, ops::Mul};
 
-use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, Vec3, Handle, GlobalTransform, With, Query, Changed, OrthographicProjection, ResMut, Entity}, sprite::{SpriteSheetBundle, TextureAtlasSprite, TextureAtlas}, core::Name, render::view::NoFrustumCulling};
+use bevy::{prelude::{Plugin, Commands, App, Res, default, Transform, Vec3, Handle, GlobalTransform, With, Query, Changed, OrthographicProjection, ResMut, Entity, Vec2, EventReader}, sprite::{SpriteSheetBundle, TextureAtlasSprite, TextureAtlas}, core::Name, render::view::NoFrustumCulling};
 use bevy_rapier2d::prelude::{Collider, Friction, RigidBody, Restitution, Sleeping};
 use iyes_loopless::{prelude::{AppLooplessStateExt, ConditionSet}, state::NextState};
 use ndarray::{Array2, s, ArrayView2};
 use rand::{Rng, thread_rng};
 
-use crate::{world_generator::{generate, Slope, Cell, Wall, Tile}, state::GameState};
+use crate::{world_generator::{generate, Slope, Cell, Wall, Tile}, state::GameState, block::Block, util::{FRect, inside_f}};
 
 use super::{BlockAssets, WallAssets, MainCamera};
 
@@ -47,14 +47,6 @@ impl URect {
             bottom: self.bottom as f32
         }
     }
-}
-
-#[derive(Copy, Clone, PartialEq, Debug, Default)]
-pub struct FRect {
-    left: f32,
-    right: f32,
-    top: f32,
-    bottom: f32,
 }
 
 impl FRect {
@@ -152,6 +144,15 @@ impl Chunk {
             }
         }
     }
+}
+
+pub struct BlockBreakEvent {
+    pub coords: Vec2
+}
+
+pub struct BlockPlaceEvent {
+    pub coords: Vec2,
+    pub block: Block
 }
 
 fn spawn_terrain(mut commands: Commands) {
@@ -489,6 +490,8 @@ fn update(
     }
 }
 
-fn inside_f(p: (f32, f32), rect: FRect) -> bool {
-    p.0 < rect.bottom && p.0 > rect.top && p.1 > rect.left && p.1 < rect.right
+fn handle_block_place(
+   mut events: EventReader<BlockPlaceEvent>
+) {
+
 }
