@@ -18,8 +18,8 @@ fn main() {
         .insert_resource(Msaa { samples: 4 })
         .insert_resource(WindowDescriptor {
             title: "Terraria".to_string(),
-            present_mode: PresentMode::Fifo,
-            cursor_visible: true,
+            present_mode: PresentMode::Immediate,
+            cursor_visible: false,
             ..default()
         })
         .insert_resource(AssetServerSettings {
@@ -39,7 +39,7 @@ fn main() {
         .add_plugin(AssetsPlugin)
         .add_plugin(SetupPlugin)
         .add_plugin(ParallaxPlugin {
-            initial_speed: 3.,
+            initial_speed: 0.2,
         })
         .add_plugin(HanabiPlugin)
         .add_plugin(BackgroundPlugin)

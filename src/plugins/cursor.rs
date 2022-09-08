@@ -2,18 +2,23 @@ use std::time::Duration;
 
 use autodefault::autodefault;
 use bevy::{
-    prelude::{Plugin, App, Commands, Res, Camera, With, Query, Vec2, GlobalTransform, NodeBundle, Color, default, Component, ResMut, ImageBundle, BuildChildren, Without, TextBundle, Deref, DerefMut, Vec3, Name, Transform, CoreStage, Visibility}, 
+    prelude::{Plugin, App, Commands, Res, Camera, With, Query, Vec2, GlobalTransform, Color, default, Component, ResMut, ImageBundle, BuildChildren, Without, TextBundle, Deref, DerefMut, Vec3, Name, Transform, CoreStage, Visibility, NodeBundle}, 
     window::Windows,
     render::camera::RenderTarget, 
-    ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignSelf, UiColor, AlignItems}, 
+    ui::{Style, Size, Val, UiRect, PositionType, JustifyContent, AlignSelf, UiColor, AlignItems, FocusPolicy}, 
     text::{Text, TextStyle}, sprite::{SpriteBundle, Sprite}, time::Time
 };
 use interpolation::EaseFunction;
 use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet, IntoConditionalSystem};
-use crate::{TRANSPARENT, lens::UiColorLens, state::{GameState, MovementState}, animation::{component_animator_system, AnimationSystem, Tween, TweeningType, TransformScaleLens, Animator}};
+use crate::{
+    lens::UiColorLens, 
+    state::{GameState, MovementState}, 
+    animation::{component_animator_system, AnimationSystem, Tween, TweeningType, TransformScaleLens, Animator}, TRANSPARENT
+};
 use super::{MainCamera, CursorAssets, FontAssets, UiAssets, UiVisibility, SpeedCoefficient, Player};
 
 const MAX_TILE_GRID_OPACITY: f32 = 0.8;
+const MIN_TILE_GRID_OPACITY: f32 = 0.2;
 
 // region: Plugin
 
@@ -31,8 +36,16 @@ impl Plugin for CursorPlugin {
                 ConditionSet::new()
                     .run_in_state(GameState::InGame)
                     .with_system(set_visibility::<TileGrid>)
-                    .with_system(set_visibility::<CursorContainer>)
+                    .with_system(set_visibility::<CursorBackground>)
                     .with_system(update_tile_grid_opacity)
+                    .into()
+            )
+
+            .add_system_set_to_stage(
+                CoreStage::Last,
+                ConditionSet::new()
+                    .run_not_in_state(GameState::AssetLoading)
+                    .with_system(set_cursor_z)
                     .into()
             )
 
@@ -123,6 +136,7 @@ fn setup(
             position_type: PositionType::Absolute,
             ..default()
         },
+        focus_policy: FocusPolicy::Pass,
         color: TRANSPARENT.into(),
         ..default()
     })
@@ -136,6 +150,7 @@ fn setup(
                 align_self: AlignSelf::Center,
                 size: Size::new(Val::Px(22.), Val::Px(22.))
             },
+            focus_policy: FocusPolicy::Pass,
             image: cursor_assets.cursor_background.clone().into(),
             color: Color::rgb(0.7, 0.7, 0.7).into()
         })
@@ -148,6 +163,7 @@ fn setup(
                     align_self: AlignSelf::Center,
                     size: Size::new(Val::Px(16.), Val::Px(16.))
                 },
+                focus_policy: FocusPolicy::Pass,
                 image: cursor_assets.cursor.clone().into(),
                 color: Color::PINK.into()
             })
@@ -189,6 +205,20 @@ fn spawn_tile_grid(
         transform: Transform::from_xyz(0., 0., 1.)
     })
     .insert(TileGrid);
+}
+
+fn set_cursor_z(
+    mut cursor_background_query: Query<(&mut Transform, &mut GlobalTransform), (With<CursorBackground>, Without<CursorForeground>)>,
+    mut cursor_foreground_query: Query<(&mut Transform, &mut GlobalTransform), (With<CursorForeground>, Without<CursorBackground>)>
+) {
+    let (mut cursor_background_transform, mut cursor_background_global_transform) = cursor_background_query.single_mut();
+    let (mut cursor_foreground_transform, mut cursor_foreground_global_transform) = cursor_foreground_query.single_mut();
+
+    cursor_background_transform.translation.z = 10.;
+    cursor_background_global_transform.translation_mut().z = 10.;
+
+    cursor_foreground_transform.translation.z = 10.1;
+    cursor_foreground_global_transform.translation_mut().z = 10.1;
 }
 
 fn update_cursor_position(
@@ -294,14 +324,34 @@ fn update_tile_grid_opacity(
 
         let opacity = match movement_state {
             MovementState::WALKING => {
-                (1. - speed_coefficient).clamp(0.2, MAX_TILE_GRID_OPACITY)
+                let mut a = sprite.color.a();
+
+                if a > MIN_TILE_GRID_OPACITY {
+                    a = a - speed_coefficient * time.delta_seconds() * 0.5;
+                } else if a < MIN_TILE_GRID_OPACITY {
+                    a = a + speed_coefficient * time.delta_seconds() * 0.5;
+                }
+
+                a.clamp(0., MAX_TILE_GRID_OPACITY)
             },
             MovementState::FLYING | MovementState::FALLING => {
-                let a = sprite.color.a();
+                let mut a = sprite.color.a();
 
-                (a - time.delta_seconds() * 0.5).clamp(0., MAX_TILE_GRID_OPACITY)
+                if a > 0. {
+                    a = (a - time.delta_seconds() * 0.5).clamp(0., MAX_TILE_GRID_OPACITY);
+                }
+
+                a
             },
-            _ => 1.
+            _ => {
+                let mut a = sprite.color.a();
+
+                if a < MAX_TILE_GRID_OPACITY {
+                    a = (a + time.delta_seconds() * 0.5).clamp(0., MAX_TILE_GRID_OPACITY);
+                }
+
+                a
+            }
         };
 
         sprite.color = *sprite.color.set_a(opacity);

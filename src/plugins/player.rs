@@ -4,7 +4,7 @@ use autodefault::autodefault;
 use bevy::{prelude::*, sprite::Anchor};
 use bevy_hanabi::{ParticleEffect, ParticleLifetimeModifier, ColorOverLifetimeModifier, ParticleEffectBundle, SizeOverLifetimeModifier, AccelModifier, ShapeDimension, Gradient, Spawner, EffectAsset, PositionCone3dModifier};
 use bevy_inspector_egui::Inspectable;
-use bevy_rapier2d::{prelude::{RigidBody, Velocity, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, ExternalForce, Friction, GravityScale}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
+use bevy_rapier2d::{prelude::{RigidBody, Velocity, Ccd, Collider, ActiveEvents, LockedAxes, Sensor, Friction, GravityScale}, pipeline::CollisionEvent, rapier::prelude::CollisionEventFlags};
 use iyes_loopless::prelude::*;
 
 use crate::{util::{Lerp, map_range}, TRANSPARENT, state::{GameState, MovementState}, item::ITEM_ANIMATION_DATA};
@@ -458,7 +458,6 @@ fn spawn_player(
         .insert(Velocity::zero())
         .insert(Ccd::enabled())
         .insert(LockedAxes::ROTATION_LOCKED)
-        .insert(ExternalForce::default())
         .insert(GravityScale(40.))
         // .insert(ColliderMassProperties::Mass(1.))
         .insert(Transform::from_xyz(5., 10., 0.1))
@@ -472,7 +471,6 @@ fn spawn_player(
             children.spawn()
                 .insert(Collider::cuboid(player_half_width, player_half_height))
                 .insert(ActiveEvents::COLLISION_EVENTS)
-                .insert(Ccd::enabled())
                 .insert(Transform::from_xyz(0., -4.5, 0.))
                 .insert(Friction::coefficient(0.));
             // endregion
@@ -497,24 +495,24 @@ fn spawn_player(
     let mut gradient = Gradient::new();
     gradient.add_key(0.0, Vec4::new(114. / 255., 81. / 255., 56. / 255., 1.));
 
-    let spawner = Spawner::rate(10.0.into());
+    let spawner = Spawner::rate(20.0.into());
 
     // Create the effect asset
     let effect = effects.add(EffectAsset {
             name: "MyEffect".to_string(),
             // Maximum number of particles alive at a time
-            capacity: 10,
+            capacity: 30,
             spawner
         }
         .init(PositionCone3dModifier {
-            base_radius: 0.2,
-            top_radius: 0.1,
-            height: 2.,
+            base_radius: 0.5,
+            top_radius: 0.,
+            height: 1.,
             dimension: ShapeDimension::Volume,
             speed: 10.0.into(),
         })
         .update(AccelModifier {
-            accel: Vec3::new(0., 0.1, 0.),
+            accel: Vec3::new(0., 0., 0.),
         })
         // Render the particles with a color gradient over their
         // lifetime.
@@ -603,8 +601,8 @@ fn spawn_particles(
         let (mut effect, mut effect_transform) = effects.get_mut(particle_effects.walking).unwrap();
 
         effect_transform.translation = match face_direction {
-            FaceDirection::LEFT => Vec3::new(0., -PLAYER_SPRITE_HEIGHT / 2. + 1., 0.),
-            FaceDirection::RIGHT => Vec3::new(0., -PLAYER_SPRITE_HEIGHT / 2. + 1., 0.),
+            FaceDirection::LEFT => Vec3::new(0., -PLAYER_SPRITE_HEIGHT / 2., 0.),
+            FaceDirection::RIGHT => Vec3::new(0., -PLAYER_SPRITE_HEIGHT / 2., 0.),
         };
 
         effect
@@ -916,7 +914,7 @@ fn break_block(
     input: Res<Input<MouseButton>>,
     cursor_positon: Res<CursorPosition>
 ) {
-    let world_position = (cursor_positon.world_position / 16.);
+    let world_position = cursor_positon.world_position / 16.;
 
     if input.just_pressed(MouseButton::Left) {
         dbg!(world_position);

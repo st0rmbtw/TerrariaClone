@@ -15,7 +15,7 @@ impl Plugin for ParallaxPlugin {
     fn build(&self, app: &mut App) {
         app
             .insert_resource(ParallaxMoveSpeed {
-                speed: self.initial_speed
+                speed: self.initial_speed * 1000.
             })
             .add_system(initialize_parallax_system.run_if_resource_added::<ParallaxResource>())
             .add_system(
@@ -196,6 +196,7 @@ fn initialize_parallax_system(
 
 /// Move camera and background layers
 fn follow_camera_system(
+    time: Res<Time>,
     mut camera_query: Query<&mut Transform, With<ParallaxCameraComponent>>,
     mut layer_query: Query<
         (&mut Transform, &LayerComponent),
@@ -204,9 +205,9 @@ fn follow_camera_system(
     parallax_speed: Res<ParallaxMoveSpeed>
 ) {
     if let Some(mut camera_transform) = camera_query.iter_mut().next() {
-        camera_transform.translation.x += parallax_speed.speed;
+        camera_transform.translation.x += parallax_speed.speed * time.delta_seconds();
         for (mut layer_transform, layer) in layer_query.iter_mut() {
-            layer_transform.translation.x += parallax_speed.speed * layer.speed;
+            layer_transform.translation.x += parallax_speed.speed * layer.speed * time.delta_seconds();
         }
     }
 }

@@ -41,6 +41,7 @@ fn setup_camera(
             projection: OrthographicProjection {
                 scale: 0.9,
             },
+            transform: Transform::from_xyz(0., 0., 500.)
         })
         .insert(ParallaxCameraComponent)
         .insert(MainCamera);
