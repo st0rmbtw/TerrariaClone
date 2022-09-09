@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use super::{
-    CursorAssets, FontAssets, MainCamera, Player, SpeedCoefficient, UiAssets, UiVisibility,
+    CursorAssets, FontAssets, MainCamera, Player, SpeedCoefficient, UiAssets, UiVisibility, TILE_SIZE,
 };
 use crate::{
     animation::{
@@ -10,7 +10,7 @@ use crate::{
     },
     lens::UiColorLens,
     state::{GameState, MovementState},
-    TRANSPARENT,
+    TRANSPARENT, util::get_tile_coords,
 };
 use autodefault::autodefault;
 use bevy::{
@@ -57,7 +57,9 @@ impl Plugin for CursorPlugin {
                 CoreStage::Last,
                 ConditionSet::new()
                     .run_not_in_state(GameState::AssetLoading)
-                    .with_system(set_cursor_z)
+                    .with_system(set_ui_component_z::<HoveredInfoMarker>)
+                    .with_system(set_ui_component_z::<CursorBackground>)
+                    .with_system(set_cursor_foreground_z)
                     .into(),
             )
             .add_system_set(
@@ -215,23 +217,26 @@ fn spawn_tile_grid(mut commands: Commands, ui_assets: Res<UiAssets>) {
         .insert(TileGrid);
 }
 
-fn set_cursor_z(
-    mut cursor_background_query: Query<
+fn set_ui_component_z<C: Component>(
+    mut query: Query<
         (&mut Transform, &mut GlobalTransform),
-        (With<CursorBackground>, Without<CursorForeground>),
+        With<C>,
     >,
+) {
+    let (mut transform, mut global_transform) = query.single_mut();
+
+    transform.translation.z = 10.;
+    global_transform.translation_mut().z = 10.;
+}
+ 
+fn set_cursor_foreground_z(
     mut cursor_foreground_query: Query<
         (&mut Transform, &mut GlobalTransform),
         (With<CursorForeground>, Without<CursorBackground>),
     >,
 ) {
-    let (mut cursor_background_transform, mut cursor_background_global_transform) =
-        cursor_background_query.single_mut();
     let (mut cursor_foreground_transform, mut cursor_foreground_global_transform) =
         cursor_foreground_query.single_mut();
-
-    cursor_background_transform.translation.z = 10.;
-    cursor_background_global_transform.translation_mut().z = 10.;
 
     cursor_foreground_transform.translation.z = 10.1;
     cursor_foreground_global_transform.translation_mut().z = 10.1;
@@ -324,11 +329,11 @@ fn update_tile_grid_position(
     mut query: Query<&mut Transform, With<TileGrid>>,
 ) {
     let mut transform = query.single_mut();
-    let x = cursor.world_position.x /* + 10. */;
-    let y = cursor.world_position.y /* - 5. */;
+    
+    let tile_coords = get_tile_coords(cursor.world_position);
 
-    transform.translation.x = x - x % 16.;
-    transform.translation.y = y - y % 16.;
+    transform.translation.x = tile_coords.x * TILE_SIZE;
+    transform.translation.y = tile_coords.y * TILE_SIZE;
 }
 
 fn update_tile_grid_opacity(
@@ -344,9 +349,9 @@ fn update_tile_grid_opacity(
                 let mut a = sprite.color.a();
 
                 if a > MIN_TILE_GRID_OPACITY {
-                    a = a - speed_coefficient * time.delta_seconds() * 0.5;
+                    a = a - speed_coefficient * time.delta_seconds() * 0.7;
                 } else if a < MIN_TILE_GRID_OPACITY {
-                    a = a + speed_coefficient * time.delta_seconds() * 0.5;
+                    a = a + speed_coefficient * time.delta_seconds() * 0.7;
                 }
 
                 a.clamp(0., MAX_TILE_GRID_OPACITY)
@@ -355,7 +360,7 @@ fn update_tile_grid_opacity(
                 let mut a = sprite.color.a();
 
                 if a > 0. {
-                    a = (a - time.delta_seconds() * 0.5).clamp(0., MAX_TILE_GRID_OPACITY);
+                    a = (a - time.delta_seconds() * 0.7).clamp(0., MAX_TILE_GRID_OPACITY);
                 }
 
                 a
@@ -364,7 +369,7 @@ fn update_tile_grid_opacity(
                 let mut a = sprite.color.a();
 
                 if a < MAX_TILE_GRID_OPACITY {
-                    a = (a + time.delta_seconds() * 0.5).clamp(0., MAX_TILE_GRID_OPACITY);
+                    a = (a + time.delta_seconds() * 0.7).clamp(0., MAX_TILE_GRID_OPACITY);
                 }
 
                 a

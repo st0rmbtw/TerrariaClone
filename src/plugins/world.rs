@@ -8,7 +8,7 @@ use bevy::{
     core::Name,
     prelude::{
         default, App, Changed, Commands, Entity, GlobalTransform, Handle, OrthographicProjection,
-        Plugin, Query, Res, ResMut, Transform, Vec2, Vec3, With,
+        Plugin, Query, Res, ResMut, Transform, Vec2, Vec3, With, EventReader,
     },
     render::view::NoFrustumCulling,
     sprite::{SpriteSheetBundle, TextureAtlas, TextureAtlasSprite},
@@ -39,11 +39,14 @@ pub struct WorldPlugin;
 
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
-        app.add_enter_system(GameState::WorldLoading, spawn_terrain)
+        app
+            .add_event::<BlockPlaceEvent>()
+            .add_enter_system(GameState::WorldLoading, spawn_terrain)
             .add_system_set(
                 ConditionSet::new()
                     .run_in_state(GameState::InGame)
                     .with_system(update)
+                    .with_system(handle_block_place)
                     .into(),
             );
     }
@@ -313,117 +316,37 @@ fn get_tile_sprite_index(slope: Slope) -> usize {
 
     match slope {
         // All
-        Slope {
-            top: true,
-            bottom: true,
-            left: true,
-            right: true,
-        } => rand + 16,
+        Slope::ALL => rand + 16,
         // None
-        Slope {
-            top: false,
-            bottom: false,
-            left: false,
-            right: false,
-        } => 16 * 3 + rand + 8,
-        // Bottom
-        Slope {
-            top: false,
-            bottom: true,
-            left: false,
-            right: false,
-        } => rand + 6,
+        Slope::NONE => 16 * 3 + rand + 8,
         // Top
-        Slope {
-            top: true,
-            bottom: false,
-            left: false,
-            right: false,
-        } => 16 * 3 + rand + 5,
+        Slope::TOP => 16 * 3 + rand + 5,
+        // Bottom
+        Slope::BOTTOM => rand + 6,
         // Left
-        Slope {
-            top: false,
-            bottom: false,
-            left: true,
-            right: false,
-        } => (rand - 1) * 16 + 12,
+        Slope::LEFT => (rand - 1) * 16 + 12,
         // Right
-        Slope {
-            top: false,
-            bottom: false,
-            left: false,
-            right: true,
-        } => (rand - 1) * 16 + 9,
+        Slope::RIGHT => (rand - 1) * 16 + 9,
         // Top Bottom
-        Slope {
-            top: true,
-            bottom: true,
-            left: false,
-            right: false,
-        } => (rand - 1) * 16 + 5,
-        // Bottom Left Right
-        Slope {
-            top: false,
-            bottom: true,
-            left: true,
-            right: true,
-        } => rand,
-        // Left Right
-        Slope {
-            top: false,
-            bottom: false,
-            left: true,
-            right: true,
-        } => 4 * 16 + 5 + rand,
+        Slope::TOP_BOTTOM => (rand - 1) * 16 + 5,
         // Top Left Right
-        Slope {
-            top: true,
-            bottom: false,
-            left: true,
-            right: true,
-        } => 16 * 2 + rand + 1,
-        // Bottom Right
-        Slope {
-            top: false,
-            bottom: true,
-            left: false,
-            right: true,
-        } => 16 * 3 + (rand - 1) * 2,
+        Slope::TOP_LEFT_RIGHT => 16 * 2 + rand + 1,
+        // Bottom Left Right
+        Slope::BOTTOM_LEFT_RIGHT => rand,
+        // Left Right
+        Slope::LEFT_RIGHT => 4 * 16 + 5 + rand,
         // Bottom Left
-        Slope {
-            top: false,
-            bottom: true,
-            left: true,
-            right: false,
-        } => 16 * 3 + 1 + (rand - 1) * 2,
-        // Top Right
-        Slope {
-            top: true,
-            bottom: false,
-            left: false,
-            right: true,
-        } => 16 * 4 + (rand - 1) * 2,
+        Slope::BOTTOM_LEFT => 16 * 3 + 1 + (rand - 1) * 2,
+        // Bottom Right
+        Slope::BOTTOM_RIGHT => 16 * 3 + (rand - 1) * 2,
         // Top Left
-        Slope {
-            top: true,
-            bottom: false,
-            left: true,
-            right: false,
-        } => 16 * 4 + 1 + (rand - 1) * 2,
-        // Top Bottom Right
-        Slope {
-            top: true,
-            bottom: true,
-            left: false,
-            right: true,
-        } => (rand - 1) * 16,
+        Slope::TOP_LEFT => 16 * 4 + 1 + (rand - 1) * 2,
+        // Top Right
+        Slope::TOP_RIGHT => 16 * 4 + (rand - 1) * 2,
         // Top Bottom Left
-        Slope {
-            top: true,
-            bottom: true,
-            left: true,
-            right: false,
-        } => (rand - 1) * 16 + 4,
+        Slope::TOP_BOTTOM_LEFT => (rand - 1) * 16 + 4,
+        // Top Bottom Right
+        Slope::TOP_BOTTOM_RIGHT => (rand - 1) * 16,
     }
 }
 
@@ -432,103 +355,33 @@ fn get_wall_sprite_index(slope: Slope) -> usize {
 
     match slope {
         // All
-        Slope {
-            top: true,
-            bottom: true,
-            left: true,
-            right: true,
-        } => 13 + rand,
+        Slope::ALL => 13 + rand,
         // None
-        Slope {
-            top: false,
-            bottom: false,
-            left: false,
-            right: false,
-        } => 13 * 3 + 8 + rand,
-        // Bottom
-        Slope {
-            top: false,
-            bottom: true,
-            left: false,
-            right: false,
-        } => 6 + rand,
+        Slope::NONE => 13 * 3 + 8 + rand,
         // Top
-        Slope {
-            top: true,
-            bottom: false,
-            left: false,
-            right: false,
-        } => 13 * 2 + rand,
+        Slope::TOP => 13 * 2 + rand,
+        // Bottom
+        Slope::BOTTOM => 6 + rand,
         // Top Bottom
-        Slope {
-            top: true,
-            bottom: true,
-            left: false,
-            right: false,
-        } => (rand - 1) * 13 + 5,
+        Slope::TOP_BOTTOM => (rand - 1) * 13 + 5,
         // Bottom Right
-        Slope {
-            top: false,
-            bottom: true,
-            left: false,
-            right: true,
-        } => 13 * 3 + (rand - 1) * 2,
+        Slope::BOTTOM_RIGHT => 13 * 3 + (rand - 1) * 2,
         // Bottom Left
-        Slope {
-            top: false,
-            bottom: true,
-            left: true,
-            right: false,
-        } => 13 * 3 + 1 + (rand - 1) * 2,
+        Slope::BOTTOM_LEFT => 13 * 3 + 1 + (rand - 1) * 2,
         // Top Right
-        Slope {
-            top: true,
-            bottom: false,
-            left: false,
-            right: true,
-        } => 13 * 4 + (rand - 1) * 2,
+        Slope::TOP_RIGHT => 13 * 4 + (rand - 1) * 2,
         // Top Left
-        Slope {
-            top: true,
-            bottom: false,
-            left: true,
-            right: false,
-        } => 13 * 4 + 1 + (rand - 1) * 2,
+        Slope::TOP_LEFT => 13 * 4 + 1 + (rand - 1) * 2,
         // Left Right
-        Slope {
-            top: false,
-            bottom: false,
-            left: true,
-            right: true,
-        } => 13 * 4 + 5 + rand,
+        Slope::LEFT_RIGHT => 13 * 4 + 5 + rand,
         // Bottom Left Right
-        Slope {
-            top: false,
-            bottom: true,
-            left: true,
-            right: true,
-        } => 1 + rand,
+        Slope::BOTTOM_LEFT_RIGHT => 1 + rand,
         // Top Bottom Right
-        Slope {
-            top: true,
-            bottom: true,
-            left: false,
-            right: true,
-        } => 13 * (rand - 1),
+        Slope::TOP_BOTTOM_RIGHT => 13 * (rand - 1),
         // Top Bottom Left
-        Slope {
-            top: true,
-            bottom: true,
-            left: true,
-            right: false,
-        } => 13 * (rand - 1) + 4,
+        Slope::TOP_BOTTOM_LEFT => 13 * (rand - 1) + 4,
         // Top Left Right
-        Slope {
-            top: true,
-            bottom: false,
-            left: true,
-            right: true,
-        } => 13 * 2 + rand,
+        Slope::TOP_LEFT_RIGHT => 13 * 2 + rand,
         _ => panic!("{:#?}", slope),
     }
 }
@@ -664,10 +517,20 @@ fn update(
     }
 }
 
-// TODO
-// fn handle_block_place(
-//     mut world_data: ResMut<WorldData>,
-//     mut events: EventReader<BlockPlaceEvent>
-// ) {
-//     world_data.
-// }
+fn handle_block_place(
+    mut commands: Commands,
+    mut events: EventReader<BlockPlaceEvent>,
+    block_assets: Res<BlockAssets>
+) {
+    for event in events.iter() {
+        spawn_tile(
+            &mut commands, 
+            block_assets.get_by_block(event.block).unwrap(), 
+            Tile { tile_type: event.block, slope: Slope::NONE }, 
+            event.coords.x as usize, 
+            event.coords.x * 16.,
+            event.coords.y as usize, 
+            event.coords.y * 16.,
+        );
+    }
+}

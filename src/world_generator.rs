@@ -25,6 +25,29 @@ pub struct Slope {
 }
 
 impl Slope {
+    pub const NONE: Slope = Slope { top: false, bottom: false, left: false, right: false };
+    pub const ALL: Slope = Slope { top: true, bottom: true, left: true, right: true };
+
+    pub const TOP: Slope = Slope { top: true, ..Slope::NONE };
+    pub const BOTTOM: Slope = Slope { bottom: true, ..Slope::NONE };
+    pub const LEFT: Slope = Slope { left: true, ..Slope::NONE };
+    pub const RIGHT: Slope = Slope { right: true, ..Slope::NONE };
+
+    pub const TOP_BOTTOM: Slope = Slope { top: true, bottom: true, ..Slope::NONE };
+    pub const LEFT_RIGHT: Slope = Slope { left: true, right: true, ..Slope::NONE };
+
+    pub const TOP_LEFT: Slope = Slope { top: true, left: true, ..Slope::NONE };
+    pub const TOP_RIGHT: Slope = Slope { top: true, right: true, ..Slope::NONE };
+    pub const BOTTOM_LEFT: Slope = Slope { bottom: true, left: true, ..Slope::NONE };
+    pub const BOTTOM_RIGHT: Slope = Slope { bottom: true, right: true, ..Slope::NONE };
+
+    pub const TOP_BOTTOM_LEFT: Slope = Slope { top: true, bottom: true, left: true, ..Slope::NONE };
+    pub const TOP_BOTTOM_RIGHT: Slope = Slope { top: true, bottom: true, right: true, ..Slope::NONE };
+    pub const TOP_LEFT_RIGHT: Slope = Slope { top: true, left: true, right: true, ..Slope::NONE };
+    pub const BOTTOM_LEFT_RIGHT: Slope = Slope { bottom: true, left: true, right: true, ..Slope::NONE };
+}
+
+impl Slope {
     pub fn is_all(&self) -> bool {
         self.top && self.bottom && self.left && self.right
     }

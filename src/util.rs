@@ -1,6 +1,6 @@
 use bevy::{
     ecs::system::EntityCommands,
-    prelude::{default, Button, Changed, Component, Query, With},
+    prelude::{default, Button, Changed, Component, Query, With, Vec2, Quat},
     ui::{Interaction, UiRect, Val},
 };
 
@@ -108,6 +108,8 @@ macro_rules! handles{
 
 pub(crate) use handles;
 
+use crate::plugins::{TILE_SIZE, FaceDirection};
+
 pub fn on_btn_clicked<B: Component>(
     query: Query<&Interaction, (Changed<Interaction>, With<Button>, With<B>)>,
 ) -> bool {
@@ -130,4 +132,17 @@ pub struct FRect {
 
 pub fn inside_f(p: (f32, f32), rect: FRect) -> bool {
     p.0 < rect.bottom && p.0 > rect.top && p.1 > rect.left && p.1 < rect.right
+}
+
+pub fn get_tile_coords(world_coords: Vec2) -> Vec2 {
+    (world_coords / TILE_SIZE).round()
+}
+
+pub fn get_rotation_by_direction(direction: FaceDirection) -> Quat {
+    let start_rotation = match direction {
+        FaceDirection::LEFT => -0.5,
+        FaceDirection::RIGHT => 2.,
+    };
+
+    Quat::from_rotation_z(start_rotation)
 }
