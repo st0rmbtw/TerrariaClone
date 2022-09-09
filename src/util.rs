@@ -1,16 +1,18 @@
-use bevy::{prelude::{default, Component, Query, Changed, With, Button}, ui::{UiRect, Val, Interaction}, ecs::system::EntityCommands};
+use bevy::{
+    ecs::system::EntityCommands,
+    prelude::{default, Button, Changed, Component, Query, With},
+    ui::{Interaction, UiRect, Val},
+};
 
 pub trait Lerp<T> {
     fn lerp(self, other: T, t: f32) -> T;
 }
-
 
 impl Lerp<f32> for f32 {
     fn lerp(self, other: f32, t: f32) -> f32 {
         self * (1. - t) + other * t
     }
 }
-
 
 pub trait RectExtensions {
     fn horizontal(value: f32) -> Self;
@@ -44,15 +46,23 @@ impl RectExtensions for UiRect<Val> {
 }
 
 pub trait EntityCommandsExtensions<'w, 's, 'a> {
-    fn insert_if<F>(&mut self, component: impl Component, predicate: F) -> &mut EntityCommands<'w, 's, 'a>
-    where 
+    fn insert_if<F>(
+        &mut self,
+        component: impl Component,
+        predicate: F,
+    ) -> &mut EntityCommands<'w, 's, 'a>
+    where
         F: FnOnce() -> bool;
 }
 
 impl<'w, 's, 'a> EntityCommandsExtensions<'w, 's, 'a> for EntityCommands<'w, 's, 'a> {
-    fn insert_if<F>(&mut self, component: impl Component, predicate: F) -> &mut EntityCommands<'w, 's, 'a>
-    where 
-    F: FnOnce() -> bool 
+    fn insert_if<F>(
+        &mut self,
+        component: impl Component,
+        predicate: F,
+    ) -> &mut EntityCommands<'w, 's, 'a>
+    where
+        F: FnOnce() -> bool,
     {
         if predicate() {
             self.insert(component);
@@ -70,7 +80,7 @@ macro_rules! handles{
     (
      $field_type:ty,
      // meta data about struct
-     $(#[$meta:meta])* 
+     $(#[$meta:meta])*
      $vis:vis struct $struct_name:ident {
         $(
         // meta data about field
@@ -97,7 +107,6 @@ macro_rules! handles{
 }
 
 pub(crate) use handles;
-
 
 pub fn on_btn_clicked<B: Component>(
     query: Query<&Interaction, (Changed<Interaction>, With<Button>, With<B>)>,

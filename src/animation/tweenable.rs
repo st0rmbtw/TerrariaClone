@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use bevy::prelude::*;
 
-use super::{EaseMethod, lens::Lens, TweeningDirection, TweeningType};
+use super::{lens::Lens, EaseMethod, TweeningDirection, TweeningType};
 
 /// The dynamic tweenable type.
 ///

@@ -1,8 +1,8 @@
 use autodefault::autodefault;
 use bevy::prelude::*;
-use iyes_loopless::prelude::{ConditionSet, AppLooplessStateExt};
+use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet};
 
-use crate::{state::GameState, parallax::ParallaxCameraComponent, world_generator::WORLD_SIZE_X};
+use crate::{parallax::ParallaxCameraComponent, state::GameState, world_generator::WORLD_SIZE_X};
 
 use super::{CursorPlugin, Player};
 
@@ -10,8 +10,7 @@ pub struct SetupPlugin;
 
 impl Plugin for SetupPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_plugin(CursorPlugin)
+        app.add_plugin(CursorPlugin)
             .add_system(zoom)
             .add_enter_system(GameState::InGame, setup_camera)
             .add_system_set_to_stage(
@@ -19,7 +18,7 @@ impl Plugin for SetupPlugin {
                 ConditionSet::new()
                     .run_in_state(GameState::InGame)
                     .with_system(limit_camera_moving)
-                    .into()
+                    .into(),
             );
     }
 }
@@ -27,21 +26,17 @@ impl Plugin for SetupPlugin {
 #[derive(Component)]
 pub struct MainCamera;
 
-
 const MAX_CAMERA_ZOOM: f32 = 1.;
 const MIN_CAMERA_ZOOM: f32 = 0.5;
 const CAMERA_ZOOM_STEP: f32 = 0.3;
 
 #[autodefault]
-fn setup_camera(
-    mut commands: Commands
-) {
-    commands.spawn()
+fn setup_camera(mut commands: Commands) {
+    commands
+        .spawn()
         .insert_bundle(Camera2dBundle {
-            projection: OrthographicProjection {
-                scale: 0.9,
-            },
-            transform: Transform::from_xyz(0., 0., 500.)
+            projection: OrthographicProjection { scale: 0.9 },
+            transform: Transform::from_xyz(0., 0., 500.),
         })
         .insert(ParallaxCameraComponent)
         .insert(MainCamera);
@@ -50,7 +45,7 @@ fn setup_camera(
 fn zoom(
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
-    mut camera_query: Query<&mut OrthographicProjection, With<MainCamera>>
+    mut camera_query: Query<&mut OrthographicProjection, With<MainCamera>>,
 ) {
     if let Ok(mut projection) = camera_query.get_single_mut() {
         if input.any_pressed([KeyCode::Equals]) {
@@ -73,7 +68,6 @@ fn limit_camera_moving(
 ) {
     if let Ok((mut camera_transform, projection)) = camera.get_single_mut() {
         if let Ok(player_transform) = player.get_single_mut() {
-
             let camera_translation = camera_transform.translation_mut();
 
             let projection_left = projection.left * projection.scale;

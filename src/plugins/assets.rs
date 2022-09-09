@@ -1,42 +1,69 @@
-use bevy::{prelude::{Plugin, AssetServer, Assets, Handle, App, Image, World, Res, ResMut}, sprite::TextureAtlas, math::Vec2, text::Font, asset::HandleUntyped, render::texture::ImageSampler};
-use bevy_asset_loader::prelude::{AssetCollection, LoadingStateAppExt, LoadingState};
 use bevy::ecs::world::Mut;
+use bevy::{
+    asset::HandleUntyped,
+    math::Vec2,
+    prelude::{App, AssetServer, Assets, Handle, Image, Plugin, Res, ResMut, World},
+    render::texture::ImageSampler,
+    sprite::TextureAtlas,
+    text::Font,
+};
+use bevy_asset_loader::prelude::{AssetCollection, LoadingState, LoadingStateAppExt};
 use iyes_loopless::prelude::AppLooplessStateExt;
 
-use crate::{state::GameState, util::handles, item::ItemId, block::Block, wall::Wall};
+use crate::{block::Block, item::ItemId, state::GameState, util::handles, wall::Wall};
 
 pub struct AssetsPlugin;
 
 impl Plugin for AssetsPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_loading_state(
-                LoadingState::new(GameState::AssetLoading)
-                    .continue_to_state(GameState::MainMenu)
-                    .with_collection::<BlockAssets>()
-                    .with_collection::<UiAssets>()
-                    .with_collection::<PlayerAssets>()
-                    .with_collection::<FontAssets>()
-                    .with_collection::<ItemAssets>()
-                    .with_collection::<CursorAssets>()
-                    .with_collection::<BackgroundAssets>()
-                    .with_collection::<WallAssets>()
-            )
-            .add_exit_system(GameState::AssetLoading, setup);
+        app.add_loading_state(
+            LoadingState::new(GameState::AssetLoading)
+                .continue_to_state(GameState::MainMenu)
+                .with_collection::<BlockAssets>()
+                .with_collection::<UiAssets>()
+                .with_collection::<PlayerAssets>()
+                .with_collection::<FontAssets>()
+                .with_collection::<ItemAssets>()
+                .with_collection::<CursorAssets>()
+                .with_collection::<BackgroundAssets>()
+                .with_collection::<WallAssets>(),
+        )
+        .add_exit_system(GameState::AssetLoading, setup);
     }
 }
 
 #[derive(AssetCollection)]
 pub struct BlockAssets {
-    #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., rows = 15, columns = 16, padding_x = 2., padding_y = 2.))]
+    #[asset(texture_atlas(
+        tile_size_x = 16.,
+        tile_size_y = 16.,
+        rows = 15,
+        columns = 16,
+        padding_x = 2.,
+        padding_y = 2.
+    ))]
     #[asset(path = "sprites/tiles/Tiles_0.png")]
     pub dirt: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., rows = 15, columns = 16, padding_x = 2., padding_y = 2.))]
+    #[asset(texture_atlas(
+        tile_size_x = 16.,
+        tile_size_y = 16.,
+        rows = 15,
+        columns = 16,
+        padding_x = 2.,
+        padding_y = 2.
+    ))]
     #[asset(path = "sprites/tiles/Tiles_2.png")]
     pub grass: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., rows = 15, columns = 16, padding_x = 2., padding_y = 2.))]
+    #[asset(texture_atlas(
+        tile_size_x = 16.,
+        tile_size_y = 16.,
+        rows = 15,
+        columns = 16,
+        padding_x = 2.,
+        padding_y = 2.
+    ))]
     #[asset(path = "sprites/tiles/Tiles_1.png")]
     pub stone: Handle<TextureAtlas>,
 }
@@ -64,43 +91,113 @@ handles! {
 
 #[derive(AssetCollection)]
 pub struct PlayerAssets {
-    #[asset(texture_atlas(tile_size_x = 37., tile_size_y = 53., columns = 1, rows = 16, padding_x = 0., padding_y = 3.))]
+    #[asset(texture_atlas(
+        tile_size_x = 37.,
+        tile_size_y = 53.,
+        columns = 1,
+        rows = 16,
+        padding_x = 0.,
+        padding_y = 3.
+    ))]
     #[asset(path = "sprites/npc_22.png")]
     pub main: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 40., tile_size_y = 48., columns = 1, rows = 14, padding_x = 0., padding_y = 0.))]
+    #[asset(texture_atlas(
+        tile_size_x = 40.,
+        tile_size_y = 48.,
+        columns = 1,
+        rows = 14,
+        padding_x = 0.,
+        padding_y = 0.
+    ))]
     #[asset(path = "sprites/player/Player_0_0.png")]
     pub head: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 64., columns = 27, rows = 1, padding_x = 0., padding_y = 0.))]
+    #[asset(texture_atlas(
+        tile_size_x = 32.,
+        tile_size_y = 64.,
+        columns = 27,
+        rows = 1,
+        padding_x = 0.,
+        padding_y = 0.
+    ))]
     #[asset(path = "sprites/player/Player_Left_Shoulder.png")]
     pub left_shoulder: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 64., columns = 27, rows = 1, padding_x = 0., padding_y = 0.))]
+    #[asset(texture_atlas(
+        tile_size_x = 32.,
+        tile_size_y = 64.,
+        columns = 27,
+        rows = 1,
+        padding_x = 0.,
+        padding_y = 0.
+    ))]
     #[asset(path = "sprites/player/Player_Left_Hand.png")]
     pub left_hand: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 64., columns = 18, rows = 1, padding_x = 0., padding_y = 0.))]
+    #[asset(texture_atlas(
+        tile_size_x = 32.,
+        tile_size_y = 64.,
+        columns = 18,
+        rows = 1,
+        padding_x = 0.,
+        padding_y = 0.
+    ))]
     #[asset(path = "sprites/player/Player_Right_Arm.png")]
     pub right_arm: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 40., tile_size_y = 48., columns = 1, rows = 14, padding_x = 0., padding_y = 0.))]
+    #[asset(texture_atlas(
+        tile_size_x = 40.,
+        tile_size_y = 48.,
+        columns = 1,
+        rows = 14,
+        padding_x = 0.,
+        padding_y = 0.
+    ))]
     #[asset(path = "sprites/player/Player_Hair_1.png")]
     pub hair: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 64., columns = 1, rows = 14, padding_x = 8., padding_y = 0.))]
+    #[asset(texture_atlas(
+        tile_size_x = 32.,
+        tile_size_y = 64.,
+        columns = 1,
+        rows = 14,
+        padding_x = 8.,
+        padding_y = 0.
+    ))]
     #[asset(path = "sprites/player/Player_Body.png")]
     pub chest: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 40., tile_size_y = 64., columns = 1, rows = 19, padding_x = 0., padding_y = 0.))]
+    #[asset(texture_atlas(
+        tile_size_x = 40.,
+        tile_size_y = 64.,
+        columns = 1,
+        rows = 19,
+        padding_x = 0.,
+        padding_y = 0.
+    ))]
     #[asset(path = "sprites/player/Player_0_11.png")]
     pub feet: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 40., tile_size_y = 64., columns = 1, rows = 20, padding_x = 0., padding_y = 0.))]
+    #[asset(texture_atlas(
+        tile_size_x = 40.,
+        tile_size_y = 64.,
+        columns = 1,
+        rows = 20,
+        padding_x = 0.,
+        padding_y = 0.
+    ))]
     #[asset(path = "sprites/player/Player_0_1.png")]
     pub eyes_1: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 40., tile_size_y = 64., columns = 1, rows = 20, padding_x = 0., padding_y = 0.))]
+    #[asset(texture_atlas(
+        tile_size_x = 40.,
+        tile_size_y = 64.,
+        columns = 1,
+        rows = 20,
+        padding_x = 0.,
+        padding_y = 0.
+    ))]
     #[asset(path = "sprites/player/Player_0_2.png")]
     pub eyes_2: Handle<TextureAtlas>,
 }
@@ -109,9 +206,9 @@ pub struct PlayerAssets {
 pub struct FontAssets {
     #[asset(path = "fonts/andy_bold.ttf")]
     pub andy_bold: Handle<Font>,
- 
+
     #[asset(path = "fonts/andy_regular.otf")]
-    pub andy_regular: Handle<Font>
+    pub andy_regular: Handle<Font>,
 }
 
 #[derive(AssetCollection)]
@@ -120,7 +217,7 @@ pub struct ItemAssets {
     no_item: Handle<Image>,
 
     #[asset(path = "sprites/items/Item_3509.png")]
-    pub copper_pickaxe: Handle<Image>
+    pub copper_pickaxe: Handle<Image>,
 }
 
 handles! {
@@ -134,7 +231,6 @@ handles! {
         pub cursor_background: Handle<Image>,
     }
 }
-
 
 handles! {
     Handle<TextureAtlas>,
@@ -178,11 +274,10 @@ impl WallAssets {
     pub fn get_by_wall(&self, id: Wall) -> Option<Handle<TextureAtlas>> {
         match id {
             Wall::DirtWall => Some(self.wall_2.clone()),
-            _ => None
+            _ => None,
         }
     }
 }
-
 
 impl ItemAssets {
     pub fn no_item(&self) -> Handle<Image> {
@@ -193,7 +288,7 @@ impl ItemAssets {
         match id {
             0 => self.no_item.clone(),
             3509 => self.copper_pickaxe.clone(),
-            _ => self.no_item()
+            _ => self.no_item(),
         }
     }
 }
@@ -203,7 +298,7 @@ fn setup(
     texture_atlasses: Res<Assets<TextureAtlas>>,
     background_assets: Res<BackgroundAssets>,
     ui_assets: Res<UiAssets>,
-    cursor_assets: Res<CursorAssets>
+    cursor_assets: Res<CursorAssets>,
 ) {
     for handle in background_assets.handles() {
         let atlas = texture_atlasses.get(handle).unwrap();
@@ -223,7 +318,6 @@ fn setup(
 }
 
 impl BlockAssets {
-    
     pub fn get_by_block(&self, block: Block) -> Option<Handle<TextureAtlas>> {
         match block {
             Block::Dirt => Some(self.dirt.clone()),

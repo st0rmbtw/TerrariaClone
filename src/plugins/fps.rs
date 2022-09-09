@@ -1,7 +1,10 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::*, diagnostic::{FrameTimeDiagnosticsPlugin, Diagnostics}};
+use bevy::{
+    diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin},
+    prelude::*,
+};
 use iyes_loopless::prelude::ConditionSet;
 
 use crate::state::GameState;
@@ -12,8 +15,7 @@ pub struct FpsPlugin;
 
 impl Plugin for FpsPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app
-            .init_resource::<FpsTextVisibility>()
+        app.init_resource::<FpsTextVisibility>()
             .add_plugin(FrameTimeDiagnosticsPlugin)
             .add_system_set(
                 ConditionSet::new()
@@ -21,10 +23,10 @@ impl Plugin for FpsPlugin {
                     .with_system(toggle_fps_text_visibility)
                     .with_system(set_fps_text_visibility)
                     .with_system(update_fps_text)
-                    .into()
+                    .into(),
             );
     }
-} 
+}
 
 #[derive(Component)]
 struct FpsText;
@@ -36,45 +38,39 @@ struct FpsTextTimer(Timer);
 struct FpsTextVisibility(bool);
 
 #[autodefault]
-pub fn spawn_fps_text(
-    commands: &mut Commands, 
-    fonts: &FontAssets
-) -> Entity {
+pub fn spawn_fps_text(commands: &mut Commands, fonts: &FontAssets) -> Entity {
     let text_style = TextStyle {
         font: fonts.andy_regular.clone(),
         font_size: 20.,
         color: Color::WHITE,
     };
 
-    commands.spawn_bundle(TextBundle {
-        style: Style {
-            margin: UiRect { 
-                left: Val::Px(5.), 
-                bottom: Val::Px(5.)
-            }
-        },
-        text: Text {
-            sections: vec![
-                TextSection {
-                    value: "".to_string(),
-                    style: text_style.to_owned()
+    commands
+        .spawn_bundle(TextBundle {
+            style: Style {
+                margin: UiRect {
+                    left: Val::Px(5.),
+                    bottom: Val::Px(5.),
                 },
-            ],
-            alignment: TextAlignment::CENTER
-        },
-        visibility: Visibility { 
-            is_visible: false 
-        }
-    })
-    .insert(FpsText)
-    .insert(FpsTextTimer(Timer::new(Duration::from_secs(1), true)))
-    .insert(Name::new("FPS text"))
-    .id()
+            },
+            text: Text {
+                sections: vec![TextSection {
+                    value: "".to_string(),
+                    style: text_style.to_owned(),
+                }],
+                alignment: TextAlignment::CENTER,
+            },
+            visibility: Visibility { is_visible: false },
+        })
+        .insert(FpsText)
+        .insert(FpsTextTimer(Timer::new(Duration::from_secs(1), true)))
+        .insert(Name::new("FPS text"))
+        .id()
 }
 
 fn toggle_fps_text_visibility(
     input: Res<Input<KeyCode>>,
-    mut fps_text_visibility: ResMut<FpsTextVisibility>
+    mut fps_text_visibility: ResMut<FpsTextVisibility>,
 ) {
     if input.just_pressed(KeyCode::F10) {
         fps_text_visibility.0 = !fps_text_visibility.0;
@@ -83,7 +79,7 @@ fn toggle_fps_text_visibility(
 
 fn set_fps_text_visibility(
     mut query: Query<&mut Visibility, With<FpsText>>,
-    fps_text_visibility: Res<FpsTextVisibility>
+    fps_text_visibility: Res<FpsTextVisibility>,
 ) {
     if fps_text_visibility.is_changed() {
         for mut visibility in query.iter_mut() {

@@ -5,7 +5,7 @@ use bevy::prelude::*;
 pub struct LayerData {
     /// Relative speed of layer to the camera movement
     pub speed: f32,
-    
+
     pub image: Handle<TextureAtlas>,
     /// Scale of the texture
     pub scale: f32,

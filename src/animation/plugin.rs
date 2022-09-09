@@ -1,5 +1,5 @@
-use bevy::{ecs::component::Component, prelude::*};
 use super::{Animator, AnimatorState};
+use bevy::{ecs::component::Component, prelude::*};
 
 use super::tweenable::TweenCompleted;
 

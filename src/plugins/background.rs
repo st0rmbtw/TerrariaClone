@@ -1,28 +1,28 @@
-use bevy::{prelude::{Plugin, App, Res, Commands, default, Vec2, ResMut}, window::Windows};
-use crate::{parallax::{ParallaxResource, LayerData}, state::GameState};
 use super::BackgroundAssets;
+use crate::{
+    parallax::{LayerData, ParallaxResource},
+    state::GameState,
+};
+use bevy::{
+    prelude::{default, App, Commands, Plugin, Res, ResMut, Vec2},
+    window::Windows,
+};
 use iyes_loopless::prelude::*;
-
 
 // region: Plugin
 pub struct BackgroundPlugin;
 
 impl Plugin for BackgroundPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_enter_system(GameState::MainMenu, setup_main_menu_background)
+        app.add_enter_system(GameState::MainMenu, setup_main_menu_background)
             .add_exit_system(GameState::MainMenu, despawn_background)
-            
             .add_enter_system(GameState::InGame, setup_game_background)
             .add_exit_system(GameState::InGame, despawn_background);
     }
 }
 // endregion
 
-fn despawn_background(
-    mut commands: Commands,
-    mut parallax: ResMut<ParallaxResource>
-) {
+fn despawn_background(mut commands: Commands, mut parallax: ResMut<ParallaxResource>) {
     parallax.despawn_layers(&mut commands);
     commands.remove_resource::<ParallaxResource>();
 }
@@ -32,7 +32,7 @@ fn despawn_background(
 fn setup_main_menu_background(
     wnds: Res<Windows>,
     mut commands: Commands,
-    backgrounds: Res<BackgroundAssets>
+    backgrounds: Res<BackgroundAssets>,
 ) {
     let window = wnds.get_primary().unwrap();
 
@@ -102,26 +102,19 @@ fn setup_main_menu_background(
 
 // endregion
 
-
 // region: Game background
 
-fn setup_game_background(
-    mut commands: Commands,
-    backgrounds: Res<BackgroundAssets>
-) {
+fn setup_game_background(mut commands: Commands, backgrounds: Res<BackgroundAssets>) {
     commands.insert_resource(ParallaxResource {
-        layer_data: vec![
-            LayerData {
-                speed: 1.,
-                image: backgrounds.background_0.clone(),
-                z: 0.0,
-                scale: 1.,
-                ..default()
-            },
-        ],
+        layer_data: vec![LayerData {
+            speed: 1.,
+            image: backgrounds.background_0.clone(),
+            z: 0.0,
+            scale: 1.,
+            ..default()
+        }],
         ..default()
     })
 }
 
 // endregion
-
