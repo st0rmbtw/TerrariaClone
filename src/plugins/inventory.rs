@@ -78,7 +78,8 @@ impl Plugin for PlayerInventoryPlugin {
             .insert_resource({
                 let mut inventory = Inventory::default();
                 inventory.add_item(Items::COPPER_PICKAXE);
-                inventory.add_item(Items::DIRT_BLOCK.with_stack(50));
+                inventory.add_item(Items::DIRT_BLOCK.with_stack(49));
+                inventory.add_item(Items::DIRT_BLOCK);
                 inventory.add_item(Items::STONE_BLOCK.with_stack(50));
 
                 inventory
@@ -160,9 +161,14 @@ impl Inventory {
     }
 
     pub fn add_item(&mut self, item: Item) {
-        for item_option in self.items.iter_mut() {
-            if item_option.is_none() {
-                *item_option = Some(item);
+        for inv_item_option in self.items.iter_mut() {
+            if let Some(inv_item) = inv_item_option {
+                if inv_item.id == item.id {
+                    inv_item.stack += 1;
+                    break;
+                }
+            } else {
+                *inv_item_option = Some(item);
                 break;
             }
         }

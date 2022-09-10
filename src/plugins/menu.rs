@@ -2,21 +2,22 @@ use std::time::Duration;
 
 use crate::{
     animation::{
-        Animator, AnimatorState, EaseFunction, TransformScaleLens, Tween, TweeningDirection,
+        Animator, AnimatorState, EaseFunction, Tween, TweeningDirection,
         TweeningType,
     },
     parallax::{move_background_system, ParallaxCameraComponent},
-    util::on_btn_clicked,
+    util::on_btn_clicked, lens::TextFontSizeLens,
 };
+use autodefault::autodefault;
 use bevy::{
     app::AppExit,
     prelude::{
-        default, App, BuildChildren, Button, ButtonBundle, Camera2dBundle, Changed, ChildBuilder,
-        Children, Color, Commands, Component, DespawnRecursiveExt, Entity, EventWriter, NodeBundle,
-        Plugin, Query, Res, TextBundle, Transform, Vec3, With,
+        default, App, BuildChildren, Button, Camera2dBundle, Changed, ChildBuilder,
+        Color, Commands, Component, DespawnRecursiveExt, Entity, EventWriter, NodeBundle,
+        Plugin, Query, Res, TextBundle, With,
     },
     text::{Text, TextStyle},
-    ui::{AlignItems, FlexDirection, Interaction, JustifyContent, Size, Style, UiRect, Val},
+    ui::{AlignItems, FlexDirection, Interaction, JustifyContent, Size, Style, UiRect, Val, FocusPolicy},
 };
 use iyes_loopless::prelude::*;
 
@@ -68,14 +69,14 @@ fn despawn_with<C: Component>(query: Query<Entity, With<C>>, mut commands: Comma
 }
 
 #[inline(always)]
-pub fn text_tween() -> Tween<Transform> {
+pub fn text_tween() -> Tween<Text> {
     Tween::new(
         EaseFunction::QuadraticInOut,
         TweeningType::Once,
         Duration::from_millis(200),
-        TransformScaleLens {
-            start: Vec3::ONE,
-            end: Vec3::splat(1.3),
+        TextFontSizeLens {
+            start: 46.,
+            end: 52.,
         },
     )
 }
@@ -89,6 +90,7 @@ fn setup_camera(mut commands: Commands) {
         .insert(MainCamera);
 }
 
+#[autodefault]
 fn menu_button(
     children: &mut ChildBuilder,
     text_style: TextStyle,
@@ -96,20 +98,23 @@ fn menu_button(
     marker: impl Component,
 ) {
     children
-        .spawn_bundle(ButtonBundle {
+        .spawn_bundle(NodeBundle {
             style: Style {
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
-                margin: UiRect::vertical(7.),
-                ..default()
+                padding: UiRect::vertical(10.)
             },
             color: TRANSPARENT.into(),
-            ..default()
+            focus_policy: FocusPolicy::Pass
         })
-        .insert(Animator::new(text_tween()).with_state(AnimatorState::Paused))
-        .insert(marker)
         .with_children(|c| {
-            c.spawn_bundle(TextBundle::from_section(button_name, text_style.clone()));
+            c.spawn_bundle(TextBundle {
+                text: Text::from_section(button_name, text_style.clone()),
+            })
+            .insert(Button)
+            .insert(Interaction::default())
+            .insert(Animator::new(text_tween()).with_state(AnimatorState::Paused))
+            .insert(marker);
         });
 }
 
@@ -149,14 +154,12 @@ fn setup_main_menu(mut commands: Commands, fonts: Res<FontAssets>) {
 }
 
 fn update_buttons(
-    mut text_query: Query<&mut Text>,
     mut query: Query<
-        (&Children, &Interaction, &mut Animator<Transform>),
+        (&Interaction, &mut Text, &mut Animator<Text>),
         (With<Button>, Changed<Interaction>),
     >,
 ) {
-    for (children, interaction, mut animator) in query.iter_mut() {
-        let mut text = text_query.get_mut(children[0]).unwrap();
+    for (interaction, mut text, mut animator) in query.iter_mut() {
 
         match interaction {
             Interaction::Hovered => {

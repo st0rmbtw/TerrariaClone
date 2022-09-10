@@ -90,11 +90,11 @@ pub fn generate(seed: u32) -> Array2<Cell> {
             tile_type: Block::Stone,
             slope: Slope::default(),
         }),
-        wall: Some(Wall {
-            wall_type: WallType::DirtWall,
-            slope: Slope::default(),
-        }),
     });
+
+    for cell in world.slice_mut(s![.., 1..WORLD_SIZE_X - 1]).iter_mut() {
+        cell.wall = Some(Wall { wall_type: WallType::DirtWall, slope: Slope::default() });
+    }
 
     let level = Level {
         sky: (0, WORLD_SIZE_Y / 5),
@@ -182,7 +182,7 @@ fn remove_extra_walls(world: &mut Array2<Cell>) {
             if let Some(cell) = cell {
                 if let Some(tile) = cell.tile {
                     if tile.tile_type == Block::Grass {
-                        for cell in world.slice_mut(s![..y + 1, x]).iter_mut() {
+                        for cell in world.slice_mut(s![..y + 2, x]).iter_mut() {
                             cell.wall = None;
                         }
 
@@ -435,12 +435,10 @@ fn set_tile_slope(world: &mut Array2<Cell>) {
                 if cell.tile.is_some() {
                     new_tile = Some(Tile {
                         slope: Slope {
-                            left: prev_x_option
-                                .and(world.get((y, prev_x)))
+                            left: prev_x_option.is_none() || world.get((y, prev_x))
                                 .and_then(|t| t.tile)
                                 .is_some(),
-                            right: next_x_option
-                                .and(world.get((y, next_x)))
+                            right: next_x_option.is_none() || world.get((y, next_x))
                                 .and_then(|t| t.tile)
                                 .is_some(),
                             top: prev_y_option

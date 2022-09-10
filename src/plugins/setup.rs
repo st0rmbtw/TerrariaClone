@@ -4,7 +4,7 @@ use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet};
 
 use crate::{parallax::ParallaxCameraComponent, state::GameState, world_generator::WORLD_SIZE_X};
 
-use super::{CursorPlugin, Player};
+use super::{CursorPlugin, Player, TILE_SIZE};
 
 pub struct SetupPlugin;
 
@@ -77,7 +77,7 @@ fn limit_camera_moving(
             camera_translation.y = player_transform.translation.y;
 
             if camera_translation.x + projection_left < 0. {
-                camera_translation.x = projection_left.abs();
+                camera_translation.x = projection_left.abs() - TILE_SIZE / 2.;
             }
 
             if camera_translation.x + projection_right > WORLD_SIZE_X as f32 * 16. {

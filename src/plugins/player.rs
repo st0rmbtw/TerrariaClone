@@ -69,6 +69,7 @@ impl Plugin for PlayerPlugin {
                     .with_system(check_is_on_ground)
                     .with_system(use_item)
                     .with_system(auto_jump)
+                    // .with_system(limit_player_move)
                     .into(),
             )
             .add_system_to_stage(CoreStage::PostUpdate, flip_player)
@@ -589,7 +590,7 @@ fn update(
 
     if input.just_pressed(KeyCode::Space) && on_ground {
         jumpable.is_jumping = true;
-        jumpable.jump_time_counter = 0.12;
+        jumpable.jump_time_counter = 0.15;
         velocity.linvel.y = 400.;
     }
 
@@ -955,16 +956,16 @@ fn use_item_animation(
 
 fn auto_jump(
     axis: Res<Axis>,
-    mut player_query: Query<&mut Transform, With<Player>>,
+    mut player_query: Query<(&mut Transform, &MovementState), With<Player>>,
     rapier_context: Res<RapierContext>
 ) {
-    let mut player_transform = player_query.single_mut();
+    let (mut player_transform, movement_state) = player_query.single_mut();
     let player_x = player_transform.translation.x;
     let player_y = player_transform.translation.y;
 
     let player_direction = axis.x;
 
-    if player_direction != 0. {
+    if player_direction != 0. && *movement_state == MovementState::WALKING {
         
         let ray_dir = vec2(player_direction, 0.);
         let toi = 12.;
