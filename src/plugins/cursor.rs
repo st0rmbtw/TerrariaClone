@@ -302,14 +302,12 @@ fn update_hovered_info_position(
     cursor: Res<CursorPosition>,
     mut query: Query<&mut Style, With<HoveredInfoMarker>>,
 ) {
-    if cursor.is_changed() {
-        let mut style = query.single_mut();
+    let mut style = query.single_mut();
 
-        style.position = UiRect {
-            left: Val::Px(cursor.position.x + 20.),
-            bottom: Val::Px(cursor.position.y - 45.),
-            ..default()
-        }
+    style.position = UiRect {
+        left: Val::Px(cursor.position.x + 20.),
+        bottom: Val::Px(cursor.position.y - 45.),
+        ..default()
     }
 }
 

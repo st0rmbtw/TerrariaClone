@@ -19,14 +19,14 @@ use bevy_rapier2d::{
 use iyes_loopless::prelude::*;
 
 use crate::{
-    item::ITEM_ANIMATION_DATA,
+    item::{ItemType, get_animation_points},
     state::{GameState, MovementState},
     util::{map_range, Lerp, get_tile_coords, get_rotation_by_direction},
-    TRANSPARENT, block::Block,
+    TRANSPARENT,
 };
 
 use super::{
-    CursorPosition, ItemAssets, PlayerAssets, PlayerInventoryPlugin, SelectedItem, TILE_SIZE, BlockPlaceEvent,
+    CursorPosition, ItemAssets, PlayerAssets, PlayerInventoryPlugin, SelectedItem, TILE_SIZE, BlockPlaceEvent, Inventory,
 };
 
 pub const PLAYER_SPRITE_WIDTH: f32 = 2. * TILE_SIZE * 0.75;
@@ -67,8 +67,7 @@ impl Plugin for PlayerPlugin {
                     .with_system(update_speed_coefficient)
                     .with_system(update)
                     .with_system(check_is_on_ground)
-                    .with_system(break_block)
-                    .with_system(place_block)
+                    .with_system(use_item)
                     .with_system(auto_jump)
                     .into(),
             )
@@ -880,7 +879,7 @@ fn set_using_item_position(
     let direction = player_query.single();
 
     if let Some(item) = selected_item.0 {
-        let position = ITEM_ANIMATION_DATA.get(&item.item_type).unwrap()[index.0];
+        let position = get_animation_points(item.item_type)[index.0];
 
         transform.translation.x = position.x * f32::from(*direction);
         transform.translation.y = position.y;
@@ -917,7 +916,7 @@ fn set_using_item_rotation(
         let item_type = selected_item.unwrap().item_type;
         let direction_f = f32::from(*direction);
 
-        let position = ITEM_ANIMATION_DATA.get(&item_type).unwrap()[index.0];
+        let position = get_animation_points(item_type)[index.0];
 
         if index.0 == 0 && index.is_changed() {
             transform.rotation = get_rotation_by_direction(*direction);
@@ -954,29 +953,6 @@ fn use_item_animation(
     });
 }
 
-fn break_block(
-    input: Res<Input<MouseButton>>, 
-    cursor_positon: Res<CursorPosition>
-) {
-    let tile_coords = get_tile_coords(cursor_positon.world_position);
-
-    if input.just_pressed(MouseButton::Left) {
-        // dbg!(tile_coords);
-    }
-}
-
-fn place_block(
-    input: Res<Input<MouseButton>>, 
-    cursor_positon: Res<CursorPosition>,
-    mut events: EventWriter<BlockPlaceEvent>
-) {
-    let tile_coords = get_tile_coords(cursor_positon.world_position);
-
-    if input.just_pressed(MouseButton::Left) {
-        events.send(BlockPlaceEvent { coords: tile_coords, block: Block::Dirt })
-    }
-}
-
 fn auto_jump(
     axis: Res<Axis>,
     mut player_query: Query<&mut Transform, With<Player>>,
@@ -996,13 +972,36 @@ fn auto_jump(
         let filter = QueryFilter::only_fixed();
 
         if rapier_context.cast_ray(
-                vec2(player_x, player_y - TILE_SIZE), ray_dir, toi, solid, filter
+                vec2(player_x, player_y - PLAYER_SPRITE_HEIGHT / 2.), ray_dir, toi, solid, filter
         ).is_some() && rapier_context.cast_ray(
-            vec2(player_x, player_y + TILE_SIZE), ray_dir, toi, solid, filter
+            vec2(player_x, (player_y - PLAYER_SPRITE_HEIGHT / 2.) + TILE_SIZE), ray_dir, toi, solid, filter
         ).is_none() {
 
             player_transform.translation.y += 1. * TILE_SIZE;
-            player_transform.translation.x += player_direction * TILE_SIZE / 2.;
+            player_transform.translation.x += player_direction * TILE_SIZE / 3.;
+        }
+    }
+}
+
+fn use_item(
+    input: Res<Input<MouseButton>>,
+    cursor: Res<CursorPosition>,
+    mut inventory: ResMut<Inventory>,
+    mut block_place_event_writer: EventWriter<BlockPlaceEvent>
+) {
+    if input.just_pressed(MouseButton::Left) {
+        let selected_item_index = inventory.selected_slot;
+
+        if let Some(item) = inventory.selected_item() {
+            match item.item_type {
+                ItemType::Pickaxe => (),
+                ItemType::Block(block) => {
+                    let tile_coords = get_tile_coords(cursor.world_position);
+                    block_place_event_writer.send(BlockPlaceEvent { coords: tile_coords, block });
+
+                    inventory.consume_item(selected_item_index);
+                },
+            }
         }
     }
 }

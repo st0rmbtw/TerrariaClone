@@ -216,6 +216,12 @@ pub struct ItemAssets {
     #[asset(path = "sprites/items/Item_0.png")]
     no_item: Handle<Image>,
 
+    #[asset(path = "sprites/items/Item_2.png")]
+    pub dirt_block: Handle<Image>,
+
+    #[asset(path = "sprites/items/Item_3.png")]
+    pub stone_block: Handle<Image>,
+
     #[asset(path = "sprites/items/Item_3509.png")]
     pub copper_pickaxe: Handle<Image>,
 }
@@ -287,6 +293,8 @@ impl ItemAssets {
     pub fn get_by_id(&self, id: ItemId) -> Handle<Image> {
         match id {
             0 => self.no_item.clone(),
+            2 => self.dirt_block.clone(),
+            3 => self.stone_block.clone(),
             3509 => self.copper_pickaxe.clone(),
             _ => self.no_item(),
         }

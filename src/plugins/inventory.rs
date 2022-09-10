@@ -13,11 +13,10 @@ use bevy::{
     },
 };
 use bevy_inspector_egui::Inspectable;
-use iyes_loopless::prelude::ConditionSet;
-use smallvec::SmallVec;
+use iyes_loopless::prelude::*;
 
 use crate::{
-    item::{Item, ItemData, ItemId, Items, ITEM_DATA},
+    item::{Item, Items, get_item_data_by_id},
     state::GameState,
     util::{EntityCommandsExtensions, RectExtensions},
     TRANSPARENT,
@@ -78,7 +77,9 @@ impl Plugin for PlayerInventoryPlugin {
         app.init_resource::<SelectedItem>()
             .insert_resource({
                 let mut inventory = Inventory::default();
-                inventory.items.insert(0, Some(Items::COPPER_PICKAXE));
+                inventory.add_item(Items::COPPER_PICKAXE);
+                inventory.add_item(Items::DIRT_BLOCK.with_stack(50));
+                inventory.add_item(Items::STONE_BLOCK.with_stack(50));
 
                 inventory
             })
@@ -113,24 +114,58 @@ impl Plugin for PlayerInventoryPlugin {
 
 // region: Structs
 
-#[derive(Component, Default)]
+#[derive(Component)]
 pub struct Inventory {
-    pub items: SmallVec<[Option<Item>; 50]>,
-    pub selected_item_index: usize,
+    items: [Option<Item>; 50],
+    pub selected_slot: usize,
+}
+
+impl Default for Inventory {
+    fn default() -> Self {
+        Self { items: [None; 50], selected_slot: 0 }
+    }
 }
 
 impl Inventory {
-    fn get_item(&self, index: usize) -> Option<Item> {
-        self.items.iter().nth(index).and_then(|a| *a)
+    pub fn get_item(&self, slot: usize) -> Option<Item> {
+        self.items.iter().nth(slot).and_then(|a| *a)
     }
 
-    fn select_item(&mut self, index: usize) {
-        assert!(index <= 9);
-        self.selected_item_index = index;
+    pub fn get_item_mut(&mut self, slot: usize) -> Option<&mut Item> {
+        self.items.iter_mut().nth(slot).and_then(|a| a.as_mut())
     }
 
-    fn selected_item(&self) -> Option<Item> {
-        self.get_item(self.selected_item_index)
+    pub fn remove_item(&mut self, slot: usize) {
+        self.items[slot] = None;
+    }
+
+    pub fn select_item(&mut self, slot: usize) {
+        assert!(slot <= 9);
+        self.selected_slot = slot;
+    }
+
+    pub fn selected_item(&self) -> Option<Item> {
+        self.get_item(self.selected_slot)
+    }
+
+    pub fn consume_item(&mut self, slot: usize) {
+        let item_option = self.get_item_mut(slot);
+        if let Some(item) = item_option {
+            if item.stack > 1 {
+                item.stack -= 1;
+            } else {
+                self.remove_item(slot);
+            }
+        }
+    }
+
+    pub fn add_item(&mut self, item: Item) {
+        for item_option in self.items.iter_mut() {
+            if item_option.is_none() {
+                *item_option = Some(item);
+                break;
+            }
+        }
     }
 }
 
@@ -158,10 +193,6 @@ struct InventoryItemStack(u16);
 pub struct SelectedItem(pub Option<Item>);
 
 // endregion
-
-fn get_item_data_by_id<'a>(id: &ItemId) -> &'a ItemData {
-    ITEM_DATA.get(id).expect("Item not found")
-}
 
 #[autodefault]
 pub fn spawn_inventory_ui(
@@ -299,7 +330,7 @@ fn update_selected_cell_size(
     visibility: Res<ExtraUiVisibility>,
 ) {
     for (cell_index, mut style) in hotbar_cells.iter_mut() {
-        let selected = cell_index.0 == inventory.selected_item_index;
+        let selected = cell_index.0 == inventory.selected_slot;
 
         style.size = match selected {
             true if !visibility.0 => INVENTORY_CELL_SIZE_SELECTED,
@@ -314,7 +345,7 @@ fn update_selected_cell_image(
     ui_assets: Res<UiAssets>,
 ) {
     for (cell_index, mut image) in hotbar_cells.iter_mut() {
-        let selected = cell_index.0 == inventory.selected_item_index;
+        let selected = cell_index.0 == inventory.selected_slot;
 
         image.0 = if selected {
             ui_assets.selected_inventory_back.clone()
@@ -338,6 +369,8 @@ fn spawn_inventory_cell(
             margin: UiRect::horizontal(2.),
             size: INVENTORY_CELL_SIZE,
             align_self: AlignSelf::Center,
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center
         },
         image: cell_background.into(),
     };
@@ -355,8 +388,7 @@ fn spawn_inventory_cell(
                 },
             })
             .insert(InventoryCellIndex(index))
-            .insert(InventoryCellItemImage::default())
-            .insert(Interaction::default());
+            .insert(InventoryCellItemImage::default());
 
             if hotbar_cell {
                 c.spawn_bundle(NodeBundle {
@@ -424,7 +456,7 @@ fn select_item(mut inventory: ResMut<Inventory>, input: Res<Input<KeyCode>>) {
 
 fn scroll_select_item(mut inventory: ResMut<Inventory>, mut events: EventReader<MouseWheel>) {
     for event in events.iter() {
-        let selected_item_index = inventory.selected_item_index as f32;
+        let selected_item_index = inventory.selected_slot as f32;
         let hotbar_length = HOTBAR_LENGTH as f32;
         let new_index = (((selected_item_index + event.y.signum()) % hotbar_length)
             + hotbar_length)
@@ -508,19 +540,25 @@ fn update_item_stack(
 ) {
     if inventory.is_changed() {
         for (mut item_stack, cell_index) in &mut query {
-            if let Some(item) = inventory.items.get(cell_index.0).and_then(|item| *item) {
-                item_stack.0 = item.stack;
-            }
+            let stack = inventory.items.get(cell_index.0)
+                .and_then(|item| *item)
+                .map(|item| item.stack)
+                .unwrap_or(0);
+
+            item_stack.0 = stack;
         }
     }
 }
 
 fn update_item_stack_text(
-    mut query: Query<(&mut Text, &InventoryItemStack), Changed<InventoryItemStack>>,
+    mut query: Query<(&mut Text, &mut Visibility, &InventoryItemStack), Changed<InventoryItemStack>>,
 ) {
-    for (mut text, item_stack) in &mut query {
+    for (mut text, mut visiblity, item_stack) in &mut query {
         if item_stack.0 > 1 {
             text.sections[0].value = item_stack.0.to_string();
+            visiblity.is_visible = true;
+        } else {
+            visiblity.is_visible = false;
         }
     }
 }
@@ -532,13 +570,16 @@ fn inventory_cell_background_hover(
 ) {
     for (interaction, cell_index) in &query {
         if let Some(item) = inventory.get_item(cell_index.0) {
-            let name = if *interaction != Interaction::None {
-                get_item_data_by_id(&item.id).name
-            } else {
-                ""
-            };
+            info.0 = match interaction {
+                Interaction::None => "".to_string(),
+                _ => {
+                    let name = get_item_data_by_id(&item.id).name;
 
-            info.0 = name.to_string();
+                    let stack = if item.stack > 1 { item.stack.to_string() } else { "".to_string() };
+        
+                    format!("{} ({})", name, stack)
+                }
+            }
         }
     }
 }
