@@ -164,7 +164,7 @@ impl Inventory {
         for inv_item_option in self.items.iter_mut() {
             if let Some(inv_item) = inv_item_option {
                 if inv_item.id == item.id {
-                    inv_item.stack += 1;
+                    inv_item.stack += item.stack;
                     break;
                 }
             } else {
