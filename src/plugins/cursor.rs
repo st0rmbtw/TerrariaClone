@@ -195,8 +195,8 @@ fn setup(mut commands: Commands, cursor_assets: Res<CursorAssets>, fonts: Res<Fo
             text: Text::from_section(
                 "",
                 TextStyle {
-                    font: fonts.andy_regular.clone(),
-                    font_size: 24.,
+                    font: fonts.andy_bold.clone(),
+                    font_size: 22.,
                     color: Color::WHITE.into(),
                 },
             ),

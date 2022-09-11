@@ -479,10 +479,10 @@ fn update(
         let camera_y = camera_transform.translation().y;
 
         let camera_fov = FRect {
-            left: camera_x + projection.left - 2. * TILE_SIZE,
-            right: camera_x + projection.right + 2. * TILE_SIZE,
-            top: camera_y - projection.top - 2. * TILE_SIZE,
-            bottom: camera_y - projection.bottom + 2. * TILE_SIZE,
+            left: camera_x + projection.left * projection.scale - 2. * TILE_SIZE,
+            right: camera_x + projection.right * projection.scale + 2. * TILE_SIZE,
+            top: camera_y - projection.top * projection.scale - 2. * TILE_SIZE,
+            bottom: camera_y - projection.bottom * projection.scale + 2. * TILE_SIZE,
         };
 
         for chunk in world_data.chunks.iter_mut() {

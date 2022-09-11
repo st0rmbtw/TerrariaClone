@@ -2,10 +2,9 @@ use std::{borrow::Cow, collections::HashMap};
 
 use autodefault::autodefault;
 use bevy::{
-    core::Name,
     hierarchy::{BuildChildren, ChildBuilder},
     input::{mouse::MouseWheel, Input},
-    prelude::*,
+    prelude::*, 
     text::{Text, TextAlignment, TextStyle},
     ui::{
         AlignContent, AlignItems, AlignSelf, FlexDirection, FocusPolicy, Interaction,
@@ -466,9 +465,9 @@ fn scroll_select_item(mut inventory: ResMut<Inventory>, mut events: EventReader<
     for event in events.iter() {
         let selected_item_index = inventory.selected_slot as f32;
         let hotbar_length = HOTBAR_LENGTH as f32;
-        let new_index = (((selected_item_index + event.y.signum()) % hotbar_length)
-            + hotbar_length)
-            % hotbar_length;
+        let new_index = (
+            ((selected_item_index + event.y.signum() * -1.) % hotbar_length) + hotbar_length
+        ) % hotbar_length;
 
         inventory.select_item(new_index as usize);
     }
@@ -581,11 +580,13 @@ fn inventory_cell_background_hover(
             info.0 = match interaction {
                 Interaction::None => "".to_string(),
                 _ => {
-                    let name = get_item_data(&item_stack.item).name;
-
-                    let stack = if item_stack.amount > 1 { item_stack.amount.to_string() } else { "".to_string() };
+                    let mut name = get_item_data(&item_stack.item).name.to_owned();
+                    
+                    if item_stack.amount > 1 {
+                        name.push_str(&format!(" ({})", item_stack.amount.to_string()));
+                    }
         
-                    format!("{} ({})", name, stack)
+                    name.to_string()
                 }
             }
         }

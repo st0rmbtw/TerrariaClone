@@ -6,7 +6,7 @@ use crate::{
         TweeningType,
     },
     parallax::{move_background_system, ParallaxCameraComponent},
-    util::on_btn_clicked, lens::TextFontSizeLens,
+    util::on_btn_clicked, lens::TextFontSizeLens, TEXT_COLOR,
 };
 use autodefault::autodefault;
 use bevy::{
@@ -17,7 +17,7 @@ use bevy::{
         Plugin, Query, Res, TextBundle, With,
     },
     text::{Text, TextStyle},
-    ui::{AlignItems, FlexDirection, Interaction, JustifyContent, Size, Style, UiRect, Val, FocusPolicy},
+    ui::{AlignItems, FlexDirection, Interaction, JustifyContent, Size, Style, UiRect, Val, FocusPolicy, PositionType},
 };
 use iyes_loopless::prelude::*;
 
@@ -75,13 +75,11 @@ pub fn text_tween() -> Tween<Text> {
         TweeningType::Once,
         Duration::from_millis(200),
         TextFontSizeLens {
-            start: 46.,
+            start: 48.,
             end: 52.,
         },
     )
 }
-
-const TEXT_COLOR: Color = Color::rgb(134. / 255., 134. / 255., 140. / 255.);
 
 fn setup_camera(mut commands: Commands) {
     commands
@@ -102,13 +100,16 @@ fn menu_button(
             style: Style {
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
-                padding: UiRect::vertical(10.)
+                margin: UiRect::vertical(25.),
             },
             color: TRANSPARENT.into(),
             focus_policy: FocusPolicy::Pass
         })
         .with_children(|c| {
             c.spawn_bundle(TextBundle {
+                style: Style {
+                    position_type: PositionType::Absolute
+                },
                 text: Text::from_section(button_name, text_style.clone()),
             })
             .insert(Button)
@@ -121,7 +122,7 @@ fn menu_button(
 fn setup_main_menu(mut commands: Commands, fonts: Res<FontAssets>) {
     let text_style = TextStyle {
         font: fonts.andy_bold.clone(),
-        font_size: 46.,
+        font_size: 48.,
         color: TEXT_COLOR,
     };
 
