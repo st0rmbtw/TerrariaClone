@@ -36,7 +36,7 @@ pub struct ItemMeta {
 }
 
 lazy_static! {
-    pub static ref ITEM_DATA: HashMap<Item, ItemMeta> = HashMap::from([
+    pub static ref ITEM_META: HashMap<Item, ItemMeta> = HashMap::from([
         (Item::Block(Block::Dirt), ItemMeta {
             name: "Dirt Block",
             max_amount: 999
@@ -78,5 +78,5 @@ pub fn get_animation_points(item: Item) -> Vec<Vec2> {
 }
 
 pub fn get_item_data<'a>(item: &Item) -> &'a ItemMeta {
-    ITEM_DATA.get(item).expect("Item not found")
+    ITEM_META.get(item).expect("Item not found")
 }
