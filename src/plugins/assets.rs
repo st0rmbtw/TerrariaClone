@@ -10,7 +10,8 @@ use bevy::{
 use bevy_asset_loader::prelude::{AssetCollection, LoadingState, LoadingStateAppExt};
 use iyes_loopless::prelude::AppLooplessStateExt;
 
-use crate::{block::Block, item::ItemId, state::GameState, util::handles, wall::Wall};
+use crate::items::{Item, Pickaxe};
+use crate::{block::Block, state::GameState, util::handles, wall::Wall};
 
 pub struct AssetsPlugin;
 
@@ -290,12 +291,11 @@ impl ItemAssets {
         self.no_item.clone()
     }
 
-    pub fn get_by_id(&self, id: ItemId) -> Handle<Image> {
-        match id {
-            0 => self.no_item.clone(),
-            2 => self.dirt_block.clone(),
-            3 => self.stone_block.clone(),
-            3509 => self.copper_pickaxe.clone(),
+    pub fn get_by_item(&self, item: Item) -> Handle<Image> {
+        match item {
+            Item::Block(Block::Dirt) => self.dirt_block.clone(),
+            Item::Block(Block::Stone) => self.stone_block.clone(),
+            Item::Pickaxe(Pickaxe::CopperPickaxe) => self.copper_pickaxe.clone(),
             _ => self.no_item(),
         }
     }

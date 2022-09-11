@@ -19,10 +19,10 @@ use bevy_rapier2d::{
 use iyes_loopless::prelude::*;
 
 use crate::{
-    item::{ItemType, get_animation_points},
+    items::{get_animation_points, Item},
     state::{GameState, MovementState},
     util::{map_range, Lerp, get_tile_coords, get_rotation_by_direction},
-    TRANSPARENT,
+    TRANSPARENT, world_generator::WORLD_SIZE_X,
 };
 
 use super::{
@@ -69,11 +69,23 @@ impl Plugin for PlayerPlugin {
                     .with_system(check_is_on_ground)
                     .with_system(use_item)
                     .with_system(auto_jump)
-                    // .with_system(limit_player_move)
                     .into(),
             )
-            .add_system_to_stage(CoreStage::PostUpdate, flip_player)
-            .add_system_to_stage(CoreStage::PostUpdate, spawn_particles)
+            .add_system_set_to_stage(
+                CoreStage::PostUpdate, 
+                ConditionSet::new()
+                    .run_in_state(GameState::InGame)
+                    .with_system(flip_player)
+                    .with_system(spawn_particles)
+                    .into()
+            )
+            .add_system_set_to_stage(
+                CoreStage::Last, 
+                ConditionSet::new()
+                    .run_in_state(GameState::InGame)
+                    .with_system(limit_player_move)
+                    .into()
+            )
             .add_system_set_to_stage(
                 CoreStage::PreUpdate,
                 ConditionSet::new()
@@ -493,7 +505,7 @@ fn spawn_player(
         .insert(Ccd::enabled())
         .insert(LockedAxes::ROTATION_LOCKED)
         .insert(GravityScale(40.))
-        .insert(Transform::from_xyz(5., 10., 0.1))
+        .insert(Transform::from_xyz(WORLD_SIZE_X as f32 * 16. / 2., 10., 0.1))
         .with_children(|children| {
             let entity = children.parent_entity();
 
@@ -865,8 +877,8 @@ fn set_using_item_image(
 ) {
     let mut image = using_item_query.single_mut();
 
-    if let Some(item) = selected_item.0 {
-        *image = item_assets.get_by_id(item.id);
+    if let Some(item_stack) = selected_item.0 {
+        *image = item_assets.get_by_item(item_stack.item);
     }
 }
 
@@ -879,8 +891,8 @@ fn set_using_item_position(
     let mut transform = using_item_query.single_mut();
     let direction = player_query.single();
 
-    if let Some(item) = selected_item.0 {
-        let position = get_animation_points(item.item_type)[index.0];
+    if let Some(item_stack) = selected_item.0 {
+        let position = get_animation_points(item_stack.item)[index.0];
 
         transform.translation.x = position.x * f32::from(*direction);
         transform.translation.y = position.y;
@@ -914,7 +926,7 @@ fn set_using_item_rotation(
     let mut transform = using_item_query.single_mut();
 
     if selected_item.is_some() {
-        let item_type = selected_item.unwrap().item_type;
+        let item_type = selected_item.unwrap().item;
         let direction_f = f32::from(*direction);
 
         let position = get_animation_points(item_type)[index.0];
@@ -993,10 +1005,10 @@ fn use_item(
     if input.just_pressed(MouseButton::Left) {
         let selected_item_index = inventory.selected_slot;
 
-        if let Some(item) = inventory.selected_item() {
-            match item.item_type {
-                ItemType::Pickaxe => (),
-                ItemType::Block(block) => {
+        if let Some(item_stack) = inventory.selected_item() {
+            match item_stack.item {
+                Item::Pickaxe(_) => (),
+                Item::Block(block) => {
                     let tile_coords = get_tile_coords(cursor.world_position);
                     block_place_event_writer.send(BlockPlaceEvent { coords: tile_coords, block });
 
@@ -1005,6 +1017,17 @@ fn use_item(
             }
         }
     }
+}
+
+fn limit_player_move(
+    mut player_query: Query<&mut Transform, With<Player>>
+) {
+    let mut transform = player_query.single_mut();
+
+    let min = PLAYER_SPRITE_WIDTH / 2.;
+    let max = WORLD_SIZE_X as f32 * 16. - PLAYER_SPRITE_WIDTH / 2.;
+
+    transform.translation.x = transform.translation.x.clamp(min, max);
 }
 
 // TODO: Debug function, remove in feature

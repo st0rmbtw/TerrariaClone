@@ -8,7 +8,7 @@ mod inventory;
 mod menu;
 mod player;
 mod settings;
-mod setup;
+mod camera;
 mod ui;
 mod world;
 
@@ -22,6 +22,6 @@ pub use inventory::*;
 pub use menu::*;
 pub use player::*;
 pub use settings::*;
-pub use setup::*;
+pub use camera::*;
 pub use ui::*;
 pub use world::*;

@@ -92,7 +92,7 @@ pub fn generate(seed: u32) -> Array2<Cell> {
         }),
     });
 
-    for cell in world.slice_mut(s![.., 1..WORLD_SIZE_X - 1]).iter_mut() {
+    for cell in world.slice_mut(s![.., 0..WORLD_SIZE_X]).iter_mut() {
         cell.wall = Some(Wall { wall_type: WallType::DirtWall, slope: Slope::default() });
     }
 
@@ -435,10 +435,10 @@ fn set_tile_slope(world: &mut Array2<Cell>) {
                 if cell.tile.is_some() {
                     new_tile = Some(Tile {
                         slope: Slope {
-                            left: prev_x_option.is_none() || world.get((y, prev_x))
+                            left: x == 0 || world.get((y, prev_x))
                                 .and_then(|t| t.tile)
                                 .is_some(),
-                            right: next_x_option.is_none() || world.get((y, next_x))
+                            right: x == (WORLD_SIZE_X - 1) || world.get((y, next_x))
                                 .and_then(|t| t.tile)
                                 .is_some(),
                             top: prev_y_option
@@ -457,12 +457,10 @@ fn set_tile_slope(world: &mut Array2<Cell>) {
                 if cell.wall.is_some() {
                     new_wall = Some(Wall {
                         slope: Slope {
-                            left: prev_x_option
-                                .and(world.get((y, prev_x)))
+                            left: x == 0 || world.get((y, prev_x))
                                 .and_then(|t| t.wall)
                                 .is_some(),
-                            right: next_x_option
-                                .and(world.get((y, next_x)))
+                            right: x == (WORLD_SIZE_X - 1) || world.get((y, next_x))
                                 .and_then(|t| t.wall)
                                 .is_some(),
                             top: prev_y_option

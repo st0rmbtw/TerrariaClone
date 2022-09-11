@@ -16,7 +16,7 @@ use bevy_inspector_egui::Inspectable;
 use iyes_loopless::prelude::*;
 
 use crate::{
-    item::{Item, Items, get_item_data_by_id},
+    items::{get_item_data, Items, ItemStack},
     state::GameState,
     util::{EntityCommandsExtensions, RectExtensions},
     TRANSPARENT,
@@ -104,8 +104,8 @@ impl Plugin for PlayerInventoryPlugin {
                     .with_system(update_cell)
                     .with_system(update_cell_image)
                     .with_system(inventory_cell_background_hover)
-                    .with_system(update_item_stack)
-                    .with_system(update_item_stack_text)
+                    .with_system(update_item_amount)
+                    .with_system(update_item_amount_text)
                     .into(),
             );
     }
@@ -117,7 +117,7 @@ impl Plugin for PlayerInventoryPlugin {
 
 #[derive(Component)]
 pub struct Inventory {
-    items: [Option<Item>; 50],
+    items: [Option<ItemStack>; 50],
     pub selected_slot: usize,
 }
 
@@ -128,11 +128,11 @@ impl Default for Inventory {
 }
 
 impl Inventory {
-    pub fn get_item(&self, slot: usize) -> Option<Item> {
+    pub fn get_item(&self, slot: usize) -> Option<ItemStack> {
         self.items.iter().nth(slot).and_then(|a| *a)
     }
 
-    pub fn get_item_mut(&mut self, slot: usize) -> Option<&mut Item> {
+    pub fn get_item_mut(&mut self, slot: usize) -> Option<&mut ItemStack> {
         self.items.iter_mut().nth(slot).and_then(|a| a.as_mut())
     }
 
@@ -145,31 +145,33 @@ impl Inventory {
         self.selected_slot = slot;
     }
 
-    pub fn selected_item(&self) -> Option<Item> {
+    pub fn selected_item(&self) -> Option<ItemStack> {
         self.get_item(self.selected_slot)
     }
 
     pub fn consume_item(&mut self, slot: usize) {
         let item_option = self.get_item_mut(slot);
         if let Some(item) = item_option {
-            if item.stack > 1 {
-                item.stack -= 1;
+            if item.amount > 1 {
+                item.amount -= 1;
             } else {
                 self.remove_item(slot);
             }
         }
     }
 
-    pub fn add_item(&mut self, item: Item) {
+    pub fn add_item(&mut self, item: ItemStack) {
         for inv_item_option in self.items.iter_mut() {
-            if let Some(inv_item) = inv_item_option {
-                if inv_item.id == item.id {
-                    inv_item.stack += item.stack;
+            match inv_item_option {
+                Some(inv_item) if inv_item.item == item.item => {
+                    inv_item.amount += item.amount;
                     break;
-                }
-            } else {
-                *inv_item_option = Some(item);
-                break;
+                },
+                None => {
+                    *inv_item_option = Some(item);
+                    break;
+                },
+                _ => ()
             }
         }
     }
@@ -193,10 +195,10 @@ struct InventoryCellIndex(usize);
 struct InventoryCellItemImage(Handle<Image>);
 
 #[derive(Component, Default)]
-struct InventoryItemStack(u16);
+struct InventoryItemAmount(u16);
 
 #[derive(Component, Default, Deref, DerefMut)]
-pub struct SelectedItem(pub Option<Item>);
+pub struct SelectedItem(pub Option<ItemStack>);
 
 // endregion
 
@@ -440,7 +442,7 @@ fn spawn_inventory_cell(
                         ),
                     })
                     .insert(InventoryCellIndex(index))
-                    .insert(InventoryItemStack::default());
+                    .insert(InventoryItemAmount::default());
                 });
             }
         })
@@ -506,7 +508,7 @@ fn update_selected_item_name_text(
         } else {
             let name = current_item
                 .0
-                .map(|item| get_item_data_by_id(&item.id).name);
+                .map(|item_stack| get_item_data(&item_stack.item).name);
 
             name.map(|name| name.to_string())
                 .unwrap_or(ITEMS_STRING.to_string())
@@ -523,7 +525,7 @@ fn update_cell(
         for (mut cell_image, cell_index) in &mut item_images {
             cell_image.0 = inventory
                 .get_item(cell_index.0)
-                .map(|item| item_assets.get_by_id(item.id))
+                .map(|item_stack| item_assets.get_by_item(item_stack.item))
                 .unwrap_or(item_assets.no_item());
         }
     }
@@ -540,15 +542,15 @@ fn update_cell_image(
     }
 }
 
-fn update_item_stack(
+fn update_item_amount(
     inventory: Res<Inventory>,
-    mut query: Query<(&mut InventoryItemStack, &InventoryCellIndex)>,
+    mut query: Query<(&mut InventoryItemAmount, &InventoryCellIndex)>,
 ) {
     if inventory.is_changed() {
         for (mut item_stack, cell_index) in &mut query {
             let stack = inventory.items.get(cell_index.0)
                 .and_then(|item| *item)
-                .map(|item| item.stack)
+                .map(|item_stack| item_stack.amount)
                 .unwrap_or(0);
 
             item_stack.0 = stack;
@@ -556,8 +558,8 @@ fn update_item_stack(
     }
 }
 
-fn update_item_stack_text(
-    mut query: Query<(&mut Text, &mut Visibility, &InventoryItemStack), Changed<InventoryItemStack>>,
+fn update_item_amount_text(
+    mut query: Query<(&mut Text, &mut Visibility, &InventoryItemAmount), Changed<InventoryItemAmount>>,
 ) {
     for (mut text, mut visiblity, item_stack) in &mut query {
         if item_stack.0 > 1 {
@@ -575,13 +577,13 @@ fn inventory_cell_background_hover(
     mut info: ResMut<HoveredInfo>,
 ) {
     for (interaction, cell_index) in &query {
-        if let Some(item) = inventory.get_item(cell_index.0) {
+        if let Some(item_stack) = inventory.get_item(cell_index.0) {
             info.0 = match interaction {
                 Interaction::None => "".to_string(),
                 _ => {
-                    let name = get_item_data_by_id(&item.id).name;
+                    let name = get_item_data(&item_stack.item).name;
 
-                    let stack = if item.stack > 1 { item.stack.to_string() } else { "".to_string() };
+                    let stack = if item_stack.amount > 1 { item_stack.amount.to_string() } else { "".to_string() };
         
                     format!("{} ({})", name, stack)
                 }

@@ -12,10 +12,10 @@ use bevy_rapier2d::plugin::{NoUserData, RapierConfiguration, RapierPhysicsPlugin
 use game::{
     animation::TweeningPlugin,
     parallax::ParallaxPlugin,
-    plugins::{BackgroundPlugin, PlayerUiPlugin, SettingsPlugin},
+    plugins::{BackgroundPlugin, PlayerUiPlugin, SettingsPlugin, CursorPlugin},
 };
 use game::{
-    plugins::{AssetsPlugin, FpsPlugin, MenuPlugin, PlayerPlugin, SetupPlugin, WorldPlugin},
+    plugins::{AssetsPlugin, FpsPlugin, MenuPlugin, PlayerPlugin, CameraPlugin, WorldPlugin},
     state::GameState,
 };
 use iyes_loopless::prelude::AppLooplessStateExt;
@@ -55,7 +55,8 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugin(TweeningPlugin)
         .add_plugin(AssetsPlugin)
-        .add_plugin(SetupPlugin)
+        .add_plugin(CursorPlugin)
+        .add_plugin(CameraPlugin)
         .add_plugin(ParallaxPlugin { initial_speed: 0.2 })
         .add_plugin(HanabiPlugin)
         .add_plugin(BackgroundPlugin)

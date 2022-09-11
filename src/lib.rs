@@ -7,7 +7,7 @@ pub const TRANSPARENT: Color = Color::rgba(0., 0., 0., 0.);
 
 pub mod animation;
 pub mod block;
-pub mod item;
+pub mod items;
 pub mod lens;
 pub mod parallax;
 pub mod plugins;
