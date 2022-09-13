@@ -1,4 +1,8 @@
-use bevy::{prelude::{Color, Vec4}, ui::UiColor, text::{Text}};
+use bevy::{
+    prelude::{Color, Vec4},
+    text::Text,
+    ui::UiColor,
+};
 use interpolation::Lerp;
 
 use crate::animation::Lens;
@@ -6,7 +10,7 @@ use crate::animation::Lens;
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct UiColorLens {
     pub start: Color,
-    pub end: Color
+    pub end: Color,
 }
 
 impl Lens<UiColor> for UiColorLens {
@@ -14,7 +18,7 @@ impl Lens<UiColor> for UiColorLens {
         let start: Vec4 = self.start.into();
         let end: Vec4 = self.end.into();
         let value = start.lerp(end, ratio);
-        
+
         target.0 = value.into();
     }
 }
@@ -22,7 +26,7 @@ impl Lens<UiColor> for UiColorLens {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct TextFontSizeLens {
     pub start: f32,
-    pub end: f32
+    pub end: f32,
 }
 
 impl Lens<Text> for TextFontSizeLens {

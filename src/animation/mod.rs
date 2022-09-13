@@ -9,10 +9,9 @@ pub use tweenable::*;
 use std::time::Duration;
 
 use bevy::prelude::{default, Component};
-pub use interpolation::{EaseFunction, Ease};
+pub use interpolation::{Ease, EaseFunction};
 
 use self::tweenable::{BoxedTweenable, Tweenable};
-
 
 /// How many times to repeat a tween animation. See also: [`RepeatStrategy`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -53,7 +52,6 @@ impl Default for RepeatStrategy {
         Self::Repeat
     }
 }
-
 
 /// Type of looping for a tween animation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

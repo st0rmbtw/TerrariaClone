@@ -1,16 +1,18 @@
-use bevy::{prelude::{default, Component, Query, Changed, With, Button}, ui::{UiRect, Val, Interaction}, ecs::system::EntityCommands};
+use bevy::{
+    ecs::system::EntityCommands,
+    prelude::{default, Button, Changed, Component, Query, With, Vec2, Quat},
+    ui::{Interaction, UiRect, Val},
+};
 
 pub trait Lerp<T> {
     fn lerp(self, other: T, t: f32) -> T;
 }
-
 
 impl Lerp<f32> for f32 {
     fn lerp(self, other: f32, t: f32) -> f32 {
         self * (1. - t) + other * t
     }
 }
-
 
 pub trait RectExtensions {
     fn horizontal(value: f32) -> Self;
@@ -44,15 +46,23 @@ impl RectExtensions for UiRect<Val> {
 }
 
 pub trait EntityCommandsExtensions<'w, 's, 'a> {
-    fn insert_if<F>(&mut self, component: impl Component, predicate: F) -> &mut EntityCommands<'w, 's, 'a>
-    where 
+    fn insert_if<F>(
+        &mut self,
+        component: impl Component,
+        predicate: F,
+    ) -> &mut EntityCommands<'w, 's, 'a>
+    where
         F: FnOnce() -> bool;
 }
 
 impl<'w, 's, 'a> EntityCommandsExtensions<'w, 's, 'a> for EntityCommands<'w, 's, 'a> {
-    fn insert_if<F>(&mut self, component: impl Component, predicate: F) -> &mut EntityCommands<'w, 's, 'a>
-    where 
-    F: FnOnce() -> bool 
+    fn insert_if<F>(
+        &mut self,
+        component: impl Component,
+        predicate: F,
+    ) -> &mut EntityCommands<'w, 's, 'a>
+    where
+        F: FnOnce() -> bool,
     {
         if predicate() {
             self.insert(component);
@@ -70,7 +80,7 @@ macro_rules! handles{
     (
      $field_type:ty,
      // meta data about struct
-     $(#[$meta:meta])* 
+     $(#[$meta:meta])*
      $vis:vis struct $struct_name:ident {
         $(
         // meta data about field
@@ -98,6 +108,7 @@ macro_rules! handles{
 
 pub(crate) use handles;
 
+use crate::plugins::{TILE_SIZE, FaceDirection};
 
 pub fn on_btn_clicked<B: Component>(
     query: Query<&Interaction, (Changed<Interaction>, With<Button>, With<B>)>,
@@ -109,4 +120,29 @@ pub fn on_btn_clicked<B: Component>(
     }
 
     false
+}
+
+#[derive(Copy, Clone, PartialEq, Debug, Default)]
+pub struct FRect {
+    pub left: f32,
+    pub right: f32,
+    pub top: f32,
+    pub bottom: f32,
+}
+
+pub fn inside_f(p: (f32, f32), rect: FRect) -> bool {
+    p.0 < rect.bottom && p.0 > rect.top && p.1 > rect.left && p.1 < rect.right
+}
+
+pub fn get_tile_coords(world_coords: Vec2) -> Vec2 {
+    (world_coords / TILE_SIZE).round()
+}
+
+pub fn get_rotation_by_direction(direction: FaceDirection) -> Quat {
+    let start_rotation = match direction {
+        FaceDirection::LEFT => -0.5,
+        FaceDirection::RIGHT => 2.,
+    };
+
+    Quat::from_rotation_z(start_rotation)
 }

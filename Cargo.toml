@@ -2,6 +2,7 @@
 name = "game"
 version = "0.1.0"
 edition = "2021"
+authors = ["st0rmbtw"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -12,12 +13,12 @@ bevy_asset_loader = { version = "0.12.1", features = ["2d", "stageless"] }
 bevy_rapier2d = { version = "0.16.2", features = ["debug-render"] }
 lazy_static = "1.4.0"
 rand = "0.8.5"
-smallvec = "1.9.0"
 interpolation = "0.2"
 ndarray = "0.15.6"
 noise = "0.7.0"
 iyes_loopless = "0.7.1"
 autodefault = "2.0.0"
+bevy_hanabi = { git = "https://github.com/djeedai/bevy_hanabi", default-features = false, features = ["2d"] }
 
 [profile.dev]
 opt-level = 1
