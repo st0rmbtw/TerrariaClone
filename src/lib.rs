@@ -16,3 +16,4 @@ pub mod state;
 pub mod util;
 pub mod wall;
 pub mod world_generator;
+pub mod lighting;

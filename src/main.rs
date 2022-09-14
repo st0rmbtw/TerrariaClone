@@ -12,7 +12,7 @@ use bevy_rapier2d::plugin::{NoUserData, RapierConfiguration, RapierPhysicsPlugin
 use game::{
     animation::TweeningPlugin,
     parallax::ParallaxPlugin,
-    plugins::{BackgroundPlugin, PlayerUiPlugin, SettingsPlugin, CursorPlugin},
+    plugins::{BackgroundPlugin, PlayerUiPlugin, SettingsPlugin, CursorPlugin}, lighting::LightingPlugin,
 };
 use game::{
     plugins::{AssetsPlugin, FpsPlugin, MenuPlugin, PlayerPlugin, CameraPlugin, WorldPlugin},
@@ -28,7 +28,7 @@ fn main() {
         .features
         .set(WgpuFeatures::VERTEX_WRITABLE_STORAGE, true);
 
-    app.insert_resource(settings)
+    app/* .insert_resource(settings) */
         .insert_resource(Msaa { samples: 4 })
         .insert_resource(WindowDescriptor {
             title: "Terraria".to_string(),
@@ -65,7 +65,8 @@ fn main() {
         .add_plugin(MenuPlugin)
         .add_plugin(WorldPlugin)
         .add_plugin(PlayerPlugin)
-        .add_plugin(FpsPlugin);
+        .add_plugin(FpsPlugin)
+        .add_plugin(LightingPlugin);
 
     // #[cfg(debug_assertions)]
     // app.add_plugin(game::plugins::DebugPlugin);

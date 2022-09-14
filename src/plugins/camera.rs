@@ -23,6 +23,11 @@ impl Plugin for CameraPlugin {
     }
 }
 
+#[derive(Clone, Copy)]
+pub struct CameraEntity {
+    pub main_camera: Entity
+}
+
 #[derive(Component)]
 pub struct MainCamera;
 
@@ -30,16 +35,21 @@ const MAX_CAMERA_ZOOM: f32 = 1.1;
 const MIN_CAMERA_ZOOM: f32 = 0.5;
 const CAMERA_ZOOM_STEP: f32 = 0.3;
 
-#[autodefault]
+#[autodefault(except(CameraEntity))]
 fn setup_camera(mut commands: Commands) {
-    commands
+    let main_camera = commands
         .spawn()
         .insert_bundle(Camera2dBundle {
             projection: OrthographicProjection { scale: 0.9 },
             transform: Transform::from_xyz(0., 0., 500.),
         })
         .insert(ParallaxCameraComponent)
-        .insert(MainCamera);
+        .insert(MainCamera)
+        .id();
+
+    commands.insert_resource(CameraEntity {
+        main_camera
+    })
 }
 
 fn zoom(
