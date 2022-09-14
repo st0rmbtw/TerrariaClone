@@ -1,8 +1,7 @@
-use autodefault::autodefault;
-use bevy::{render::render_resource::{AsBindGroup, ShaderRef}, reflect::TypeUuid, prelude::{Plugin, App, Commands, Color, OrthographicProjection, With, Query, Component, Res, BuildChildren, Transform, GlobalTransform, ResMut, Assets, Mesh, shape}, sprite::{Material2dPlugin, Material2d, SpriteBundle, Sprite, MaterialMesh2dBundle}, math::vec2};
-use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet};
+use bevy::{prelude::{Plugin, App, Color, OrthographicProjection, With, Query, Res, Transform, Vec2}, sprite::TextureAtlasSprite};
+use iyes_loopless::prelude::ConditionSet;
 
-use crate::{plugins::{MainCamera, TILE_SIZE}, state::GameState};
+use crate::{plugins::{MainCamera, WorldData, Player}, state::GameState, util::get_tile_coords};
 
 // region: Plugin
 pub struct LightingPlugin;
@@ -10,75 +9,55 @@ pub struct LightingPlugin;
 impl Plugin for LightingPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_enter_system(GameState::InGame,setup)
             .add_system_set(
                 ConditionSet::new()
                     .run_in_state(GameState::InGame)
-                    .with_system(set_sprite_size)
-                    .with_system(set_sprite_position)
+                    .with_system(lighting)
                     .into()
-            )
-            .add_plugin(Material2dPlugin::<LightingMaterial>::default());
+            );
     }
 }
 // endregion
 
-#[derive(Component)]
-struct LightingRectangle;
-
-#[autodefault(except(LightingMaterial))]
-fn setup(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<LightingMaterial>>,
-) {
-    commands.spawn_bundle(MaterialMesh2dBundle {
-        mesh: meshes.add(Mesh::from(shape::Quad::default())).into(),
-        transform: Transform::from_xyz(0., 0., 10.),
-        material: materials.add(LightingMaterial {})
-    })
-    .insert(LightingRectangle);
-}
-
-fn set_sprite_size(
+fn lighting(
     camera_query: Query<&OrthographicProjection, With<MainCamera>>,
-    mut lighting_rect_query: Query<&mut Sprite, With<LightingRectangle>>
+    player_query: Query<&Transform, With<Player>>,
+    mut color_query: Query<(&mut TextureAtlasSprite, &Transform)>,
+    world_data: Res<WorldData>
 ) {
     let projection = camera_query.single();
+    let player_transform = player_query.single();
 
-    for mut sprite in &mut lighting_rect_query {
+    let player_position = get_tile_coords(player_transform.translation.truncate());
 
-        let width = (projection.left.abs() + projection.right) * projection.scale;
-        let height = (projection.bottom.abs() + projection.top) * projection.scale;
+    let width = (projection.left.abs() + projection.right) * projection.scale / 16.;
+    // let height = (projection.bottom.abs() + projection.top) * projection.scale / 16.;
 
-        let width = (width / TILE_SIZE + 2.).ceil() * TILE_SIZE;
-        let height = (height / TILE_SIZE + 2.).ceil() * TILE_SIZE;
+    let light = |tile_pos: Vec2| -> Color {
+        let d = tile_pos.distance_squared(player_position);
 
-        sprite.custom_size = Some(vec2(width, height));
-    }
-}
+        let c = 0.7_f32.powf(d / width);
 
-fn set_sprite_position(
-    camera_query: Query<&GlobalTransform, With<MainCamera>>,
-    mut lighting_rect_query: Query<&mut Transform, With<LightingRectangle>>
-) {
-    let camera_transform = camera_query.single();
+        Color::rgb(c, c, c)
+    };
 
-    for mut transform in &mut lighting_rect_query {
-        transform.translation.x = camera_transform.translation().x;
-        transform.translation.y = camera_transform.translation().y;
-    }
-}
+    for chunk in world_data.get_visible_chunks() {
+        for cell in chunk.cells.iter() {
+            if let Some(entity) = cell.tile_entity {
+                if let Ok((mut sprite, tile_transform)) = color_query.get_mut(entity) {
+                    let tile_pos = get_tile_coords(tile_transform.translation.truncate());
 
+                    sprite.color = light(tile_pos);
+                }
+            }
 
-#[derive(AsBindGroup, TypeUuid, Clone)]
-#[uuid = "4c486a35-04ca-46e9-a7ea-c718fdb95ebd"]
-pub struct LightingMaterial {
+            if let Some(entity) = cell.wall_entity {
+                if let Ok((mut sprite, tile_transform)) = color_query.get_mut(entity) {
+                    let tile_pos = get_tile_coords(tile_transform.translation.truncate());
 
-}
-
-impl Material2d for LightingMaterial {
-    fn fragment_shader() -> ShaderRef {
-        "shaders/tile_shader.wgsl".into()
+                    sprite.color = light(tile_pos);
+                }
+            }
+        }   
     }
 }

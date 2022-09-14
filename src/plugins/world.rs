@@ -114,6 +114,12 @@ pub struct WorldData {
 }
 
 impl WorldData {
+    pub fn get_visible_chunks(&self) -> impl Iterator<Item = &Chunk> + '_ {
+        self.chunks.iter().filter(|chunk| chunk.spawned)
+    }
+}
+
+impl WorldData {
     fn get_chunk_by_coords() {}
 }
 
