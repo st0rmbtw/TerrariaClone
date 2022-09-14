@@ -25,7 +25,7 @@ use crate::{
     block::Block,
     state::GameState,
     util::{inside_f, FRect},
-    world_generator::{generate, Cell, Slope, Tile, Wall},
+    world_generator::{generate, Cell, Neighbours, Tile, Wall},
 };
 
 use super::{BlockAssets, MainCamera, WallAssets};
@@ -248,7 +248,7 @@ fn spawn_tile(
     iy: usize,
     y: f32,
 ) -> Entity {
-    let index = get_tile_sprite_index(tile.slope);
+    let index = get_tile_sprite_index(tile.neighbours);
 
     commands
         .spawn_bundle(SpriteSheetBundle {
@@ -311,77 +311,77 @@ fn spawn_collider(commands: &mut Commands, rect: FRect) -> Entity {
         .id()
 }
 
-fn get_tile_sprite_index(slope: Slope) -> usize {
+fn get_tile_sprite_index(slope: Neighbours) -> usize {
     let rand: usize = thread_rng().gen_range(1..3);
 
     match slope {
         // All
-        Slope::ALL => rand + 16,
+        Neighbours::ALL => rand + 16,
         // None
-        Slope::NONE => 16 * 3 + rand + 8,
+        Neighbours::NONE => 16 * 3 + rand + 8,
         // Top
-        Slope::TOP => 16 * 3 + rand + 5,
+        Neighbours::TOP => 16 * 3 + rand + 5,
         // Bottom
-        Slope::BOTTOM => rand + 6,
+        Neighbours::BOTTOM => rand + 6,
         // Left
-        Slope::LEFT => (rand - 1) * 16 + 12,
+        Neighbours::LEFT => (rand - 1) * 16 + 12,
         // Right
-        Slope::RIGHT => (rand - 1) * 16 + 9,
+        Neighbours::RIGHT => (rand - 1) * 16 + 9,
         // Top Bottom
-        Slope::TOP_BOTTOM => (rand - 1) * 16 + 5,
+        Neighbours::TOP_BOTTOM => (rand - 1) * 16 + 5,
         // Top Left Right
-        Slope::TOP_LEFT_RIGHT => 16 * 2 + rand + 1,
+        Neighbours::TOP_LEFT_RIGHT => 16 * 2 + rand + 1,
         // Bottom Left Right
-        Slope::BOTTOM_LEFT_RIGHT => rand,
+        Neighbours::BOTTOM_LEFT_RIGHT => rand,
         // Left Right
-        Slope::LEFT_RIGHT => 4 * 16 + 5 + rand,
+        Neighbours::LEFT_RIGHT => 4 * 16 + 5 + rand,
         // Bottom Left
-        Slope::BOTTOM_LEFT => 16 * 3 + 1 + (rand - 1) * 2,
+        Neighbours::BOTTOM_LEFT => 16 * 3 + 1 + (rand - 1) * 2,
         // Bottom Right
-        Slope::BOTTOM_RIGHT => 16 * 3 + (rand - 1) * 2,
+        Neighbours::BOTTOM_RIGHT => 16 * 3 + (rand - 1) * 2,
         // Top Left
-        Slope::TOP_LEFT => 16 * 4 + 1 + (rand - 1) * 2,
+        Neighbours::TOP_LEFT => 16 * 4 + 1 + (rand - 1) * 2,
         // Top Right
-        Slope::TOP_RIGHT => 16 * 4 + (rand - 1) * 2,
+        Neighbours::TOP_RIGHT => 16 * 4 + (rand - 1) * 2,
         // Top Bottom Left
-        Slope::TOP_BOTTOM_LEFT => (rand - 1) * 16 + 4,
+        Neighbours::TOP_BOTTOM_LEFT => (rand - 1) * 16 + 4,
         // Top Bottom Right
-        Slope::TOP_BOTTOM_RIGHT => (rand - 1) * 16,
+        Neighbours::TOP_BOTTOM_RIGHT => (rand - 1) * 16,
     }
 }
 
-fn get_wall_sprite_index(slope: Slope) -> usize {
+fn get_wall_sprite_index(slope: Neighbours) -> usize {
     let rand: usize = thread_rng().gen_range(1..3);
 
     match slope {
         // All
-        Slope::ALL => 13 + rand,
+        Neighbours::ALL => 13 + rand,
         // None
-        Slope::NONE => 13 * 3 + 8 + rand,
+        Neighbours::NONE => 13 * 3 + 8 + rand,
         // Top
-        Slope::TOP => 13 * 2 + rand,
+        Neighbours::TOP => 13 * 2 + rand,
         // Bottom
-        Slope::BOTTOM => 6 + rand,
+        Neighbours::BOTTOM => 6 + rand,
         // Top Bottom
-        Slope::TOP_BOTTOM => (rand - 1) * 13 + 5,
+        Neighbours::TOP_BOTTOM => (rand - 1) * 13 + 5,
         // Bottom Right
-        Slope::BOTTOM_RIGHT => 13 * 3 + (rand - 1) * 2,
+        Neighbours::BOTTOM_RIGHT => 13 * 3 + (rand - 1) * 2,
         // Bottom Left
-        Slope::BOTTOM_LEFT => 13 * 3 + 1 + (rand - 1) * 2,
+        Neighbours::BOTTOM_LEFT => 13 * 3 + 1 + (rand - 1) * 2,
         // Top Right
-        Slope::TOP_RIGHT => 13 * 4 + (rand - 1) * 2,
+        Neighbours::TOP_RIGHT => 13 * 4 + (rand - 1) * 2,
         // Top Left
-        Slope::TOP_LEFT => 13 * 4 + 1 + (rand - 1) * 2,
+        Neighbours::TOP_LEFT => 13 * 4 + 1 + (rand - 1) * 2,
         // Left Right
-        Slope::LEFT_RIGHT => 13 * 4 + 5 + rand,
+        Neighbours::LEFT_RIGHT => 13 * 4 + 5 + rand,
         // Bottom Left Right
-        Slope::BOTTOM_LEFT_RIGHT => 1 + rand,
+        Neighbours::BOTTOM_LEFT_RIGHT => 1 + rand,
         // Top Bottom Right
-        Slope::TOP_BOTTOM_RIGHT => 13 * (rand - 1),
+        Neighbours::TOP_BOTTOM_RIGHT => 13 * (rand - 1),
         // Top Bottom Left
-        Slope::TOP_BOTTOM_LEFT => 13 * (rand - 1) + 4,
+        Neighbours::TOP_BOTTOM_LEFT => 13 * (rand - 1) + 4,
         // Top Left Right
-        Slope::TOP_LEFT_RIGHT => 13 * 2 + rand,
+        Neighbours::TOP_LEFT_RIGHT => 13 * 2 + rand,
         _ => panic!("{:#?}", slope),
     }
 }
@@ -526,7 +526,7 @@ fn handle_block_place(
         spawn_tile(
             &mut commands, 
             block_assets.get_by_block(event.block).unwrap(), 
-            Tile { tile_type: event.block, slope: Slope::NONE }, 
+            Tile { tile_type: event.block, neighbours: Neighbours::NONE }, 
             event.coords.x as usize, 
             event.coords.x * 16.,
             event.coords.y as usize, 

@@ -15,7 +15,7 @@ use bevy_inspector_egui::Inspectable;
 use iyes_loopless::prelude::*;
 
 use crate::{
-    items::{get_item_data, Items, ItemStack},
+    items::{Items, ItemStack},
     state::GameState,
     util::{EntityCommandsExtensions, RectExtensions},
     TRANSPARENT,
@@ -151,8 +151,8 @@ impl Inventory {
     pub fn consume_item(&mut self, slot: usize) {
         let item_option = self.get_item_mut(slot);
         if let Some(item) = item_option {
-            if item.amount > 1 {
-                item.amount -= 1;
+            if item.stack > 1 {
+                item.stack -= 1;
             } else {
                 self.remove_item(slot);
             }
@@ -163,7 +163,9 @@ impl Inventory {
         for inv_item_option in self.items.iter_mut() {
             match inv_item_option {
                 Some(inv_item) if inv_item.item == item.item => {
-                    inv_item.amount += item.amount;
+                    if (inv_item.stack + item.stack) < inv_item.item.max_stack() {
+                        inv_item.stack += item.stack;
+                    }
                     break;
                 },
                 None => {
@@ -507,9 +509,10 @@ fn update_selected_item_name_text(
         } else {
             let name = current_item
                 .0
-                .map(|item_stack| get_item_data(&item_stack.item).name);
+                .map(|item_stack| item_stack.item);
 
-            name.map(|name| name.to_string())
+            name
+                .map(|item| item.name().to_string())
                 .unwrap_or(ITEMS_STRING.to_string())
         }
     }
@@ -549,7 +552,7 @@ fn update_item_amount(
         for (mut item_stack, cell_index) in &mut query {
             let stack = inventory.items.get(cell_index.0)
                 .and_then(|item| *item)
-                .map(|item_stack| item_stack.amount)
+                .map(|item_stack| item_stack.stack)
                 .unwrap_or(0);
 
             item_stack.0 = stack;
@@ -580,10 +583,10 @@ fn inventory_cell_background_hover(
             info.0 = match interaction {
                 Interaction::None => "".to_string(),
                 _ => {
-                    let mut name = get_item_data(&item_stack.item).name.to_owned();
+                    let mut name = item_stack.item.name().to_owned();
                     
-                    if item_stack.amount > 1 {
-                        name.push_str(&format!(" ({})", item_stack.amount.to_string()));
+                    if item_stack.stack > 1 {
+                        name.push_str(&format!(" ({})", item_stack.stack.to_string()));
                     }
         
                     name.to_string()

@@ -1011,9 +1011,11 @@ fn use_item(
                 Item::Block(block) => {
                     let tile_coords = get_tile_coords(cursor.world_position);
                     block_place_event_writer.send(BlockPlaceEvent { coords: tile_coords, block });
-
-                    inventory.consume_item(selected_item_index);
                 },
+            }
+
+            if item_stack.item.consumable() {
+                inventory.consume_item(selected_item_index);
             }
         }
     }

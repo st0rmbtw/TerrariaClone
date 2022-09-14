@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use bevy::{math::vec2, prelude::Vec2};
 
 use crate::block::Block;
@@ -7,7 +5,7 @@ use crate::block::Block;
 use super::Pickaxe;
 
 pub type ItemId = u16;
-pub type Amount = u16;
+pub type Stack = u16;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Item {
@@ -15,41 +13,42 @@ pub enum Item {
     Block(Block)
 }
 
-#[derive(Clone, Copy)]
-pub struct ItemStack {
-    pub item: Item,
-    pub amount: Amount
-}
+impl Item {
+    pub fn consumable(&self) -> bool {
+        match self {
+            Item::Pickaxe(_) => false,
+            _ => true
+        }
+    }
 
-impl ItemStack {
-    pub fn with_stack(self, amount: Amount) -> Self {
-        Self { 
-            amount,
-            ..self
+    pub fn name(&self) -> &str {
+        match self {
+            Item::Pickaxe(pickaxe) => pickaxe.name(),
+            Item::Block(block) => block.name(),
+        }
+    }
+
+    pub fn max_stack(&self) -> Stack {
+        match self {
+            Item::Pickaxe(_) => 1,
+            Item::Block(_) => 999
         }
     }
 }
 
-pub struct ItemMeta {
-    pub name: &'static str,
-    pub max_amount: Amount
+#[derive(Clone, Copy)]
+pub struct ItemStack {
+    pub item: Item,
+    pub stack: Stack
 }
 
-lazy_static! {
-    pub static ref ITEM_META: HashMap<Item, ItemMeta> = HashMap::from([
-        (Item::Block(Block::Dirt), ItemMeta {
-            name: "Dirt Block",
-            max_amount: 999
-        }),
-        (Item::Block(Block::Stone), ItemMeta {
-            name: "Stone Block",
-            max_amount: 999
-        }),
-        (Item::Pickaxe(Pickaxe::CopperPickaxe), ItemMeta {
-            name: "Copper Pickaxe",
-            max_amount: 1
-        }),
-    ]);
+impl ItemStack {
+    pub fn with_stack(self, stack: Stack) -> Self {
+        Self { 
+            stack,
+            ..self
+        }
+    }
 }
 
 pub struct Items;
@@ -57,17 +56,17 @@ pub struct Items;
 impl Items {
     pub const COPPER_PICKAXE: ItemStack = ItemStack {
         item: Item::Pickaxe(Pickaxe::CopperPickaxe),
-        amount: 1,
+        stack: 1,
     };
 
     pub const DIRT_BLOCK: ItemStack = ItemStack {
         item: Item::Block(Block::Dirt),
-        amount: 1,
+        stack: 1,
     };
 
     pub const STONE_BLOCK: ItemStack = ItemStack {
         item: Item::Block(Block::Stone),
-        amount: 1,
+        stack: 1,
     };
 }
 
@@ -75,8 +74,4 @@ pub fn get_animation_points(item: Item) -> Vec<Vec2> {
     match item {
         _ => vec![vec2(-5., 4.), vec2(5., 3.), vec2(5., -7.)]
     }
-}
-
-pub fn get_item_data<'a>(item: &Item) -> &'a ItemMeta {
-    ITEM_META.get(item).expect("Item not found")
 }
