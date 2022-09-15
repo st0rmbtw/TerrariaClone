@@ -57,18 +57,18 @@ impl Neighbours {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy)]
 pub struct Wall {
     pub wall_type: WallType,
     pub slope: Neighbours,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy)]
 pub struct Tile {
     pub tile_type: Block,
     pub neighbours: Neighbours,
 }
-#[derive(Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Clone, Copy, Default)]
 pub struct Cell {
     pub tile: Option<Tile>,
     pub tile_entity: Option<Entity>,
