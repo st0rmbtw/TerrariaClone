@@ -11,7 +11,7 @@ use bevy_inspector_egui::Inspectable;
 use bevy_rapier2d::{
     pipeline::CollisionEvent,
     prelude::{
-        ActiveEvents, Ccd, Collider, Friction, GravityScale, LockedAxes, RigidBody, Sensor,
+        ActiveEvents, Ccd, Collider, Friction, LockedAxes, RigidBody, Sensor,
         Velocity, RapierContext, QueryFilter,
     },
     rapier::prelude::CollisionEventFlags,
@@ -159,15 +159,9 @@ struct UseItemAnimationTimer(Timer);
 #[derive(Component, PartialEq)]
 struct UseItemAnimation(bool);
 
-#[derive(Component, Default)]
-struct Jumpable {
-    jump_time_counter: f32,
-    is_jumping: bool,
-}
-
 #[derive(Component, Default, Inspectable)]
 pub struct GroundDetection {
-    on_ground: bool,
+    pub on_ground: bool,
 }
 
 #[derive(Component)]
@@ -493,7 +487,6 @@ fn spawn_player(
             // endregion
         })
         .insert(Player)
-        .insert(Jumpable::default())
         .insert(GroundDetection::default())
         .insert(Name::new("Player"))
         .insert(SpeedCoefficient::default())
@@ -504,7 +497,6 @@ fn spawn_player(
         .insert(Velocity::zero())
         .insert(Ccd::enabled())
         .insert(LockedAxes::ROTATION_LOCKED)
-        .insert(GravityScale(40.))
         .insert(Transform::from_xyz(WORLD_SIZE_X as f32 * 16. / 2., 10., 0.1))
         .with_children(|children| {
             let entity = children.parent_entity();
@@ -589,36 +581,34 @@ fn update(
         (
             &mut Velocity,
             &GroundDetection,
-            &mut Jumpable,
             &SpeedCoefficient,
             &FaceDirection,
         ),
         With<Player>,
     >,
+    mut jump: Local<i32>
 ) {
-    let (mut velocity, ground_detection, mut jumpable, coefficient, direction) = query.single_mut();
+    let (
+        mut velocity, 
+        GroundDetection { on_ground },
+        coefficient, 
+        direction
+    ) = query.single_mut();
 
-    let on_ground = ground_detection.on_ground;
-
-    if input.just_pressed(KeyCode::Space) && on_ground {
-        jumpable.is_jumping = true;
-        jumpable.jump_time_counter = 0.15;
-        velocity.linvel.y = 400.;
+    if input.just_pressed(KeyCode::Space) && *on_ground {
+        *jump = 15;
     }
 
-    if input.pressed(KeyCode::Space) && jumpable.is_jumping && jumpable.jump_time_counter > 0. {
-        if jumpable.jump_time_counter > 0. {
-            if jumpable.jump_time_counter < 0.12 - 0.1 {
-                velocity.linvel.y = 400.;
-            }
-            jumpable.jump_time_counter -= time.delta_seconds();
-        } else {
-            jumpable.is_jumping = false;
-        }
+    if *jump > 0 {
+        velocity.linvel.y = 300.;
+    }
+
+    if input.pressed(KeyCode::Space) && *jump > 0 {
+        *jump -= 1;
     }
 
     if input.just_released(KeyCode::Space) {
-        jumpable.is_jumping = false;
+        *jump = 0;
     }
 
     let vel_sign = velocity.linvel.x.signum();

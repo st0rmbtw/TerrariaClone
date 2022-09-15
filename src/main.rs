@@ -47,11 +47,11 @@ fn main() {
             244. / 255.,
         )))
         .insert_resource(RapierConfiguration {
-            gravity: Vec2::new(0., -35.),
+            gravity: Vec2::Y * -1400.,
             ..default()
         })
         .add_loopless_state(GameState::AssetLoading)
-        .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
+        .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(2. * 16.))
         .add_plugins(DefaultPlugins)
         .add_plugin(TweeningPlugin)
         .add_plugin(AssetsPlugin)
