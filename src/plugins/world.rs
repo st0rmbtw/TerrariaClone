@@ -13,12 +13,12 @@ use bevy::{
     render::view::NoFrustumCulling,
     sprite::{SpriteSheetBundle, TextureAtlas, TextureAtlasSprite}, utils::HashSet,
 };
-use bevy_rapier2d::prelude::{Collider, Friction, Restitution, RigidBody, Sleeping};
+use bevy_rapier2d::prelude::{Collider, Friction, Restitution, RigidBody};
 use iyes_loopless::{
     prelude::{AppLooplessStateExt, ConditionSet},
     state::NextState,
 };
-use ndarray::{s, Array2, ArrayView2};
+use ndarray::{Array2, ArrayView2};
 use rand::{thread_rng, Rng};
 
 use crate::{
@@ -168,12 +168,6 @@ fn spawn_tile(
         })
         .insert(tile.tile_type)
         .insert(Name::new(format!("Block Tile {} {}", ix, iy)))
-        .insert(RigidBody::Fixed)
-        .insert(NoFrustumCulling)
-        .insert(Sleeping {
-            sleeping: true,
-            ..default()
-        })
         .id()
 }
 
@@ -412,9 +406,6 @@ fn update(
             }
         }
 
-        dbg!(chunk_manager.spawned_chunks.len());
-
-
         for collider in world_data.colliders.iter_mut() {
             let inside = (collider.rect * (TILE_SIZE)).intersect(camera_fov);
 
@@ -442,8 +433,7 @@ fn spawn_chunk(
     let chunk = commands
         .spawn()
         .insert(Chunk)
-        .insert(Collider::cuboid(CHUNK_SIZE / 2., CHUNK_SIZE / 2.))
-        .insert(Transform::from_xyz(chunk_pos.x as f32 * CHUNK_SIZE * TILE_SIZE, 0., 0.))
+        .insert(Transform::from_xyz(chunk_pos.x as f32 * CHUNK_SIZE * TILE_SIZE, 0., 0.1))
         .insert(Name::new(format!("Chunk (x: {}, y: {})", chunk_pos.x, chunk_pos.y)))
         .id();
 
