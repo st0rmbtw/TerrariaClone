@@ -1,7 +1,7 @@
 use std::{collections::HashSet, option::Option, time::Duration};
 
 use autodefault::autodefault;
-use bevy::{prelude::*, sprite::Anchor, math::vec2};
+use bevy::{prelude::*, sprite::{Anchor, collide_aabb::{collide, self}}, math::vec2};
 use bevy_hanabi::{
     AccelModifier, ColorOverLifetimeModifier, EffectAsset, Gradient, ParticleEffect,
     ParticleEffectBundle, ParticleLifetimeModifier, PositionCone3dModifier, ShapeDimension,
@@ -26,7 +26,7 @@ use crate::{
 };
 
 use super::{
-    CursorPosition, ItemAssets, PlayerAssets, PlayerInventoryPlugin, SelectedItem, TILE_SIZE, BlockPlaceEvent, Inventory,
+    CursorPosition, ItemAssets, PlayerAssets, PlayerInventoryPlugin, SelectedItem, TILE_SIZE, BlockPlaceEvent, Inventory, WorldData,
 };
 
 pub const PLAYER_SPRITE_WIDTH: f32 = 2. * TILE_SIZE * 0.75;
@@ -56,6 +56,8 @@ impl Plugin for PlayerPlugin {
                 Duration::from_millis(100),
                 true,
             )))
+            .init_resource::<PlayerController>()
+            .init_resource::<Collisions>()
             .insert_resource(UseItemAnimation(false))
             .add_enter_system(GameState::InGame, spawn_player)
             .add_system_set(
@@ -65,8 +67,10 @@ impl Plugin for PlayerPlugin {
                     .with_system(update_movement_state)
                     .with_system(update_face_direction)
                     .with_system(update_speed_coefficient)
-                    .with_system(update)
-                    .with_system(check_is_on_ground)
+                    .with_system(collision_check)
+                    .with_system(horizontal_movement)
+                    .with_system(move_character)
+                    // .with_system(check_is_on_ground)
                     .with_system(use_item)
                     .with_system(auto_jump)
                     .into(),
@@ -242,6 +246,20 @@ impl AnimationData for FallingAnimationData {
 #[derive(Component)]
 struct PlayerParticleEffects {
     walking: Entity,
+}
+
+#[derive(Clone, Copy, Default)]
+struct PlayerController {
+    horizontal_speed: f32,
+    vertical_speed: f32
+}
+
+#[derive(Clone, Copy, Default)]
+struct Collisions {
+    up: bool,
+    down: bool,
+    left: bool,
+    right: bool
 }
 
 // endregion
@@ -619,6 +637,63 @@ fn update(
     } else {
         velocity.linvel.x = 0_f32.lerp(dir_sign * PLAYER_SPEED, coefficient.0);
     }
+}
+
+fn collision_check(
+    world_data: Res<WorldData>,
+    player: Query<&Transform, With<Player>>,
+    rapier_context: Res<RapierContext>
+) {
+    let player_transform = player.single();
+
+    let player_pos = player_transform.translation.truncate();
+
+    // let neighbours = world_data.get_neighbour_tiles(get_tile_coords(player_pos));
+
+    // for tile_pos in neighbours {
+    //     let collision = collide_aabb::collide(
+    //         tile_pos.as_vec2().extend(1.) * TILE_SIZE, 
+    //         Vec2::splat(TILE_SIZE), 
+    //         player_transform.translation,
+    //         Vec2::new(PLAYER_SPRITE_WIDTH, PLAYER_SPRITE_HEIGHT)
+    //     );
+
+    //     dbg!(collision);
+    // }
+}
+
+fn horizontal_movement(
+    axis: Res<Axis>,
+    time: Res<Time>,
+    mut player_controller: ResMut<PlayerController>,
+) {
+    let horizontal_speed = &mut player_controller.horizontal_speed;
+
+    const ACCELERATION: f32 = 90.;
+    const SLOWDOWN: f32 = 60.;
+    const MOVE_CLAMP: f32 = 13.;
+
+    if axis.is_moving() {
+        *horizontal_speed += axis.x * ACCELERATION * time.delta_seconds();
+        *horizontal_speed = horizontal_speed.clamp(-MOVE_CLAMP, MOVE_CLAMP);
+    } else {
+        *horizontal_speed = horizontal_speed.lerp(0., SLOWDOWN * time.delta_seconds());
+    }
+}
+
+fn move_character(
+    mut player_query: Query<&mut Transform, With<Player>>,
+    player_controller: Res<PlayerController>,
+) {
+    let mut transform = player_query.single_mut();
+
+    transform.translation.x += player_controller.horizontal_speed;
+}
+
+fn gravity(
+    
+) {
+
 }
 
 fn spawn_particles(

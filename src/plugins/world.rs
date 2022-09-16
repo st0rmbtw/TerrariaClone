@@ -8,10 +8,10 @@ use bevy::{
     core::Name,
     prelude::{
         default, App, Changed, Commands, Entity, GlobalTransform, Handle, OrthographicProjection,
-        Plugin, Query, Res, ResMut, Transform, Vec2, Vec3, With, EventReader,
+        Plugin, Query, Res, ResMut, Transform, Vec3, With, EventReader, UVec2, IVec2, Component, BuildChildren,
     },
     render::view::NoFrustumCulling,
-    sprite::{SpriteSheetBundle, TextureAtlas, TextureAtlasSprite},
+    sprite::{SpriteSheetBundle, TextureAtlas, TextureAtlasSprite}, utils::HashSet,
 };
 use bevy_rapier2d::prelude::{Collider, Friction, Restitution, RigidBody, Sleeping};
 use iyes_loopless::{
@@ -32,14 +32,14 @@ use super::{BlockAssets, MainCamera, WallAssets};
 
 pub const TILE_SIZE: f32 = 16.;
 
-const CHUNK_WIDTH: usize = 25;
-const CHUNK_HEIGHT: usize = 25;
+const CHUNK_SIZE: f32 = 25.;
 
 pub struct WorldPlugin;
 
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app
+            .init_resource::<ChunkManager>()
             .add_event::<BlockPlaceEvent>()
             .add_enter_system(GameState::WorldLoading, spawn_terrain)
             .add_system_set(
@@ -100,6 +100,9 @@ impl Mul<f32> for FRect {
     }
 }
 
+#[derive(Component)]
+struct Chunk;
+
 #[derive(Clone, Copy, Default)]
 pub struct ColliderData {
     rect: FRect,
@@ -109,78 +112,16 @@ pub struct ColliderData {
 pub struct WorldData {
     pub width: u16,
     pub height: u16,
-    pub chunks: Vec<Chunk>,
+    pub tiles: Array2<Cell>,
     pub colliders: Vec<ColliderData>,
 }
 
-impl WorldData {
-    fn get_chunk_by_coords() {}
-}
-
-pub struct Chunk {
-    pub bounds: FRect,
-    pub cells: Array2<Cell>,
-    pub spawned: bool,
-}
-
-impl Chunk {
-    fn spawn(
-        &mut self,
-        commands: &mut Commands,
-        block_assets: &BlockAssets,
-        wall_assets: &WallAssets,
-    ) {
-        self.spawned = true;
-
-        for ((iy, ix), cell) in self.cells.indexed_iter_mut() {
-            let x = self.bounds.left + ix as f32 * TILE_SIZE;
-            let y = self.bounds.top - iy as f32 * TILE_SIZE;
-
-            if let Some(tile) = cell.tile {
-                if let Some(texture_atlas) = block_assets.get_by_block(tile.tile_type) {
-                    if cell.tile_entity.is_none() {
-                        let entity = spawn_tile(commands, texture_atlas, tile, ix, x, iy, y);
-
-                        cell.tile_entity = Some(entity);
-                    }
-                }
-            }
-
-            if let Some(wall) = cell.wall {
-                if let Some(texture_atlas) = wall_assets.get_by_wall(wall.wall_type) {
-                    if cell.wall_entity.is_none() {
-                        let entity = spawn_wall(commands, texture_atlas, wall, ix, x, iy, y);
-
-                        cell.wall_entity = Some(entity);
-                    }
-                }
-            }
-        }
-    }
-
-    fn despawn(&mut self, commands: &mut Commands) {
-        self.spawned = false;
-
-        for cell in self.cells.iter_mut() {
-            if let Some(entity) = cell.tile_entity {
-                commands.entity(entity).despawn();
-                cell.tile_entity = None;
-            }
-
-            if let Some(entity) = cell.wall_entity {
-                commands.entity(entity).despawn();
-                cell.wall_entity = None;
-            }
-        }
-    }
-}
-
 pub struct BlockBreakEvent {
-    pub coords: Vec2,
+    pub coords: UVec2,
 }
 
 pub struct BlockPlaceEvent {
-    pub coords: Vec2,
+    pub coords: UVec2,
     pub block: Block,
 }
 
@@ -197,55 +138,23 @@ fn spawn_terrain(mut commands: Commands) {
 
     let colliders = get_colliders(&tiles.view());
 
-    let chunks = get_chunks(&tiles.view());
-
     commands.insert_resource(WorldData {
         width: tiles.ncols() as u16,
         height: tiles.nrows() as u16,
-        chunks,
+        tiles,
         colliders,
     });
 
     commands.insert_resource(NextState(GameState::InGame));
 }
 
-fn get_chunks(world: &ArrayView2<Cell>) -> Vec<Chunk> {
-    let mut chunks = vec![];
-
-    for offset_y in (0..world.nrows()).step_by(CHUNK_HEIGHT) {
-        for offset_x in (0..world.ncols()).step_by(CHUNK_WIDTH) {
-            let cells: Array2<Cell> = world
-                .slice(s![
-                    offset_y..(offset_y + CHUNK_HEIGHT).clamp(0, world.nrows()),
-                    offset_x..(offset_x + CHUNK_WIDTH).clamp(0, world.ncols())
-                ])
-                .to_owned();
-
-            if cells.nrows() > 0 && cells.ncols() > 0 {
-                chunks.push(Chunk {
-                    bounds: FRect {
-                        left: offset_x as f32 * TILE_SIZE,
-                        right: (offset_x as f32 * TILE_SIZE + cells.ncols() as f32 * TILE_SIZE),
-                        top: -(offset_y as f32) * TILE_SIZE,
-                        bottom: -(offset_y as f32 * TILE_SIZE + cells.nrows() as f32 * TILE_SIZE),
-                    },
-                    cells,
-                    spawned: false,
-                });
-            }
-        }
-    }
-
-    chunks
-}
-
 fn spawn_tile(
     commands: &mut Commands,
     texture_atlas: Handle<TextureAtlas>,
     tile: Tile,
-    ix: usize,
+    ix: u32,
     x: f32,
-    iy: usize,
+    iy: u32,
     y: f32,
 ) -> Entity {
     let index = get_tile_sprite_index(tile.neighbours);
@@ -254,7 +163,7 @@ fn spawn_tile(
         .spawn_bundle(SpriteSheetBundle {
             sprite: TextureAtlasSprite { index, ..default() },
             texture_atlas,
-            transform: Transform::from_xyz(x, y, 0.1).with_scale(Vec3::splat(1.05)),
+            transform: Transform::from_xyz(x, y, 0.0).with_scale(Vec3::splat(1.05)),
             ..default()
         })
         .insert(tile.tile_type)
@@ -464,11 +373,17 @@ fn get_colliders(chunk: &ArrayView2<Cell>) -> Vec<ColliderData> {
         .collect()
 }
 
+#[derive(Default)]
+struct ChunkManager {
+    pub spawned_chunks: HashSet<IVec2>
+}
+
 fn update(
     mut commands: Commands,
     block_assets: Res<BlockAssets>,
     wall_assets: Res<WallAssets>,
     mut world_data: ResMut<WorldData>,
+    mut chunk_manager: ResMut<ChunkManager>,
     camera_query: Query<
         (&GlobalTransform, &OrthographicProjection),
         (With<MainCamera>, Changed<GlobalTransform>),
@@ -479,25 +394,26 @@ fn update(
         let camera_y = camera_transform.translation().y;
 
         let camera_fov = FRect {
-            left: camera_x + projection.left * projection.scale - 2. * TILE_SIZE,
-            right: camera_x + projection.right * projection.scale + 2. * TILE_SIZE,
-            top: camera_y - projection.top * projection.scale - 2. * TILE_SIZE,
-            bottom: camera_y - projection.bottom * projection.scale + 2. * TILE_SIZE,
+            left: camera_x + projection.left * projection.scale,
+            right: camera_x + projection.right * projection.scale,
+            top: camera_y - projection.top * projection.scale,
+            bottom: camera_y - projection.bottom * projection.scale,
         };
 
-        for chunk in world_data.chunks.iter_mut() {
-            let inside = chunk.bounds.inside(camera_fov);
+        let chunk_pos_left = (camera_fov.left / (CHUNK_SIZE * TILE_SIZE)) as i32;
+        let chunk_pos_right = (camera_fov.right / (CHUNK_SIZE * TILE_SIZE)) as i32;
 
-            match inside {
-                true if !chunk.spawned => {
-                    chunk.spawn(&mut commands, &block_assets, &wall_assets);
-                }
-                false if chunk.spawned => {
-                    chunk.despawn(&mut commands);
-                }
-                _ => (),
+        for x in chunk_pos_left..(chunk_pos_right + 1) {
+            let chunk_pos = IVec2::new(x, 0);
+
+            if !chunk_manager.spawned_chunks.contains(&chunk_pos) {
+                chunk_manager.spawned_chunks.insert(chunk_pos);
+                spawn_chunk(&mut commands, &block_assets, chunk_pos, &world_data);
             }
         }
+
+        dbg!(chunk_manager.spawned_chunks.len());
+
 
         for collider in world_data.colliders.iter_mut() {
             let inside = (collider.rect * (TILE_SIZE)).intersect(camera_fov);
@@ -517,6 +433,45 @@ fn update(
     }
 }
 
+fn spawn_chunk(
+    commands: &mut Commands,
+    block_assets: &BlockAssets,
+    chunk_pos: IVec2,
+    world_data: &WorldData
+) {
+    let chunk = commands
+        .spawn()
+        .insert(Chunk)
+        .insert(Collider::cuboid(CHUNK_SIZE / 2., CHUNK_SIZE / 2.))
+        .insert(Transform::from_xyz(chunk_pos.x as f32 * CHUNK_SIZE * TILE_SIZE, 0., 0.))
+        .insert(Name::new(format!("Chunk (x: {}, y: {})", chunk_pos.x, chunk_pos.y)))
+        .id();
+
+    for y in 0..CHUNK_SIZE as usize {
+        for x in 0..CHUNK_SIZE as usize {
+            if let Some(cell) = world_data.tiles.get((
+                chunk_pos.y as usize * CHUNK_SIZE as usize + y, 
+                (chunk_pos.x as f32 * CHUNK_SIZE) as usize + x
+            )) {
+                if let Some(tile) = cell.tile {
+                    if let Some(texture_atlas) = block_assets.get_by_block(tile.tile_type) {
+                        let tile = spawn_tile(
+                            commands, 
+                            texture_atlas, 
+                            tile,
+                            (chunk_pos.x as f32 * CHUNK_SIZE) as u32 + x as u32,
+                            x as f32 * TILE_SIZE,
+                            (chunk_pos.y as f32 * CHUNK_SIZE) as u32 + y as u32, 
+                            -(y as f32) * TILE_SIZE
+                        );
+                        commands.entity(chunk).add_child(tile);
+                    }
+                }
+            }
+        }
+    }
+}
+
 fn handle_block_place(
     mut commands: Commands,
     mut events: EventReader<BlockPlaceEvent>,
@@ -527,10 +482,10 @@ fn handle_block_place(
             &mut commands, 
             block_assets.get_by_block(event.block).unwrap(), 
             Tile { tile_type: event.block, neighbours: Neighbours::NONE }, 
-            event.coords.x as usize, 
-            event.coords.x * 16.,
-            event.coords.y as usize, 
-            event.coords.y * 16.,
+            event.coords.x, 
+            event.coords.x as f32 * 16.,
+            event.coords.y, 
+            event.coords.y as f32 * 16.,
         );
     }
 }

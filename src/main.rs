@@ -47,7 +47,7 @@ fn main() {
             244. / 255.,
         )))
         .insert_resource(RapierConfiguration {
-            gravity: Vec2::Y * -1400.,
+            gravity: Vec2::Y * -0.,
             ..default()
         })
         .add_loopless_state(GameState::AssetLoading)
@@ -67,8 +67,8 @@ fn main() {
         .add_plugin(PlayerPlugin)
         .add_plugin(FpsPlugin);
 
-    // #[cfg(debug_assertions)]
-    // app.add_plugin(game::plugins::DebugPlugin);
+    #[cfg(debug_assertions)]
+    app.add_plugin(game::plugins::DebugPlugin);
 
     app.run();
 }
