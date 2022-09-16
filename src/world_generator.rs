@@ -1,5 +1,5 @@
 use autodefault::autodefault;
-use bevy::prelude::{default, Entity};
+use bevy::prelude::default;
 use ndarray::prelude::*;
 use noise::{NoiseFn, OpenSimplex, Seedable, SuperSimplex};
 use rand::{rngs::StdRng, Rng, SeedableRng};
@@ -60,7 +60,7 @@ impl Neighbours {
 #[derive(Clone, Copy)]
 pub struct Wall {
     pub wall_type: WallType,
-    pub slope: Neighbours,
+    pub neighbours: Neighbours,
 }
 
 #[derive(Clone, Copy)]
@@ -71,9 +71,7 @@ pub struct Tile {
 #[derive(Clone, Copy, Default)]
 pub struct Cell {
     pub tile: Option<Tile>,
-    pub tile_entity: Option<Entity>,
     pub wall: Option<Wall>,
-    pub wall_entity: Option<Entity>,
 }
 
 #[autodefault(except(Level, Tile, Wall))]
@@ -93,7 +91,7 @@ pub fn generate(seed: u32) -> Array2<Cell> {
     });
 
     for cell in world.slice_mut(s![.., 0..WORLD_SIZE_X]).iter_mut() {
-        cell.wall = Some(Wall { wall_type: WallType::DirtWall, slope: Neighbours::default() });
+        cell.wall = Some(Wall { wall_type: WallType::DirtWall, neighbours: Neighbours::default() });
     }
 
     let level = Level {
@@ -456,7 +454,7 @@ fn set_tile_slope(world: &mut Array2<Cell>) {
 
                 if cell.wall.is_some() {
                     new_wall = Some(Wall {
-                        slope: Neighbours {
+                        neighbours: Neighbours {
                             left: x == 0 || world.get((y, prev_x))
                                 .and_then(|t| t.wall)
                                 .is_some(),

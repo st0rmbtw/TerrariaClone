@@ -146,3 +146,10 @@ pub fn get_rotation_by_direction(direction: FaceDirection) -> Quat {
 
     Quat::from_rotation_z(start_rotation)
 }
+
+pub fn move_towards(current: f32, target: f32, max_delta: f32) -> f32 {
+    if (target - current).abs() <= max_delta {
+        return target;
+    }
+    return current + (target - current).signum() * max_delta;
+}

@@ -1,7 +1,7 @@
 use std::{collections::HashSet, option::Option, time::Duration};
 
 use autodefault::autodefault;
-use bevy::{prelude::*, sprite::{Anchor, collide_aabb::{collide, self}}, math::vec2};
+use bevy::{prelude::*, sprite::Anchor, math::vec2};
 use bevy_hanabi::{
     AccelModifier, ColorOverLifetimeModifier, EffectAsset, Gradient, ParticleEffect,
     ParticleEffectBundle, ParticleLifetimeModifier, PositionCone3dModifier, ShapeDimension,
@@ -21,16 +21,17 @@ use iyes_loopless::prelude::*;
 use crate::{
     items::{get_animation_points, Item},
     state::{GameState, MovementState},
-    util::{map_range, Lerp, get_tile_coords, get_rotation_by_direction},
-    TRANSPARENT, world_generator::WORLD_SIZE_X,
+    util::{map_range, Lerp, get_tile_coords, get_rotation_by_direction, move_towards},
+    world_generator::WORLD_SIZE_X,
 };
 
 use super::{
-    CursorPosition, ItemAssets, PlayerAssets, PlayerInventoryPlugin, SelectedItem, TILE_SIZE, BlockPlaceEvent, Inventory, WorldData,
+    CursorPosition, ItemAssets, PlayerAssets, PlayerInventoryPlugin, SelectedItem, 
+    TILE_SIZE, BlockPlaceEvent, Inventory, WorldData,
 };
 
-pub const PLAYER_SPRITE_WIDTH: f32 = 2. * TILE_SIZE * 0.75;
-pub const PLAYER_SPRITE_HEIGHT: f32 = 3. * TILE_SIZE * 0.95;
+pub const PLAYER_SPRITE_WIDTH: f32 = 2. * TILE_SIZE;
+pub const PLAYER_SPRITE_HEIGHT: f32 = 3. * TILE_SIZE;
 
 const PLAYER_SPEED: f32 = 30. * 5.;
 
@@ -81,13 +82,6 @@ impl Plugin for PlayerPlugin {
                     .run_in_state(GameState::InGame)
                     .with_system(flip_player)
                     .with_system(spawn_particles)
-                    .into()
-            )
-            .add_system_set_to_stage(
-                CoreStage::Last, 
-                ConditionSet::new()
-                    .run_in_state(GameState::InGame)
-                    .with_system(limit_player_move)
                     .into()
             )
             .add_system_set_to_stage(
@@ -316,13 +310,7 @@ fn spawn_player(
     mut effects: ResMut<Assets<EffectAsset>>,
 ) {
     let player = commands
-        .spawn_bundle(SpriteBundle {
-            sprite: Sprite {
-                color: TRANSPARENT,
-                custom_size: Some(Vec2::splat(1.)),
-            },
-            computed_visibility: ComputedVisibility::not_visible(),
-        })
+        .spawn()
         .with_children(|cmd| {
             // region: Hair
             cmd.spawn_bundle(SpriteSheetBundle {
@@ -516,6 +504,8 @@ fn spawn_player(
         .insert(Ccd::enabled())
         .insert(LockedAxes::ROTATION_LOCKED)
         .insert(Transform::from_xyz(WORLD_SIZE_X as f32 * 16. / 2., 10., 0.1))
+        .insert(GlobalTransform::default())
+        .insert_bundle(VisibilityBundle::default())
         .with_children(|children| {
             let entity = children.parent_entity();
 
@@ -674,10 +664,14 @@ fn horizontal_movement(
     const MOVE_CLAMP: f32 = 13.;
 
     if axis.is_moving() {
-        *horizontal_speed += axis.x * ACCELERATION * time.delta_seconds();
-        *horizontal_speed = horizontal_speed.clamp(-MOVE_CLAMP, MOVE_CLAMP);
+        let mut speed = *horizontal_speed;
+
+        speed += axis.x * ACCELERATION * time.delta_seconds();
+        speed = speed.clamp(-MOVE_CLAMP, MOVE_CLAMP);
+
+        *horizontal_speed = speed;
     } else {
-        *horizontal_speed = horizontal_speed.lerp(0., SLOWDOWN * time.delta_seconds());
+        *horizontal_speed = move_towards(*horizontal_speed, 0., SLOWDOWN * time.delta_seconds());
     }
 }
 
@@ -687,13 +681,9 @@ fn move_character(
 ) {
     let mut transform = player_query.single_mut();
 
-    transform.translation.x += player_controller.horizontal_speed;
-}
+    let max = WORLD_SIZE_X as f32 * TILE_SIZE - PLAYER_SPRITE_WIDTH / 2.;
 
-fn gravity(
-    
-) {
-
+    transform.translation.x = (transform.translation.x + player_controller.horizontal_speed).clamp(0., max);
 }
 
 fn spawn_particles(
@@ -1084,17 +1074,6 @@ fn use_item(
             }
         }
     }
-}
-
-fn limit_player_move(
-    mut player_query: Query<&mut Transform, With<Player>>
-) {
-    let mut transform = player_query.single_mut();
-
-    let min = PLAYER_SPRITE_WIDTH / 2.;
-    let max = WORLD_SIZE_X as f32 * 16. - PLAYER_SPRITE_WIDTH / 2.;
-
-    transform.translation.x = transform.translation.x.clamp(min, max);
 }
 
 // TODO: Debug function, remove in feature
