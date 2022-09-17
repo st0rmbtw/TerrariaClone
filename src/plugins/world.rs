@@ -1,6 +1,5 @@
 use std::{
     collections::HashMap,
-    ops::Mul,
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -8,10 +7,11 @@ use bevy::{
     core::Name,
     prelude::{
         default, App, Changed, Commands, Entity, GlobalTransform, Handle, OrthographicProjection,
-        Plugin, Query, Res, ResMut, Transform, Vec3, With, EventReader, UVec2, IVec2, Component, BuildChildren, Visibility, VisibilityBundle, DespawnRecursiveExt,
+        Plugin, Query, Res, ResMut, Transform, Vec3, With, EventReader, UVec2, IVec2, Component, 
+        BuildChildren, Visibility, VisibilityBundle, DespawnRecursiveExt, Vec2,
     },
     render::view::NoFrustumCulling,
-    sprite::{SpriteSheetBundle, TextureAtlas, TextureAtlasSprite}, utils::HashSet,
+    sprite::{SpriteSheetBundle, TextureAtlas, TextureAtlasSprite}, utils::HashSet, math::Vec3Swizzles,
 };
 use bevy_rapier2d::prelude::{Collider, Friction, Restitution, RigidBody};
 use iyes_loopless::{
@@ -24,8 +24,8 @@ use rand::{thread_rng, Rng};
 use crate::{
     block::Block,
     state::GameState,
-    util::FRect,
-    world_generator::{generate, Cell, Neighbours, Tile, Wall},
+    util::{FRect, URect, IRect},
+    world_generator::{generate, Cell, Neighbours, Tile, Wall, WORLD_SIZE_Y, WORLD_SIZE_X},
 };
 
 use super::{BlockAssets, MainCamera, WallAssets};
@@ -53,47 +53,6 @@ impl Plugin for WorldPlugin {
     }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Default, Hash)]
-pub struct URect {
-    left: usize,
-    right: usize,
-    top: usize,
-    bottom: usize,
-}
-
-impl URect {
-    fn to_frect(&self) -> FRect {
-        FRect {
-            left: self.left as f32,
-            right: self.right as f32,
-            top: self.top as f32,
-            bottom: self.bottom as f32,
-        }
-    }
-}
-
-impl FRect {
-    fn intersect(&self, rect: FRect) -> bool {
-        self.left < rect.right
-            && self.right > rect.left
-            && self.bottom > rect.top
-            && self.top > -rect.bottom.abs()
-    }
-}
-
-impl Mul<f32> for FRect {
-    type Output = FRect;
-
-    fn mul(self, rhs: f32) -> Self::Output {
-        FRect {
-            left: self.left * rhs,
-            right: self.right * rhs,
-            top: self.top * rhs,
-            bottom: self.bottom * rhs,
-        }
-    }
-}
-
 #[derive(Component)]
 struct Chunk {
     chunk_pos: IVec2
@@ -111,6 +70,12 @@ pub struct WorldData {
     pub tiles: Array2<Cell>,
     pub colliders: Vec<ColliderData>,
 }
+
+#[derive(Default)]
+struct ChunkManager {
+    pub spawned_chunks: HashSet<IVec2>
+}
+
 
 pub struct BlockBreakEvent {
     pub coords: UVec2,
@@ -159,7 +124,7 @@ fn spawn_tile(
         .spawn_bundle(SpriteSheetBundle {
             sprite: TextureAtlasSprite { index, ..default() },
             texture_atlas,
-            transform: Transform::from_xyz(x, y, 0.0).with_scale(Vec3::splat(1.05)),
+            transform: Transform::from_xyz(x, y, 0.1).with_scale(Vec3::splat(1.05)),
             ..default()
         })
         .insert(tile.tile_type)
@@ -171,9 +136,9 @@ fn spawn_wall(
     commands: &mut Commands,
     texture_atlas: Handle<TextureAtlas>,
     wall: Wall,
-    ix: usize,
+    ix: u32,
     x: f32,
-    iy: usize,
+    iy: u32,
     y: f32,
 ) -> Entity {
     let index = get_wall_sprite_index(wall.neighbours);
@@ -363,11 +328,6 @@ fn get_colliders(chunk: &ArrayView2<Cell>) -> Vec<ColliderData> {
         .collect()
 }
 
-#[derive(Default)]
-struct ChunkManager {
-    pub spawned_chunks: HashSet<IVec2>
-}
-
 fn spawn_tiles(
     mut commands: Commands,
     block_assets: Res<BlockAssets>,
@@ -380,24 +340,11 @@ fn spawn_tiles(
     >,
 ) {
     if let Ok((camera_transform, projection)) = camera_query.get_single() {
-        let camera_x = camera_transform.translation().x;
-        let camera_y = camera_transform.translation().y;
+        let camera_fov = get_camera_fov(camera_transform.translation().xy(), projection);
+        let camera_chunk_pos = get_chunk_position(camera_fov);
 
-        let camera_fov = FRect {
-            left: camera_x + projection.left * projection.scale,
-            right: camera_x + projection.right * projection.scale,
-            top: camera_y - projection.top * projection.scale,
-            bottom: camera_y - projection.bottom * projection.scale,
-        };
-
-        let chunk_pos_left = (camera_fov.left / (CHUNK_SIZE * TILE_SIZE)) as i32;
-        let chunk_pos_right = (camera_fov.right / (CHUNK_SIZE * TILE_SIZE)) as i32;
-
-        let chunk_pos_top = (camera_fov.top / (CHUNK_SIZE * TILE_SIZE)) as i32;
-        let chunk_pos_bottom = (camera_fov.bottom / (CHUNK_SIZE * TILE_SIZE)) as i32;
-
-        for y in (chunk_pos_top.abs() - 1).max(0)..(chunk_pos_bottom.abs() + 1) {
-            for x in (chunk_pos_left - 1)..(chunk_pos_right + 1) {
+        for y in camera_chunk_pos.top..camera_chunk_pos.bottom {
+            for x in camera_chunk_pos.left..camera_chunk_pos.right {
                 let chunk_pos = IVec2::new(x, y);
 
                 if !chunk_manager.spawned_chunks.contains(&chunk_pos) {
@@ -435,28 +382,13 @@ fn despawn_tiles(
     >,
 ) {
     if let Ok((camera_transform, projection)) = camera_query.get_single() {
-        let camera_x = camera_transform.translation().x;
-        let camera_y = camera_transform.translation().y;
-
-        let camera_fov = FRect {
-            left: camera_x + projection.left * projection.scale,
-            right: camera_x + projection.right * projection.scale,
-            top: camera_y - projection.top * projection.scale,
-            bottom: camera_y - projection.bottom * projection.scale,
-        };
-
-        let camera_chunk_pos_left = (camera_fov.left / (CHUNK_SIZE * TILE_SIZE)) as i32 - 1;
-        let camera_chunk_pos_right = (camera_fov.right / (CHUNK_SIZE * TILE_SIZE)) as i32 + 1;
-
-        let camera_chunk_pos_top = (camera_fov.top / (CHUNK_SIZE * TILE_SIZE)) as i32 + 1;
-        let camera_chunk_pos_bottom = (camera_fov.bottom / (CHUNK_SIZE * TILE_SIZE)) as i32 - 1;
+        let camera_fov = get_camera_fov(camera_transform.translation().xy(), projection);
+        let camera_chunk_pos = get_chunk_position(camera_fov);
 
         for (entity, Chunk { chunk_pos }) in chunks.iter() {
-
-            if (chunk_pos.x < camera_chunk_pos_left || chunk_pos.x > camera_chunk_pos_right) &&
-               (chunk_pos.y < camera_chunk_pos_bottom || chunk_pos.y > camera_chunk_pos_top) 
+            if (chunk_pos.x < camera_chunk_pos.left || chunk_pos.x > camera_chunk_pos.right) &&
+               (chunk_pos.y < camera_chunk_pos.bottom || chunk_pos.y > camera_chunk_pos.top) 
             {
-
                 chunk_manager.spawned_chunks.remove(&chunk_pos);
                 commands.entity(entity).despawn_recursive();
             }
@@ -480,31 +412,33 @@ fn spawn_chunk(
             visibility: Visibility::visible(),
             ..default()
         })
-        .insert(Transform::from_xyz(chunk_pos.x as f32 * CHUNK_SIZE * TILE_SIZE, -chunk_pos.y as f32 * CHUNK_SIZE * TILE_SIZE, 0.1))
+        .insert(Transform::from_xyz(chunk_pos.x as f32 * CHUNK_SIZE * TILE_SIZE, -chunk_pos.y as f32 * CHUNK_SIZE * TILE_SIZE, 0.0))
         .insert(GlobalTransform::default())
         .insert(Name::new(format!("Chunk (x: {}, y: {})", chunk_pos.x, chunk_pos.y)))
         .id();
 
     for y in 0..CHUNK_SIZE as usize {
         for x in 0..CHUNK_SIZE as usize {
-            if let Some(cell) = world_data.tiles.get((
-                (chunk_pos.y as f32 * CHUNK_SIZE) as usize + y, 
-                (chunk_pos.x as f32 * CHUNK_SIZE) as usize + x
-            )) {
+            let tile_x = x as f32 * TILE_SIZE;
+            let tile_y = -(y as f32) * TILE_SIZE;
+
+            let tile_ix = (chunk_pos.x as f32 * CHUNK_SIZE) as u32 + x as u32;
+            let tile_iy = (chunk_pos.y as f32 * CHUNK_SIZE) as u32 + y as u32;
+
+            let cell_option = world_data.tiles.get((tile_iy as usize, tile_ix as usize));
+
+            if let Some(cell) = cell_option {
                 if let Some(tile) = cell.tile {
                     if let Some(texture_atlas) = block_assets.get_by_block(tile.tile_type) {
-                        let index = get_tile_sprite_index(tile.neighbours);
-
-                        let tile_entity = commands
-                            .spawn_bundle(SpriteSheetBundle {
-                                sprite: TextureAtlasSprite { index, ..default() },
-                                texture_atlas,
-                                transform: Transform::from_xyz(x as f32 * TILE_SIZE, -(y as f32) * TILE_SIZE, 0.1).with_scale(Vec3::splat(1.05)),
-                                ..default()
-                            })
-                            .insert(tile.tile_type)
-                            .insert(Name::new(format!("Block Tile {} {}", (chunk_pos.x as f32 * CHUNK_SIZE) as u32 + x as u32, (chunk_pos.y as f32 * CHUNK_SIZE) as u32 + y as u32)))
-                            .id();
+                        let tile_entity = spawn_tile(
+                            commands, 
+                            texture_atlas, 
+                            tile, 
+                            tile_ix, 
+                            tile_x, 
+                            tile_iy, 
+                            tile_y
+                        );
 
                         commands.entity(chunk).add_child(tile_entity);
                     }
@@ -512,24 +446,61 @@ fn spawn_chunk(
 
                 if let Some(wall) = cell.wall {
                     if let Some(texture_atlas) = wall_assets.get_by_wall(wall.wall_type) {
-                        let index = get_wall_sprite_index(wall.neighbours);
+                        let wall_entity = spawn_wall(
+                            commands, 
+                            texture_atlas, 
+                            wall, 
+                            tile_ix, 
+                            tile_x, 
+                            tile_iy, 
+                            tile_y
+                        );
 
-                        let tile_entity = commands
-                            .spawn_bundle(SpriteSheetBundle {
-                                sprite: TextureAtlasSprite { index, ..default() },
-                                texture_atlas,
-                                transform: Transform::from_xyz(x as f32 * TILE_SIZE, -(y as f32) * TILE_SIZE, 0.0).with_scale(Vec3::splat(1.05)),
-                                ..default()
-                            })
-                            .insert(Name::new(format!("Block Tile {} {}", (chunk_pos.x as f32 * CHUNK_SIZE) as u32 + x as u32, (chunk_pos.y as f32 * CHUNK_SIZE) as u32 + y as u32)))
-                            .id();
-
-                        commands.entity(chunk).add_child(tile_entity);
+                        commands.entity(chunk).add_child(wall_entity);
                     }
                 }
             }
         }
     }
+}
+
+fn get_camera_fov(camera_pos: Vec2, projection: &OrthographicProjection) -> FRect {
+    FRect {
+        left: camera_pos.x + projection.left * projection.scale,
+        right: camera_pos.x + projection.right * projection.scale,
+        top: camera_pos.y - projection.top * projection.scale,
+        bottom: camera_pos.y - projection.bottom * projection.scale,
+    }
+}
+
+fn get_chunk_position(camera_fov: FRect) -> IRect {
+    let mut rect = IRect { 
+        left: (camera_fov.left / (CHUNK_SIZE * TILE_SIZE)).floor() as i32 - 1, 
+        right: (camera_fov.right / (CHUNK_SIZE * TILE_SIZE)).ceil() as i32 + 1, 
+        top: (camera_fov.top / (CHUNK_SIZE * TILE_SIZE)).abs() as i32 - 1, 
+        bottom: (camera_fov.bottom / (CHUNK_SIZE * TILE_SIZE)).abs() as i32 + 1 
+    };
+
+    const MAX_CHUNK_X: i32 = (WORLD_SIZE_X as f32 / CHUNK_SIZE) as i32;
+    const MAX_CHUNK_Y: i32 = (WORLD_SIZE_Y as f32 / CHUNK_SIZE) as i32;
+
+    if rect.top < 0 {
+        rect.top = 0;
+    }
+
+    if rect.left < 0 {
+        rect.left = 0;
+    }
+
+    if rect.right > MAX_CHUNK_X {
+        rect.right = MAX_CHUNK_X;
+    }
+    
+    if rect.bottom > MAX_CHUNK_Y {
+        rect.bottom = MAX_CHUNK_Y;
+    }
+
+    rect
 }
 
 fn handle_block_place(

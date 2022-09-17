@@ -1,3 +1,5 @@
+use std::ops::Mul;
+
 use bevy::{
     ecs::system::EntityCommands,
     prelude::{default, Button, Changed, Component, Query, With, Vec2, Quat, UVec2},
@@ -128,6 +130,55 @@ pub struct FRect {
     pub right: f32,
     pub top: f32,
     pub bottom: f32,
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
+pub struct URect {
+    pub left: usize,
+    pub right: usize,
+    pub top: usize,
+    pub bottom: usize,
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
+pub struct IRect {
+    pub left: i32,
+    pub right: i32,
+    pub top: i32,
+    pub bottom: i32,
+}
+
+impl URect {
+    pub fn to_frect(&self) -> FRect {
+        FRect {
+            left: self.left as f32,
+            right: self.right as f32,
+            top: self.top as f32,
+            bottom: self.bottom as f32,
+        }
+    }
+}
+
+impl FRect {
+    pub fn intersect(&self, rect: FRect) -> bool {
+        self.left < rect.right
+            && self.right > rect.left
+            && self.bottom > rect.top
+            && self.top > -rect.bottom.abs()
+    }
+}
+
+impl Mul<f32> for FRect {
+    type Output = FRect;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        FRect {
+            left: self.left * rhs,
+            right: self.right * rhs,
+            top: self.top * rhs,
+            bottom: self.bottom * rhs,
+        }
+    }
 }
 
 pub fn inside_f(p: (f32, f32), rect: FRect) -> bool {
