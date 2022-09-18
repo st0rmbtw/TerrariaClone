@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -13,18 +12,17 @@ use bevy::{
     render::view::NoFrustumCulling,
     sprite::{SpriteSheetBundle, TextureAtlas, TextureAtlasSprite}, utils::HashSet, math::Vec3Swizzles,
 };
-use bevy_rapier2d::prelude::{Collider, Friction, Restitution, RigidBody};
 use iyes_loopless::{
     prelude::{AppLooplessStateExt, ConditionSet},
     state::NextState,
 };
-use ndarray::{Array2, ArrayView2};
+use ndarray::Array2;
 use rand::{thread_rng, Rng};
 
 use crate::{
     block::Block,
     state::GameState,
-    util::{FRect, URect, IRect},
+    util::{FRect, IRect},
     world_generator::{generate, Cell, Neighbours, Tile, Wall, WORLD_SIZE_Y, WORLD_SIZE_X},
 };
 
@@ -54,21 +52,14 @@ impl Plugin for WorldPlugin {
 }
 
 #[derive(Component)]
-struct Chunk {
-    chunk_pos: IVec2
-}
-
-#[derive(Clone, Copy, Default)]
-pub struct ColliderData {
-    rect: FRect,
-    entity: Option<Entity>,
+pub struct Chunk {
+    pub chunk_pos: IVec2
 }
 
 pub struct WorldData {
     pub width: u16,
     pub height: u16,
     pub tiles: Array2<Cell>,
-    pub colliders: Vec<ColliderData>,
 }
 
 #[derive(Default)]
@@ -76,13 +67,12 @@ struct ChunkManager {
     pub spawned_chunks: HashSet<IVec2>
 }
 
-
 pub struct BlockBreakEvent {
     pub coords: UVec2,
 }
 
 pub struct BlockPlaceEvent {
-    pub coords: UVec2,
+    pub coords: Vec2,
     pub block: Block,
 }
 
@@ -97,13 +87,10 @@ fn spawn_terrain(mut commands: Commands) {
     println!("Generating world...");
     let tiles = generate(seed);
 
-    let colliders = get_colliders(&tiles.view());
-
     commands.insert_resource(WorldData {
         width: tiles.ncols() as u16,
         height: tiles.nrows() as u16,
         tiles,
-        colliders,
     });
 
     commands.insert_resource(NextState(GameState::InGame));
@@ -152,26 +139,6 @@ fn spawn_wall(
         })
         .insert(Name::new(format!("Wall {} {}", ix, iy)))
         .insert(NoFrustumCulling)
-        .id()
-}
-
-fn spawn_collider(commands: &mut Commands, rect: FRect) -> Entity {
-    commands
-        .spawn()
-        .insert(Collider::cuboid(
-            (rect.right - rect.left + 1.) * TILE_SIZE / 2.,
-            (rect.top - rect.bottom + 1.) * TILE_SIZE / 2.,
-        ))
-        .insert(RigidBody::Fixed)
-        .insert(Friction::new(0.))
-        .insert(Restitution::new(0.))
-        .insert(Transform::from_xyz(
-            (rect.left + rect.right) * TILE_SIZE / 2.,
-            -(rect.bottom + rect.top) * TILE_SIZE / 2.,
-            0.,
-        ))
-        .insert(GlobalTransform::default())
-        .insert(Name::new("Terrain Collider"))
         .id()
 }
 
@@ -250,89 +217,11 @@ fn get_wall_sprite_index(slope: Neighbours) -> usize {
     }
 }
 
-fn get_colliders(chunk: &ArrayView2<Cell>) -> Vec<ColliderData> {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Default, Hash)]
-    struct Plate {
-        left: usize,
-        right: usize,
-    }
-
-    let mut plate_stack: Vec<Vec<Plate>> = Vec::new();
-
-    for y in 0..chunk.nrows() - 1 {
-        let mut row_plates: Vec<Plate> = Vec::new();
-        let mut plate_start = None;
-
-        for x in 0..chunk.ncols() + 1 {
-            let is_solid = chunk.get((y, x)).and_then(|cell| cell.tile).is_some();
-
-            match (plate_start, is_solid) {
-                (Some(s), false) => {
-                    row_plates.push(Plate {
-                        left: s,
-                        right: x - 1,
-                    });
-                    plate_start = None;
-                }
-                (None, true) => plate_start = Some(x),
-                _ => (),
-            }
-        }
-
-        plate_stack.push(row_plates);
-    }
-
-    let mut tile_rects: Vec<URect> = Vec::new();
-    let mut previous_rects: HashMap<Plate, URect> = HashMap::new();
-
-    // an extra empty row so the algorithm "terminates" the rects that touch the top
-    // edge
-    plate_stack.push(Vec::new());
-
-    for (y, row) in plate_stack.iter().enumerate() {
-        let mut current_rects: HashMap<Plate, URect> = HashMap::new();
-
-        for plate in row {
-            if let Some(previous_rect) = previous_rects.remove(plate) {
-                current_rects.insert(
-                    *plate,
-                    URect {
-                        top: previous_rect.top + 1,
-                        ..previous_rect
-                    },
-                );
-            } else {
-                current_rects.insert(
-                    *plate,
-                    URect {
-                        bottom: y,
-                        top: y,
-                        left: plate.left,
-                        right: plate.right,
-                    },
-                );
-            }
-        }
-
-        // Any plates that weren't removed above have terminated
-        tile_rects.append(&mut previous_rects.values().copied().collect());
-        previous_rects = current_rects;
-    }
-
-    tile_rects
-        .iter()
-        .map(|rect| ColliderData {
-            rect: rect.to_frect(),
-            ..default()
-        })
-        .collect()
-}
-
 fn spawn_tiles(
     mut commands: Commands,
     block_assets: Res<BlockAssets>,
     wall_assets: Res<WallAssets>,
-    mut world_data: ResMut<WorldData>,
+    world_data: Res<WorldData>,
     mut chunk_manager: ResMut<ChunkManager>,
     camera_query: Query<
         (&GlobalTransform, &OrthographicProjection),
@@ -341,32 +230,16 @@ fn spawn_tiles(
 ) {
     if let Ok((camera_transform, projection)) = camera_query.get_single() {
         let camera_fov = get_camera_fov(camera_transform.translation().xy(), projection);
-        let camera_chunk_pos = get_chunk_position(camera_fov);
+        let camera_chunk_pos = get_chunk_position_by_camera_fov(camera_fov);
 
-        for y in camera_chunk_pos.top..camera_chunk_pos.bottom {
-            for x in camera_chunk_pos.left..camera_chunk_pos.right {
+        for y in camera_chunk_pos.top..=camera_chunk_pos.bottom {
+            for x in camera_chunk_pos.left..=camera_chunk_pos.right {
                 let chunk_pos = IVec2::new(x, y);
 
                 if !chunk_manager.spawned_chunks.contains(&chunk_pos) {
                     chunk_manager.spawned_chunks.insert(chunk_pos);
                     spawn_chunk(&mut commands, &block_assets, &wall_assets, &world_data, chunk_pos);
                 }
-            }
-        }
-
-        for collider in world_data.colliders.iter_mut() {
-            let inside = (collider.rect * (TILE_SIZE)).intersect(camera_fov);
-
-            match collider.entity {
-                None if inside => {
-                    let entity = spawn_collider(&mut commands, collider.rect);
-                    collider.entity = Some(entity);
-                }
-                Some(entity) if !inside => {
-                    commands.entity(entity).despawn();
-                    collider.entity = None;
-                }
-                _ => (),
             }
         }
     }
@@ -383,11 +256,11 @@ fn despawn_tiles(
 ) {
     if let Ok((camera_transform, projection)) = camera_query.get_single() {
         let camera_fov = get_camera_fov(camera_transform.translation().xy(), projection);
-        let camera_chunk_pos = get_chunk_position(camera_fov);
+        let camera_chunk_pos = get_chunk_position_by_camera_fov(camera_fov);
 
         for (entity, Chunk { chunk_pos }) in chunks.iter() {
-            if (chunk_pos.x < camera_chunk_pos.left || chunk_pos.x > camera_chunk_pos.right) &&
-               (chunk_pos.y < camera_chunk_pos.bottom || chunk_pos.y > camera_chunk_pos.top) 
+            if (chunk_pos.x < camera_chunk_pos.left || chunk_pos.x > camera_chunk_pos.right) ||
+               (chunk_pos.y > camera_chunk_pos.bottom || chunk_pos.y < camera_chunk_pos.top) 
             {
                 chunk_manager.spawned_chunks.remove(&chunk_pos);
                 commands.entity(entity).despawn_recursive();
@@ -473,12 +346,12 @@ fn get_camera_fov(camera_pos: Vec2, projection: &OrthographicProjection) -> FRec
     }
 }
 
-fn get_chunk_position(camera_fov: FRect) -> IRect {
+fn get_chunk_position_by_camera_fov(camera_fov: FRect) -> IRect {
     let mut rect = IRect { 
-        left: (camera_fov.left / (CHUNK_SIZE * TILE_SIZE)).floor() as i32 - 1, 
-        right: (camera_fov.right / (CHUNK_SIZE * TILE_SIZE)).ceil() as i32 + 1, 
-        top: (camera_fov.top / (CHUNK_SIZE * TILE_SIZE)).abs() as i32 - 1, 
-        bottom: (camera_fov.bottom / (CHUNK_SIZE * TILE_SIZE)).abs() as i32 + 1 
+        left: (camera_fov.left / (CHUNK_SIZE * TILE_SIZE)).floor() as i32, 
+        right: (camera_fov.right / (CHUNK_SIZE * TILE_SIZE)).ceil() as i32, 
+        bottom: (camera_fov.top / (CHUNK_SIZE * TILE_SIZE)).abs().ceil() as i32, 
+        top: (camera_fov.bottom / (CHUNK_SIZE * TILE_SIZE)).abs() as i32
     };
 
     const MAX_CHUNK_X: i32 = (WORLD_SIZE_X as f32 / CHUNK_SIZE) as i32;
@@ -503,6 +376,12 @@ fn get_chunk_position(camera_fov: FRect) -> IRect {
     rect
 }
 
+pub fn get_chunk_position(
+    pos: Vec2
+) -> IVec2 {
+    (pos / (CHUNK_SIZE * TILE_SIZE)).as_ivec2()
+}
+
 fn handle_block_place(
     mut commands: Commands,
     mut events: EventReader<BlockPlaceEvent>,
@@ -513,9 +392,9 @@ fn handle_block_place(
             &mut commands, 
             block_assets.get_by_block(event.block).unwrap(), 
             Tile { tile_type: event.block, neighbours: Neighbours::NONE }, 
-            event.coords.x, 
+            event.coords.x as u32, 
             event.coords.x as f32 * 16.,
-            event.coords.y, 
+            event.coords.y as u32, 
             event.coords.y as f32 * 16.,
         );
     }

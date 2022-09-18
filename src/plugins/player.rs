@@ -1,7 +1,7 @@
-use std::{collections::HashSet, option::Option, time::Duration};
+use std::{option::Option, time::Duration};
 
 use autodefault::autodefault;
-use bevy::{prelude::*, sprite::Anchor, math::vec2};
+use bevy::{prelude::*, sprite::Anchor, math::{vec2, Vec3Swizzles}};
 use bevy_hanabi::{
     AccelModifier, ColorOverLifetimeModifier, EffectAsset, Gradient, ParticleEffect,
     ParticleEffectBundle, ParticleLifetimeModifier, PositionCone3dModifier, ShapeDimension,
@@ -9,20 +9,18 @@ use bevy_hanabi::{
 };
 use bevy_inspector_egui::Inspectable;
 use bevy_rapier2d::{
-    pipeline::CollisionEvent,
     prelude::{
         ActiveEvents, Ccd, Collider, Friction, LockedAxes, RigidBody, Sensor,
         Velocity, RapierContext, QueryFilter,
     },
-    rapier::prelude::CollisionEventFlags,
 };
 use iyes_loopless::prelude::*;
 
 use crate::{
     items::{get_animation_points, Item},
     state::{GameState, MovementState},
-    util::{map_range, Lerp, get_tile_coords, get_rotation_by_direction, move_towards},
-    world_generator::WORLD_SIZE_X,
+    util::{map_range, get_tile_coords, get_rotation_by_direction, move_towards},
+    world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y},
 };
 
 use super::{
@@ -70,8 +68,8 @@ impl Plugin for PlayerPlugin {
                     .with_system(update_speed_coefficient)
                     .with_system(collision_check)
                     .with_system(horizontal_movement)
+                    .with_system(gravity)
                     .with_system(move_character)
-                    // .with_system(check_is_on_ground)
                     .with_system(use_item)
                     .with_system(auto_jump)
                     .into(),
@@ -160,12 +158,6 @@ struct UseItemAnimation(bool);
 #[derive(Component, Default, Inspectable)]
 pub struct GroundDetection {
     pub on_ground: bool,
-}
-
-#[derive(Component)]
-struct GroundSensor {
-    ground_detection_entity: Entity,
-    intersecting_ground_entities: HashSet<Entity>,
 }
 
 #[derive(Component, Default, Deref, DerefMut, Clone, Copy, Inspectable)]
@@ -528,11 +520,7 @@ fn spawn_player(
                 .insert(Sensor)
                 .insert(ActiveEvents::COLLISION_EVENTS)
                 .insert(Transform::from_xyz(0., -player_half_height - 6., 0.))
-                .insert(GlobalTransform::default())
-                .insert(GroundSensor {
-                    ground_detection_entity: entity,
-                    intersecting_ground_entities: HashSet::new(),
-                });
+                .insert(GlobalTransform::default());
             // endregion
         })
         .id();
@@ -581,75 +569,35 @@ fn spawn_player(
     });
 }
 
-fn update(
-    input: Res<Input<KeyCode>>,
-    time: Res<Time>,
-    axis: Res<Axis>,
-    mut query: Query<
-        (
-            &mut Velocity,
-            &GroundDetection,
-            &SpeedCoefficient,
-            &FaceDirection,
-        ),
-        With<Player>,
-    >,
-    mut jump: Local<i32>
-) {
-    let (
-        mut velocity, 
-        GroundDetection { on_ground },
-        coefficient, 
-        direction
-    ) = query.single_mut();
-
-    if input.just_pressed(KeyCode::Space) && *on_ground {
-        *jump = 15;
-    }
-
-    if *jump > 0 {
-        velocity.linvel.y = 300.;
-    }
-
-    if input.pressed(KeyCode::Space) && *jump > 0 {
-        *jump -= 1;
-    }
-
-    if input.just_released(KeyCode::Space) {
-        *jump = 0;
-    }
-
-    let vel_sign = velocity.linvel.x.signum();
-    let dir_sign = f32::from(*direction);
-
-    if vel_sign != dir_sign && axis.is_moving() {
-        velocity.linvel.x -= (PLAYER_SPEED * 4. * vel_sign) * time.delta_seconds();
-    } else {
-        velocity.linvel.x = 0_f32.lerp(dir_sign * PLAYER_SPEED, coefficient.0);
-    }
-}
-
 fn collision_check(
+    mut collisions: ResMut<Collisions>,
     world_data: Res<WorldData>,
-    player: Query<&Transform, With<Player>>,
-    rapier_context: Res<RapierContext>
+    mut player: Query<(&Transform, &mut GroundDetection), With<Player>>,
 ) {
-    let player_transform = player.single();
+    let (player_transform, mut ground_detection) = player.single_mut();
 
-    let player_pos = player_transform.translation.truncate();
+    let player_pos = player_transform.translation.xy();
 
-    // let neighbours = world_data.get_neighbour_tiles(get_tile_coords(player_pos));
+    let left = (((player_pos.x - PLAYER_SPRITE_WIDTH / 2.) / TILE_SIZE) as usize).checked_sub(1).unwrap_or(0);
+    let right = ((player_pos.x + PLAYER_SPRITE_WIDTH / 2.) / TILE_SIZE) as usize + 1;
+    let bottom = (((player_pos.y + PLAYER_SPRITE_HEIGHT / 2. + 0.1) / TILE_SIZE).ceil().abs() + 1.) as usize;
+    let top = (((player_pos.y - PLAYER_SPRITE_HEIGHT / 2.) / TILE_SIZE).ceil().abs() as usize);
 
-    // for tile_pos in neighbours {
-    //     let collision = collide_aabb::collide(
-    //         tile_pos.as_vec2().extend(1.) * TILE_SIZE, 
-    //         Vec2::splat(TILE_SIZE), 
-    //         player_transform.translation,
-    //         Vec2::new(PLAYER_SPRITE_WIDTH, PLAYER_SPRITE_HEIGHT)
-    //     );
+    let cleft = left.clamp(0, WORLD_SIZE_X - 1);
+    let cright = left.clamp(0, WORLD_SIZE_X - 1);
+    let ctop = left.clamp(0, WORLD_SIZE_Y - 1);
+    let cbottom = left.clamp(0, WORLD_SIZE_Y - 1);
 
-    //     dbg!(collision);
-    // }
+    for x in cleft..right {
+        let mut on_ground = false;
+
+        if world_data.tiles.get((bottom, x)).and_then(|cell| cell.tile).is_some() {
+            on_ground = true;
+        }
+
+        collisions.down = on_ground;
+        ground_detection.on_ground = on_ground;
+    }
 }
 
 fn horizontal_movement(
@@ -659,9 +607,9 @@ fn horizontal_movement(
 ) {
     let horizontal_speed = &mut player_controller.horizontal_speed;
 
-    const ACCELERATION: f32 = 90.;
-    const SLOWDOWN: f32 = 60.;
-    const MOVE_CLAMP: f32 = 13.;
+    const ACCELERATION: f32 = 50.;
+    const SLOWDOWN: f32 = 20.;
+    const MOVE_CLAMP: f32 = 5.;
 
     if axis.is_moving() {
         let mut speed = *horizontal_speed;
@@ -675,15 +623,38 @@ fn horizontal_movement(
     }
 }
 
+fn gravity(
+    time: Res<Time>,
+    collisions: Res<Collisions>,
+    mut player_controller: ResMut<PlayerController>
+) {
+    const FALL_CLAMP: f32 = -10.;
+
+    if collisions.down {
+        if player_controller.vertical_speed < 0. {
+            player_controller.vertical_speed = 0.;
+        }
+    } else {
+        let fall_speed = FALL_CLAMP * time.delta_seconds();
+        player_controller.vertical_speed += fall_speed;
+
+        if player_controller.vertical_speed < FALL_CLAMP {
+            player_controller.vertical_speed = FALL_CLAMP;
+        }
+    }
+}
+
 fn move_character(
     mut player_query: Query<&mut Transform, With<Player>>,
     player_controller: Res<PlayerController>,
 ) {
     let mut transform = player_query.single_mut();
 
-    let max = WORLD_SIZE_X as f32 * TILE_SIZE - PLAYER_SPRITE_WIDTH / 2.;
+    let min = TILE_SIZE / 2.;
+    let max = WORLD_SIZE_X as f32 * TILE_SIZE - TILE_SIZE / 2.;
 
-    transform.translation.x = (transform.translation.x + player_controller.horizontal_speed).clamp(0., max);
+    transform.translation.x = (transform.translation.x + player_controller.horizontal_speed).clamp(min, max);
+    transform.translation.y = (transform.translation.y + player_controller.vertical_speed).clamp(-max, -min);
 }
 
 fn spawn_particles(
@@ -702,32 +673,6 @@ fn spawn_particles(
             .maybe_spawner()
             .unwrap()
             .set_active(*movement_state == MovementState::WALKING);
-    }
-}
-
-fn check_is_on_ground(
-    mut ground_sensors: Query<&mut GroundSensor>,
-    mut ground_detectors: Query<&mut GroundDetection>,
-    mut collisions: EventReader<CollisionEvent>,
-) {
-    for mut ground_sensor in &mut ground_sensors {
-        for collision in collisions.iter() {
-            match collision {
-                CollisionEvent::Started(a, _, CollisionEventFlags::SENSOR) => {
-                    ground_sensor.intersecting_ground_entities.insert(*a);
-                }
-                CollisionEvent::Stopped(a, _, CollisionEventFlags::SENSOR) => {
-                    ground_sensor.intersecting_ground_entities.remove(a);
-                }
-                _ => {} 
-            }
-        }
-
-        if let Ok(mut ground_detection) =
-            ground_detectors.get_mut(ground_sensor.ground_detection_entity)
-        {
-            ground_detection.on_ground = !ground_sensor.intersecting_ground_entities.is_empty();
-        }
     }
 }
 

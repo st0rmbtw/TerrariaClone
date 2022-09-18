@@ -2,7 +2,7 @@ use std::ops::Mul;
 
 use bevy::{
     ecs::system::EntityCommands,
-    prelude::{default, Button, Changed, Component, Query, With, Vec2, Quat, UVec2},
+    prelude::{default, Button, Changed, Component, Query, With, Vec2, Quat},
     ui::{Interaction, UiRect, Val},
 };
 
@@ -185,8 +185,8 @@ pub fn inside_f(p: (f32, f32), rect: FRect) -> bool {
     p.0 < rect.bottom && p.0 > rect.top && p.1 > rect.left && p.1 < rect.right
 }
 
-pub fn get_tile_coords(world_coords: Vec2) -> UVec2 {
-    (world_coords / TILE_SIZE).round().as_uvec2()
+pub fn get_tile_coords(world_coords: Vec2) -> Vec2 {
+    (world_coords / TILE_SIZE).round()
 }
 
 pub fn get_rotation_by_direction(direction: FaceDirection) -> Quat {

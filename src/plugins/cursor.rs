@@ -328,7 +328,7 @@ fn update_tile_grid_position(
 ) {
     let mut transform = query.single_mut();
     
-    let tile_coords = get_tile_coords(cursor.world_position).as_vec2();
+    let tile_coords = get_tile_coords(cursor.world_position);
 
     transform.translation.x = tile_coords.x * TILE_SIZE;
     transform.translation.y = tile_coords.y * TILE_SIZE;
