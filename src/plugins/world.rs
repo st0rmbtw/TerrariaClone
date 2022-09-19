@@ -351,7 +351,7 @@ fn get_chunk_position_by_camera_fov(camera_fov: FRect) -> IRect {
         left: (camera_fov.left / (CHUNK_SIZE * TILE_SIZE)).floor() as i32, 
         right: (camera_fov.right / (CHUNK_SIZE * TILE_SIZE)).ceil() as i32, 
         bottom: (camera_fov.top / (CHUNK_SIZE * TILE_SIZE)).abs().ceil() as i32, 
-        top: (camera_fov.bottom / (CHUNK_SIZE * TILE_SIZE)).abs() as i32
+        top: (camera_fov.bottom / (CHUNK_SIZE * TILE_SIZE)).abs() as i32 - 1
     };
 
     const MAX_CHUNK_X: i32 = (WORLD_SIZE_X as f32 / CHUNK_SIZE) as i32;

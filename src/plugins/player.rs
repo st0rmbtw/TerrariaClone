@@ -1,26 +1,20 @@
 use std::{option::Option, time::Duration};
 
 use autodefault::autodefault;
-use bevy::{prelude::*, sprite::Anchor, math::{vec2, Vec3Swizzles}};
+use bevy::{prelude::*, sprite::Anchor, math::Vec3Swizzles};
 use bevy_hanabi::{
     AccelModifier, ColorOverLifetimeModifier, EffectAsset, Gradient, ParticleEffect,
     ParticleEffectBundle, ParticleLifetimeModifier, PositionCone3dModifier, ShapeDimension,
     SizeOverLifetimeModifier, Spawner,
 };
 use bevy_inspector_egui::Inspectable;
-use bevy_rapier2d::{
-    prelude::{
-        ActiveEvents, Ccd, Collider, Friction, LockedAxes, RigidBody, Sensor,
-        Velocity, RapierContext, QueryFilter,
-    },
-};
 use iyes_loopless::prelude::*;
 
 use crate::{
     items::{get_animation_points, Item},
     state::{GameState, MovementState},
     util::{map_range, get_tile_coords, get_rotation_by_direction, move_towards},
-    world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y},
+    world_generator::WORLD_SIZE_X,
 };
 
 use super::{
@@ -30,8 +24,6 @@ use super::{
 
 pub const PLAYER_SPRITE_WIDTH: f32 = 2. * TILE_SIZE;
 pub const PLAYER_SPRITE_HEIGHT: f32 = 3. * TILE_SIZE;
-
-const PLAYER_SPEED: f32 = 30. * 5.;
 
 const WALKING_ANIMATION_MAX_INDEX: usize = 13;
 
@@ -65,13 +57,11 @@ impl Plugin for PlayerPlugin {
                     .with_system(update_axis)
                     .with_system(update_movement_state)
                     .with_system(update_face_direction)
-                    .with_system(update_speed_coefficient)
                     .with_system(collision_check)
                     .with_system(horizontal_movement)
                     .with_system(gravity)
                     .with_system(move_character)
                     .with_system(use_item)
-                    .with_system(auto_jump)
                     .into(),
             )
             .add_system_set_to_stage(
@@ -159,9 +149,6 @@ struct UseItemAnimation(bool);
 pub struct GroundDetection {
     pub on_ground: bool,
 }
-
-#[derive(Component, Default, Deref, DerefMut, Clone, Copy, Inspectable)]
-pub struct SpeedCoefficient(pub f32);
 
 #[derive(Default, Clone, Copy)]
 struct Axis {
@@ -303,6 +290,14 @@ fn spawn_player(
 ) {
     let player = commands
         .spawn()
+        .insert(Player)
+        .insert(Name::new("Player"))
+        .insert(GroundDetection::default())
+        .insert(MovementState::default())
+        .insert(FaceDirection::default())
+        .insert(Transform::from_xyz(WORLD_SIZE_X as f32 * 16. / 2., 5. * TILE_SIZE, 0.1))
+        .insert(GlobalTransform::default())
+        .insert_bundle(VisibilityBundle::default())
         .with_children(|cmd| {
             // region: Hair
             cmd.spawn_bundle(SpriteSheetBundle {
@@ -484,45 +479,6 @@ fn spawn_player(
 
             // endregion
         })
-        .insert(Player)
-        .insert(GroundDetection::default())
-        .insert(Name::new("Player"))
-        .insert(SpeedCoefficient::default())
-        .insert(MovementState::default())
-        .insert(FaceDirection::default())
-        // RigidBody
-        .insert(RigidBody::Dynamic)
-        .insert(Velocity::zero())
-        .insert(Ccd::enabled())
-        .insert(LockedAxes::ROTATION_LOCKED)
-        .insert(Transform::from_xyz(WORLD_SIZE_X as f32 * 16. / 2., 10., 0.1))
-        .insert(GlobalTransform::default())
-        .insert_bundle(VisibilityBundle::default())
-        .with_children(|children| {
-            let entity = children.parent_entity();
-
-            let player_half_width = PLAYER_SPRITE_WIDTH / 2.;
-            let player_half_height = PLAYER_SPRITE_HEIGHT / 2.;
-
-            // region: Collider
-            children
-                .spawn()
-                .insert(Collider::cuboid(player_half_width, player_half_height))
-                .insert(ActiveEvents::COLLISION_EVENTS)
-                .insert(Transform::from_xyz(0., -4.5, 0.))
-                .insert(Friction::coefficient(0.));
-            // endregion
-
-            // region: Ground sensor
-            children
-                .spawn()
-                .insert(Collider::cuboid(player_half_width - 1., 1.))
-                .insert(Sensor)
-                .insert(ActiveEvents::COLLISION_EVENTS)
-                .insert(Transform::from_xyz(0., -player_half_height - 6., 0.))
-                .insert(GlobalTransform::default());
-            // endregion
-        })
         .id();
 
     let mut gradient = Gradient::new();
@@ -578,15 +534,12 @@ fn collision_check(
 
     let player_pos = player_transform.translation.xy();
 
-    let left = (((player_pos.x - PLAYER_SPRITE_WIDTH / 2.) / TILE_SIZE) as usize).checked_sub(1).unwrap_or(0);
-    let right = ((player_pos.x + PLAYER_SPRITE_WIDTH / 2.) / TILE_SIZE) as usize + 1;
-    let bottom = (((player_pos.y + PLAYER_SPRITE_HEIGHT / 2. + 0.1) / TILE_SIZE).ceil().abs() + 1.) as usize;
-    let top = (((player_pos.y - PLAYER_SPRITE_HEIGHT / 2.) / TILE_SIZE).ceil().abs() as usize);
+    let left = (((player_pos.x - PLAYER_SPRITE_WIDTH / 2.) / TILE_SIZE) as usize) - 1;
+    let right = (((player_pos.x + PLAYER_SPRITE_WIDTH / 2.) / TILE_SIZE) as usize) + 1;
+    let bottom = (((player_pos.y - PLAYER_SPRITE_HEIGHT / 2.) / TILE_SIZE).floor().abs() as usize);
+    let top = (((player_pos.y + PLAYER_SPRITE_HEIGHT / 2.) / TILE_SIZE).abs() as usize).checked_sub(1).unwrap_or(0);
 
     let cleft = left.clamp(0, WORLD_SIZE_X - 1);
-    let cright = left.clamp(0, WORLD_SIZE_X - 1);
-    let ctop = left.clamp(0, WORLD_SIZE_Y - 1);
-    let cbottom = left.clamp(0, WORLD_SIZE_Y - 1);
 
     for x in cleft..right {
         let mut on_ground = false;
@@ -598,18 +551,29 @@ fn collision_check(
         collisions.down = on_ground;
         ground_detection.on_ground = on_ground;
     }
+
+    for y in top..bottom {
+        let mut col_left = false;
+
+        if world_data.tiles.get((y, left + 2)).and_then(|cell| cell.tile).is_some() {
+            col_left = true;
+        }
+
+        collisions.left = col_left;
+    }
 }
 
 fn horizontal_movement(
     axis: Res<Axis>,
     time: Res<Time>,
+    collsions: Res<Collisions>,
     mut player_controller: ResMut<PlayerController>,
 ) {
     let horizontal_speed = &mut player_controller.horizontal_speed;
 
-    const ACCELERATION: f32 = 50.;
-    const SLOWDOWN: f32 = 20.;
-    const MOVE_CLAMP: f32 = 5.;
+    const ACCELERATION: f32 = 10.;
+    const SLOWDOWN: f32 = 6.;
+    const MOVE_CLAMP: f32 = 3.;
 
     if axis.is_moving() {
         let mut speed = *horizontal_speed;
@@ -621,16 +585,25 @@ fn horizontal_movement(
     } else {
         *horizontal_speed = move_towards(*horizontal_speed, 0., SLOWDOWN * time.delta_seconds());
     }
+
+    if *horizontal_speed < 0. && collsions.left {
+        *horizontal_speed = 0.;
+    }
 }
 
 fn gravity(
     time: Res<Time>,
     collisions: Res<Collisions>,
-    mut player_controller: ResMut<PlayerController>
+    mut player_controller: ResMut<PlayerController>,
+    mut player_query: Query<&mut Transform, With<Player>>
 ) {
+    let mut player_transform = player_query.single_mut();
+
     const FALL_CLAMP: f32 = -10.;
 
     if collisions.down {
+        player_transform.translation.y = player_transform.translation.y.floor();
+
         if player_controller.vertical_speed < 0. {
             player_controller.vertical_speed = 0.;
         }
@@ -677,15 +650,16 @@ fn spawn_particles(
 }
 
 fn update_movement_state(
-    mut query: Query<(&GroundDetection, &Velocity, &mut MovementState), With<Player>>,
+    player_controller: Res<PlayerController>,
+    mut query: Query<(&GroundDetection, &mut MovementState), With<Player>>,
 ) {
-    let (GroundDetection { on_ground }, velocity, mut movement_state) = query.single_mut();
+    let (GroundDetection { on_ground }, mut movement_state) = query.single_mut();
 
-    *movement_state = match velocity.linvel {
-        Vec2 { x, .. } if x != 0. && *on_ground => MovementState::WALKING,
+    *movement_state = match player_controller.horizontal_speed {
+        x if x != 0. && *on_ground => MovementState::WALKING,
         _ => match on_ground {
-            false => match velocity.linvel {
-                Vec2 { y, .. } if y < 0. => MovementState::FLYING,
+            false => match player_controller.vertical_speed {
+                y if y < 0. => MovementState::FLYING,
                 _ => MovementState::FALLING,
             },
             _ => MovementState::IDLE,
@@ -704,26 +678,6 @@ fn update_face_direction(axis: Res<Axis>, mut query: Query<&mut FaceDirection>) 
     }
 }
 
-fn update_speed_coefficient(
-    time: Res<Time>,
-    axis: Res<Axis>,
-    mut query: Query<(&mut SpeedCoefficient, &Velocity, &FaceDirection)>,
-) {
-    for (mut coeff, velocity, direction) in &mut query {
-        coeff.0 = if velocity.linvel.x.signum() != f32::from(*direction) {
-            0.
-        } else {
-            let new_coeff = coeff.0 + match coeff.0 {
-                c if c < 1. && axis.is_moving() => 1.5,
-                c if c > 0. && !axis.is_moving() => -1.7,
-                _ => 0.,
-            } * time.delta_seconds();
-
-            new_coeff.clamp(0., 1.)
-        }
-    }
-}
-
 fn update_axis(input: Res<Input<KeyCode>>, mut axis: ResMut<Axis>) {
     let left = input.pressed(KeyCode::A);
     let right = input.pressed(KeyCode::D);
@@ -734,13 +688,12 @@ fn update_axis(input: Res<Input<KeyCode>>, mut axis: ResMut<Axis>) {
 }
 
 fn update_movement_animation_timer_duration(
+    player_controller: Res<PlayerController>,
     mut timer: ResMut<AnimationTimer>,
-    query: Query<&Velocity, With<Player>>,
 ) {
-    let velocity = query.single();
+    if player_controller.horizontal_speed != 0. {
+        let mut time = 100. / player_controller.horizontal_speed.abs();
 
-    if velocity.linvel.x != 0. {
-        let mut time = 5000. / velocity.linvel.x.abs();
         if time < 1. {
             time = 1.;
         }
@@ -964,36 +917,6 @@ fn use_item_animation(
     query.for_each_mut(|(mut sprite, anim_data)| {
         sprite.index = anim_data.0 + index.0;
     });
-}
-
-fn auto_jump(
-    axis: Res<Axis>,
-    mut player_query: Query<(&mut Transform, &MovementState), With<Player>>,
-    rapier_context: Res<RapierContext>
-) {
-    let (mut player_transform, movement_state) = player_query.single_mut();
-    let player_x = player_transform.translation.x;
-    let player_y = player_transform.translation.y;
-
-    let player_direction = axis.x;
-
-    if player_direction != 0. && *movement_state == MovementState::WALKING {
-        
-        let ray_dir = vec2(player_direction, 0.);
-        let toi = 12.;
-        let solid = true;
-        let filter = QueryFilter::only_fixed();
-
-        if rapier_context.cast_ray(
-                vec2(player_x, player_y - PLAYER_SPRITE_HEIGHT / 2.), ray_dir, toi, solid, filter
-        ).is_some() && rapier_context.cast_ray(
-            vec2(player_x, (player_y - PLAYER_SPRITE_HEIGHT / 2.) + TILE_SIZE), ray_dir, toi, solid, filter
-        ).is_none() {
-
-            player_transform.translation.y += 1. * TILE_SIZE;
-            player_transform.translation.x += player_direction * TILE_SIZE / 3.;
-        }
-    }
 }
 
 fn use_item(

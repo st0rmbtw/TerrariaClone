@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use super::{
-    CursorAssets, FontAssets, MainCamera, Player, SpeedCoefficient, UiAssets, UiVisibility, TILE_SIZE,
+    CursorAssets, FontAssets, MainCamera, Player, UiAssets, UiVisibility, TILE_SIZE,
 };
 use crate::{
     animation::{
@@ -336,10 +336,10 @@ fn update_tile_grid_position(
 
 fn update_tile_grid_opacity(
     time: Res<Time>,
-    player: Query<(&SpeedCoefficient, &MovementState), With<Player>>,
+    player: Query<&MovementState, With<Player>>,
     mut tile_grid: Query<&mut Sprite, With<TileGrid>>,
 ) {
-    if let Ok((SpeedCoefficient(speed_coefficient), movement_state)) = player.get_single() {
+    if let Ok(movement_state) = player.get_single() {
         let mut sprite = tile_grid.single_mut();
 
         let opacity = match movement_state {
@@ -347,9 +347,9 @@ fn update_tile_grid_opacity(
                 let mut a = sprite.color.a();
 
                 if a > MIN_TILE_GRID_OPACITY {
-                    a = a - speed_coefficient * time.delta_seconds() * 0.7;
+                    a = a * time.delta_seconds() * 0.7;
                 } else if a < MIN_TILE_GRID_OPACITY {
-                    a = a + speed_coefficient * time.delta_seconds() * 0.7;
+                    a = a * time.delta_seconds() * 0.7;
                 }
 
                 a.clamp(0., MAX_TILE_GRID_OPACITY)

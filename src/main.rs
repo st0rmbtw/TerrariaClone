@@ -8,7 +8,6 @@ use bevy::{
     window::PresentMode,
 };
 use bevy_hanabi::HanabiPlugin;
-use bevy_rapier2d::plugin::{NoUserData, RapierConfiguration, RapierPhysicsPlugin};
 use game::{
     animation::TweeningPlugin,
     parallax::ParallaxPlugin,
@@ -46,12 +45,7 @@ fn main() {
             151. / 255.,
             244. / 255.,
         )))
-        .insert_resource(RapierConfiguration {
-            gravity: Vec2::Y * -0.,
-            ..default()
-        })
         .add_loopless_state(GameState::AssetLoading)
-        .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(2. * 16.))
         .add_plugins(DefaultPlugins)
         .add_plugin(TweeningPlugin)
         .add_plugin(AssetsPlugin)
