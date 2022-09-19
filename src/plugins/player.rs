@@ -22,7 +22,7 @@ use super::{
     TILE_SIZE, BlockPlaceEvent, Inventory, WorldData,
 };
 
-pub const PLAYER_SPRITE_WIDTH: f32 = 2. * TILE_SIZE;
+pub const PLAYER_SPRITE_WIDTH: f32 = 2. * TILE_SIZE * 0.75;
 pub const PLAYER_SPRITE_HEIGHT: f32 = 3. * TILE_SIZE;
 
 const WALKING_ANIMATION_MAX_INDEX: usize = 13;
@@ -55,12 +55,12 @@ impl Plugin for PlayerPlugin {
                 ConditionSet::new()
                     .run_in_state(GameState::InGame)
                     .with_system(update_axis)
-                    .with_system(update_movement_state)
                     .with_system(update_face_direction)
                     .with_system(collision_check)
                     .with_system(horizontal_movement)
                     .with_system(gravity)
                     .with_system(move_character)
+                    .with_system(update_movement_state)
                     .with_system(use_item)
                     .into(),
             )
@@ -377,7 +377,7 @@ fn spawn_player(
             .insert(PlayerBodySprite)
             .insert_bundle(MovementAnimationBundle {
                 walking: WalkingAnimationData {
-                    offset: 14,
+                    offset: 13,
                     count: 13,
                 },
                 flying: FlyingAnimationData(2),
@@ -397,7 +397,7 @@ fn spawn_player(
             .insert(PlayerBodySprite)
             .insert_bundle(MovementAnimationBundle {
                 walking: WalkingAnimationData {
-                    offset: 14,
+                    offset: 13,
                     count: 13,
                 },
                 flying: FlyingAnimationData(2),
@@ -471,6 +471,9 @@ fn spawn_player(
                 sprite: Sprite {
                     anchor: Anchor::BottomLeft,
                 },
+                visibility: Visibility {
+                    is_visible: false
+                },
                 transform: Transform::from_xyz(0., 0., 0.15),
             })
             .insert(ChangeFlip)
@@ -478,6 +481,38 @@ fn spawn_player(
             .insert(Name::new("Using item"));
 
             // endregion
+
+            cmd.spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    color: Color::RED,
+                    custom_size: Some(Vec2::new(PLAYER_SPRITE_WIDTH, 1.))
+                },
+                transform: Transform::from_xyz(0., -PLAYER_SPRITE_HEIGHT / 2., 0.5),
+            });
+
+            cmd.spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    color: Color::RED,
+                    custom_size: Some(Vec2::new(PLAYER_SPRITE_WIDTH, 1.))
+                },
+                transform: Transform::from_xyz(0., PLAYER_SPRITE_HEIGHT / 2., 0.5),
+            });
+
+            cmd.spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    color: Color::RED,
+                    custom_size: Some(Vec2::new(1., PLAYER_SPRITE_HEIGHT))
+                },
+                transform: Transform::from_xyz(-PLAYER_SPRITE_WIDTH / 2., 0., 0.5),
+            });
+
+            cmd.spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    color: Color::RED,
+                    custom_size: Some(Vec2::new(1., PLAYER_SPRITE_HEIGHT))
+                },
+                transform: Transform::from_xyz(PLAYER_SPRITE_WIDTH / 2., 0., 0.5),
+            });
         })
         .id();
 
@@ -528,39 +563,45 @@ fn spawn_player(
 fn collision_check(
     mut collisions: ResMut<Collisions>,
     world_data: Res<WorldData>,
-    mut player: Query<(&Transform, &mut GroundDetection), With<Player>>,
+    mut player_query: Query<(&Transform, &mut GroundDetection), With<Player>>,
 ) {
-    let (player_transform, mut ground_detection) = player.single_mut();
+    let (player_transform, mut ground_detection) = player_query.single_mut();
 
     let player_pos = player_transform.translation.xy();
 
-    let left = (((player_pos.x - PLAYER_SPRITE_WIDTH / 2.) / TILE_SIZE) as usize) - 1;
-    let right = (((player_pos.x + PLAYER_SPRITE_WIDTH / 2.) / TILE_SIZE) as usize) + 1;
-    let bottom = (((player_pos.y - PLAYER_SPRITE_HEIGHT / 2.) / TILE_SIZE).floor().abs() as usize);
-    let top = (((player_pos.y + PLAYER_SPRITE_HEIGHT / 2.) / TILE_SIZE).abs() as usize).checked_sub(1).unwrap_or(0);
+    let left = ((player_pos.x - PLAYER_SPRITE_WIDTH / 2.) / TILE_SIZE).round() as usize;
+    let right = ((player_pos.x + PLAYER_SPRITE_WIDTH / 2.) / TILE_SIZE).floor() as usize;
+    let bottom = ((player_pos.y - PLAYER_SPRITE_HEIGHT / 2.) / TILE_SIZE).round().abs() as usize;
+    let top = ((player_pos.y + PLAYER_SPRITE_HEIGHT / 2.) / TILE_SIZE).floor().abs() as usize;
 
     let cleft = left.clamp(0, WORLD_SIZE_X - 1);
 
-    for x in cleft..right {
-        let mut on_ground = false;
+    let mut col_left = false;
+    let mut col_down = false;
 
-        if world_data.tiles.get((bottom, x)).and_then(|cell| cell.tile).is_some() {
-            on_ground = true;
+    for x in cleft..right {
+        if col_down {
+            break;
         }
 
-        collisions.down = on_ground;
-        ground_detection.on_ground = on_ground;
+        if world_data.tiles.get((bottom, x)).and_then(|cell| cell.tile).is_some() {
+            col_down = true;
+        }
     }
 
     for y in top..bottom {
-        let mut col_left = false;
-
-        if world_data.tiles.get((y, left + 2)).and_then(|cell| cell.tile).is_some() {
-            col_left = true;
+        if col_left {
+            break;
         }
 
-        collisions.left = col_left;
+        if world_data.tiles.get((y, left)).and_then(|cell| cell.tile).is_some() {
+            col_left = true;
+        }
     }
+
+    ground_detection.on_ground = col_down;
+    collisions.down = col_down;
+    collisions.left = col_left;
 }
 
 fn horizontal_movement(
@@ -568,27 +609,36 @@ fn horizontal_movement(
     time: Res<Time>,
     collsions: Res<Collisions>,
     mut player_controller: ResMut<PlayerController>,
+    mut player_query: Query<&mut Transform, With<Player>>,
 ) {
+    let mut player_transform = player_query.single_mut();
+    
     let horizontal_speed = &mut player_controller.horizontal_speed;
 
     const ACCELERATION: f32 = 10.;
     const SLOWDOWN: f32 = 6.;
     const MOVE_CLAMP: f32 = 3.;
 
+    let mut new_speed = *horizontal_speed;
+
     if axis.is_moving() {
-        let mut speed = *horizontal_speed;
-
-        speed += axis.x * ACCELERATION * time.delta_seconds();
-        speed = speed.clamp(-MOVE_CLAMP, MOVE_CLAMP);
-
-        *horizontal_speed = speed;
+        new_speed += axis.x * ACCELERATION * time.delta_seconds();
+        new_speed = new_speed.clamp(-MOVE_CLAMP, MOVE_CLAMP);
     } else {
-        *horizontal_speed = move_towards(*horizontal_speed, 0., SLOWDOWN * time.delta_seconds());
+        new_speed = move_towards(*horizontal_speed, 0., SLOWDOWN * time.delta_seconds());
     }
 
-    if *horizontal_speed < 0. && collsions.left {
-        *horizontal_speed = 0.;
+    if new_speed < 0. && collsions.left {
+        new_speed = 0.;
+
+        let threshold = player_transform.translation.x - player_transform.translation.x % TILE_SIZE + TILE_SIZE / 2.;
+
+        if player_transform.translation.x > threshold {
+            player_transform.translation.x = threshold;
+        }
     }
+
+    *horizontal_speed = new_speed;
 }
 
 fn gravity(
@@ -602,7 +652,11 @@ fn gravity(
     const FALL_CLAMP: f32 = -10.;
 
     if collisions.down {
-        player_transform.translation.y = player_transform.translation.y.floor();
+        let threshold = ((player_transform.translation.y) / TILE_SIZE).round() * TILE_SIZE;
+
+        if player_transform.translation.y < threshold {
+            player_transform.translation.y = threshold;
+        }
 
         if player_controller.vertical_speed < 0. {
             player_controller.vertical_speed = 0.;
@@ -948,10 +1002,10 @@ fn use_item(
 #[cfg(debug_assertions)]
 fn set_sprite_index(
     input: Res<Input<KeyCode>>,
-    mut query: Query<(&mut TextureAtlasSprite, &UseItemAnimationData), With<PlayerBodySprite>>,
+    mut query: Query<(&mut TextureAtlasSprite, &WalkingAnimationData), With<PlayerBodySprite>>,
 ) {
     query.for_each_mut(|(mut sprite, animation_data)| {
-        let anim_offset = animation_data.0;
+        let anim_offset = animation_data.offset;
 
         let mut new_sprite_index = sprite.index;
 
@@ -965,6 +1019,6 @@ fn set_sprite_index(
 
         new_sprite_index = new_sprite_index.checked_sub(anim_offset).unwrap_or(0);
 
-        sprite.index = anim_offset + (new_sprite_index % USE_ITEM_ANIMATION_FRAMES_COUNT);
+        sprite.index = anim_offset + (new_sprite_index % WALKING_ANIMATION_MAX_INDEX);
     });
 }

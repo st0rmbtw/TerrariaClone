@@ -93,17 +93,6 @@ handles! {
 #[derive(AssetCollection)]
 pub struct PlayerAssets {
     #[asset(texture_atlas(
-        tile_size_x = 37.,
-        tile_size_y = 53.,
-        columns = 1,
-        rows = 16,
-        padding_x = 0.,
-        padding_y = 3.
-    ))]
-    #[asset(path = "sprites/npc_22.png")]
-    pub main: Handle<TextureAtlas>,
-
-    #[asset(texture_atlas(
         tile_size_x = 40.,
         tile_size_y = 48.,
         columns = 1,
@@ -138,24 +127,24 @@ pub struct PlayerAssets {
 
     #[asset(texture_atlas(
         tile_size_x = 32.,
-        tile_size_y = 64.,
+        tile_size_y = 80.,
         columns = 18,
         rows = 1,
         padding_x = 0.,
         padding_y = 0.
     ))]
-    #[asset(path = "sprites/player/Player_Right_Arm.png")]
+    #[asset(path = "sprites/player/Player_Right_Arm2.png")]
     pub right_arm: Handle<TextureAtlas>,
 
     #[asset(texture_atlas(
         tile_size_x = 40.,
-        tile_size_y = 48.,
+        tile_size_y = 64.,
         columns = 1,
         rows = 14,
         padding_x = 0.,
         padding_y = 0.
     ))]
-    #[asset(path = "sprites/player/Player_Hair_1.png")]
+    #[asset(path = "sprites/player/Player_Hair_1_2.png")]
     pub hair: Handle<TextureAtlas>,
 
     #[asset(texture_atlas(
