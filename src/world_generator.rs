@@ -137,7 +137,7 @@ pub fn generate(seed: u32) -> Array2<Cell> {
         0.6,
     );
 
-    world.slice_collapse(s![level.sky.1.., ..]);
+    world.slice_mut(s![..level.sky.1, ..]).fill(Cell::default());
 
     make_epic_cave(&mut world, epic_cave_noise, 0.0009, 0.011);
 

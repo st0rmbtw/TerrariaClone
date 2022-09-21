@@ -111,7 +111,7 @@ fn spawn_tile(
         .spawn_bundle(SpriteSheetBundle {
             sprite: TextureAtlasSprite { index, ..default() },
             texture_atlas,
-            transform: Transform::from_xyz(x, y, 0.1).with_scale(Vec3::splat(1.05)),
+            transform: Transform::from_xyz(x, y, 0.1).with_scale(Vec3::splat(1.0)),
             ..default()
         })
         .insert(tile.tile_type)
