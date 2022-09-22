@@ -109,7 +109,11 @@ fn spawn_tile(
 
     commands
         .spawn_bundle(SpriteSheetBundle {
-            sprite: TextureAtlasSprite { index, ..default() },
+            sprite: TextureAtlasSprite {
+                custom_size: Some(Vec2::new(16., 16.)),
+                index,
+                ..default()
+            },
             texture_atlas,
             transform: Transform::from_xyz(x, y, 0.1).with_scale(Vec3::splat(1.0)),
             ..default()

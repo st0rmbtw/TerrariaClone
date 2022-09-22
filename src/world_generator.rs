@@ -63,7 +63,7 @@ pub struct Wall {
     pub neighbours: Neighbours,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct Tile {
     pub tile_type: Block,
     pub neighbours: Neighbours,

@@ -1,20 +1,19 @@
 use std::{option::Option, time::Duration};
 
 use autodefault::autodefault;
-use bevy::{prelude::*, sprite::Anchor, math::Vec3Swizzles};
+use bevy::{prelude::*, sprite::Anchor, math::{Vec3Swizzles, vec2}};
 use bevy_hanabi::{
     AccelModifier, ColorOverLifetimeModifier, EffectAsset, Gradient, ParticleEffect,
     ParticleEffectBundle, ParticleLifetimeModifier, PositionCone3dModifier, ShapeDimension,
     SizeOverLifetimeModifier, Spawner,
 };
 use bevy_inspector_egui::Inspectable;
-use bevy_prototype_debug_lines::DebugLines;
 use iyes_loopless::prelude::*;
 
 use crate::{
     items::{get_animation_points, Item},
     state::{GameState, MovementState},
-    util::{map_range, get_tile_coords, get_rotation_by_direction, move_towards, Lerp, FRect},
+    util::{map_range, get_tile_coords, get_rotation_by_direction, move_towards, FRect},
     world_generator::WORLD_SIZE_X, Velocity,
 };
 
@@ -33,11 +32,13 @@ const USE_ITEM_ANIMATION_FRAMES_COUNT: usize = 3;
 const MOVEMENT_ANIMATION_LABEL: &str = "movement_animation";
 const USE_ITEM_ANIMATION_LABEL: &str = "use_item_animation";
 
-const JUMP_HEIGHT: f32 = 5.;
-const JUMP_END_EARLY_MODIFIER: f32 = 3.;
-const JUMP_APEX_THRESHOLD: f32 = 2.;
-const MIN_FALL_SPEED: f32 = 1.;
-const MAX_FALL_SPEED: f32 = 4.;
+const ACCELERATION: f32 = 6.;
+const SLOWDOWN: f32 = 8.;
+const MOVE_CLAMP: f32 = 2.5;
+
+const JUMP_HEIGHT: f32 = 3.5;
+const JUMP_END_EARLY_MODIFIER: f32 = 15.;
+const MAX_FALL_SPEED: f32 = 1.;
 
 // region: Plugin
 
@@ -56,7 +57,10 @@ impl Plugin for PlayerPlugin {
             )))
             .init_resource::<PlayerVelocity>()
             .init_resource::<PlayerRect>()
-            .init_resource::<PlayerController>()
+            .insert_resource(PlayerController {
+                ended_jump_early: true,
+                ..default()
+            })
             .init_resource::<Collisions>()
             .insert_resource(UseItemAnimation(false))
             .add_enter_system(GameState::InGame, spawn_player)
@@ -226,9 +230,7 @@ pub struct PlayerRect(pub FRect);
 
 #[derive(Clone, Copy, Default)]
 struct PlayerController {
-    ended_jump_early: bool,
-    fall_speed: f32,
-    apex_point: f32,
+    ended_jump_early: bool
 }
 
 #[derive(Clone, Copy, Default)]
@@ -573,7 +575,6 @@ fn update() -> SystemSet {
         .with_system(collision_check)
         .with_system(horizontal_movement)
         .with_system(gravity)
-        .with_system(jump_apex)
         .with_system(jump)
         .with_system(update_movement_state)
         .with_system(move_character)
@@ -588,10 +589,7 @@ fn update_rect(
     let player_transform = player_query.single();
     let player_pos = player_transform.translation.xy();
 
-    player_rect.left = player_pos.x - PLAYER_SPRITE_WIDTH / 2.;
-    player_rect.right = player_pos.x + PLAYER_SPRITE_WIDTH / 2.;
-    player_rect.bottom = player_pos.y - PLAYER_SPRITE_HEIGHT / 2.;
-    player_rect.top = player_pos.y + PLAYER_SPRITE_HEIGHT / 2.;
+    player_rect.0 = get_player_rect(player_pos);
 }
 
 fn collision_check(
@@ -607,14 +605,14 @@ fn collision_check(
     let bottom = (player_rect.bottom / TILE_SIZE).round().abs() as usize;
     let top = (player_rect.top / TILE_SIZE).floor().abs() as usize;
 
-    let cleft = left.clamp(0, WORLD_SIZE_X - 1);
+    let cleft = left.checked_sub(1).unwrap_or(0);
 
     let mut col_left = false;
     let mut col_right = false;
     let mut col_down = false;
     let mut col_top = false;
 
-    for x in cleft..right {
+    for x in cleft..(right + 1) {
         if col_down {
             break;
         }
@@ -624,7 +622,7 @@ fn collision_check(
         }
     }
     
-    for x in cleft..right {
+    for x in cleft..(right + 1) {
         if col_top {
             break;
         }
@@ -667,10 +665,6 @@ fn horizontal_movement(
     collsions: Res<Collisions>,
     mut velocity: ResMut<PlayerVelocity>
 ) {
-    const ACCELERATION: f32 = 10.;
-    const SLOWDOWN: f32 = 6.;
-    const MOVE_CLAMP: f32 = 3.;
-
     if axis.is_moving() {
         velocity.x += axis.x * ACCELERATION * time.delta_seconds();
         velocity.x = velocity.x.clamp(-MOVE_CLAMP, MOVE_CLAMP);
@@ -681,16 +675,6 @@ fn horizontal_movement(
     if (velocity.x < 0. && collsions.left) || (velocity.x > 0. && collsions.right) {
         velocity.x = 0.;
     }
-
-    
-
-    // if collsions.right {
-    //     let threshold = (player_transform.translation.x / TILE_SIZE).round() * TILE_SIZE;
-
-    //     if player_rect.left < threshold {
-    //         player_transform.translation.x = threshold - 2.;
-    //     }
-    // }
 }
 
 fn gravity(
@@ -698,27 +682,18 @@ fn gravity(
     collisions: Res<Collisions>,
     player_controller: Res<PlayerController>,
     mut velocity: ResMut<PlayerVelocity>,
-    mut player_query: Query<&mut Transform, With<Player>>
 ) {
-    let mut player_transform = player_query.single_mut();
-
     const FALL_CLAMP: f32 = -10.;
 
     if collisions.down {
-        let threshold = (player_transform.translation.y / TILE_SIZE).ceil() * TILE_SIZE;
-
-        if player_transform.translation.y < threshold {
-            player_transform.translation.y = threshold;
-        }
-
         if velocity.y < 0. {
             velocity.y = 0.;
         }
     } else {
-        let fall_speed = if player_controller.ended_jump_early && velocity.y > 0. {
-            player_controller.fall_speed * JUMP_END_EARLY_MODIFIER
+        let fall_speed = if player_controller.ended_jump_early {
+            MAX_FALL_SPEED * JUMP_END_EARLY_MODIFIER
         } else {
-            player_controller.fall_speed
+            MAX_FALL_SPEED
         };
 
         velocity.y -= fall_speed * time.delta_seconds();
@@ -726,19 +701,6 @@ fn gravity(
         if velocity.y < FALL_CLAMP {
             velocity.y = FALL_CLAMP;
         }
-    }
-}
-
-fn jump_apex(
-    collisions: Res<Collisions>,
-    velocity: Res<PlayerVelocity>,
-    mut player_controller: ResMut<PlayerController>
-) {
-    if !collisions.down {
-        player_controller.apex_point = 0f32.lerp(JUMP_APEX_THRESHOLD, velocity.y.abs());
-        player_controller.fall_speed = MIN_FALL_SPEED.lerp(MAX_FALL_SPEED, player_controller.apex_point);
-    } else {
-        player_controller.apex_point = 0.;
     }
 }
 
@@ -764,27 +726,58 @@ fn jump(
     }
 }
 
-fn move_character(
+fn move_character( 
+    world_data: Res<WorldData>,
     velocity: Res<PlayerVelocity>,
-    collisions: Res<Collisions>,
-    player_rect: Res<PlayerRect>,
-    mut player_query: Query<&mut Transform, With<Player>>,
-    mut lines: ResMut<DebugLines>
+    mut player_query: Query<&mut Transform, With<Player>>
 ) {
     let mut transform = player_query.single_mut();
 
-    let min = TILE_SIZE / 2.;
-    let max = WORLD_SIZE_X as f32 * TILE_SIZE - TILE_SIZE / 2.;
+    const MIN: f32 = TILE_SIZE / 2.;
+    const MAX: f32 = WORLD_SIZE_X as f32 * TILE_SIZE - TILE_SIZE / 2.;
 
-    transform.translation.x = (transform.translation.x + velocity.x).clamp(min, max);
-    transform.translation.y = (transform.translation.y + velocity.y).clamp(-max, -min);
+    let raw = (transform.translation.xy() + velocity.0).clamp(vec2(MIN, -MAX), vec2(MAX, -MIN));
 
-    if collisions.left && velocity.x == 0. {
-        let threshold = (transform.translation.x / TILE_SIZE).round() * TILE_SIZE - TILE_SIZE / 2.;
+    let player_rect = get_player_rect(raw);
 
-        if player_rect.left < threshold + 1. {
-            transform.translation.x = threshold + PLAYER_SPRITE_WIDTH / 2. - 1.;
+    let left = (player_rect.left / TILE_SIZE).round() as usize;
+    let right = (player_rect.right / TILE_SIZE).round() as usize;
+    let bottom = ((player_rect.bottom / TILE_SIZE).ceil().abs()) as usize;
+    let top = (player_rect.top / TILE_SIZE).floor().abs() as usize;
+
+    let mut hit = false;
+
+    for x in left..(right + 1) {
+        if world_data.tiles.get((bottom, x)).and_then(|cell| cell.tile).is_some() {
+            hit = true;
+            break;
         }
+    }
+    
+    for x in left..(right + 1) {
+        if world_data.tiles.get((top, x)).and_then(|cell| cell.tile).is_some() {
+            hit = true;
+            break;
+        }
+    }
+
+    for y in top..bottom {
+        if world_data.tiles.get((y, left)).and_then(|cell| cell.tile).is_some() {
+            hit = true;
+            break;
+        }
+    }
+
+    for y in top..bottom {
+        if world_data.tiles.get((y, right)).and_then(|cell| cell.tile).is_some() {
+            hit = true;
+            break;
+        }
+    }
+
+    if !hit {
+        transform.translation.x = raw.x;
+        transform.translation.y = raw.y;
     }
 }
 
@@ -1125,4 +1118,13 @@ fn set_sprite_index(
 
         sprite.index = anim_offset + (new_sprite_index % WALKING_ANIMATION_MAX_INDEX);
     });
+}
+
+fn get_player_rect(position: Vec2) -> FRect {
+    FRect {
+        left: position.x - PLAYER_SPRITE_WIDTH / 2.,
+        right: position.x + PLAYER_SPRITE_WIDTH / 2.,
+        bottom: position.y - PLAYER_SPRITE_HEIGHT / 2.,
+        top: position.y + PLAYER_SPRITE_HEIGHT / 2.
+    }
 }
