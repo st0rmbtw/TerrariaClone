@@ -1,38 +1,30 @@
-use std::{collections::HashSet, option::Option, time::Duration};
+use std::{option::Option, time::Duration};
 
 use autodefault::autodefault;
-use bevy::{prelude::*, sprite::Anchor, math::vec2};
+use bevy::{prelude::*, sprite::Anchor, math::{Vec3Swizzles, vec2}};
 use bevy_hanabi::{
     AccelModifier, ColorOverLifetimeModifier, EffectAsset, Gradient, ParticleEffect,
     ParticleEffectBundle, ParticleLifetimeModifier, PositionCone3dModifier, ShapeDimension,
     SizeOverLifetimeModifier, Spawner,
 };
 use bevy_inspector_egui::Inspectable;
-use bevy_rapier2d::{
-    pipeline::CollisionEvent,
-    prelude::{
-        ActiveEvents, Ccd, Collider, Friction, GravityScale, LockedAxes, RigidBody, Sensor,
-        Velocity, RapierContext, QueryFilter,
-    },
-    rapier::prelude::CollisionEventFlags,
-};
+use bevy_prototype_debug_lines::DebugLines;
 use iyes_loopless::prelude::*;
 
 use crate::{
     items::{get_animation_points, Item},
     state::{GameState, MovementState},
-    util::{map_range, Lerp, get_tile_coords, get_rotation_by_direction},
-    TRANSPARENT, world_generator::WORLD_SIZE_X,
+    util::{map_range, get_tile_coords, get_rotation_by_direction, move_towards, FRect, Lerp, inverse_lerp},
+    world_generator::WORLD_SIZE_X, Velocity,
 };
 
 use super::{
-    CursorPosition, ItemAssets, PlayerAssets, PlayerInventoryPlugin, SelectedItem, TILE_SIZE, BlockPlaceEvent, Inventory,
+    CursorPosition, ItemAssets, PlayerAssets, PlayerInventoryPlugin, SelectedItem, 
+    TILE_SIZE, BlockPlaceEvent, Inventory, WorldData,
 };
 
 pub const PLAYER_SPRITE_WIDTH: f32 = 2. * TILE_SIZE * 0.75;
-pub const PLAYER_SPRITE_HEIGHT: f32 = 3. * TILE_SIZE * 0.95;
-
-const PLAYER_SPEED: f32 = 30. * 5.;
+pub const PLAYER_SPRITE_HEIGHT: f32 = 3. * TILE_SIZE;
 
 const WALKING_ANIMATION_MAX_INDEX: usize = 13;
 
@@ -40,6 +32,14 @@ const USE_ITEM_ANIMATION_FRAMES_COUNT: usize = 3;
 
 const MOVEMENT_ANIMATION_LABEL: &str = "movement_animation";
 const USE_ITEM_ANIMATION_LABEL: &str = "use_item_animation";
+
+const ACCELERATION: f32 = 6.;
+const SLOWDOWN: f32 = 8.;
+const MOVE_CLAMP: f32 = 3.;
+
+const JUMP_HEIGHT: i32 = 15;
+const JUMP_SPEED: f32 = 5.01;
+const MAX_FALL_SPEED: f32 = 20.;
 
 // region: Plugin
 
@@ -56,21 +56,15 @@ impl Plugin for PlayerPlugin {
                 Duration::from_millis(100),
                 true,
             )))
+            .init_resource::<PlayerVelocity>()
+            .init_resource::<PlayerRect>()
+            .insert_resource(PlayerController {
+                ..default()
+            })
+            .init_resource::<Collisions>()
             .insert_resource(UseItemAnimation(false))
             .add_enter_system(GameState::InGame, spawn_player)
-            .add_system_set(
-                ConditionSet::new()
-                    .run_in_state(GameState::InGame)
-                    .with_system(update_axis)
-                    .with_system(update_movement_state)
-                    .with_system(update_face_direction)
-                    .with_system(update_speed_coefficient)
-                    .with_system(update)
-                    .with_system(check_is_on_ground)
-                    .with_system(use_item)
-                    .with_system(auto_jump)
-                    .into(),
-            )
+            .add_system_set(update())
             .add_system_set_to_stage(
                 CoreStage::PostUpdate, 
                 ConditionSet::new()
@@ -80,14 +74,7 @@ impl Plugin for PlayerPlugin {
                     .into()
             )
             .add_system_set_to_stage(
-                CoreStage::Last, 
-                ConditionSet::new()
-                    .run_in_state(GameState::InGame)
-                    .with_system(limit_player_move)
-                    .into()
-            )
-            .add_system_set_to_stage(
-                CoreStage::PreUpdate,
+                CoreStage::PostUpdate,
                 ConditionSet::new()
                     .run_in_state(GameState::InGame)
                     .label(MOVEMENT_ANIMATION_LABEL)
@@ -103,7 +90,7 @@ impl Plugin for PlayerPlugin {
                     .into(),
             )
             .add_system_set_to_stage(
-                CoreStage::PreUpdate,
+                CoreStage::PostUpdate,
                 ConditionSet::new()
                     .run_in_state(GameState::InGame)
                     .label(USE_ITEM_ANIMATION_LABEL)
@@ -159,25 +146,10 @@ struct UseItemAnimationTimer(Timer);
 #[derive(Component, PartialEq)]
 struct UseItemAnimation(bool);
 
-#[derive(Component, Default)]
-struct Jumpable {
-    jump_time_counter: f32,
-    is_jumping: bool,
-}
-
 #[derive(Component, Default, Inspectable)]
 pub struct GroundDetection {
-    on_ground: bool,
+    pub on_ground: bool,
 }
-
-#[derive(Component)]
-struct GroundSensor {
-    ground_detection_entity: Entity,
-    intersecting_ground_entities: HashSet<Entity>,
-}
-
-#[derive(Component, Default, Deref, DerefMut, Clone, Copy, Inspectable)]
-pub struct SpeedCoefficient(pub f32);
 
 #[derive(Default, Clone, Copy)]
 struct Axis {
@@ -250,6 +222,27 @@ struct PlayerParticleEffects {
     walking: Entity,
 }
 
+#[derive(Clone, Copy, Default, Deref, DerefMut)]
+pub struct PlayerVelocity(pub Velocity);
+
+#[derive(Clone, Copy, Default, Deref, DerefMut)]
+pub struct PlayerRect(pub FRect);
+
+#[derive(Clone, Copy, Default)]
+struct PlayerController {
+    fall_speed: f32,
+    apex_point: f32,
+    jump: i32
+}
+
+#[derive(Clone, Copy, Default)]
+struct Collisions {
+    up: bool,
+    down: bool,
+    left: bool,
+    right: bool
+}
+
 // endregion
 
 // region: Impls
@@ -304,13 +297,15 @@ fn spawn_player(
     mut effects: ResMut<Assets<EffectAsset>>,
 ) {
     let player = commands
-        .spawn_bundle(SpriteBundle {
-            sprite: Sprite {
-                color: TRANSPARENT,
-                custom_size: Some(Vec2::splat(1.)),
-            },
-            computed_visibility: ComputedVisibility::not_visible(),
-        })
+        .spawn()
+        .insert(Player)
+        .insert(Name::new("Player"))
+        .insert(GroundDetection::default())
+        .insert(MovementState::default())
+        .insert(FaceDirection::default())
+        .insert(Transform::from_xyz(WORLD_SIZE_X as f32 * 16. / 2., 5. * TILE_SIZE, 0.1))
+        .insert(GlobalTransform::default())
+        .insert_bundle(VisibilityBundle::default())
         .with_children(|cmd| {
             // region: Hair
             cmd.spawn_bundle(SpriteSheetBundle {
@@ -390,7 +385,7 @@ fn spawn_player(
             .insert(PlayerBodySprite)
             .insert_bundle(MovementAnimationBundle {
                 walking: WalkingAnimationData {
-                    offset: 14,
+                    offset: 13,
                     count: 13,
                 },
                 flying: FlyingAnimationData(2),
@@ -410,7 +405,7 @@ fn spawn_player(
             .insert(PlayerBodySprite)
             .insert_bundle(MovementAnimationBundle {
                 walking: WalkingAnimationData {
-                    offset: 14,
+                    offset: 13,
                     count: 13,
                 },
                 flying: FlyingAnimationData(2),
@@ -484,6 +479,9 @@ fn spawn_player(
                 sprite: Sprite {
                     anchor: Anchor::BottomLeft,
                 },
+                visibility: Visibility {
+                    is_visible: false
+                },
                 transform: Transform::from_xyz(0., 0., 0.15),
             })
             .insert(ChangeFlip)
@@ -491,49 +489,38 @@ fn spawn_player(
             .insert(Name::new("Using item"));
 
             // endregion
-        })
-        .insert(Player)
-        .insert(Jumpable::default())
-        .insert(GroundDetection::default())
-        .insert(Name::new("Player"))
-        .insert(SpeedCoefficient::default())
-        .insert(MovementState::default())
-        .insert(FaceDirection::default())
-        // RigidBody
-        .insert(RigidBody::Dynamic)
-        .insert(Velocity::zero())
-        .insert(Ccd::enabled())
-        .insert(LockedAxes::ROTATION_LOCKED)
-        .insert(GravityScale(40.))
-        .insert(Transform::from_xyz(WORLD_SIZE_X as f32 * 16. / 2., 10., 0.1))
-        .with_children(|children| {
-            let entity = children.parent_entity();
 
-            let player_half_width = PLAYER_SPRITE_WIDTH / 2.;
-            let player_half_height = PLAYER_SPRITE_HEIGHT / 2.;
+            // cmd.spawn_bundle(SpriteBundle {
+            //     sprite: Sprite {
+            //         color: Color::RED,
+            //         custom_size: Some(Vec2::new(PLAYER_SPRITE_WIDTH, 1.))
+            //     },
+            //     transform: Transform::from_xyz(0., -PLAYER_SPRITE_HEIGHT / 2., 0.5),
+            // });
 
-            // region: Collider
-            children
-                .spawn()
-                .insert(Collider::cuboid(player_half_width, player_half_height))
-                .insert(ActiveEvents::COLLISION_EVENTS)
-                .insert(Transform::from_xyz(0., -4.5, 0.))
-                .insert(Friction::coefficient(0.));
-            // endregion
+            // cmd.spawn_bundle(SpriteBundle {
+            //     sprite: Sprite {
+            //         color: Color::RED,
+            //         custom_size: Some(Vec2::new(PLAYER_SPRITE_WIDTH, 1.))
+            //     },
+            //     transform: Transform::from_xyz(0., PLAYER_SPRITE_HEIGHT / 2., 0.5),
+            // });
 
-            // region: Ground sensor
-            children
-                .spawn()
-                .insert(Collider::cuboid(player_half_width - 1., 1.))
-                .insert(Sensor)
-                .insert(ActiveEvents::COLLISION_EVENTS)
-                .insert(Transform::from_xyz(0., -player_half_height - 6., 0.))
-                .insert(GlobalTransform::default())
-                .insert(GroundSensor {
-                    ground_detection_entity: entity,
-                    intersecting_ground_entities: HashSet::new(),
-                });
-            // endregion
+            // cmd.spawn_bundle(SpriteBundle {
+            //     sprite: Sprite {
+            //         color: Color::RED,
+            //         custom_size: Some(Vec2::new(1., PLAYER_SPRITE_HEIGHT))
+            //     },
+            //     transform: Transform::from_xyz(-PLAYER_SPRITE_WIDTH / 2., 0., 0.5),
+            // });
+
+            // cmd.spawn_bundle(SpriteBundle {
+            //     sprite: Sprite {
+            //         color: Color::RED,
+            //         custom_size: Some(Vec2::new(1., PLAYER_SPRITE_HEIGHT))
+            //     },
+            //     transform: Transform::from_xyz(PLAYER_SPRITE_WIDTH / 2., 0., 0.5),
+            // });
         })
         .id();
 
@@ -581,53 +568,245 @@ fn spawn_player(
     });
 }
 
-fn update(
-    input: Res<Input<KeyCode>>,
-    time: Res<Time>,
-    axis: Res<Axis>,
-    mut query: Query<
-        (
-            &mut Velocity,
-            &GroundDetection,
-            &mut Jumpable,
-            &SpeedCoefficient,
-            &FaceDirection,
-        ),
-        With<Player>,
-    >,
+fn update() -> SystemSet {
+    ConditionSet::new()
+        .run_in_state(GameState::InGame)
+        .with_system(update_rect)
+        .with_system(update_axis)
+        .with_system(update_face_direction)
+        .with_system(collision_check)
+        .with_system(horizontal_movement)
+        .with_system(gravity)
+        .with_system(jump)
+        .with_system(jump_apex)
+        .with_system(update_movement_state)
+        .with_system(move_character)
+        .with_system(use_item)
+        .into()
+}
+
+fn update_rect(
+    mut player_rect: ResMut<PlayerRect>,
+    player_query: Query<&Transform, With<Player>>,
 ) {
-    let (mut velocity, ground_detection, mut jumpable, coefficient, direction) = query.single_mut();
+    let player_transform = player_query.single();
+    let player_pos = player_transform.translation.xy();
 
-    let on_ground = ground_detection.on_ground;
+    player_rect.0 = get_player_rect(player_pos);
+}
 
-    if input.just_pressed(KeyCode::Space) && on_ground {
-        jumpable.is_jumping = true;
-        jumpable.jump_time_counter = 0.15;
-        velocity.linvel.y = 400.;
+fn collision_check(
+    world_data: Res<WorldData>,
+    player_rect: Res<PlayerRect>,
+    mut collisions: ResMut<Collisions>,
+    mut player_query: Query<&mut GroundDetection, With<Player>>,
+) {
+    let mut ground_detection = player_query.single_mut();
+
+    let left = (player_rect.left / TILE_SIZE).round() as usize;
+    let right = (player_rect.right / TILE_SIZE).round() as usize;
+    let bottom = (player_rect.bottom / TILE_SIZE).round().abs() as usize;
+    let top = (player_rect.top / TILE_SIZE).floor().abs() as usize;
+
+    let cleft = left.checked_sub(1).unwrap_or(0);
+
+    let mut col_left = false;
+    let mut col_right = false;
+    let mut col_down = false;
+    let mut col_top = false;
+
+    for x in cleft..(right + 1) {
+        if col_down {
+            break;
+        }
+
+        if world_data.tiles.get((bottom, x)).and_then(|cell| cell.tile).is_some() {
+            col_down = true;
+        }
     }
+    
+    for x in cleft..(right + 1) {
+        if col_top {
+            break;
+        }
 
-    if input.pressed(KeyCode::Space) && jumpable.is_jumping && jumpable.jump_time_counter > 0. {
-        if jumpable.jump_time_counter > 0. {
-            if jumpable.jump_time_counter < 0.12 - 0.1 {
-                velocity.linvel.y = 400.;
-            }
-            jumpable.jump_time_counter -= time.delta_seconds();
-        } else {
-            jumpable.is_jumping = false;
+        if world_data.tiles.get((top, x)).and_then(|cell| cell.tile).is_some() {
+            col_top = true;
         }
     }
 
-    if input.just_released(KeyCode::Space) {
-        jumpable.is_jumping = false;
+    for y in top..bottom {
+        if col_left {
+            break;
+        }
+
+        if world_data.tiles.get((y, left)).and_then(|cell| cell.tile).is_some() {
+            col_left = true;
+        }
     }
 
-    let vel_sign = velocity.linvel.x.signum();
-    let dir_sign = f32::from(*direction);
+    for y in top..bottom {
+        if col_right {
+            break;
+        }
 
-    if vel_sign != dir_sign && axis.is_moving() {
-        velocity.linvel.x -= (PLAYER_SPEED * 4. * vel_sign) * time.delta_seconds();
+        if world_data.tiles.get((y, right)).and_then(|cell| cell.tile).is_some() {
+            col_right = true;
+        }
+    }
+
+    ground_detection.on_ground = col_down;
+    collisions.up = col_top;
+    collisions.down = col_down;
+    collisions.left = col_left;
+    collisions.right = col_right;
+}
+
+fn horizontal_movement(
+    axis: Res<Axis>,
+    time: Res<Time>,
+    collsions: Res<Collisions>,
+    mut velocity: ResMut<PlayerVelocity>
+) {
+    if axis.is_moving() {
+        velocity.x += axis.x * ACCELERATION * time.delta_seconds();
+        velocity.x = velocity.x.clamp(-MOVE_CLAMP, MOVE_CLAMP);
     } else {
-        velocity.linvel.x = 0_f32.lerp(dir_sign * PLAYER_SPEED, coefficient.0);
+        velocity.x = move_towards(velocity.x, 0., SLOWDOWN * time.delta_seconds());
+    }
+
+    if (velocity.x < 0. && collsions.left) || (velocity.x > 0. && collsions.right) {
+        velocity.x = 0.;
+    }
+}
+
+fn gravity(
+    time: Res<Time>,
+    collisions: Res<Collisions>,
+    player_controller: Res<PlayerController>,
+    mut velocity: ResMut<PlayerVelocity>,
+) {
+    if collisions.down {
+        if velocity.y < 0. {
+            velocity.y = 0.;
+        }
+    } else {
+        velocity.y -= player_controller.fall_speed * time.delta_seconds();
+
+        if velocity.y < -MAX_FALL_SPEED {
+            velocity.y = -MAX_FALL_SPEED;
+        }
+    }
+}
+
+fn jump_apex(
+    collisions: Res<Collisions>,
+    mut player_controller: ResMut<PlayerController>
+) {
+    if !collisions.down {
+        player_controller.apex_point = inverse_lerp(JUMP_HEIGHT as f32, 0., player_controller.jump as f32);
+        player_controller.fall_speed = 0f32.lerp(MAX_FALL_SPEED, player_controller.apex_point);
+    } else {
+        player_controller.apex_point = 0.;
+    }
+}
+
+fn jump(
+    input: Res<Input<KeyCode>>,
+    collisions: Res<Collisions>,
+    mut velocity: ResMut<PlayerVelocity>,
+    mut player_controller: ResMut<PlayerController>,
+) {
+    if input.just_pressed(KeyCode::Space) && collisions.down {
+        player_controller.jump = JUMP_HEIGHT;
+        velocity.y = JUMP_SPEED;
+    }
+
+    if input.pressed(KeyCode::Space) {
+        if player_controller.jump > 0 {
+            if velocity.y == 0. {
+                player_controller.jump = 0;
+            } else {
+                velocity.y = JUMP_SPEED;
+
+                player_controller.jump -= 1;
+            }
+        }
+    } else {
+        player_controller.jump = 0;
+    }
+
+    if collisions.up {
+        if velocity.y > 0. {
+            velocity.y = 0.;
+        }
+    }
+}
+
+fn move_character(
+    velocity: Res<PlayerVelocity>,
+    collisions: Res<Collisions>,
+    mut player_query: Query<&mut Transform, With<Player>>,
+    mut lines: ResMut<DebugLines>
+) {
+    let mut transform = player_query.single_mut();
+
+    const MIN: f32 = TILE_SIZE / 2.;
+    const MAX: f32 = WORLD_SIZE_X as f32 * TILE_SIZE - TILE_SIZE / 2.;
+
+    let raw = (transform.translation.xy() + velocity.0).clamp(vec2(MIN, -MAX), vec2(MAX, -MIN));
+    
+    transform.translation.x = raw.x;
+    transform.translation.y = raw.y;
+
+    let player_rect = get_player_rect(raw);
+
+    if collisions.down && velocity.y == 0. {
+        let threshold = (player_rect.bottom / TILE_SIZE).round() * TILE_SIZE + TILE_SIZE / 2. - 1.;
+        
+        if player_rect.bottom < threshold {
+            transform.translation.y = threshold + PLAYER_SPRITE_HEIGHT / 2.;
+      
+            #[cfg(debug_assertions)]
+            lines.line_colored(
+                Vec3::new(raw.x - PLAYER_SPRITE_WIDTH / 2., threshold, 3.), 
+                Vec3::new(raw.x + PLAYER_SPRITE_WIDTH / 2., threshold, 3.), 
+                0.,
+                Color::WHITE
+            );
+        }
+    }
+
+    if collisions.left && velocity.x == 0. {
+        let threshold = (player_rect.left / TILE_SIZE).round() * TILE_SIZE + TILE_SIZE / 2. - 2.;
+
+        if player_rect.left < threshold {
+            transform.translation.x = threshold + PLAYER_SPRITE_WIDTH / 2. + 0.5;
+
+            #[cfg(debug_assertions)]
+            lines.line_colored(
+                Vec3::new(threshold, raw.y - PLAYER_SPRITE_HEIGHT / 2., 3.),
+                Vec3::new(threshold, raw.y + PLAYER_SPRITE_HEIGHT / 2., 3.), 
+                0.,
+                Color::WHITE
+            );
+        }
+    }
+
+    if collisions.right && velocity.x == 0. {
+        let threshold = (player_rect.right / TILE_SIZE).round() * TILE_SIZE - TILE_SIZE / 2. + 2.;
+
+        if player_rect.right > threshold {
+            transform.translation.x = threshold - PLAYER_SPRITE_WIDTH / 2. - 0.5;
+
+            #[cfg(debug_assertions)]
+            lines.line_colored(
+                Vec3::new(threshold, raw.y - PLAYER_SPRITE_HEIGHT / 2., 3.),
+                Vec3::new(threshold, raw.y + PLAYER_SPRITE_HEIGHT / 2., 3.), 
+                0.,
+                Color::WHITE
+            );
+        }
     }
 }
 
@@ -650,42 +829,17 @@ fn spawn_particles(
     }
 }
 
-fn check_is_on_ground(
-    mut ground_sensors: Query<&mut GroundSensor>,
-    mut ground_detectors: Query<&mut GroundDetection>,
-    mut collisions: EventReader<CollisionEvent>,
-) {
-    for mut ground_sensor in &mut ground_sensors {
-        for collision in collisions.iter() {
-            match collision {
-                CollisionEvent::Started(a, _, CollisionEventFlags::SENSOR) => {
-                    ground_sensor.intersecting_ground_entities.insert(*a);
-                }
-                CollisionEvent::Stopped(a, _, CollisionEventFlags::SENSOR) => {
-                    ground_sensor.intersecting_ground_entities.remove(a);
-                }
-                _ => {} 
-            }
-        }
-
-        if let Ok(mut ground_detection) =
-            ground_detectors.get_mut(ground_sensor.ground_detection_entity)
-        {
-            ground_detection.on_ground = !ground_sensor.intersecting_ground_entities.is_empty();
-        }
-    }
-}
-
 fn update_movement_state(
-    mut query: Query<(&GroundDetection, &Velocity, &mut MovementState), With<Player>>,
+    velocity: Res<PlayerVelocity>,
+    mut query: Query<(&GroundDetection, &mut MovementState), With<Player>>,
 ) {
-    let (GroundDetection { on_ground }, velocity, mut movement_state) = query.single_mut();
+    let (GroundDetection { on_ground }, mut movement_state) = query.single_mut();
 
-    *movement_state = match velocity.linvel {
-        Vec2 { x, .. } if x != 0. && *on_ground => MovementState::WALKING,
+    *movement_state = match velocity.x {
+        x if x != 0. && *on_ground => MovementState::WALKING,
         _ => match on_ground {
-            false => match velocity.linvel {
-                Vec2 { y, .. } if y < 0. => MovementState::FLYING,
+            false => match velocity.y {
+                y if y < 0. => MovementState::FLYING,
                 _ => MovementState::FALLING,
             },
             _ => MovementState::IDLE,
@@ -704,26 +858,6 @@ fn update_face_direction(axis: Res<Axis>, mut query: Query<&mut FaceDirection>) 
     }
 }
 
-fn update_speed_coefficient(
-    time: Res<Time>,
-    axis: Res<Axis>,
-    mut query: Query<(&mut SpeedCoefficient, &Velocity, &FaceDirection)>,
-) {
-    for (mut coeff, velocity, direction) in &mut query {
-        coeff.0 = if velocity.linvel.x.signum() != f32::from(*direction) {
-            0.
-        } else {
-            let new_coeff = coeff.0 + match coeff.0 {
-                c if c < 1. && axis.is_moving() => 1.5,
-                c if c > 0. && !axis.is_moving() => -1.7,
-                _ => 0.,
-            } * time.delta_seconds();
-
-            new_coeff.clamp(0., 1.)
-        }
-    }
-}
-
 fn update_axis(input: Res<Input<KeyCode>>, mut axis: ResMut<Axis>) {
     let left = input.pressed(KeyCode::A);
     let right = input.pressed(KeyCode::D);
@@ -734,13 +868,12 @@ fn update_axis(input: Res<Input<KeyCode>>, mut axis: ResMut<Axis>) {
 }
 
 fn update_movement_animation_timer_duration(
+    velocity: Res<PlayerVelocity>,
     mut timer: ResMut<AnimationTimer>,
-    query: Query<&Velocity, With<Player>>,
 ) {
-    let velocity = query.single();
+    if velocity.x != 0. {
+        let mut time = 100. / velocity.x.abs();
 
-    if velocity.linvel.x != 0. {
-        let mut time = 5000. / velocity.linvel.x.abs();
         if time < 1. {
             time = 1.;
         }
@@ -966,78 +1099,35 @@ fn use_item_animation(
     });
 }
 
-fn auto_jump(
-    axis: Res<Axis>,
-    mut player_query: Query<(&mut Transform, &MovementState), With<Player>>,
-    rapier_context: Res<RapierContext>
-) {
-    let (mut player_transform, movement_state) = player_query.single_mut();
-    let player_x = player_transform.translation.x;
-    let player_y = player_transform.translation.y;
-
-    let player_direction = axis.x;
-
-    if player_direction != 0. && *movement_state == MovementState::WALKING {
-        
-        let ray_dir = vec2(player_direction, 0.);
-        let toi = 12.;
-        let solid = true;
-        let filter = QueryFilter::only_fixed();
-
-        if rapier_context.cast_ray(
-                vec2(player_x, player_y - PLAYER_SPRITE_HEIGHT / 2.), ray_dir, toi, solid, filter
-        ).is_some() && rapier_context.cast_ray(
-            vec2(player_x, (player_y - PLAYER_SPRITE_HEIGHT / 2.) + TILE_SIZE), ray_dir, toi, solid, filter
-        ).is_none() {
-
-            player_transform.translation.y += 1. * TILE_SIZE;
-            player_transform.translation.x += player_direction * TILE_SIZE / 3.;
-        }
-    }
-}
-
 fn use_item(
     input: Res<Input<MouseButton>>,
     cursor: Res<CursorPosition>,
-    mut inventory: ResMut<Inventory>,
+    inventory: Res<Inventory>,
     mut block_place_event_writer: EventWriter<BlockPlaceEvent>
 ) {
-    if input.just_pressed(MouseButton::Left) {
+    if input.pressed(MouseButton::Left) {
         let selected_item_index = inventory.selected_slot;
 
         if let Some(item_stack) = inventory.selected_item() {
             match item_stack.item {
                 Item::Pickaxe(_) => (),
                 Item::Block(block) => {
-                    let tile_coords = get_tile_coords(cursor.world_position);
-                    block_place_event_writer.send(BlockPlaceEvent { coords: tile_coords, block });
-
-                    inventory.consume_item(selected_item_index);
+                    let tile_pos = get_tile_coords(cursor.world_position);
+                    block_place_event_writer.send(BlockPlaceEvent { tile_pos, block, inventory_item_index: selected_item_index });
                 },
             }
         }
     }
 }
 
-fn limit_player_move(
-    mut player_query: Query<&mut Transform, With<Player>>
-) {
-    let mut transform = player_query.single_mut();
-
-    let min = PLAYER_SPRITE_WIDTH / 2.;
-    let max = WORLD_SIZE_X as f32 * 16. - PLAYER_SPRITE_WIDTH / 2.;
-
-    transform.translation.x = transform.translation.x.clamp(min, max);
-}
-
 // TODO: Debug function, remove in feature
 #[cfg(debug_assertions)]
 fn set_sprite_index(
     input: Res<Input<KeyCode>>,
-    mut query: Query<(&mut TextureAtlasSprite, &UseItemAnimationData), With<PlayerBodySprite>>,
+    mut query: Query<(&mut TextureAtlasSprite, &WalkingAnimationData), With<PlayerBodySprite>>,
 ) {
     query.for_each_mut(|(mut sprite, animation_data)| {
-        let anim_offset = animation_data.0;
+        let anim_offset = animation_data.offset;
 
         let mut new_sprite_index = sprite.index;
 
@@ -1051,6 +1141,15 @@ fn set_sprite_index(
 
         new_sprite_index = new_sprite_index.checked_sub(anim_offset).unwrap_or(0);
 
-        sprite.index = anim_offset + (new_sprite_index % USE_ITEM_ANIMATION_FRAMES_COUNT);
+        sprite.index = anim_offset + (new_sprite_index % WALKING_ANIMATION_MAX_INDEX);
     });
+}
+
+fn get_player_rect(position: Vec2) -> FRect {
+    FRect {
+        left: position.x - PLAYER_SPRITE_WIDTH / 2.,
+        right: position.x + PLAYER_SPRITE_WIDTH / 2.,
+        bottom: position.y - PLAYER_SPRITE_HEIGHT / 2.,
+        top: position.y + PLAYER_SPRITE_HEIGHT / 2.
+    }
 }

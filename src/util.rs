@@ -1,3 +1,5 @@
+use std::ops::Mul;
+
 use bevy::{
     ecs::system::EntityCommands,
     prelude::{default, Button, Changed, Component, Query, With, Vec2, Quat},
@@ -130,6 +132,55 @@ pub struct FRect {
     pub bottom: f32,
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
+pub struct URect {
+    pub left: usize,
+    pub right: usize,
+    pub top: usize,
+    pub bottom: usize,
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
+pub struct IRect {
+    pub left: i32,
+    pub right: i32,
+    pub top: i32,
+    pub bottom: i32,
+}
+
+impl URect {
+    pub fn to_frect(&self) -> FRect {
+        FRect {
+            left: self.left as f32,
+            right: self.right as f32,
+            top: self.top as f32,
+            bottom: self.bottom as f32,
+        }
+    }
+}
+
+impl FRect {
+    pub fn intersect(&self, rect: FRect) -> bool {
+        self.left < rect.right
+            && self.right > rect.left
+            && self.bottom > rect.top
+            && self.top > -rect.bottom.abs()
+    }
+}
+
+impl Mul<f32> for FRect {
+    type Output = FRect;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        FRect {
+            left: self.left * rhs,
+            right: self.right * rhs,
+            top: self.top * rhs,
+            bottom: self.bottom * rhs,
+        }
+    }
+}
+
 pub fn inside_f(p: (f32, f32), rect: FRect) -> bool {
     p.0 < rect.bottom && p.0 > rect.top && p.1 > rect.left && p.1 < rect.right
 }
@@ -145,4 +196,29 @@ pub fn get_rotation_by_direction(direction: FaceDirection) -> Quat {
     };
 
     Quat::from_rotation_z(start_rotation)
+}
+
+pub fn move_towards(current: f32, target: f32, max_delta: f32) -> f32 {
+    if (target - current).abs() <= max_delta {
+        return target;
+    }
+    return current + (target - current).signum() * max_delta;
+}
+
+pub fn inverse_lerp(a: f32, b: f32, value: f32) -> f32 {
+    if a != b {
+        return clamp01((value - a) / (b - a));
+    } else {
+        return 0.0;
+    }
+}
+
+fn clamp01(value: f32) -> f32 {
+    if value < 0. {
+        return 0.;
+    } else if value > 1. {
+        return 1.;
+    } else {
+        return value;
+    }
 }

@@ -1,5 +1,5 @@
 use autodefault::autodefault;
-use bevy::prelude::{default, Entity};
+use bevy::prelude::default;
 use ndarray::prelude::*;
 use noise::{NoiseFn, OpenSimplex, Seedable, SuperSimplex};
 use rand::{rngs::StdRng, Rng, SeedableRng};
@@ -17,37 +17,37 @@ pub struct Level {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct Slope {
+pub struct Neighbours {
     pub top: bool,
     pub bottom: bool,
     pub left: bool,
     pub right: bool,
 }
 
-impl Slope {
-    pub const NONE: Slope = Slope { top: false, bottom: false, left: false, right: false };
-    pub const ALL: Slope = Slope { top: true, bottom: true, left: true, right: true };
+impl Neighbours {
+    pub const NONE: Neighbours = Neighbours { top: false, bottom: false, left: false, right: false };
+    pub const ALL: Neighbours = Neighbours { top: true, bottom: true, left: true, right: true };
 
-    pub const TOP: Slope = Slope { top: true, ..Slope::NONE };
-    pub const BOTTOM: Slope = Slope { bottom: true, ..Slope::NONE };
-    pub const LEFT: Slope = Slope { left: true, ..Slope::NONE };
-    pub const RIGHT: Slope = Slope { right: true, ..Slope::NONE };
+    pub const TOP: Neighbours = Neighbours { top: true, ..Neighbours::NONE };
+    pub const BOTTOM: Neighbours = Neighbours { bottom: true, ..Neighbours::NONE };
+    pub const LEFT: Neighbours = Neighbours { left: true, ..Neighbours::NONE };
+    pub const RIGHT: Neighbours = Neighbours { right: true, ..Neighbours::NONE };
 
-    pub const TOP_BOTTOM: Slope = Slope { top: true, bottom: true, ..Slope::NONE };
-    pub const LEFT_RIGHT: Slope = Slope { left: true, right: true, ..Slope::NONE };
+    pub const TOP_BOTTOM: Neighbours = Neighbours { top: true, bottom: true, ..Neighbours::NONE };
+    pub const LEFT_RIGHT: Neighbours = Neighbours { left: true, right: true, ..Neighbours::NONE };
 
-    pub const TOP_LEFT: Slope = Slope { top: true, left: true, ..Slope::NONE };
-    pub const TOP_RIGHT: Slope = Slope { top: true, right: true, ..Slope::NONE };
-    pub const BOTTOM_LEFT: Slope = Slope { bottom: true, left: true, ..Slope::NONE };
-    pub const BOTTOM_RIGHT: Slope = Slope { bottom: true, right: true, ..Slope::NONE };
+    pub const TOP_LEFT: Neighbours = Neighbours { top: true, left: true, ..Neighbours::NONE };
+    pub const TOP_RIGHT: Neighbours = Neighbours { top: true, right: true, ..Neighbours::NONE };
+    pub const BOTTOM_LEFT: Neighbours = Neighbours { bottom: true, left: true, ..Neighbours::NONE };
+    pub const BOTTOM_RIGHT: Neighbours = Neighbours { bottom: true, right: true, ..Neighbours::NONE };
 
-    pub const TOP_BOTTOM_LEFT: Slope = Slope { top: true, bottom: true, left: true, ..Slope::NONE };
-    pub const TOP_BOTTOM_RIGHT: Slope = Slope { top: true, bottom: true, right: true, ..Slope::NONE };
-    pub const TOP_LEFT_RIGHT: Slope = Slope { top: true, left: true, right: true, ..Slope::NONE };
-    pub const BOTTOM_LEFT_RIGHT: Slope = Slope { bottom: true, left: true, right: true, ..Slope::NONE };
+    pub const TOP_BOTTOM_LEFT: Neighbours = Neighbours { top: true, bottom: true, left: true, ..Neighbours::NONE };
+    pub const TOP_BOTTOM_RIGHT: Neighbours = Neighbours { top: true, bottom: true, right: true, ..Neighbours::NONE };
+    pub const TOP_LEFT_RIGHT: Neighbours = Neighbours { top: true, left: true, right: true, ..Neighbours::NONE };
+    pub const BOTTOM_LEFT_RIGHT: Neighbours = Neighbours { bottom: true, left: true, right: true, ..Neighbours::NONE };
 }
 
-impl Slope {
+impl Neighbours {
     pub fn is_all(&self) -> bool {
         self.top && self.bottom && self.left && self.right
     }
@@ -57,23 +57,21 @@ impl Slope {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy)]
 pub struct Wall {
     pub wall_type: WallType,
-    pub slope: Slope,
+    pub neighbours: Neighbours,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy)]
 pub struct Tile {
     pub tile_type: Block,
-    pub slope: Slope,
+    pub neighbours: Neighbours,
 }
-#[derive(Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Clone, Copy, Default)]
 pub struct Cell {
     pub tile: Option<Tile>,
-    pub tile_entity: Option<Entity>,
     pub wall: Option<Wall>,
-    pub wall_entity: Option<Entity>,
 }
 
 #[autodefault(except(Level, Tile, Wall))]
@@ -88,12 +86,12 @@ pub fn generate(seed: u32) -> Array2<Cell> {
     world.fill(Cell {
         tile: Some(Tile {
             tile_type: Block::Stone,
-            slope: Slope::default(),
+            neighbours: Neighbours::default(),
         }),
     });
 
     for cell in world.slice_mut(s![.., 0..WORLD_SIZE_X]).iter_mut() {
-        cell.wall = Some(Wall { wall_type: WallType::DirtWall, slope: Slope::default() });
+        cell.wall = Some(Wall { wall_type: WallType::DirtWall, neighbours: Neighbours::default() });
     }
 
     let level = Level {
@@ -139,7 +137,7 @@ pub fn generate(seed: u32) -> Array2<Cell> {
         0.6,
     );
 
-    world.slice_collapse(s![level.sky.1.., ..]);
+    world.slice_mut(s![..level.sky.1, ..]).fill(Cell::default());
 
     make_epic_cave(&mut world, epic_cave_noise, 0.0009, 0.011);
 
@@ -213,7 +211,7 @@ fn insert_specks<F: NoiseFn<[f64; 2]>>(
             if a > (frequency * 10.).powi(-1) {
                 world[[y, x]].tile = Some(Tile {
                     tile_type: speck_block,
-                    slope: Slope::default(),
+                    neighbours: Neighbours::default(),
                 });
             }
         }
@@ -241,7 +239,7 @@ fn add_grass(world: &mut Array2<Cell>, level: Level) {
                 if prev_block.is_none() {
                     world[[y, x]].tile = Some(Tile {
                         tile_type: Block::Grass,
-                        slope: Slope::default(),
+                        neighbours: Neighbours::default(),
                     });
                 }
             }
@@ -375,7 +373,7 @@ fn replace<D: Dimension>(
         if cell.tile.map(|tile| tile.tile_type) == replace {
             cell.tile = replacement.map(|block| Tile {
                 tile_type: block,
-                slope: Slope::default(),
+                neighbours: Neighbours::default(),
             })
         }
     }
@@ -434,7 +432,7 @@ fn set_tile_slope(world: &mut Array2<Cell>) {
 
                 if cell.tile.is_some() {
                     new_tile = Some(Tile {
-                        slope: Slope {
+                        neighbours: Neighbours {
                             left: x == 0 || world.get((y, prev_x))
                                 .and_then(|t| t.tile)
                                 .is_some(),
@@ -456,7 +454,7 @@ fn set_tile_slope(world: &mut Array2<Cell>) {
 
                 if cell.wall.is_some() {
                     new_wall = Some(Wall {
-                        slope: Slope {
+                        neighbours: Neighbours {
                             left: x == 0 || world.get((y, prev_x))
                                 .and_then(|t| t.wall)
                                 .is_some(),

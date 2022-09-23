@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use super::{
-    CursorAssets, FontAssets, MainCamera, Player, SpeedCoefficient, UiAssets, UiVisibility, TILE_SIZE,
+    CursorAssets, FontAssets, MainCamera, Player, UiAssets, UiVisibility, TILE_SIZE,
 };
 use crate::{
     animation::{
@@ -245,11 +245,9 @@ fn set_cursor_foreground_z(
 fn update_cursor_position(
     wnds: Res<Windows>,
     mut cursor: ResMut<CursorPosition>,
-    cemera_query: Query<(&Camera, &GlobalTransform), (With<MainCamera>, Without<CursorContainer>)>,
+    cemera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
     mut cursor_query: Query<&mut Style, With<CursorContainer>>,
 ) {
-    let mut style = cursor_query.single_mut();
-
     if let Ok((camera, camera_transform)) = cemera_query.get_single() {
         let wnd = if let RenderTarget::Window(id) = camera.target {
             wnds.get(id)
@@ -259,11 +257,13 @@ fn update_cursor_position(
 
         if let Some(wnd) = wnd {
             if let Some(screen_pos) = wnd.cursor_position() {
-                style.position = UiRect {
-                    left: Val::Px(screen_pos.x - 2.),
-                    bottom: Val::Px(screen_pos.y - 20.),
-                    ..default()
-                };
+                if let Ok(mut style) = cursor_query.get_single_mut() {
+                    style.position = UiRect {
+                        left: Val::Px(screen_pos.x - 2.),
+                        bottom: Val::Px(screen_pos.y - 20.),
+                        ..default()
+                    };
+                }
 
                 let window_size = Vec2::new(wnd.width() as f32, wnd.height() as f32);
 
@@ -336,10 +336,10 @@ fn update_tile_grid_position(
 
 fn update_tile_grid_opacity(
     time: Res<Time>,
-    player: Query<(&SpeedCoefficient, &MovementState), With<Player>>,
+    player: Query<&MovementState, With<Player>>,
     mut tile_grid: Query<&mut Sprite, With<TileGrid>>,
 ) {
-    if let Ok((SpeedCoefficient(speed_coefficient), movement_state)) = player.get_single() {
+    if let Ok(movement_state) = player.get_single() {
         let mut sprite = tile_grid.single_mut();
 
         let opacity = match movement_state {
@@ -347,9 +347,9 @@ fn update_tile_grid_opacity(
                 let mut a = sprite.color.a();
 
                 if a > MIN_TILE_GRID_OPACITY {
-                    a = a - speed_coefficient * time.delta_seconds() * 0.7;
+                    a = a - time.delta_seconds() * 0.7;
                 } else if a < MIN_TILE_GRID_OPACITY {
-                    a = a + speed_coefficient * time.delta_seconds() * 0.7;
+                    a = a + time.delta_seconds() * 0.7;
                 }
 
                 a.clamp(0., MAX_TILE_GRID_OPACITY)
