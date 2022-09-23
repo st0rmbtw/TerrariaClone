@@ -67,6 +67,17 @@ pub struct BlockAssets {
     ))]
     #[asset(path = "sprites/tiles/Tiles_1.png")]
     pub stone: Handle<TextureAtlas>,
+
+    // #[asset(texture_atlas(
+    //     tile_size_x = 16.,
+    //     tile_size_y = 16.,
+    //     rows = 53,
+    //     columns = 16,
+    //     padding_x = 2.,
+    //     padding_y = 2.
+    // ))]
+    #[asset(path = "sprites/tiles/Tiles.png")]
+    pub tiles: Handle<Image>
 }
 
 handles! {
@@ -320,6 +331,14 @@ impl BlockAssets {
             Block::Dirt => Some(self.dirt.clone()),
             Block::Stone => Some(self.stone.clone()),
             Block::Grass => Some(self.grass.clone()),
+        }
+    }
+
+    pub fn get_start_index(&self, block: Block) -> u32 {
+        match block {
+            Block::Dirt => 0,
+            Block::Stone => 16 * 14,
+            Block::Grass => 16 * 29
         }
     }
 }

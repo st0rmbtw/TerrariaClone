@@ -7,6 +7,7 @@ use bevy::{
     },
     window::PresentMode,
 };
+use bevy_ecs_tilemap::TilemapPlugin;
 use bevy_hanabi::HanabiPlugin;
 use game::{
     animation::TweeningPlugin,
@@ -48,6 +49,7 @@ fn main() {
         .add_loopless_state(GameState::AssetLoading)
         .add_plugins(DefaultPlugins)
         .add_plugin(TweeningPlugin)
+        .add_plugin(TilemapPlugin)
         .add_plugin(AssetsPlugin)
         .add_plugin(CursorPlugin)
         .add_plugin(CameraPlugin)

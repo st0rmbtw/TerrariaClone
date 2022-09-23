@@ -19,6 +19,7 @@ autodefault = "2.0.0"
 bevy_hanabi = { git = "https://github.com/djeedai/bevy_hanabi", default-features = false, features = ["2d"] }
 bevy-inspector-egui = "0.13.0"
 bevy_prototype_debug_lines = "0.8"
+bevy_ecs_tilemap = { git = "https://github.com/StarArawn/bevy_ecs_tilemap", features = ["atlas"] }
 
 [profile.dev]
 opt-level = 1

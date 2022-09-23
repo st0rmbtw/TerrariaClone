@@ -12,6 +12,7 @@ use bevy::{
     render::view::NoFrustumCulling,
     sprite::{SpriteSheetBundle, TextureAtlas, TextureAtlasSprite}, utils::HashSet, math::Vec3Swizzles,
 };
+use bevy_ecs_tilemap::{tiles::{TileStorage, TilePos, TileBundle, TileTexture}, prelude::{TilemapSize, TilemapId, TilemapTexture, TilemapTileSize, TilemapGridSize, TilemapSpacing}, TilemapBundle};
 use iyes_loopless::{
     prelude::{AppLooplessStateExt, ConditionSet},
     state::NextState,
@@ -305,66 +306,87 @@ fn spawn_chunk(
     wall_assets: &WallAssets,
     world_data: &WorldData,
     chunk_pos: IVec2,
-) {
-    let chunk = commands
-        .spawn()
-        .insert(Chunk {
-            chunk_pos
-        })
-        .insert_bundle(VisibilityBundle {
-            visibility: Visibility::visible(),
-            ..default()
-        })
-        .insert(Transform::from_xyz(chunk_pos.x as f32 * CHUNK_SIZE * TILE_SIZE, -chunk_pos.y as f32 * CHUNK_SIZE * TILE_SIZE, 0.0))
-        .insert(GlobalTransform::default())
-        .insert(Name::new(format!("Chunk (x: {}, y: {})", chunk_pos.x, chunk_pos.y)))
-        .id();
+) { 
+    let map_size = TilemapSize {
+        x: CHUNK_SIZE as u32,
+        y: CHUNK_SIZE as u32,
+    };
+
+    let tilemap_entity = commands.spawn().id();
+    let mut tile_storage = TileStorage::empty(map_size);
+
+    let wallmap_entity = commands.spawn().id();
+    let mut wall_storage = TileStorage::empty(map_size);
 
     for y in 0..CHUNK_SIZE as usize {
         for x in 0..CHUNK_SIZE as usize {
-            let tile_x = x as f32 * TILE_SIZE;
-            let tile_y = -(y as f32) * TILE_SIZE;
+            let tile_pos = TilePos {
+                x: x as u32,
+                y: CHUNK_SIZE as u32 - 1 - y as u32,
+            };
 
-            let tile_ix = (chunk_pos.x as f32 * CHUNK_SIZE) as u32 + x as u32;
-            let tile_iy = (chunk_pos.y as f32 * CHUNK_SIZE) as u32 + y as u32;
+            let tile_x = (chunk_pos.x as f32 * CHUNK_SIZE) as u32 + x as u32;
+            let tile_y = (chunk_pos.y as f32 * CHUNK_SIZE) as u32 + y as u32;
 
-            let cell_option = world_data.tiles.get((tile_iy as usize, tile_ix as usize));
+            let cell_option = world_data.tiles.get((tile_y as usize, tile_x as usize));
 
             if let Some(cell) = cell_option {
                 if let Some(tile) = cell.tile {
-                    if let Some(texture_atlas) = block_assets.get_by_block(tile.tile_type) {
-                        let tile_entity = spawn_tile(
-                            commands, 
-                            texture_atlas, 
-                            tile, 
-                            tile_ix, 
-                            tile_x, 
-                            tile_iy, 
-                            tile_y
-                        );
+                    let tile_entity = commands
+                        .spawn()
+                        .insert_bundle(TileBundle {
+                            position: tile_pos,
+                            tilemap_id: TilemapId(tilemap_entity),
+                            texture: TileTexture(block_assets.get_start_index(tile.tile_type) + get_tile_sprite_index(tile.neighbours) as u32),
+                            ..default()
+                        })
+                        .id();
 
-                        commands.entity(chunk).add_child(tile_entity);
-                    }
+                    commands.entity(tilemap_entity).add_child(tile_entity);
+                    tile_storage.set(&tile_pos, Some(tile_entity));
                 }
 
-                if let Some(wall) = cell.wall {
-                    if let Some(texture_atlas) = wall_assets.get_by_wall(wall.wall_type) {
-                        let wall_entity = spawn_wall(
-                            commands, 
-                            texture_atlas, 
-                            wall, 
-                            tile_ix, 
-                            tile_x, 
-                            tile_iy, 
-                            tile_y
-                        );
+                // if let Some(wall) = cell.wall {
+                //     if let Some(texture_atlas) = wall_assets.get_by_wall(wall.wall_type) {
+                //         let wall_entity = commands
+                //             .spawn()
+                //             .insert_bundle(TileBundle {
+                //                 position: tile_pos,
+                //                 tilemap_id: TilemapId(wallmap_entity),
+                //                 ..default()
+                //             })
+                //             .id();
 
-                        commands.entity(chunk).add_child(wall_entity);
-                    }
-                }
+                //         commands.entity(wallmap_entity).add_child(wall_entity);
+                //         wall_storage.set(&tile_pos, Some(wall_entity));
+                //     }
+                // }
             }
         }
     }
+
+    commands
+        .entity(tilemap_entity)
+        .insert(Chunk { chunk_pos })
+        .insert_bundle(TilemapBundle {
+            grid_size: TilemapGridSize {
+                x: TILE_SIZE,
+                y: TILE_SIZE,
+            },
+            size: map_size,
+            storage: tile_storage,
+            texture: TilemapTexture(block_assets.tiles.clone()),
+            tile_size: TilemapTileSize {
+                x: TILE_SIZE,
+                y: TILE_SIZE,
+            },
+            spacing: TilemapSpacing {
+                x: 2.,
+                y: 2.
+            },
+            transform: Transform::from_xyz(chunk_pos.x as f32 * CHUNK_SIZE * TILE_SIZE, chunk_pos.y as f32 * CHUNK_SIZE * -TILE_SIZE, 1.),
+            ..Default::default()
+        });
 }
 
 fn get_camera_fov(camera_pos: Vec2, projection: &OrthographicProjection) -> FRect {
