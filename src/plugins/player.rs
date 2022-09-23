@@ -747,6 +747,7 @@ fn move_character(
     velocity: Res<PlayerVelocity>,
     collisions: Res<Collisions>,
     mut player_query: Query<&mut Transform, With<Player>>,
+    #[cfg(debug_assertions)]
     mut lines: ResMut<DebugLines>
 ) {
     let mut transform = player_query.single_mut();
