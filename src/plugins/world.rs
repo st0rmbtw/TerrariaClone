@@ -7,7 +7,7 @@ use bevy::{
     prelude::{
         default, App, Changed, Commands, Entity, GlobalTransform, Handle, OrthographicProjection,
         Plugin, Query, Res, ResMut, Transform, Vec3, With, EventReader, UVec2, IVec2, Component, 
-        BuildChildren, Visibility, VisibilityBundle, DespawnRecursiveExt, Vec2,
+        BuildChildren, Visibility, VisibilityBundle, DespawnRecursiveExt, Vec2, EventWriter,
     },
     render::view::NoFrustumCulling,
     sprite::{SpriteSheetBundle, TextureAtlas, TextureAtlasSprite}, utils::HashSet, math::Vec3Swizzles,
@@ -26,7 +26,7 @@ use crate::{
     world_generator::{generate, Cell, Neighbours, Tile, Wall, WORLD_SIZE_Y, WORLD_SIZE_X},
 };
 
-use super::{BlockAssets, MainCamera, WallAssets};
+use super::{BlockAssets, MainCamera, WallAssets, Inventory};
 
 pub const TILE_SIZE: f32 = 16.;
 
@@ -39,6 +39,7 @@ impl Plugin for WorldPlugin {
         app
             .init_resource::<ChunkManager>()
             .add_event::<BlockPlaceEvent>()
+            .add_event::<BlockPlacedEvent>()
             .add_enter_system(GameState::WorldLoading, spawn_terrain)
             .add_system_set(
                 ConditionSet::new()
@@ -46,6 +47,7 @@ impl Plugin for WorldPlugin {
                     .with_system(spawn_tiles)
                     .with_system(despawn_tiles)
                     .with_system(handle_block_place)
+                    .with_system(handle_block_placed)
                     .into(),
             );
     }
@@ -62,6 +64,25 @@ pub struct WorldData {
     pub tiles: Array2<Cell>,
 }
 
+impl WorldData {
+    pub fn get_tile_mut(&mut self, tile_pos: (usize, usize)) -> Option<&mut Tile> {
+        self.tiles.get_mut(tile_pos).and_then(|cell| cell.tile.as_mut())
+    }
+
+    pub fn tile_exists(&self, tile_pos: (usize, usize)) -> bool {
+        self.tiles.get(tile_pos).and_then(|cell| cell.tile).is_some()
+    }
+
+    pub fn get_neighbours(&self, tile_pos: (usize, usize)) -> Neighbours {
+        Neighbours { 
+            left: self.tile_exists((tile_pos.0, tile_pos.1 - 1)),
+            right: self.tile_exists((tile_pos.0, tile_pos.1 + 1)),
+            top: self.tile_exists((tile_pos.0 - 1, tile_pos.1)),
+            bottom: self.tile_exists((tile_pos.0 + 1, tile_pos.1))
+        }
+    }
+}
+
 #[derive(Default)]
 struct ChunkManager {
     pub spawned_chunks: HashSet<IVec2>
@@ -72,8 +93,13 @@ pub struct BlockBreakEvent {
 }
 
 pub struct BlockPlaceEvent {
-    pub coords: Vec2,
+    pub tile_pos: Vec2,
     pub block: Block,
+    pub inventory_item_index: usize
+}
+
+pub struct BlockPlacedEvent {
+    pub tile_pos: (usize, usize)
 }
 
 fn spawn_terrain(mut commands: Commands) {
@@ -387,19 +413,59 @@ pub fn get_chunk_position(
 }
 
 fn handle_block_place(
+    mut world_data: ResMut<WorldData>,
     mut commands: Commands,
     mut events: EventReader<BlockPlaceEvent>,
+    mut block_placed_ew: EventWriter<BlockPlacedEvent>,
+    mut inventory: ResMut<Inventory>,
     block_assets: Res<BlockAssets>
 ) {
     for event in events.iter() {
-        spawn_tile(
-            &mut commands, 
-            block_assets.get_by_block(event.block).unwrap(), 
-            Tile { tile_type: event.block, neighbours: Neighbours::NONE }, 
-            event.coords.x as u32, 
-            event.coords.x as f32 * 16.,
-            event.coords.y as u32, 
-            event.coords.y as f32 * 16.,
-        );
+        let tile_pos = (event.tile_pos.y.abs() as usize, event.tile_pos.x as usize);
+        let tile = Tile { tile_type: event.block, neighbours: world_data.get_neighbours(tile_pos) };
+
+        if world_data.tiles.get(tile_pos).and_then(|cell| cell.tile).is_none() {
+            let cell = world_data.tiles.get_mut(tile_pos).unwrap();
+            cell.tile = Some(tile);
+
+            spawn_tile(
+                &mut commands, 
+                block_assets.get_by_block(event.block).unwrap(), 
+                tile,
+                event.tile_pos.x as u32, 
+                event.tile_pos.x as f32 * 16.,
+                event.tile_pos.y as u32, 
+                event.tile_pos.y as f32 * 16.,
+            );
+
+            inventory.consume_item(event.inventory_item_index);
+
+            block_placed_ew.send(BlockPlacedEvent { tile_pos });
+        }
+    }
+}
+
+fn handle_block_placed(
+    mut world_data: ResMut<WorldData>,
+    mut events: EventReader<BlockPlacedEvent>,
+) {
+    for event in events.iter() {
+        let tile_pos = event.tile_pos;
+
+        if let Some(tile) = world_data.get_tile_mut((tile_pos.0, tile_pos.1 - 1)) {
+            tile.neighbours.right = true;
+        }
+
+        if let Some(tile) = world_data.get_tile_mut((tile_pos.0, tile_pos.1 + 1)) {
+            tile.neighbours.left = true;
+        }
+        
+        if let Some(tile) = world_data.get_tile_mut((tile_pos.0 - 1, tile_pos.1)) {
+            tile.neighbours.bottom = true;
+        }
+
+        if let Some(tile) = world_data.get_tile_mut((tile_pos.0 + 1, tile_pos.1)) {
+            tile.neighbours.top = true;
+        }
     }
 }

@@ -204,3 +204,21 @@ pub fn move_towards(current: f32, target: f32, max_delta: f32) -> f32 {
     }
     return current + (target - current).signum() * max_delta;
 }
+
+pub fn inverse_lerp(a: f32, b: f32, value: f32) -> f32 {
+    if a != b {
+        return clamp01((value - a) / (b - a));
+    } else {
+        return 0.0;
+    }
+}
+
+fn clamp01(value: f32) -> f32 {
+    if value < 0. {
+        return 0.;
+    } else if value > 1. {
+        return 1.;
+    } else {
+        return value;
+    }
+}

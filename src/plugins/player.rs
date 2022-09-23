@@ -8,12 +8,13 @@ use bevy_hanabi::{
     SizeOverLifetimeModifier, Spawner,
 };
 use bevy_inspector_egui::Inspectable;
+use bevy_prototype_debug_lines::DebugLines;
 use iyes_loopless::prelude::*;
 
 use crate::{
     items::{get_animation_points, Item},
     state::{GameState, MovementState},
-    util::{map_range, get_tile_coords, get_rotation_by_direction, move_towards, FRect},
+    util::{map_range, get_tile_coords, get_rotation_by_direction, move_towards, FRect, Lerp, inverse_lerp},
     world_generator::WORLD_SIZE_X, Velocity,
 };
 
@@ -34,11 +35,11 @@ const USE_ITEM_ANIMATION_LABEL: &str = "use_item_animation";
 
 const ACCELERATION: f32 = 6.;
 const SLOWDOWN: f32 = 8.;
-const MOVE_CLAMP: f32 = 2.5;
+const MOVE_CLAMP: f32 = 3.;
 
-const JUMP_HEIGHT: f32 = 3.5;
-const JUMP_END_EARLY_MODIFIER: f32 = 15.;
-const MAX_FALL_SPEED: f32 = 1.;
+const JUMP_HEIGHT: i32 = 15;
+const JUMP_SPEED: f32 = 5.01;
+const MAX_FALL_SPEED: f32 = 20.;
 
 // region: Plugin
 
@@ -58,7 +59,6 @@ impl Plugin for PlayerPlugin {
             .init_resource::<PlayerVelocity>()
             .init_resource::<PlayerRect>()
             .insert_resource(PlayerController {
-                ended_jump_early: true,
                 ..default()
             })
             .init_resource::<Collisions>()
@@ -74,7 +74,7 @@ impl Plugin for PlayerPlugin {
                     .into()
             )
             .add_system_set_to_stage(
-                CoreStage::PreUpdate,
+                CoreStage::PostUpdate,
                 ConditionSet::new()
                     .run_in_state(GameState::InGame)
                     .label(MOVEMENT_ANIMATION_LABEL)
@@ -90,7 +90,7 @@ impl Plugin for PlayerPlugin {
                     .into(),
             )
             .add_system_set_to_stage(
-                CoreStage::PreUpdate,
+                CoreStage::PostUpdate,
                 ConditionSet::new()
                     .run_in_state(GameState::InGame)
                     .label(USE_ITEM_ANIMATION_LABEL)
@@ -230,7 +230,9 @@ pub struct PlayerRect(pub FRect);
 
 #[derive(Clone, Copy, Default)]
 struct PlayerController {
-    ended_jump_early: bool
+    fall_speed: f32,
+    apex_point: f32,
+    jump: i32
 }
 
 #[derive(Clone, Copy, Default)]
@@ -576,6 +578,7 @@ fn update() -> SystemSet {
         .with_system(horizontal_movement)
         .with_system(gravity)
         .with_system(jump)
+        .with_system(jump_apex)
         .with_system(update_movement_state)
         .with_system(move_character)
         .with_system(use_item)
@@ -683,24 +686,28 @@ fn gravity(
     player_controller: Res<PlayerController>,
     mut velocity: ResMut<PlayerVelocity>,
 ) {
-    const FALL_CLAMP: f32 = -10.;
-
     if collisions.down {
         if velocity.y < 0. {
             velocity.y = 0.;
         }
     } else {
-        let fall_speed = if player_controller.ended_jump_early {
-            MAX_FALL_SPEED * JUMP_END_EARLY_MODIFIER
-        } else {
-            MAX_FALL_SPEED
-        };
+        velocity.y -= player_controller.fall_speed * time.delta_seconds();
 
-        velocity.y -= fall_speed * time.delta_seconds();
-
-        if velocity.y < FALL_CLAMP {
-            velocity.y = FALL_CLAMP;
+        if velocity.y < -MAX_FALL_SPEED {
+            velocity.y = -MAX_FALL_SPEED;
         }
+    }
+}
+
+fn jump_apex(
+    collisions: Res<Collisions>,
+    mut player_controller: ResMut<PlayerController>
+) {
+    if !collisions.down {
+        player_controller.apex_point = inverse_lerp(JUMP_HEIGHT as f32, 0., player_controller.jump as f32);
+        player_controller.fall_speed = 0f32.lerp(MAX_FALL_SPEED, player_controller.apex_point);
+    } else {
+        player_controller.apex_point = 0.;
     }
 }
 
@@ -710,13 +717,23 @@ fn jump(
     mut velocity: ResMut<PlayerVelocity>,
     mut player_controller: ResMut<PlayerController>,
 ) {
-    if input.pressed(KeyCode::Space) {
-        velocity.y = JUMP_HEIGHT;
-        player_controller.ended_jump_early = false;
+    if input.just_pressed(KeyCode::Space) && collisions.down {
+        player_controller.jump = JUMP_HEIGHT;
+        velocity.y = JUMP_SPEED;
     }
 
-    if !collisions.down && input.just_released(KeyCode::Space) && velocity.y > 0. {
-        player_controller.ended_jump_early = true;
+    if input.pressed(KeyCode::Space) {
+        if player_controller.jump > 0 {
+            if velocity.y == 0. {
+                player_controller.jump = 0;
+            } else {
+                velocity.y = JUMP_SPEED;
+
+                player_controller.jump -= 1;
+            }
+        }
+    } else {
+        player_controller.jump = 0;
     }
 
     if collisions.up {
@@ -726,10 +743,11 @@ fn jump(
     }
 }
 
-fn move_character( 
-    world_data: Res<WorldData>,
+fn move_character(
     velocity: Res<PlayerVelocity>,
-    mut player_query: Query<&mut Transform, With<Player>>
+    collisions: Res<Collisions>,
+    mut player_query: Query<&mut Transform, With<Player>>,
+    mut lines: ResMut<DebugLines>
 ) {
     let mut transform = player_query.single_mut();
 
@@ -737,47 +755,58 @@ fn move_character(
     const MAX: f32 = WORLD_SIZE_X as f32 * TILE_SIZE - TILE_SIZE / 2.;
 
     let raw = (transform.translation.xy() + velocity.0).clamp(vec2(MIN, -MAX), vec2(MAX, -MIN));
+    
+    transform.translation.x = raw.x;
+    transform.translation.y = raw.y;
 
     let player_rect = get_player_rect(raw);
 
-    let left = (player_rect.left / TILE_SIZE).round() as usize;
-    let right = (player_rect.right / TILE_SIZE).round() as usize;
-    let bottom = ((player_rect.bottom / TILE_SIZE).ceil().abs()) as usize;
-    let top = (player_rect.top / TILE_SIZE).floor().abs() as usize;
-
-    let mut hit = false;
-
-    for x in left..(right + 1) {
-        if world_data.tiles.get((bottom, x)).and_then(|cell| cell.tile).is_some() {
-            hit = true;
-            break;
-        }
-    }
-    
-    for x in left..(right + 1) {
-        if world_data.tiles.get((top, x)).and_then(|cell| cell.tile).is_some() {
-            hit = true;
-            break;
+    if collisions.down && velocity.y == 0. {
+        let threshold = (player_rect.bottom / TILE_SIZE).round() * TILE_SIZE + TILE_SIZE / 2. - 1.;
+        
+        if player_rect.bottom < threshold {
+            transform.translation.y = threshold + PLAYER_SPRITE_HEIGHT / 2.;
+      
+            #[cfg(debug_assertions)]
+            lines.line_colored(
+                Vec3::new(raw.x - PLAYER_SPRITE_WIDTH / 2., threshold, 3.), 
+                Vec3::new(raw.x + PLAYER_SPRITE_WIDTH / 2., threshold, 3.), 
+                0.,
+                Color::WHITE
+            );
         }
     }
 
-    for y in top..bottom {
-        if world_data.tiles.get((y, left)).and_then(|cell| cell.tile).is_some() {
-            hit = true;
-            break;
+    if collisions.left && velocity.x == 0. {
+        let threshold = (player_rect.left / TILE_SIZE).round() * TILE_SIZE + TILE_SIZE / 2. - 2.;
+
+        if player_rect.left < threshold {
+            transform.translation.x = threshold + PLAYER_SPRITE_WIDTH / 2. + 0.5;
+
+            #[cfg(debug_assertions)]
+            lines.line_colored(
+                Vec3::new(threshold, raw.y - PLAYER_SPRITE_HEIGHT / 2., 3.),
+                Vec3::new(threshold, raw.y + PLAYER_SPRITE_HEIGHT / 2., 3.), 
+                0.,
+                Color::WHITE
+            );
         }
     }
 
-    for y in top..bottom {
-        if world_data.tiles.get((y, right)).and_then(|cell| cell.tile).is_some() {
-            hit = true;
-            break;
-        }
-    }
+    if collisions.right && velocity.x == 0. {
+        let threshold = (player_rect.right / TILE_SIZE).round() * TILE_SIZE - TILE_SIZE / 2. + 2.;
 
-    if !hit {
-        transform.translation.x = raw.x;
-        transform.translation.y = raw.y;
+        if player_rect.right > threshold {
+            transform.translation.x = threshold - PLAYER_SPRITE_WIDTH / 2. - 0.5;
+
+            #[cfg(debug_assertions)]
+            lines.line_colored(
+                Vec3::new(threshold, raw.y - PLAYER_SPRITE_HEIGHT / 2., 3.),
+                Vec3::new(threshold, raw.y + PLAYER_SPRITE_HEIGHT / 2., 3.), 
+                0.,
+                Color::WHITE
+            );
+        }
     }
 }
 
@@ -1073,23 +1102,19 @@ fn use_item_animation(
 fn use_item(
     input: Res<Input<MouseButton>>,
     cursor: Res<CursorPosition>,
-    mut inventory: ResMut<Inventory>,
+    inventory: Res<Inventory>,
     mut block_place_event_writer: EventWriter<BlockPlaceEvent>
 ) {
-    if input.just_pressed(MouseButton::Left) {
+    if input.pressed(MouseButton::Left) {
         let selected_item_index = inventory.selected_slot;
 
         if let Some(item_stack) = inventory.selected_item() {
             match item_stack.item {
                 Item::Pickaxe(_) => (),
                 Item::Block(block) => {
-                    let tile_coords = get_tile_coords(cursor.world_position);
-                    block_place_event_writer.send(BlockPlaceEvent { coords: tile_coords, block });
+                    let tile_pos = get_tile_coords(cursor.world_position);
+                    block_place_event_writer.send(BlockPlaceEvent { tile_pos, block, inventory_item_index: selected_item_index });
                 },
-            }
-
-            if item_stack.item.consumable() {
-                inventory.consume_item(selected_item_index);
             }
         }
     }

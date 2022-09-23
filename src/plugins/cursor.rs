@@ -245,7 +245,7 @@ fn set_cursor_foreground_z(
 fn update_cursor_position(
     wnds: Res<Windows>,
     mut cursor: ResMut<CursorPosition>,
-    cemera_query: Query<(&Camera, &GlobalTransform), (With<MainCamera>, Without<CursorContainer>)>,
+    cemera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
     mut cursor_query: Query<&mut Style, With<CursorContainer>>,
 ) {
     if let Ok((camera, camera_transform)) = cemera_query.get_single() {
