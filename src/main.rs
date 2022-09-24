@@ -12,11 +12,8 @@ use bevy_hanabi::HanabiPlugin;
 use game::{
     animation::TweeningPlugin,
     parallax::ParallaxPlugin,
-    plugins::{BackgroundPlugin, PlayerUiPlugin, SettingsPlugin, CursorPlugin},
-};
-use game::{
-    plugins::{AssetsPlugin, FpsPlugin, MenuPlugin, PlayerPlugin, CameraPlugin, WorldPlugin},
-    state::GameState,
+    state::GameState, 
+    plugins::{assets::AssetsPlugin, cursor::CursorPlugin, camera::CameraPlugin, background::BackgroundPlugin, ui::PlayerUiPlugin, settings::SettingsPlugin, menu::MenuPlugin, world::WorldPlugin, player::PlayerPlugin, fps::FpsPlugin},
 };
 use iyes_loopless::prelude::AppLooplessStateExt;
 
@@ -63,8 +60,8 @@ fn main() {
         .add_plugin(PlayerPlugin)
         .add_plugin(FpsPlugin);
 
-    #[cfg(debug_assertions)]
-    app.add_plugin(game::plugins::DebugPlugin);
+    // #[cfg(debug_assertions)]
+    // app.add_plugin(game::plugins::DebugPlugin);
 
     app.run();
 }

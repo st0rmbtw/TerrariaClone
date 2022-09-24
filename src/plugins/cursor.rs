@@ -1,8 +1,5 @@
 use std::time::Duration;
 
-use super::{
-    CursorAssets, FontAssets, MainCamera, Player, UiAssets, UiVisibility, TILE_SIZE,
-};
 use crate::{
     animation::{
         component_animator_system, AnimationSystem, Animator, TransformScaleLens, Tween,
@@ -31,6 +28,8 @@ use bevy::{
 };
 use interpolation::EaseFunction;
 use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet, IntoConditionalSystem};
+
+use super::{ui::UiVisibility, camera::MainCamera, assets::{UiAssets, CursorAssets, FontAssets}, world::TILE_SIZE, player::Player};
 
 const MAX_TILE_GRID_OPACITY: f32 = 0.8;
 const MIN_TILE_GRID_OPACITY: f32 = 0.2;

@@ -110,7 +110,7 @@ macro_rules! handles{
 
 pub(crate) use handles;
 
-use crate::plugins::{TILE_SIZE, FaceDirection};
+use crate::{plugins::{world::TILE_SIZE, player::FaceDirection}, block::Block, wall::Wall};
 
 pub fn on_btn_clicked<B: Component>(
     query: Query<&Interaction, (Changed<Interaction>, With<Button>, With<B>)>,
@@ -220,5 +220,21 @@ fn clamp01(value: f32) -> f32 {
         return 1.;
     } else {
         return value;
+    }
+}
+
+
+pub fn get_tile_start_index(block: Block) -> u32 {
+    match block {
+        Block::Dirt => 0,
+        Block::Stone => 16 * 15,
+        Block::Grass => 16 * 30
+    }
+}
+
+pub fn get_wall_start_index(wall: Wall) -> u32 {
+    match wall {
+        Wall::DirtWall => 0,
+        Wall::StoneWall => 16 * 15
     }
 }

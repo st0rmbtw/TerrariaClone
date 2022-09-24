@@ -2,8 +2,9 @@ use bevy::prelude::{App, Plugin};
 use bevy_inspector_egui::{WorldInspectorPlugin, RegisterInspectable};
 use bevy_prototype_debug_lines::DebugLinesPlugin;
 
-use super::FaceDirection;
 use crate::state::MovementState;
+
+use super::player::FaceDirection;
 
 pub struct DebugPlugin;
 

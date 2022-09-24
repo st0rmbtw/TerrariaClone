@@ -9,7 +9,7 @@ use iyes_loopless::prelude::ConditionSet;
 
 use crate::state::GameState;
 
-use super::FontAssets;
+use super::assets::FontAssets;
 
 pub struct FpsPlugin;
 

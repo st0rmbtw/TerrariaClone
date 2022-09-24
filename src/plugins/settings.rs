@@ -22,7 +22,7 @@ use crate::{
     TRANSPARENT,
 };
 
-use super::{FontAssets, ToggleExtraUiEvent};
+use super::{ui::ToggleExtraUiEvent, assets::FontAssets};
 
 // region: Plugin
 pub struct SettingsPlugin;

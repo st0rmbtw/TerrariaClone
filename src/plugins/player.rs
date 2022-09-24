@@ -8,7 +8,6 @@ use bevy_hanabi::{
     SizeOverLifetimeModifier, Spawner,
 };
 use bevy_inspector_egui::Inspectable;
-use bevy_prototype_debug_lines::DebugLines;
 use iyes_loopless::prelude::*;
 
 use crate::{
@@ -18,10 +17,7 @@ use crate::{
     world_generator::WORLD_SIZE_X, Velocity,
 };
 
-use super::{
-    CursorPosition, ItemAssets, PlayerAssets, PlayerInventoryPlugin, SelectedItem, 
-    TILE_SIZE, BlockPlaceEvent, Inventory, WorldData,
-};
+use super::{world::{TILE_SIZE, WorldData, BlockPlaceEvent}, inventory::{PlayerInventoryPlugin, SelectedItem, Inventory}, assets::{PlayerAssets, ItemAssets}, cursor::CursorPosition};
 
 pub const PLAYER_SPRITE_WIDTH: f32 = 2. * TILE_SIZE * 0.75;
 pub const PLAYER_SPRITE_HEIGHT: f32 = 3. * TILE_SIZE;
@@ -39,7 +35,7 @@ const MOVE_CLAMP: f32 = 3.;
 
 const JUMP_HEIGHT: i32 = 15;
 const JUMP_SPEED: f32 = 5.01;
-const MAX_FALL_SPEED: f32 = 20.;
+const MAX_FALL_SPEED: f32 = 25.;
 
 // region: Plugin
 
@@ -608,14 +604,12 @@ fn collision_check(
     let bottom = (player_rect.bottom / TILE_SIZE).round().abs() as usize;
     let top = (player_rect.top / TILE_SIZE).floor().abs() as usize;
 
-    let cleft = left.checked_sub(1).unwrap_or(0);
-
     let mut col_left = false;
     let mut col_right = false;
     let mut col_down = false;
     let mut col_top = false;
 
-    for x in cleft..(right + 1) {
+    for x in left..(right + 1) {
         if col_down {
             break;
         }
@@ -625,7 +619,7 @@ fn collision_check(
         }
     }
     
-    for x in cleft..(right + 1) {
+    for x in left..(right + 1) {
         if col_top {
             break;
         }
@@ -747,8 +741,6 @@ fn move_character(
     velocity: Res<PlayerVelocity>,
     collisions: Res<Collisions>,
     mut player_query: Query<&mut Transform, With<Player>>,
-    #[cfg(debug_assertions)]
-    mut lines: ResMut<DebugLines>
 ) {
     let mut transform = player_query.single_mut();
 
@@ -767,14 +759,6 @@ fn move_character(
         
         if player_rect.bottom < threshold {
             transform.translation.y = threshold + PLAYER_SPRITE_HEIGHT / 2.;
-      
-            #[cfg(debug_assertions)]
-            lines.line_colored(
-                Vec3::new(raw.x - PLAYER_SPRITE_WIDTH / 2., threshold, 3.), 
-                Vec3::new(raw.x + PLAYER_SPRITE_WIDTH / 2., threshold, 3.), 
-                0.,
-                Color::WHITE
-            );
         }
     }
 
@@ -783,14 +767,6 @@ fn move_character(
 
         if player_rect.left < threshold {
             transform.translation.x = threshold + PLAYER_SPRITE_WIDTH / 2. + 0.5;
-
-            #[cfg(debug_assertions)]
-            lines.line_colored(
-                Vec3::new(threshold, raw.y - PLAYER_SPRITE_HEIGHT / 2., 3.),
-                Vec3::new(threshold, raw.y + PLAYER_SPRITE_HEIGHT / 2., 3.), 
-                0.,
-                Color::WHITE
-            );
         }
     }
 
@@ -799,14 +775,6 @@ fn move_character(
 
         if player_rect.right > threshold {
             transform.translation.x = threshold - PLAYER_SPRITE_WIDTH / 2. - 0.5;
-
-            #[cfg(debug_assertions)]
-            lines.line_colored(
-                Vec3::new(threshold, raw.y - PLAYER_SPRITE_HEIGHT / 2., 3.),
-                Vec3::new(threshold, raw.y + PLAYER_SPRITE_HEIGHT / 2., 3.), 
-                0.,
-                Color::WHITE
-            );
         }
     }
 }

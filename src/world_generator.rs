@@ -17,37 +17,48 @@ pub struct Level {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct Neighbours {
+pub struct Neighbors {
     pub top: bool,
     pub bottom: bool,
     pub left: bool,
     pub right: bool,
 }
 
-impl Neighbours {
-    pub const NONE: Neighbours = Neighbours { top: false, bottom: false, left: false, right: false };
-    pub const ALL: Neighbours = Neighbours { top: true, bottom: true, left: true, right: true };
-
-    pub const TOP: Neighbours = Neighbours { top: true, ..Neighbours::NONE };
-    pub const BOTTOM: Neighbours = Neighbours { bottom: true, ..Neighbours::NONE };
-    pub const LEFT: Neighbours = Neighbours { left: true, ..Neighbours::NONE };
-    pub const RIGHT: Neighbours = Neighbours { right: true, ..Neighbours::NONE };
-
-    pub const TOP_BOTTOM: Neighbours = Neighbours { top: true, bottom: true, ..Neighbours::NONE };
-    pub const LEFT_RIGHT: Neighbours = Neighbours { left: true, right: true, ..Neighbours::NONE };
-
-    pub const TOP_LEFT: Neighbours = Neighbours { top: true, left: true, ..Neighbours::NONE };
-    pub const TOP_RIGHT: Neighbours = Neighbours { top: true, right: true, ..Neighbours::NONE };
-    pub const BOTTOM_LEFT: Neighbours = Neighbours { bottom: true, left: true, ..Neighbours::NONE };
-    pub const BOTTOM_RIGHT: Neighbours = Neighbours { bottom: true, right: true, ..Neighbours::NONE };
-
-    pub const TOP_BOTTOM_LEFT: Neighbours = Neighbours { top: true, bottom: true, left: true, ..Neighbours::NONE };
-    pub const TOP_BOTTOM_RIGHT: Neighbours = Neighbours { top: true, bottom: true, right: true, ..Neighbours::NONE };
-    pub const TOP_LEFT_RIGHT: Neighbours = Neighbours { top: true, left: true, right: true, ..Neighbours::NONE };
-    pub const BOTTOM_LEFT_RIGHT: Neighbours = Neighbours { bottom: true, left: true, right: true, ..Neighbours::NONE };
+impl Neighbors {
+    pub fn or(&self, neighbors: Neighbors) -> Neighbors {
+        Neighbors { 
+            top: self.top || neighbors.top, 
+            bottom: self.bottom || neighbors.bottom, 
+            left: self.left || neighbors.left, 
+            right: self.right || neighbors.right 
+        }
+    }
 }
 
-impl Neighbours {
+impl Neighbors {
+    pub const NONE: Neighbors = Neighbors { top: false, bottom: false, left: false, right: false };
+    pub const ALL: Neighbors = Neighbors { top: true, bottom: true, left: true, right: true };
+
+    pub const TOP: Neighbors = Neighbors { top: true, ..Neighbors::NONE };
+    pub const BOTTOM: Neighbors = Neighbors { bottom: true, ..Neighbors::NONE };
+    pub const LEFT: Neighbors = Neighbors { left: true, ..Neighbors::NONE };
+    pub const RIGHT: Neighbors = Neighbors { right: true, ..Neighbors::NONE };
+
+    pub const TOP_BOTTOM: Neighbors = Neighbors { top: true, bottom: true, ..Neighbors::NONE };
+    pub const LEFT_RIGHT: Neighbors = Neighbors { left: true, right: true, ..Neighbors::NONE };
+
+    pub const TOP_LEFT: Neighbors = Neighbors { top: true, left: true, ..Neighbors::NONE };
+    pub const TOP_RIGHT: Neighbors = Neighbors { top: true, right: true, ..Neighbors::NONE };
+    pub const BOTTOM_LEFT: Neighbors = Neighbors { bottom: true, left: true, ..Neighbors::NONE };
+    pub const BOTTOM_RIGHT: Neighbors = Neighbors { bottom: true, right: true, ..Neighbors::NONE };
+
+    pub const TOP_BOTTOM_LEFT: Neighbors = Neighbors { top: true, bottom: true, left: true, ..Neighbors::NONE };
+    pub const TOP_BOTTOM_RIGHT: Neighbors = Neighbors { top: true, bottom: true, right: true, ..Neighbors::NONE };
+    pub const TOP_LEFT_RIGHT: Neighbors = Neighbors { top: true, left: true, right: true, ..Neighbors::NONE };
+    pub const BOTTOM_LEFT_RIGHT: Neighbors = Neighbors { bottom: true, left: true, right: true, ..Neighbors::NONE };
+}
+
+impl Neighbors {
     pub fn is_all(&self) -> bool {
         self.top && self.bottom && self.left && self.right
     }
@@ -60,13 +71,13 @@ impl Neighbours {
 #[derive(Clone, Copy)]
 pub struct Wall {
     pub wall_type: WallType,
-    pub neighbours: Neighbours,
+    pub neighbors: Neighbors,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct Tile {
     pub tile_type: Block,
-    pub neighbours: Neighbours,
+    pub neighbors: Neighbors,
 }
 #[derive(Clone, Copy, Default)]
 pub struct Cell {
@@ -86,12 +97,12 @@ pub fn generate(seed: u32) -> Array2<Cell> {
     world.fill(Cell {
         tile: Some(Tile {
             tile_type: Block::Stone,
-            neighbours: Neighbours::default(),
+            neighbors: Neighbors::default(),
         }),
     });
 
     for cell in world.slice_mut(s![.., 0..WORLD_SIZE_X]).iter_mut() {
-        cell.wall = Some(Wall { wall_type: WallType::DirtWall, neighbours: Neighbours::default() });
+        cell.wall = Some(Wall { wall_type: WallType::DirtWall, neighbors: Neighbors::default() });
     }
 
     let level = Level {
@@ -211,7 +222,7 @@ fn insert_specks<F: NoiseFn<[f64; 2]>>(
             if a > (frequency * 10.).powi(-1) {
                 world[[y, x]].tile = Some(Tile {
                     tile_type: speck_block,
-                    neighbours: Neighbours::default(),
+                    neighbors: Neighbors::default(),
                 });
             }
         }
@@ -239,7 +250,7 @@ fn add_grass(world: &mut Array2<Cell>, level: Level) {
                 if prev_block.is_none() {
                     world[[y, x]].tile = Some(Tile {
                         tile_type: Block::Grass,
-                        neighbours: Neighbours::default(),
+                        neighbors: Neighbors::default(),
                     });
                 }
             }
@@ -373,7 +384,7 @@ fn replace<D: Dimension>(
         if cell.tile.map(|tile| tile.tile_type) == replace {
             cell.tile = replacement.map(|block| Tile {
                 tile_type: block,
-                neighbours: Neighbours::default(),
+                neighbors: Neighbors::default(),
             })
         }
     }
@@ -432,7 +443,7 @@ fn set_tile_slope(world: &mut Array2<Cell>) {
 
                 if cell.tile.is_some() {
                     new_tile = Some(Tile {
-                        neighbours: Neighbours {
+                        neighbors: Neighbors {
                             left: x == 0 || world.get((y, prev_x))
                                 .and_then(|t| t.tile)
                                 .is_some(),
@@ -454,7 +465,7 @@ fn set_tile_slope(world: &mut Array2<Cell>) {
 
                 if cell.wall.is_some() {
                     new_wall = Some(Wall {
-                        neighbours: Neighbours {
+                        neighbors: Neighbors {
                             left: x == 0 || world.get((y, prev_x))
                                 .and_then(|t| t.wall)
                                 .is_some(),

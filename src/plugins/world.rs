@@ -1,18 +1,18 @@
-use std::{
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use bevy::{
-    core::Name,
     prelude::{
-        default, App, Changed, Commands, Entity, GlobalTransform, Handle, OrthographicProjection,
-        Plugin, Query, Res, ResMut, Transform, Vec3, With, EventReader, UVec2, IVec2, Component, 
-        BuildChildren, Visibility, VisibilityBundle, DespawnRecursiveExt, Vec2, EventWriter,
+        default, App, Changed, Commands, Entity, GlobalTransform, OrthographicProjection,
+        Plugin, Query, Res, ResMut, Transform, With, EventReader, UVec2, IVec2, Component, 
+        BuildChildren, DespawnRecursiveExt, Vec2, EventWriter,
     },
-    render::view::NoFrustumCulling,
-    sprite::{SpriteSheetBundle, TextureAtlas, TextureAtlasSprite}, utils::HashSet, math::Vec3Swizzles,
+    utils::HashSet, math::Vec3Swizzles,
 };
-use bevy_ecs_tilemap::{tiles::{TileStorage, TilePos, TileBundle, TileTexture}, prelude::{TilemapSize, TilemapId, TilemapTexture, TilemapTileSize, TilemapGridSize, TilemapSpacing}, TilemapBundle};
+use bevy_ecs_tilemap::{
+    tiles::{TileStorage, TilePos, TileBundle, TileTexture}, 
+    prelude::{TilemapSize, TilemapId, TilemapTexture, TilemapTileSize, TilemapGridSize, TilemapSpacing, TilemapType, get_neighboring_pos},
+    TilemapBundle, 
+};  
 use iyes_loopless::{
     prelude::{AppLooplessStateExt, ConditionSet},
     state::NextState,
@@ -23,15 +23,26 @@ use rand::{thread_rng, Rng};
 use crate::{
     block::Block,
     state::GameState,
-    util::{FRect, IRect},
-    world_generator::{generate, Cell, Neighbours, Tile, Wall, WORLD_SIZE_Y, WORLD_SIZE_X},
+    util::{FRect, IRect, self},
+    world_generator::{generate, Cell, Neighbors, Tile, Wall, WORLD_SIZE_Y, WORLD_SIZE_X},
 };
 
-use super::{BlockAssets, MainCamera, WallAssets, Inventory};
+use super::{assets::{BlockAssets, WallAssets}, inventory::Inventory, camera::MainCamera};
 
 pub const TILE_SIZE: f32 = 16.;
 
 const CHUNK_SIZE: f32 = 25.;
+const CHUNK_SIZE_U: u32 = CHUNK_SIZE as u32;
+
+const CHUNKMAP_SIZE: TilemapSize = TilemapSize {
+    x: CHUNK_SIZE as u32,
+    y: CHUNK_SIZE as u32,
+};
+
+const MAP_SIZE: TilemapSize = TilemapSize {
+    x: WORLD_SIZE_X as u32,
+    y: WORLD_SIZE_Y as u32
+};
 
 pub struct WorldPlugin;
 
@@ -56,7 +67,7 @@ impl Plugin for WorldPlugin {
 
 #[derive(Component)]
 pub struct Chunk {
-    pub chunk_pos: IVec2
+    pub pos: IVec2
 }
 
 pub struct WorldData {
@@ -66,20 +77,28 @@ pub struct WorldData {
 }
 
 impl WorldData {
-    pub fn get_tile_mut(&mut self, tile_pos: (usize, usize)) -> Option<&mut Tile> {
-        self.tiles.get_mut(tile_pos).and_then(|cell| cell.tile.as_mut())
+    pub fn get_cell_mut(&mut self, pos: TilePos) -> Option<&mut Cell> {
+        self.tiles.get_mut((pos.y as usize, pos.x as usize))
+    }
+    
+    pub fn get_tile(&self, pos: TilePos) -> Option<&Tile> {
+        self.tiles.get((pos.y as usize, pos.x as usize)).and_then(|cell| cell.tile.as_ref())
     }
 
-    pub fn tile_exists(&self, tile_pos: (usize, usize)) -> bool {
-        self.tiles.get(tile_pos).and_then(|cell| cell.tile).is_some()
+    pub fn get_tile_mut(&mut self, pos: TilePos) -> Option<&mut Tile> {
+        self.tiles.get_mut((pos.y as usize, pos.x as usize)).and_then(|cell| cell.tile.as_mut())
     }
 
-    pub fn get_neighbours(&self, tile_pos: (usize, usize)) -> Neighbours {
-        Neighbours { 
-            left: self.tile_exists((tile_pos.0, tile_pos.1 - 1)),
-            right: self.tile_exists((tile_pos.0, tile_pos.1 + 1)),
-            top: self.tile_exists((tile_pos.0 - 1, tile_pos.1)),
-            bottom: self.tile_exists((tile_pos.0 + 1, tile_pos.1))
+    pub fn tile_exists(&self, pos: TilePos) -> bool {
+        self.tiles.get((pos.y as usize, pos.x as usize)).and_then(|cell| cell.tile).is_some()
+    }
+
+    pub fn get_neighbours(&self, pos: TilePos) -> Neighbors {
+        Neighbors { 
+            left: self.tile_exists(pos.square_west().unwrap()),
+            right: self.tile_exists(pos.square_east(&MAP_SIZE).unwrap()),
+            top: self.tile_exists(pos.square_south().unwrap()),
+            bottom: self.tile_exists(pos.square_north(&MAP_SIZE).unwrap())
         }
     }
 }
@@ -100,14 +119,17 @@ pub struct BlockPlaceEvent {
 }
 
 pub struct BlockPlacedEvent {
-    pub tile_pos: (usize, usize)
+    pub tile_pos: TilePos,
+    pub chunk_tile_pos: TilePos,
+    pub chunk_pos: IVec2,
+    pub tile: Tile,
 }
 
 fn spawn_terrain(mut commands: Commands) {
     let current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
 
-    // let seed = current_time.as_millis() as u32;
-    let seed = 4289917359;
+    let seed = current_time.as_millis() as u32;
+    // let seed = 4289917359;
 
     println!("The world's seed is {}", seed);
 
@@ -125,125 +147,114 @@ fn spawn_terrain(mut commands: Commands) {
 
 fn spawn_tile(
     commands: &mut Commands,
-    texture_atlas: Handle<TextureAtlas>,
     tile: Tile,
-    ix: u32,
-    x: f32,
-    iy: u32,
-    y: f32,
+    tile_pos: TilePos,
+    tilemap_entity: Entity
 ) -> Entity {
-    let index = get_tile_sprite_index(tile.neighbours);
+    let index = util::get_tile_start_index(tile.tile_type) + get_tile_sprite_index(tile.neighbors);
 
     commands
-        .spawn_bundle(SpriteSheetBundle {
-            sprite: TextureAtlasSprite {
-                custom_size: Some(Vec2::new(16., 16.)),
-                index,
-                ..default()
-            },
-            texture_atlas,
-            transform: Transform::from_xyz(x, y, 0.1).with_scale(Vec3::splat(1.0)),
+        .spawn()
+        .insert_bundle(TileBundle {
+            position: tile_pos,
+            tilemap_id: TilemapId(tilemap_entity),
+            texture: TileTexture(index),
             ..default()
         })
         .insert(tile.tile_type)
-        .insert(Name::new(format!("Block Tile {} {}", ix, iy)))
         .id()
 }
 
 fn spawn_wall(
     commands: &mut Commands,
-    texture_atlas: Handle<TextureAtlas>,
     wall: Wall,
-    ix: u32,
-    x: f32,
-    iy: u32,
-    y: f32,
+    wall_pos: TilePos,
+    wallmap_entity: Entity
 ) -> Entity {
-    let index = get_wall_sprite_index(wall.neighbours);
+    let index = util::get_wall_start_index(wall.wall_type) + get_wall_sprite_index(wall.neighbors);
 
     commands
-        .spawn_bundle(SpriteSheetBundle {
-            sprite: TextureAtlasSprite { index, ..default() },
-            texture_atlas,
-            transform: Transform::from_xyz(x, y, 0.).with_scale(Vec3::splat(1.05)),
+        .spawn()
+        .insert_bundle(TileBundle {
+            position: wall_pos,
+            tilemap_id: TilemapId(wallmap_entity),
+            texture: TileTexture(index),
             ..default()
         })
-        .insert(Name::new(format!("Wall {} {}", ix, iy)))
-        .insert(NoFrustumCulling)
         .id()
 }
 
-fn get_tile_sprite_index(slope: Neighbours) -> usize {
-    let rand: usize = thread_rng().gen_range(1..3);
+fn get_tile_sprite_index(slope: Neighbors) -> u32 {
+    let rand: u32 = thread_rng().gen_range(1..3);
 
     match slope {
         // All
-        Neighbours::ALL => rand + 16,
+        Neighbors::ALL => rand + 16,
         // None
-        Neighbours::NONE => 16 * 3 + rand + 8,
+        Neighbors::NONE => 16 * 3 + rand + 8,
         // Top
-        Neighbours::TOP => 16 * 3 + rand + 5,
+        Neighbors::TOP => 16 * 3 + rand + 5,
         // Bottom
-        Neighbours::BOTTOM => rand + 6,
+        Neighbors::BOTTOM => rand + 6,
         // Left
-        Neighbours::LEFT => (rand - 1) * 16 + 12,
+        Neighbors::LEFT => (rand - 1) * 16 + 12,
         // Right
-        Neighbours::RIGHT => (rand - 1) * 16 + 9,
+        Neighbors::RIGHT => (rand - 1) * 16 + 9,
         // Top Bottom
-        Neighbours::TOP_BOTTOM => (rand - 1) * 16 + 5,
+        Neighbors::TOP_BOTTOM => (rand - 1) * 16 + 5,
         // Top Left Right
-        Neighbours::TOP_LEFT_RIGHT => 16 * 2 + rand + 1,
+        Neighbors::TOP_LEFT_RIGHT => 16 * 2 + rand + 1,
         // Bottom Left Right
-        Neighbours::BOTTOM_LEFT_RIGHT => rand,
+        Neighbors::BOTTOM_LEFT_RIGHT => rand,
         // Left Right
-        Neighbours::LEFT_RIGHT => 4 * 16 + 5 + rand,
+        Neighbors::LEFT_RIGHT => 4 * 16 + 5 + rand,
         // Bottom Left
-        Neighbours::BOTTOM_LEFT => 16 * 3 + 1 + (rand - 1) * 2,
+        Neighbors::BOTTOM_LEFT => 16 * 3 + 1 + (rand - 1) * 2,
         // Bottom Right
-        Neighbours::BOTTOM_RIGHT => 16 * 3 + (rand - 1) * 2,
+        Neighbors::BOTTOM_RIGHT => 16 * 3 + (rand - 1) * 2,
         // Top Left
-        Neighbours::TOP_LEFT => 16 * 4 + 1 + (rand - 1) * 2,
+        Neighbors::TOP_LEFT => 16 * 4 + 1 + (rand - 1) * 2,
         // Top Right
-        Neighbours::TOP_RIGHT => 16 * 4 + (rand - 1) * 2,
+        Neighbors::TOP_RIGHT => 16 * 4 + (rand - 1) * 2,
         // Top Bottom Left
-        Neighbours::TOP_BOTTOM_LEFT => (rand - 1) * 16 + 4,
+        Neighbors::TOP_BOTTOM_LEFT => (rand - 1) * 16 + 4,
         // Top Bottom Right
-        Neighbours::TOP_BOTTOM_RIGHT => (rand - 1) * 16,
+        Neighbors::TOP_BOTTOM_RIGHT => (rand - 1) * 16,
     }
 }
 
-fn get_wall_sprite_index(slope: Neighbours) -> usize {
-    let rand: usize = thread_rng().gen_range(1..3);
+fn get_wall_sprite_index(slope: Neighbors) -> u32 {
+    let rand: u32 = thread_rng().gen_range(1..3);
 
     match slope {
         // All
-        Neighbours::ALL => 13 + rand,
+        Neighbors::ALL => 13 + rand,
         // None
-        Neighbours::NONE => 13 * 3 + 8 + rand,
+        Neighbors::NONE => 13 * 3 + 8 + rand,
         // Top
-        Neighbours::TOP => 13 * 2 + rand,
+        Neighbors::TOP => 13 * 2 + rand,
         // Bottom
-        Neighbours::BOTTOM => 6 + rand,
+        Neighbors::BOTTOM => 6 + rand,
         // Top Bottom
-        Neighbours::TOP_BOTTOM => (rand - 1) * 13 + 5,
+        Neighbors::TOP_BOTTOM => (rand - 1) * 13 + 5,
         // Bottom Right
-        Neighbours::BOTTOM_RIGHT => 13 * 3 + (rand - 1) * 2,
+        Neighbors::BOTTOM_RIGHT => 13 * 3 + (rand - 1) * 2,
         // Bottom Left
-        Neighbours::BOTTOM_LEFT => 13 * 3 + 1 + (rand - 1) * 2,
+        Neighbors::BOTTOM_LEFT => 13 * 3 + 1 + (rand - 1) * 2,
         // Top Right
-        Neighbours::TOP_RIGHT => 13 * 4 + (rand - 1) * 2,
+        Neighbors::TOP_RIGHT => 13 * 4 + (rand - 1) * 2,
         // Top Left
-        Neighbours::TOP_LEFT => 13 * 4 + 1 + (rand - 1) * 2,
+        Neighbors::TOP_LEFT => 13 * 4 + 1 + (rand - 1) * 2,
         // Left Right
-        Neighbours::LEFT_RIGHT => 13 * 4 + 5 + rand,
+        Neighbors::LEFT_RIGHT => 13 * 4 + 5 + rand,
         // Bottom Left Right
-        Neighbours::BOTTOM_LEFT_RIGHT => 1 + rand,
+        Neighbors::BOTTOM_LEFT_RIGHT => 1 + rand,
         // Top Bottom Right
-        Neighbours::TOP_BOTTOM_RIGHT => 13 * (rand - 1),
+        Neighbors::TOP_BOTTOM_RIGHT => 13 * (rand - 1),
         // Top Bottom Left
-        Neighbours::TOP_BOTTOM_LEFT => 13 * (rand - 1) + 4,
+        Neighbors::TOP_BOTTOM_LEFT => 13 * (rand - 1) + 4,
         // Top Left Right
-        Neighbours::TOP_LEFT_RIGHT => 13 * 2 + rand,
+        Neighbors::TOP_LEFT_RIGHT => 13 * 2 + rand,
         _ => panic!("{:#?}", slope),
     }
 }
@@ -269,7 +280,7 @@ fn spawn_tiles(
 
                 if !chunk_manager.spawned_chunks.contains(&chunk_pos) {
                     chunk_manager.spawned_chunks.insert(chunk_pos);
-                    spawn_chunk(&mut commands, &block_assets, &wall_assets, &world_data, chunk_pos);
+                    spawn_chunk(&mut commands, &block_assets, &world_data, chunk_pos);
                 }
             }
         }
@@ -289,7 +300,7 @@ fn despawn_tiles(
         let camera_fov = get_camera_fov(camera_transform.translation().xy(), projection);
         let camera_chunk_pos = get_chunk_position_by_camera_fov(camera_fov);
 
-        for (entity, Chunk { chunk_pos }) in chunks.iter() {
+        for (entity, Chunk { pos: chunk_pos }) in chunks.iter() {
             if (chunk_pos.x < camera_chunk_pos.left || chunk_pos.x > camera_chunk_pos.right) ||
                (chunk_pos.y > camera_chunk_pos.bottom || chunk_pos.y < camera_chunk_pos.top) 
             {
@@ -303,20 +314,14 @@ fn despawn_tiles(
 fn spawn_chunk(
     commands: &mut Commands,
     block_assets: &BlockAssets,
-    wall_assets: &WallAssets,
     world_data: &WorldData,
     chunk_pos: IVec2,
 ) { 
-    let map_size = TilemapSize {
-        x: CHUNK_SIZE as u32,
-        y: CHUNK_SIZE as u32,
-    };
-
     let tilemap_entity = commands.spawn().id();
-    let mut tile_storage = TileStorage::empty(map_size);
+    let mut tile_storage = TileStorage::empty(CHUNKMAP_SIZE);
 
     let wallmap_entity = commands.spawn().id();
-    let mut wall_storage = TileStorage::empty(map_size);
+    let mut wall_storage = TileStorage::empty(CHUNKMAP_SIZE);
 
     for y in 0..CHUNK_SIZE as usize {
         for x in 0..CHUNK_SIZE as usize {
@@ -332,15 +337,7 @@ fn spawn_chunk(
 
             if let Some(cell) = cell_option {
                 if let Some(tile) = cell.tile {
-                    let tile_entity = commands
-                        .spawn()
-                        .insert_bundle(TileBundle {
-                            position: tile_pos,
-                            tilemap_id: TilemapId(tilemap_entity),
-                            texture: TileTexture(block_assets.get_start_index(tile.tile_type) + get_tile_sprite_index(tile.neighbours) as u32),
-                            ..default()
-                        })
-                        .id();
+                    let tile_entity = spawn_tile(commands, tile, tile_pos, tilemap_entity);
 
                     commands.entity(tilemap_entity).add_child(tile_entity);
                     tile_storage.set(&tile_pos, Some(tile_entity));
@@ -348,14 +345,7 @@ fn spawn_chunk(
 
                 // if let Some(wall) = cell.wall {
                 //     if let Some(texture_atlas) = wall_assets.get_by_wall(wall.wall_type) {
-                //         let wall_entity = commands
-                //             .spawn()
-                //             .insert_bundle(TileBundle {
-                //                 position: tile_pos,
-                //                 tilemap_id: TilemapId(wallmap_entity),
-                //                 ..default()
-                //             })
-                //             .id();
+                //         let wall_entity = spawn_wall(commands, wall, tile_pos, wallmap_entity);
 
                 //         commands.entity(wallmap_entity).add_child(wall_entity);
                 //         wall_storage.set(&tile_pos, Some(wall_entity));
@@ -367,13 +357,13 @@ fn spawn_chunk(
 
     commands
         .entity(tilemap_entity)
-        .insert(Chunk { chunk_pos })
+        .insert(Chunk { pos: chunk_pos })
         .insert_bundle(TilemapBundle {
             grid_size: TilemapGridSize {
                 x: TILE_SIZE,
                 y: TILE_SIZE,
             },
-            size: map_size,
+            size: CHUNKMAP_SIZE,
             storage: tile_storage,
             texture: TilemapTexture(block_assets.tiles.clone()),
             tile_size: TilemapTileSize {
@@ -384,7 +374,7 @@ fn spawn_chunk(
                 x: 2.,
                 y: 2.
             },
-            transform: Transform::from_xyz(chunk_pos.x as f32 * CHUNK_SIZE * TILE_SIZE, chunk_pos.y as f32 * CHUNK_SIZE * -TILE_SIZE, 1.),
+            transform: Transform::from_xyz(chunk_pos.x as f32 * CHUNK_SIZE * TILE_SIZE, -(chunk_pos.y + 1) as f32 * CHUNK_SIZE * TILE_SIZE + TILE_SIZE, 1.),
             ..Default::default()
         });
 }
@@ -428,41 +418,54 @@ fn get_chunk_position_by_camera_fov(camera_fov: FRect) -> IRect {
     rect
 }
 
-pub fn get_chunk_position(
-    pos: Vec2
-) -> IVec2 {
-    (pos / (CHUNK_SIZE * TILE_SIZE)).as_ivec2()
+pub fn get_chunk_position(pos: TilePos) -> IVec2 {
+    IVec2 { 
+        x: (pos.x / CHUNK_SIZE as u32) as i32,
+        y: (pos.y / CHUNK_SIZE as u32) as i32
+    }
 }
 
 fn handle_block_place(
-    mut world_data: ResMut<WorldData>,
     mut commands: Commands,
+    mut world_data: ResMut<WorldData>,
     mut events: EventReader<BlockPlaceEvent>,
     mut block_placed_ew: EventWriter<BlockPlacedEvent>,
     mut inventory: ResMut<Inventory>,
-    block_assets: Res<BlockAssets>
+    mut chunks: Query<(&Chunk, &mut TileStorage, Entity)>
 ) {
     for event in events.iter() {
-        let tile_pos = (event.tile_pos.y.abs() as usize, event.tile_pos.x as usize);
-        let tile = Tile { tile_type: event.block, neighbours: world_data.get_neighbours(tile_pos) };
+        let map_tile_pos = TilePos { x: event.tile_pos.x as u32, y: event.tile_pos.y.abs() as u32 };
+        let neighbors = world_data.get_neighbours(map_tile_pos);
+        let tile = Tile { tile_type: event.block, neighbors };
 
-        if world_data.tiles.get(tile_pos).and_then(|cell| cell.tile).is_none() {
-            let cell = world_data.tiles.get_mut(tile_pos).unwrap();
+        if world_data.get_tile(map_tile_pos).is_none() {
+            let cell = world_data.get_cell_mut(map_tile_pos).unwrap();
             cell.tile = Some(tile);
 
-            spawn_tile(
-                &mut commands, 
-                block_assets.get_by_block(event.block).unwrap(), 
-                tile,
-                event.tile_pos.x as u32, 
-                event.tile_pos.x as f32 * 16.,
-                event.tile_pos.y as u32, 
-                event.tile_pos.y as f32 * 16.,
-            );
+            let chunk_pos = get_chunk_position(map_tile_pos);
+
+            let chunk_tile_pos = TilePos {
+                x: (map_tile_pos.x % 25),
+                y: CHUNK_SIZE_U - 1 - (map_tile_pos.y % 25),
+            };
+
+            chunks.for_each_mut(|(chunk, mut tile_storage, tilemap_entity)| {
+                if chunk.pos == chunk_pos {
+                    let tile_entity = spawn_tile(&mut commands, tile, chunk_tile_pos, tilemap_entity);
+
+                    commands.entity(tilemap_entity).add_child(tile_entity);
+                    tile_storage.set(&chunk_tile_pos, Some(tile_entity));
+                }
+            });
 
             inventory.consume_item(event.inventory_item_index);
 
-            block_placed_ew.send(BlockPlacedEvent { tile_pos });
+            block_placed_ew.send(BlockPlacedEvent { 
+                tile_pos: map_tile_pos,
+                chunk_tile_pos,
+                chunk_pos, 
+                tile 
+            });
         }
     }
 }
@@ -470,24 +473,37 @@ fn handle_block_place(
 fn handle_block_placed(
     mut world_data: ResMut<WorldData>,
     mut events: EventReader<BlockPlacedEvent>,
+    mut tiles: Query<(&mut TileTexture, &Block)>,
+    mut chunks: Query<(&Chunk, &TileStorage)>
 ) {
+    let map_type = TilemapType::Square { diagonal_neighbors: false };
+
     for event in events.iter() {
         let tile_pos = event.tile_pos;
+        let neighbor_positions = get_neighboring_pos(&tile_pos, &MAP_SIZE, &map_type);
 
-        if let Some(tile) = world_data.get_tile_mut((tile_pos.0, tile_pos.1 - 1)) {
-            tile.neighbours.right = true;
-        }
+        for pos in neighbor_positions.into_iter() {
+            let neighbors = world_data.get_neighbours(pos);
 
-        if let Some(tile) = world_data.get_tile_mut((tile_pos.0, tile_pos.1 + 1)) {
-            tile.neighbours.left = true;
-        }
-        
-        if let Some(tile) = world_data.get_tile_mut((tile_pos.0 - 1, tile_pos.1)) {
-            tile.neighbours.bottom = true;
-        }
+            if let Some(mut tile) = world_data.get_tile_mut(pos) {
+                tile.neighbors = tile.neighbors.or(neighbors);
+            }
 
-        if let Some(tile) = world_data.get_tile_mut((tile_pos.0 + 1, tile_pos.1)) {
-            tile.neighbours.top = true;
+            let chunk_pos = get_chunk_position(pos);
+            let chunk_tile_pos = TilePos {
+                x: (pos.x % 25),
+                y: CHUNK_SIZE_U - 1 - (pos.y % 25),
+            };
+
+            chunks.for_each_mut(|(chunk, tile_storage)| {
+                if chunk.pos == chunk_pos {
+                    if let Some(entity) = tile_storage.get(&chunk_tile_pos) {
+                        let (mut tile_texture, block) = tiles.get_mut(entity).unwrap();
+
+                        tile_texture.0 = util::get_tile_start_index(*block) + get_tile_sprite_index(neighbors);
+                    }
+                }
+            });
         }
     }
 }

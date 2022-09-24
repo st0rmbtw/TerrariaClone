@@ -23,7 +23,7 @@ use iyes_loopless::prelude::*;
 
 use crate::{state::GameState, util::RectExtensions, TRANSPARENT};
 
-use super::{FontAssets, MainCamera};
+use super::{assets::FontAssets, camera::MainCamera};
 
 // region: Plugin
 pub struct MenuPlugin;

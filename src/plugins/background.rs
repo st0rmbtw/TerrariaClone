@@ -1,4 +1,3 @@
-use super::BackgroundAssets;
 use crate::{
     parallax::{LayerData, ParallaxResource},
     state::GameState,
@@ -8,6 +7,8 @@ use bevy::{
     window::Windows,
 };
 use iyes_loopless::prelude::*;
+
+use super::assets::BackgroundAssets;
 
 // region: Plugin
 pub struct BackgroundPlugin;

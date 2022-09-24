@@ -21,10 +21,7 @@ use crate::{
     TRANSPARENT,
 };
 
-use super::{
-    ExtraUiVisibility, FontAssets, HoveredInfo, ItemAssets, ToggleExtraUiEvent, UiAssets,
-    UiVisibility,
-};
+use super::{ui::{UiVisibility, ToggleExtraUiEvent, ExtraUiVisibility}, assets::{UiAssets, FontAssets, ItemAssets}, cursor::HoveredInfo};
 
 pub const SPAWN_PLAYER_UI_LABEL: &str = "spawn_player_ui";
 

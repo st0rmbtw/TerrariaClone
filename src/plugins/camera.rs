@@ -4,7 +4,7 @@ use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet};
 
 use crate::{parallax::ParallaxCameraComponent, state::GameState, world_generator::WORLD_SIZE_X};
 
-use super::{Player, TILE_SIZE};
+use super::{player::Player, world::TILE_SIZE};
 
 pub struct CameraPlugin;
 

@@ -10,9 +10,7 @@ use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet};
 
 use crate::{state::GameState, util::RectExtensions, TRANSPARENT};
 
-use super::{
-    spawn_fps_text, spawn_ingame_settings_button, spawn_inventory_ui, FontAssets, UiAssets,
-};
+use super::{assets::{FontAssets, UiAssets}, fps::spawn_fps_text, inventory::spawn_inventory_ui, settings::spawn_ingame_settings_button};
 
 pub const SPAWN_UI_CONTAINER_LABEL: &str = "spawn_ui_container";
 
