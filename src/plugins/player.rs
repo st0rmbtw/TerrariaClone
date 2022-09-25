@@ -744,8 +744,8 @@ fn move_character(
 ) {
     let mut transform = player_query.single_mut();
 
-    const MIN: f32 = TILE_SIZE / 2.;
-    const MAX: f32 = WORLD_SIZE_X as f32 * TILE_SIZE - TILE_SIZE / 2.;
+    const MIN: f32 = PLAYER_SPRITE_WIDTH / 2. - TILE_SIZE / 2.;
+    const MAX: f32 = WORLD_SIZE_X as f32 * TILE_SIZE - PLAYER_SPRITE_WIDTH / 2. - TILE_SIZE / 2.;
 
     let raw = (transform.translation.xy() + velocity.0).clamp(vec2(MIN, -MAX), vec2(MAX, -MIN));
     
