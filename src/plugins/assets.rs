@@ -267,6 +267,9 @@ pub struct WallAssets {
     #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 32., columns = 13, rows = 5))]
     #[asset(path = "sprites/walls/Wall_2.png")]
     pub wall_2: Handle<TextureAtlas>,
+
+    #[asset(path = "sprites/walls/Walls.png")]
+    pub walls: Handle<Image>
 }
 
 impl WallAssets {

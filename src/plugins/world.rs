@@ -24,12 +24,13 @@ use crate::{
     block::Block,
     state::GameState,
     util::{FRect, IRect, self},
-    world_generator::{generate, Cell, Neighbors, Tile, Wall, WORLD_SIZE_Y, WORLD_SIZE_X},
+    world_generator::{generate, Cell, Neighbors, Tile, Wall, WORLD_SIZE_Y, WORLD_SIZE_X}, DefaultBundle,
 };
 
 use super::{assets::{BlockAssets, WallAssets}, inventory::Inventory, camera::MainCamera};
 
 pub const TILE_SIZE: f32 = 16.;
+pub const WALL_SIZE: f32 = 32.;
 
 const CHUNK_SIZE: f32 = 25.;
 const CHUNK_SIZE_U: u32 = CHUNK_SIZE as u32;
@@ -56,10 +57,10 @@ impl Plugin for WorldPlugin {
             .add_system_set(
                 ConditionSet::new()
                     .run_in_state(GameState::InGame)
-                    .with_system(spawn_tiles)
-                    .with_system(despawn_tiles)
+                    .with_system(spawn_chunks)
+                    .with_system(despawn_chunks)
                     .with_system(handle_block_place)
-                    .with_system(handle_block_placed)
+                    .with_system(update_neighbors)
                     .into(),
             );
     }
@@ -67,6 +68,16 @@ impl Plugin for WorldPlugin {
 
 #[derive(Component)]
 pub struct Chunk {
+    pub pos: IVec2
+}
+
+#[derive(Component)]
+pub struct TileChunk {
+    pub pos: IVec2
+}
+
+#[derive(Component)]
+pub struct WallChunk {
     pub pos: IVec2
 }
 
@@ -259,7 +270,7 @@ fn get_wall_sprite_index(slope: Neighbors) -> u32 {
     }
 }
 
-fn spawn_tiles(
+fn spawn_chunks(
     mut commands: Commands,
     block_assets: Res<BlockAssets>,
     wall_assets: Res<WallAssets>,
@@ -280,14 +291,14 @@ fn spawn_tiles(
 
                 if !chunk_manager.spawned_chunks.contains(&chunk_pos) {
                     chunk_manager.spawned_chunks.insert(chunk_pos);
-                    spawn_chunk(&mut commands, &block_assets, &world_data, chunk_pos);
+                    spawn_chunk(&mut commands, &block_assets, &wall_assets, &world_data, chunk_pos);
                 }
             }
         }
     }
 }
 
-fn despawn_tiles(
+fn despawn_chunks(
     mut commands: Commands,
     chunks: Query<(Entity, &Chunk)>,
     mut chunk_manager: ResMut<ChunkManager>,
@@ -314,9 +325,18 @@ fn despawn_tiles(
 fn spawn_chunk(
     commands: &mut Commands,
     block_assets: &BlockAssets,
+    wall_assets: &WallAssets,
     world_data: &WorldData,
     chunk_pos: IVec2,
 ) { 
+    let chunk = commands.spawn()
+        .insert(Chunk { pos: chunk_pos })
+        .insert_bundle(DefaultBundle {
+            transform: Transform::from_xyz(chunk_pos.x as f32 * CHUNK_SIZE * TILE_SIZE, -(chunk_pos.y + 1) as f32 * CHUNK_SIZE * TILE_SIZE + TILE_SIZE, 0.),
+            ..default()  
+        })
+        .id();
+
     let tilemap_entity = commands.spawn().id();
     let mut tile_storage = TileStorage::empty(CHUNKMAP_SIZE);
 
@@ -343,21 +363,19 @@ fn spawn_chunk(
                     tile_storage.set(&tile_pos, Some(tile_entity));
                 }
 
-                // if let Some(wall) = cell.wall {
-                //     if let Some(texture_atlas) = wall_assets.get_by_wall(wall.wall_type) {
-                //         let wall_entity = spawn_wall(commands, wall, tile_pos, wallmap_entity);
+                if let Some(wall) = cell.wall {
+                    let wall_entity = spawn_wall(commands, wall, tile_pos, wallmap_entity);
 
-                //         commands.entity(wallmap_entity).add_child(wall_entity);
-                //         wall_storage.set(&tile_pos, Some(wall_entity));
-                //     }
-                // }
+                    commands.entity(wallmap_entity).add_child(wall_entity);
+                    wall_storage.set(&tile_pos, Some(wall_entity));
+                }
             }
         }
     }
 
     commands
         .entity(tilemap_entity)
-        .insert(Chunk { pos: chunk_pos })
+        .insert(TileChunk { pos: chunk_pos })
         .insert_bundle(TilemapBundle {
             grid_size: TilemapGridSize {
                 x: TILE_SIZE,
@@ -374,9 +392,30 @@ fn spawn_chunk(
                 x: 2.,
                 y: 2.
             },
-            transform: Transform::from_xyz(chunk_pos.x as f32 * CHUNK_SIZE * TILE_SIZE, -(chunk_pos.y + 1) as f32 * CHUNK_SIZE * TILE_SIZE + TILE_SIZE, 1.),
+            transform: Transform::from_xyz(0., 0., 1.),
             ..Default::default()
         });
+
+    commands
+        .entity(wallmap_entity)
+        .insert(WallChunk { pos: chunk_pos })
+        .insert_bundle(TilemapBundle {
+            grid_size: TilemapGridSize {
+                x: TILE_SIZE,
+                y: TILE_SIZE,
+            },
+            size: CHUNKMAP_SIZE,
+            storage: wall_storage,
+            texture: TilemapTexture(wall_assets.walls.clone()),
+            tile_size: TilemapTileSize {
+                x: WALL_SIZE,
+                y: WALL_SIZE,
+            },
+            transform: Transform::from_xyz(0., 0., 0.),
+            ..Default::default()
+        });
+
+    commands.entity(chunk).push_children(&[tilemap_entity, wallmap_entity]);
 }
 
 fn get_camera_fov(camera_pos: Vec2, projection: &OrthographicProjection) -> FRect {
@@ -431,7 +470,7 @@ fn handle_block_place(
     mut events: EventReader<BlockPlaceEvent>,
     mut block_placed_ew: EventWriter<BlockPlacedEvent>,
     mut inventory: ResMut<Inventory>,
-    mut chunks: Query<(&Chunk, &mut TileStorage, Entity)>
+    mut chunks: Query<(&TileChunk, &mut TileStorage, Entity)>
 ) {
     for event in events.iter() {
         let map_tile_pos = TilePos { x: event.tile_pos.x as u32, y: event.tile_pos.y.abs() as u32 };
@@ -470,11 +509,11 @@ fn handle_block_place(
     }
 }
 
-fn handle_block_placed(
+fn update_neighbors(
     mut world_data: ResMut<WorldData>,
     mut events: EventReader<BlockPlacedEvent>,
     mut tiles: Query<(&mut TileTexture, &Block)>,
-    mut chunks: Query<(&Chunk, &TileStorage)>
+    mut chunks: Query<(&TileChunk, &TileStorage)>
 ) {
     let map_type = TilemapType::Square { diagonal_neighbors: false };
 

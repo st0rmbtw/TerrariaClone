@@ -1,4 +1,4 @@
-use bevy::prelude::{Color, Vec2};
+use bevy::prelude::{Color, Vec2, Bundle, ComputedVisibility, Visibility, Transform, GlobalTransform};
 
 #[macro_use]
 extern crate lazy_static;
@@ -23,4 +23,12 @@ pub type Velocity = Vec2;
 pub struct Bounds {
     pub min: Vec2,
     pub max: Vec2
+}
+
+#[derive(Bundle, Default)]
+pub struct DefaultBundle {
+    pub transform: Transform,
+    pub global_transform: GlobalTransform,
+    pub visibility: Visibility,
+    pub computed_visibility: ComputedVisibility,
 }

@@ -234,7 +234,7 @@ pub fn get_tile_start_index(block: Block) -> u32 {
 
 pub fn get_wall_start_index(wall: Wall) -> u32 {
     match wall {
-        Wall::DirtWall => 0,
-        Wall::StoneWall => 16 * 15
+        Wall::StoneWall => 0,
+        Wall::DirtWall => 5 * 13,
     }
 }

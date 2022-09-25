@@ -14,7 +14,7 @@ use crate::{
     items::{get_animation_points, Item},
     state::{GameState, MovementState},
     util::{map_range, get_tile_coords, get_rotation_by_direction, move_towards, FRect, Lerp, inverse_lerp},
-    world_generator::WORLD_SIZE_X, Velocity,
+    world_generator::WORLD_SIZE_X, Velocity, DefaultBundle,
 };
 
 use super::{world::{TILE_SIZE, WorldData, BlockPlaceEvent}, inventory::{PlayerInventoryPlugin, SelectedItem, Inventory}, assets::{PlayerAssets, ItemAssets}, cursor::CursorPosition};
@@ -295,13 +295,13 @@ fn spawn_player(
     let player = commands
         .spawn()
         .insert(Player)
+        .insert_bundle(DefaultBundle {
+            transform: Transform::from_xyz(WORLD_SIZE_X as f32 * 16. / 2., 5. * TILE_SIZE, 0.1)
+        })
         .insert(Name::new("Player"))
         .insert(GroundDetection::default())
         .insert(MovementState::default())
         .insert(FaceDirection::default())
-        .insert(Transform::from_xyz(WORLD_SIZE_X as f32 * 16. / 2., 5. * TILE_SIZE, 0.1))
-        .insert(GlobalTransform::default())
-        .insert_bundle(VisibilityBundle::default())
         .with_children(|cmd| {
             // region: Hair
             cmd.spawn_bundle(SpriteSheetBundle {
