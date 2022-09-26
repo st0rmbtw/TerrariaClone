@@ -54,9 +54,7 @@ impl Plugin for PlayerPlugin {
             )))
             .init_resource::<PlayerVelocity>()
             .init_resource::<PlayerRect>()
-            .insert_resource(PlayerController {
-                ..default()
-            })
+            .init_resource::<PlayerController>()
             .init_resource::<Collisions>()
             .insert_resource(UseItemAnimation(false))
             .add_enter_system(GameState::InGame, spawn_player)
@@ -602,7 +600,9 @@ fn collision_check(
     let left = (player_rect.left / TILE_SIZE).round() as usize;
     let right = (player_rect.right / TILE_SIZE).round() as usize;
     let bottom = (player_rect.bottom / TILE_SIZE).round().abs() as usize;
-    let top = (player_rect.top / TILE_SIZE).floor().abs() as usize;
+    let top = (player_rect.top / TILE_SIZE).floor();
+
+    let utop = top.abs() as usize;
 
     let mut col_left = false;
     let mut col_right = false;
@@ -624,12 +624,12 @@ fn collision_check(
             break;
         }
 
-        if world_data.tiles.get((top, x)).and_then(|cell| cell.tile).is_some() {
+        if top == 0. || world_data.tiles.get((utop, x)).and_then(|cell| cell.tile).is_some() {
             col_top = true;
         }
     }
 
-    for y in top..bottom {
+    for y in utop..bottom {
         if col_left {
             break;
         }
@@ -639,7 +639,7 @@ fn collision_check(
         }
     }
 
-    for y in top..bottom {
+    for y in utop..bottom {
         if col_right {
             break;
         }

@@ -2,7 +2,7 @@ use autodefault::autodefault;
 use bevy::prelude::*;
 use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet};
 
-use crate::{parallax::ParallaxCameraComponent, state::GameState, world_generator::WORLD_SIZE_X};
+use crate::{parallax::ParallaxCameraComponent, state::GameState, world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}};
 
 use super::{player::Player, world::TILE_SIZE};
 
@@ -72,14 +72,18 @@ fn move_camera(
 
             let projection_left = projection.left * projection.scale;
             let projection_right = projection.right * projection.scale;
+            let projection_top = projection.top * projection.scale;
             
             {
                 let min = projection_left.abs() - TILE_SIZE / 2.;
                 let max = (WORLD_SIZE_X as f32 * 16.) - projection_right - TILE_SIZE / 2.;
                 camera_translation.x = player_transform.translation.x.clamp(min, max);
             }
-
-            camera_translation.y = player_transform.translation.y;
+            {
+                let max = -projection_top + TILE_SIZE / 2.;
+                let min = -(WORLD_SIZE_Y as f32 * 16.) + projection_top + TILE_SIZE / 2.;
+                camera_translation.y = player_transform.translation.y.clamp(min, max);
+            }
         }
     }
 }

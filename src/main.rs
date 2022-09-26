@@ -5,7 +5,7 @@ use bevy::{
         settings::{WgpuFeatures, WgpuSettings},
         texture::ImageSettings,
     },
-    window::PresentMode,
+    window::{PresentMode, WindowMode},
 };
 use bevy_ecs_tilemap::TilemapPlugin;
 use bevy_hanabi::HanabiPlugin;
@@ -31,6 +31,8 @@ fn main() {
             title: "Terraria".to_string(),
             present_mode: PresentMode::Fifo,
             cursor_visible: false,
+            position: WindowPosition::Centered(MonitorSelection::Current),
+            mode: WindowMode::BorderlessFullscreen,
             ..default()
         })
         .insert_resource(AssetServerSettings {

@@ -52,7 +52,7 @@ impl Plugin for WorldPlugin {
         app
             .init_resource::<ChunkManager>()
             .add_event::<BlockPlaceEvent>()
-            .add_event::<BlockPlacedEvent>()
+            .add_event::<UpdateNeighborsEvent>()
             .add_enter_system(GameState::WorldLoading, spawn_terrain)
             .add_system_set(
                 ConditionSet::new()
@@ -106,10 +106,10 @@ impl WorldData {
 
     pub fn get_neighbours(&self, pos: TilePos) -> Neighbors {
         Neighbors { 
-            left: self.tile_exists(pos.square_west().unwrap()),
-            right: self.tile_exists(pos.square_east(&MAP_SIZE).unwrap()),
-            top: self.tile_exists(pos.square_south().unwrap()),
-            bottom: self.tile_exists(pos.square_north(&MAP_SIZE).unwrap())
+            left: pos.square_west().and_then(|p| self.get_tile(p)).is_some(),
+            right: pos.square_east(&MAP_SIZE).and_then(|p| self.get_tile(p)).is_some(),
+            top: pos.square_south().and_then(|p| self.get_tile(p)).is_some(),
+            bottom: pos.square_north(&MAP_SIZE).and_then(|p| self.get_tile(p)).is_some()
         }
     }
 }
@@ -129,7 +129,7 @@ pub struct BlockPlaceEvent {
     pub inventory_item_index: usize
 }
 
-pub struct BlockPlacedEvent {
+pub struct UpdateNeighborsEvent {
     pub tile_pos: TilePos,
     pub chunk_tile_pos: TilePos,
     pub chunk_pos: IVec2,
@@ -468,7 +468,7 @@ fn handle_block_place(
     mut commands: Commands,
     mut world_data: ResMut<WorldData>,
     mut events: EventReader<BlockPlaceEvent>,
-    mut block_placed_ew: EventWriter<BlockPlacedEvent>,
+    mut update_neighbors_ew: EventWriter<UpdateNeighborsEvent>,
     mut inventory: ResMut<Inventory>,
     mut chunks: Query<(&TileChunk, &mut TileStorage, Entity)>
 ) {
@@ -499,7 +499,7 @@ fn handle_block_place(
 
             inventory.consume_item(event.inventory_item_index);
 
-            block_placed_ew.send(BlockPlacedEvent { 
+            update_neighbors_ew.send(UpdateNeighborsEvent { 
                 tile_pos: map_tile_pos,
                 chunk_tile_pos,
                 chunk_pos, 
@@ -511,7 +511,7 @@ fn handle_block_place(
 
 fn update_neighbors(
     mut world_data: ResMut<WorldData>,
-    mut events: EventReader<BlockPlacedEvent>,
+    mut events: EventReader<UpdateNeighborsEvent>,
     mut tiles: Query<(&mut TileTexture, &Block)>,
     mut chunks: Query<(&TileChunk, &TileStorage)>
 ) {
