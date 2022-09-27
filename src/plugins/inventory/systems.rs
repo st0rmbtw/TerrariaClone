@@ -1,203 +1,11 @@
-use std::{borrow::Cow, collections::HashMap};
+use std::borrow::Cow;
 
 use autodefault::autodefault;
-use bevy::{
-    hierarchy::{BuildChildren, ChildBuilder},
-    input::{mouse::MouseWheel, Input},
-    prelude::*, 
-    text::{Text, TextAlignment, TextStyle},
-    ui::{
-        AlignContent, AlignItems, AlignSelf, FlexDirection, FocusPolicy, Interaction,
-        JustifyContent, PositionType, Size, Style, UiImage, UiRect, Val,
-    },
-};
-use bevy_inspector_egui::Inspectable;
-use iyes_loopless::prelude::*;
+use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, Size, PositionType, AlignContent, Interaction}, text::{Text, TextStyle, TextAlignment}};
 
-use crate::{
-    items::{Items, ItemStack},
-    state::GameState,
-    util::{EntityCommandsExtensions, RectExtensions},
-    TRANSPARENT,
-};
+use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets}, cursor::HoveredInfo}, TRANSPARENT, util::{EntityCommandsExtensions, RectExtensions}};
 
-use super::{ui::{UiVisibility, ToggleExtraUiEvent, ExtraUiVisibility}, assets::{UiAssets, FontAssets, ItemAssets}, cursor::HoveredInfo};
-
-pub const SPAWN_PLAYER_UI_LABEL: &str = "spawn_player_ui";
-
-const ITEMS_STRING: &str = "Items";
-const INVENTORY_STRING: &str = "Inventory";
-
-// 5 is a total count of inventory rows. -1 because the hotbar is a first row
-const INVENTORY_ROWS_COUNT: usize = 5 - 1;
-
-// region: Inventory cell size
-const INVENTORY_CELL_SIZE_F: f32 = 40.;
-const INVENTORY_CELL_SIZE_BIGGER_F: f32 = INVENTORY_CELL_SIZE_F * 1.3;
-
-const INVENTORY_CELL_SIZE: Size<Val> = Size::<Val> {
-    width: Val::Px(INVENTORY_CELL_SIZE_F),
-    height: Val::Px(INVENTORY_CELL_SIZE_F),
-};
-
-const INVENTORY_CELL_SIZE_SELECTED: Size<Val> = Size::<Val> {
-    width: Val::Px(INVENTORY_CELL_SIZE_BIGGER_F),
-    height: Val::Px(INVENTORY_CELL_SIZE_BIGGER_F),
-};
-// endregion
-
-const CELL_COUNT_IN_ROW: usize = 10;
-
-const HOTBAR_LENGTH: usize = 10;
-
-lazy_static! {
-    static ref KEYCODE_TO_DIGIT: HashMap<KeyCode, usize> = HashMap::from([
-        (KeyCode::Key1, 0),
-        (KeyCode::Key2, 1),
-        (KeyCode::Key3, 2),
-        (KeyCode::Key4, 3),
-        (KeyCode::Key5, 4),
-        (KeyCode::Key6, 5),
-        (KeyCode::Key7, 6),
-        (KeyCode::Key8, 7),
-        (KeyCode::Key9, 8),
-        (KeyCode::Key0, 9)
-    ]);
-}
-
-// region: Plugin
-pub struct PlayerInventoryPlugin;
-
-impl Plugin for PlayerInventoryPlugin {
-    fn build(&self, app: &mut App) {
-        app.init_resource::<SelectedItem>()
-            .insert_resource({
-                let mut inventory = Inventory::default();
-                inventory.add_item(Items::COPPER_PICKAXE);
-                inventory.add_item(Items::DIRT_BLOCK.with_stack(999));
-                inventory.add_item(Items::STONE_BLOCK.with_stack(999));
-
-                inventory
-            })
-            .add_system_set(
-                ConditionSet::new()
-                    .run_in_state(GameState::InGame)
-                    .with_system(scroll_select_item)
-                    .with_system(select_item)
-                    .with_system(set_selected_item)
-                    .into(),
-            )
-            .add_system_set(
-                ConditionSet::new()
-                    .run_in_state(GameState::InGame)
-                    .run_if_resource_equals(UiVisibility::default())
-                    .with_system(update_inventory_visibility)
-                    .with_system(update_selected_cell_size)
-                    .with_system(update_selected_cell_image)
-                    .with_system(update_selected_item_name_alignment)
-                    .with_system(update_selected_item_name_text)
-                    .with_system(update_cell)
-                    .with_system(update_cell_image)
-                    .with_system(inventory_cell_background_hover)
-                    .with_system(update_item_amount)
-                    .with_system(update_item_amount_text)
-                    .into(),
-            );
-    }
-}
-
-// endregion
-
-// region: Structs
-
-#[derive(Component)]
-pub struct Inventory {
-    items: [Option<ItemStack>; 50],
-    pub selected_slot: usize,
-}
-
-impl Default for Inventory {
-    fn default() -> Self {
-        Self { items: [None; 50], selected_slot: 0 }
-    }
-}
-
-impl Inventory {
-    pub fn get_item(&self, slot: usize) -> Option<ItemStack> {
-        self.items.iter().nth(slot).and_then(|a| *a)
-    }
-
-    pub fn get_item_mut(&mut self, slot: usize) -> Option<&mut ItemStack> {
-        self.items.iter_mut().nth(slot).and_then(|a| a.as_mut())
-    }
-
-    pub fn remove_item(&mut self, slot: usize) {
-        self.items[slot] = None;
-    }
-
-    pub fn select_item(&mut self, slot: usize) {
-        assert!(slot <= 9);
-        self.selected_slot = slot;
-    }
-
-    pub fn selected_item(&self) -> Option<ItemStack> {
-        self.get_item(self.selected_slot)
-    }
-
-    pub fn consume_item(&mut self, slot: usize) {
-        let item_option = self.get_item_mut(slot);
-        if let Some(item) = item_option {
-            if item.stack > 1 {
-                item.stack -= 1;
-            } else {
-                self.remove_item(slot);
-            }
-        }
-    }
-
-    pub fn add_item(&mut self, item: ItemStack) {
-        for inv_item_option in self.items.iter_mut() {
-            match inv_item_option {
-                Some(inv_item) if inv_item.item == item.item => {
-                    if (inv_item.stack + item.stack) < inv_item.item.max_stack() {
-                        inv_item.stack += item.stack;
-                    }
-                    break;
-                },
-                None => {
-                    *inv_item_option = Some(item);
-                    break;
-                },
-                _ => ()
-            }
-        }
-    }
-}
-
-#[derive(Component, Default, Inspectable)]
-struct InventoryUi;
-
-#[derive(Component, Default)]
-struct HotbarUi;
-#[derive(Component)]
-struct HotbarCellMarker;
-
-#[derive(Component)]
-struct SelectedItemNameMarker;
-
-#[derive(Component)]
-struct InventoryCellIndex(usize);
-
-#[derive(Component, Default)]
-struct InventoryCellItemImage(Handle<Image>);
-
-#[derive(Component, Default)]
-struct InventoryItemAmount(u16);
-
-#[derive(Component, Default, Deref, DerefMut)]
-pub struct SelectedItem(pub Option<ItemStack>);
-
-// endregion
+use super::{Inventory, HOTBAR_LENGTH, SelectedItem, SelectedItemNameMarker, INVENTORY_STRING, ITEMS_STRING, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, KEYCODE_TO_DIGIT, CELL_COUNT_IN_ROW, INVENTORY_ROWS_COUNT, HotbarUi};
 
 #[autodefault]
 pub fn spawn_inventory_ui(
@@ -318,7 +126,7 @@ pub fn spawn_inventory_ui(
         .id()
 }
 
-fn update_inventory_visibility(
+pub fn update_inventory_visibility(
     mut query: Query<&mut Visibility, With<InventoryUi>>,
     mut events: EventReader<ToggleExtraUiEvent>,
 ) {
@@ -329,7 +137,7 @@ fn update_inventory_visibility(
     }
 }
 
-fn update_selected_cell_size(
+pub fn update_selected_cell_size(
     inventory: Res<Inventory>,
     mut hotbar_cells: Query<(&InventoryCellIndex, &mut Style), With<HotbarCellMarker>>,
     visibility: Res<ExtraUiVisibility>,
@@ -344,7 +152,7 @@ fn update_selected_cell_size(
     }
 }
 
-fn update_selected_cell_image(
+pub fn update_selected_cell_image(
     inventory: Res<Inventory>,
     mut hotbar_cells: Query<(&InventoryCellIndex, &mut UiImage), With<HotbarCellMarker>>,
     ui_assets: Res<UiAssets>,
@@ -361,7 +169,7 @@ fn update_selected_cell_image(
 }
 
 #[autodefault(except(InventoryCell))]
-fn spawn_inventory_cell(
+pub fn spawn_inventory_cell(
     children: &mut ChildBuilder<'_, '_, '_>,
     name: impl Into<Cow<'static, str>>,
     cell_background: Handle<Image>,
@@ -449,7 +257,7 @@ fn spawn_inventory_cell(
         .insert(Interaction::default());
 }
 
-fn select_item(mut inventory: ResMut<Inventory>, input: Res<Input<KeyCode>>) {
+pub fn select_item(mut inventory: ResMut<Inventory>, input: Res<Input<KeyCode>>) {
     let digit = input
         .get_just_pressed()
         .find_map(|k| KEYCODE_TO_DIGIT.get(k));
@@ -459,7 +267,7 @@ fn select_item(mut inventory: ResMut<Inventory>, input: Res<Input<KeyCode>>) {
     }
 }
 
-fn scroll_select_item(mut inventory: ResMut<Inventory>, mut events: EventReader<MouseWheel>) {
+pub fn scroll_select_item(mut inventory: ResMut<Inventory>, mut events: EventReader<MouseWheel>) {
     for event in events.iter() {
         let selected_item_index = inventory.selected_slot as f32;
         let hotbar_length = HOTBAR_LENGTH as f32;
@@ -471,13 +279,13 @@ fn scroll_select_item(mut inventory: ResMut<Inventory>, mut events: EventReader<
     }
 }
 
-fn set_selected_item(inventory: Res<Inventory>, mut selected_item: ResMut<SelectedItem>) {
+pub fn set_selected_item(inventory: Res<Inventory>, mut selected_item: ResMut<SelectedItem>) {
     if inventory.is_changed() {
         selected_item.0 = inventory.selected_item();
     }
 }
 
-fn update_selected_item_name_alignment(
+pub fn update_selected_item_name_alignment(
     mut selected_item_name_query: Query<&mut Style, With<SelectedItemNameMarker>>,
     mut events: EventReader<ToggleExtraUiEvent>,
 ) {
@@ -492,7 +300,7 @@ fn update_selected_item_name_alignment(
     }
 }
 
-fn update_selected_item_name_text(
+pub fn update_selected_item_name_text(
     mut selected_item_name_query: Query<&mut Text, With<SelectedItemNameMarker>>,
     current_item: Res<SelectedItem>,
     extra_ui_visibility: Res<ExtraUiVisibility>,
@@ -514,7 +322,7 @@ fn update_selected_item_name_text(
     }
 }
 
-fn update_cell(
+pub fn update_cell(
     inventory: Res<Inventory>,
     mut item_images: Query<(&mut InventoryCellItemImage, &InventoryCellIndex)>,
     item_assets: Res<ItemAssets>,
@@ -529,7 +337,7 @@ fn update_cell(
     }
 }
 
-fn update_cell_image(
+pub fn update_cell_image(
     mut item_images: Query<
         (&mut UiImage, &InventoryCellItemImage),
         Changed<InventoryCellItemImage>,
@@ -540,7 +348,7 @@ fn update_cell_image(
     }
 }
 
-fn update_item_amount(
+pub fn update_item_amount(
     inventory: Res<Inventory>,
     mut query: Query<(&mut InventoryItemAmount, &InventoryCellIndex)>,
 ) {
@@ -556,7 +364,7 @@ fn update_item_amount(
     }
 }
 
-fn update_item_amount_text(
+pub fn update_item_amount_text(
     mut query: Query<(&mut Text, &mut Visibility, &InventoryItemAmount), Changed<InventoryItemAmount>>,
 ) {
     for (mut text, mut visiblity, item_stack) in &mut query {
@@ -569,7 +377,7 @@ fn update_item_amount_text(
     }
 }
 
-fn inventory_cell_background_hover(
+pub fn inventory_cell_background_hover(
     query: Query<(&Interaction, &InventoryCellIndex), Changed<Interaction>>,
     inventory: Res<Inventory>,
     mut info: ResMut<HoveredInfo>,

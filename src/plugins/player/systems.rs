@@ -1,291 +1,14 @@
-use std::{option::Option, time::Duration};
-
 use autodefault::autodefault;
-use bevy::{prelude::*, sprite::Anchor, math::{Vec3Swizzles, vec2}};
-use bevy_hanabi::{
-    AccelModifier, ColorOverLifetimeModifier, EffectAsset, Gradient, ParticleEffect,
-    ParticleEffectBundle, ParticleLifetimeModifier, PositionCone3dModifier, ShapeDimension,
-    SizeOverLifetimeModifier, Spawner,
-};
-use bevy_inspector_egui::Inspectable;
+use bevy::{prelude::*, sprite::Anchor, math::{vec2, Vec3Swizzles}};
+use bevy_hanabi::prelude::*;
 use iyes_loopless::prelude::*;
 
-use crate::{
-    items::{get_animation_points, Item},
-    state::{GameState, MovementState},
-    util::{map_range, get_tile_coords, get_rotation_by_direction, move_towards, FRect, Lerp, inverse_lerp},
-    world_generator::WORLD_SIZE_X, Velocity, DefaultBundle,
-};
+use crate::{state::{GameState, MovementState}, plugins::{world::{WorldData, TILE_SIZE, BlockPlaceEvent}, assets::{PlayerAssets, ItemAssets}, inventory::{SelectedItem, Inventory}, cursor::CursorPosition}, world_generator::WORLD_SIZE_X, util::{move_towards, inverse_lerp, map_range, get_rotation_by_direction, get_tile_coords, FRect, Lerp}, items::{get_animation_points, Item}};
 
-use super::{world::{TILE_SIZE, WorldData, BlockPlaceEvent}, inventory::{PlayerInventoryPlugin, SelectedItem, Inventory}, assets::{PlayerAssets, ItemAssets}, cursor::CursorPosition};
-
-pub const PLAYER_SPRITE_WIDTH: f32 = 2. * TILE_SIZE * 0.75;
-pub const PLAYER_SPRITE_HEIGHT: f32 = 3. * TILE_SIZE;
-
-const WALKING_ANIMATION_MAX_INDEX: usize = 13;
-
-const USE_ITEM_ANIMATION_FRAMES_COUNT: usize = 3;
-
-const MOVEMENT_ANIMATION_LABEL: &str = "movement_animation";
-const USE_ITEM_ANIMATION_LABEL: &str = "use_item_animation";
-
-const ACCELERATION: f32 = 6.;
-const SLOWDOWN: f32 = 8.;
-const MOVE_CLAMP: f32 = 3.;
-
-const JUMP_HEIGHT: i32 = 15;
-const JUMP_SPEED: f32 = 5.01;
-const MAX_FALL_SPEED: f32 = 25.;
-
-// region: Plugin
-
-pub struct PlayerPlugin;
-
-impl Plugin for PlayerPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_plugin(PlayerInventoryPlugin)
-            .insert_resource(Axis::default())
-            .insert_resource(MovementAnimationIndex::default())
-            .insert_resource(UseItemAnimationIndex::default())
-            .insert_resource(AnimationTimer(Timer::new(Duration::from_millis(80), true)))
-            .insert_resource(UseItemAnimationTimer(Timer::new(
-                Duration::from_millis(100),
-                true,
-            )))
-            .init_resource::<PlayerVelocity>()
-            .init_resource::<PlayerRect>()
-            .init_resource::<PlayerController>()
-            .init_resource::<Collisions>()
-            .insert_resource(UseItemAnimation(false))
-            .add_enter_system(GameState::InGame, spawn_player)
-            .add_system_set(update())
-            .add_system_set_to_stage(
-                CoreStage::PostUpdate, 
-                ConditionSet::new()
-                    .run_in_state(GameState::InGame)
-                    .with_system(flip_player)
-                    .with_system(spawn_particles)
-                    .into()
-            )
-            .add_system_set_to_stage(
-                CoreStage::PostUpdate,
-                ConditionSet::new()
-                    .run_in_state(GameState::InGame)
-                    .label(MOVEMENT_ANIMATION_LABEL)
-                    .before(USE_ITEM_ANIMATION_LABEL)
-                    .with_system(update_movement_animation_timer_duration)
-                    .with_system(update_movement_animation_index)
-                    
-                    .with_system(walking_animation.run_if(is_walking))
-                    .with_system(simple_animation::<IdleAnimationData>.run_if(is_idle))
-                    .with_system(simple_animation::<FlyingAnimationData>.run_if(is_flying))
-                    .with_system(simple_animation::<FallingAnimationData>.run_if(is_falling))
-
-                    .into(),
-            )
-            .add_system_set_to_stage(
-                CoreStage::PostUpdate,
-                ConditionSet::new()
-                    .run_in_state(GameState::InGame)
-                    .label(USE_ITEM_ANIMATION_LABEL)
-                    .after(MOVEMENT_ANIMATION_LABEL)
-                    .with_system(set_using_item_visibility)
-                    .with_system(
-                        set_using_item_image
-                            .run_if_resource_equals::<UseItemAnimation>(UseItemAnimation(true)),
-                    )
-                    .with_system(
-                        set_using_item_position
-                            .run_if_resource_equals::<UseItemAnimation>(UseItemAnimation(true)),
-                    )
-                    .with_system(
-                        set_using_item_rotation
-                            .run_if_resource_equals::<UseItemAnimation>(UseItemAnimation(true)),
-                    )
-                    .with_system(
-                        update_use_item_animation_index
-                            .run_if_resource_equals::<UseItemAnimation>(UseItemAnimation(true)),
-                    )
-                    .with_system(set_using_item_rotation_on_player_direction_change)
-                    .with_system(
-                        use_item_animation
-                            .run_if_resource_equals::<UseItemAnimation>(UseItemAnimation(true)),
-                    )
-                    .with_system(player_using_item)
-                    .into(),
-            );
-    }
-}
-
-// endregion
-
-// region: Structs
-
-#[derive(Component)]
-pub struct Player;
-
-#[derive(Default, PartialEq, Eq, Inspectable, Clone, Copy, Component)]
-pub enum FaceDirection {
-    LEFT,
-    #[default]
-    RIGHT,
-}
-
-#[derive(Component, Deref, DerefMut)]
-struct AnimationTimer(Timer);
-
-#[derive(Component, Deref, DerefMut)]
-struct UseItemAnimationTimer(Timer);
-
-#[derive(Component, PartialEq)]
-struct UseItemAnimation(bool);
-
-#[derive(Component, Default, Inspectable)]
-pub struct GroundDetection {
-    pub on_ground: bool,
-}
-
-#[derive(Default, Clone, Copy)]
-struct Axis {
-    x: f32,
-}
-
-#[derive(Component)]
-struct ChangeFlip;
-
-#[derive(Default, Clone, Copy)]
-struct MovementAnimationIndex(usize);
-
-#[derive(Default, Clone, Copy)]
-struct UseItemAnimationIndex(usize);
-
-#[derive(Component)]
-struct PlayerBodySprite;
-
-#[derive(Component)]
-struct UsingItemMarker;
-
-// region: Animation data
-
-trait AnimationData {
-    fn index(&self) -> usize;
-}
-
-#[derive(Bundle, Default)]
-struct MovementAnimationBundle {
-    walking: WalkingAnimationData,
-    idle: IdleAnimationData,
-    flying: FlyingAnimationData,
-    falling: FallingAnimationData
-}
-
-#[derive(Component, Clone, Copy)]
-struct WalkingAnimationData {
-    offset: usize,
-    count: usize,
-}
-
-#[derive(Component, Clone, Copy, Default)]
-struct IdleAnimationData(usize);
-
-#[derive(Component, Clone, Copy, Default)]
-struct FlyingAnimationData(usize);
-
-#[derive(Component, Clone, Copy, Default)]
-struct FallingAnimationData(usize);
-
-#[derive(Component, Clone, Copy, Default)]
-struct UseItemAnimationData(usize);
-
-impl AnimationData for IdleAnimationData {
-    fn index(&self) -> usize { self.0 }
-}
-
-impl AnimationData for FlyingAnimationData {
-    fn index(&self) -> usize { self.0 }
-}
-
-impl AnimationData for FallingAnimationData {
-    fn index(&self) -> usize { self.0 }
-}
-
-// endregion
-
-#[derive(Component)]
-struct PlayerParticleEffects {
-    walking: Entity,
-}
-
-#[derive(Clone, Copy, Default, Deref, DerefMut)]
-pub struct PlayerVelocity(pub Velocity);
-
-#[derive(Clone, Copy, Default, Deref, DerefMut)]
-pub struct PlayerRect(pub FRect);
-
-#[derive(Clone, Copy, Default)]
-struct PlayerController {
-    fall_speed: f32,
-    apex_point: f32,
-    jump: i32
-}
-
-#[derive(Clone, Copy, Default)]
-struct Collisions {
-    up: bool,
-    down: bool,
-    left: bool,
-    right: bool
-}
-
-// endregion
-
-// region: Impls
-
-impl Axis {
-    fn is_moving(&self) -> bool {
-        self.x != 0.
-    }
-}
-
-impl From<&Axis> for Option<FaceDirection> {
-    fn from(axis: &Axis) -> Self {
-        match axis.x {
-            x if x > 0. => Some(FaceDirection::RIGHT),
-            x if x < 0. => Some(FaceDirection::LEFT),
-            _ => None
-        }
-    }
-}
-
-impl From<FaceDirection> for f32 {
-    fn from(direction: FaceDirection) -> Self {
-        match direction {
-            FaceDirection::LEFT => -1.,
-            FaceDirection::RIGHT => 1.,
-        }
-    }
-}
-
-impl FaceDirection {
-    #[inline]
-    fn is_left(&self) -> bool {
-        *self == FaceDirection::LEFT
-    }
-}
-
-impl Default for WalkingAnimationData {
-    fn default() -> Self {
-        WalkingAnimationData {
-            offset: 0,
-            count: WALKING_ANIMATION_MAX_INDEX,
-        }
-    }
-}
-
-// endregion
+use super::*;
 
 #[autodefault(except(GroundSensor, PlayerParticleEffects))]
-fn spawn_player(
+pub fn spawn_player(
     mut commands: Commands,
     player_assets: Res<PlayerAssets>,
     mut effects: ResMut<Assets<EffectAsset>>,
@@ -293,7 +16,7 @@ fn spawn_player(
     let player = commands
         .spawn()
         .insert(Player)
-        .insert_bundle(DefaultBundle {
+        .insert_bundle(SpatialBundle {
             transform: Transform::from_xyz(WORLD_SIZE_X as f32 * 16. / 2., 5. * TILE_SIZE, 0.1)
         })
         .insert(Name::new("Player"))
@@ -441,7 +164,6 @@ fn spawn_player(
             })
             .insert(ChangeFlip)
             .insert(PlayerBodySprite)
-            .insert(AnimationTimer(Timer::new(Duration::from_millis(50), true)))
             .insert_bundle(MovementAnimationBundle::default())
             .insert(Name::new("Player chest"));
             // endregion
@@ -562,7 +284,7 @@ fn spawn_player(
     });
 }
 
-fn update() -> SystemSet {
+pub fn update() -> SystemSet {
     ConditionSet::new()
         .run_in_state(GameState::InGame)
         .with_system(update_rect)
@@ -579,7 +301,7 @@ fn update() -> SystemSet {
         .into()
 }
 
-fn update_rect(
+pub fn update_rect(
     mut player_rect: ResMut<PlayerRect>,
     player_query: Query<&Transform, With<Player>>,
 ) {
@@ -589,7 +311,7 @@ fn update_rect(
     player_rect.0 = get_player_rect(player_pos);
 }
 
-fn collision_check(
+pub fn collision_check(
     world_data: Res<WorldData>,
     player_rect: Res<PlayerRect>,
     mut collisions: ResMut<Collisions>,
@@ -656,8 +378,8 @@ fn collision_check(
     collisions.right = col_right;
 }
 
-fn horizontal_movement(
-    axis: Res<Axis>,
+pub fn horizontal_movement(
+    axis: Res<InputAxis>,
     time: Res<Time>,
     collsions: Res<Collisions>,
     mut velocity: ResMut<PlayerVelocity>
@@ -674,7 +396,7 @@ fn horizontal_movement(
     }
 }
 
-fn gravity(
+pub fn gravity(
     time: Res<Time>,
     collisions: Res<Collisions>,
     player_controller: Res<PlayerController>,
@@ -693,7 +415,7 @@ fn gravity(
     }
 }
 
-fn jump_apex(
+pub fn jump_apex(
     collisions: Res<Collisions>,
     mut player_controller: ResMut<PlayerController>
 ) {
@@ -705,7 +427,7 @@ fn jump_apex(
     }
 }
 
-fn jump(
+pub fn jump(
     input: Res<Input<KeyCode>>,
     collisions: Res<Collisions>,
     mut velocity: ResMut<PlayerVelocity>,
@@ -737,7 +459,7 @@ fn jump(
     }
 }
 
-fn move_character(
+pub fn move_character(
     velocity: Res<PlayerVelocity>,
     collisions: Res<Collisions>,
     mut player_query: Query<&mut Transform, With<Player>>,
@@ -779,7 +501,7 @@ fn move_character(
     }
 }
 
-fn spawn_particles(
+pub fn spawn_particles(
     player: Query<(&MovementState, &FaceDirection, &PlayerParticleEffects), With<Player>>,
     mut effects: Query<(&mut ParticleEffect, &mut Transform)>,
 ) {
@@ -798,7 +520,7 @@ fn spawn_particles(
     }
 }
 
-fn update_movement_state(
+pub fn update_movement_state(
     velocity: Res<PlayerVelocity>,
     mut query: Query<(&GroundDetection, &mut MovementState), With<Player>>,
 ) {
@@ -816,9 +538,9 @@ fn update_movement_state(
     };
 }
 
-fn update_face_direction(axis: Res<Axis>, mut query: Query<&mut FaceDirection>) {
+pub fn update_face_direction(axis: Res<InputAxis>, mut query: Query<&mut FaceDirection>) {
     let mut direction = query.single_mut();
-    let axis: &Axis = &axis;
+    let axis: &InputAxis = &axis;
 
     if let Some(new_direction) = axis.into() {
         if *direction != new_direction {
@@ -827,7 +549,7 @@ fn update_face_direction(axis: Res<Axis>, mut query: Query<&mut FaceDirection>) 
     }
 }
 
-fn update_axis(input: Res<Input<KeyCode>>, mut axis: ResMut<Axis>) {
+pub fn update_axis(input: Res<Input<KeyCode>>, mut axis: ResMut<InputAxis>) {
     let left = input.pressed(KeyCode::A);
     let right = input.pressed(KeyCode::D);
 
@@ -836,7 +558,7 @@ fn update_axis(input: Res<Input<KeyCode>>, mut axis: ResMut<Axis>) {
     axis.x = x as f32;
 }
 
-fn update_movement_animation_timer_duration(
+pub fn update_movement_animation_timer_duration(
     velocity: Res<PlayerVelocity>,
     mut timer: ResMut<AnimationTimer>,
 ) {
@@ -851,7 +573,7 @@ fn update_movement_animation_timer_duration(
     }
 }
 
-fn update_movement_animation_index(
+pub fn update_movement_animation_index(
     time: Res<Time>,
     mut timer: ResMut<AnimationTimer>,
     mut index: ResMut<MovementAnimationIndex>,
@@ -861,7 +583,7 @@ fn update_movement_animation_index(
     }
 }
 
-fn flip_player(
+pub fn flip_player(
     player_query: Query<&FaceDirection, (With<Player>, Changed<FaceDirection>)>,
     mut sprite_query: Query<&mut TextureAtlasSprite, With<ChangeFlip>>,
 ) {
@@ -874,7 +596,7 @@ fn flip_player(
     }
 }
 
-fn walking_animation(
+pub fn walking_animation(
     index: Res<MovementAnimationIndex>,
     mut query: Query<
         (&mut TextureAtlasSprite, &WalkingAnimationData),
@@ -893,66 +615,7 @@ fn walking_animation(
     });
 }
 
-fn simple_animation<C: AnimationData + Component>(
-    mut query: Query<
-        (&mut TextureAtlasSprite, &C),
-        With<PlayerBodySprite>,
-    >,
-) {
-    query.for_each_mut(|(mut sprite, anim_data)| {
-        sprite.index = anim_data.index();
-    });
-}
-
-fn is_walking(
-    player_query: Query<&MovementState, With<Player>>,
-) -> bool {
-    if let Ok(state) = player_query.get_single() {
-        if *state == MovementState::WALKING {
-            return true;
-        }
-    }
-
-    false
-}
-
-fn is_idle(
-    player_query: Query<&MovementState, With<Player>>,
-) -> bool {
-    if let Ok(state) = player_query.get_single() {
-        if *state == MovementState::IDLE {
-            return true;
-        }
-    }
-
-    false
-}
-
-fn is_flying(
-    player_query: Query<&MovementState, With<Player>>,
-) -> bool {
-    if let Ok(state) = player_query.get_single() {
-        if *state == MovementState::FLYING {
-            return true;
-        }
-    }
-
-    false
-}
-
-fn is_falling(
-    player_query: Query<&MovementState, With<Player>>,
-) -> bool {
-    if let Ok(state) = player_query.get_single() {
-        if *state == MovementState::FALLING {
-            return true;
-        }
-    }
-
-    false
-}
-
-fn player_using_item(
+pub fn player_using_item(
     input: Res<Input<MouseButton>>,
     selected_item: Res<SelectedItem>,
     mut anim: ResMut<UseItemAnimation>,
@@ -964,7 +627,7 @@ fn player_using_item(
     }
 }
 
-fn set_using_item_visibility(
+pub fn set_using_item_visibility(
     anim: Res<UseItemAnimation>,
     mut using_item_query: Query<&mut Visibility, With<UsingItemMarker>>,
 ) {
@@ -972,7 +635,7 @@ fn set_using_item_visibility(
     visibility.is_visible = anim.0;
 }
 
-fn set_using_item_image(
+pub fn set_using_item_image(
     item_assets: Res<ItemAssets>,
     selected_item: Res<SelectedItem>,
     mut using_item_query: Query<&mut Handle<Image>, With<UsingItemMarker>>,
@@ -984,7 +647,7 @@ fn set_using_item_image(
     }
 }
 
-fn set_using_item_position(
+pub fn set_using_item_position(
     index: Res<UseItemAnimationIndex>,
     selected_item: Res<SelectedItem>,
     mut using_item_query: Query<&mut Transform, With<UsingItemMarker>>,
@@ -1001,7 +664,7 @@ fn set_using_item_position(
     }
 }
 
-fn set_using_item_rotation_on_player_direction_change(
+pub fn set_using_item_rotation_on_player_direction_change(
     player_query: Query<&FaceDirection, (With<Player>, Changed<FaceDirection>)>,
     mut using_item_query: Query<&mut Transform, With<UsingItemMarker>>,
 ) {
@@ -1015,7 +678,7 @@ fn set_using_item_rotation_on_player_direction_change(
     }
 }
 
-fn set_using_item_rotation(
+pub fn set_using_item_rotation(
     time: Res<Time>,
     index: Res<UseItemAnimationIndex>,
     selected_item: Res<SelectedItem>,
@@ -1044,7 +707,7 @@ fn set_using_item_rotation(
     }
 }
 
-fn update_use_item_animation_index(
+pub fn update_use_item_animation_index(
     time: Res<Time>,
     mut index: ResMut<UseItemAnimationIndex>,
     mut timer: ResMut<UseItemAnimationTimer>,
@@ -1059,7 +722,7 @@ fn update_use_item_animation_index(
     }
 }
 
-fn use_item_animation(
+pub fn use_item_animation(
     index: Res<UseItemAnimationIndex>,
     mut query: Query<(&mut TextureAtlasSprite, &UseItemAnimationData), With<PlayerBodySprite>>,
 ) {
@@ -1068,7 +731,7 @@ fn use_item_animation(
     });
 }
 
-fn use_item(
+pub fn use_item(
     input: Res<Input<MouseButton>>,
     cursor: Res<CursorPosition>,
     inventory: Res<Inventory>,
@@ -1091,7 +754,7 @@ fn use_item(
 
 // TODO: Debug function, remove in feature
 #[cfg(debug_assertions)]
-fn set_sprite_index(
+pub fn set_sprite_index(
     input: Res<Input<KeyCode>>,
     mut query: Query<(&mut TextureAtlasSprite, &WalkingAnimationData), With<PlayerBodySprite>>,
 ) {
@@ -1114,7 +777,7 @@ fn set_sprite_index(
     });
 }
 
-fn get_player_rect(position: Vec2) -> FRect {
+pub fn get_player_rect(position: Vec2) -> FRect {
     FRect {
         left: position.x - PLAYER_SPRITE_WIDTH / 2.,
         right: position.x + PLAYER_SPRITE_WIDTH / 2.,

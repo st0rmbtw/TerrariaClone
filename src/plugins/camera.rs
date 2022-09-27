@@ -6,6 +6,10 @@ use crate::{parallax::ParallaxCameraComponent, state::GameState, world_generator
 
 use super::{player::Player, world::TILE_SIZE};
 
+const MAX_CAMERA_ZOOM: f32 = 1.1;
+const MIN_CAMERA_ZOOM: f32 = 0.5;
+const CAMERA_ZOOM_STEP: f32 = 0.3;
+
 pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
@@ -25,10 +29,6 @@ impl Plugin for CameraPlugin {
 
 #[derive(Component)]
 pub struct MainCamera;
-
-const MAX_CAMERA_ZOOM: f32 = 1.1;
-const MIN_CAMERA_ZOOM: f32 = 0.5;
-const CAMERA_ZOOM_STEP: f32 = 0.3;
 
 #[autodefault]
 fn setup_camera(mut commands: Commands) {

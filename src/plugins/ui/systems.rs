@@ -1,59 +1,12 @@
 use autodefault::autodefault;
-use bevy::{
-    prelude::{
-        App, BuildChildren, Commands, Component, EventWriter, Input, KeyCode, Name, NodeBundle,
-        Plugin, Query, Res, ResMut, Visibility, With,
-    },
-    ui::{AlignItems, FlexDirection, JustifyContent, Size, Style, UiRect, Val},
-};
-use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet};
+use bevy::{prelude::{Commands, Res, NodeBundle, Name, Input, BuildChildren, EventWriter, ResMut, KeyCode, Query, Visibility, With}, ui::{Style, Size, FlexDirection, Val, JustifyContent, AlignItems, UiRect}};
 
-use crate::{state::GameState, util::RectExtensions, TRANSPARENT};
+use crate::{plugins::{assets::{FontAssets, UiAssets}, fps::spawn_fps_text, inventory::spawn_inventory_ui, settings::spawn_ingame_settings_button}, TRANSPARENT, util::RectExtensions};
 
-use super::{assets::{FontAssets, UiAssets}, fps::spawn_fps_text, inventory::spawn_inventory_ui, settings::spawn_ingame_settings_button};
-
-pub const SPAWN_UI_CONTAINER_LABEL: &str = "spawn_ui_container";
-
-// region: Plugin
-pub struct PlayerUiPlugin;
-
-impl Plugin for PlayerUiPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_event::<ToggleExtraUiEvent>()
-            .init_resource::<ExtraUiVisibility>()
-            .init_resource::<UiVisibility>()
-            .add_enter_system(GameState::InGame, spawn_ui_container)
-            .add_system_set(
-                ConditionSet::new()
-                    .run_in_state(GameState::InGame)
-                    .with_system(toggle_extra_ui)
-                    .with_system(toggle_ui)
-                    .with_system(set_main_container_visibility)
-                    .into(),
-            );
-    }
-}
-// endregion
-
-#[derive(Component)]
-pub struct MainUiContainer;
-
-pub struct ToggleExtraUiEvent(pub bool);
-
-#[derive(Clone, Copy, Default)]
-pub struct ExtraUiVisibility(pub bool);
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub struct UiVisibility(pub bool);
-
-impl Default for UiVisibility {
-    fn default() -> Self {
-        Self(true)
-    }
-}
+use super::{MainUiContainer, ToggleExtraUiEvent, ExtraUiVisibility, UiVisibility};
 
 #[autodefault(except(UiContainer))]
-fn spawn_ui_container(
+pub fn spawn_ui_container(
     mut commands: Commands,
     font_assets: Res<FontAssets>,
     ui_assets: Res<UiAssets>,
@@ -140,7 +93,7 @@ fn spawn_ui_container(
     commands.entity(main_id).push_children(&[left_id, right_id]);
 }
 
-fn toggle_extra_ui(
+pub fn toggle_extra_ui(
     input: Res<Input<KeyCode>>,
     mut events: EventWriter<ToggleExtraUiEvent>,
     mut extra_ui_visibility: ResMut<ExtraUiVisibility>,
@@ -152,13 +105,13 @@ fn toggle_extra_ui(
     }
 }
 
-fn toggle_ui(input: Res<Input<KeyCode>>, mut ui_visibility: ResMut<UiVisibility>) {
+pub fn toggle_ui(input: Res<Input<KeyCode>>, mut ui_visibility: ResMut<UiVisibility>) {
     if input.just_pressed(KeyCode::F11) {
         ui_visibility.0 = !ui_visibility.0;
     }
 }
 
-fn set_main_container_visibility(
+pub fn set_main_container_visibility(
     ui_visibility: Res<UiVisibility>,
     mut query: Query<&mut Visibility, With<MainUiContainer>>,
 ) {
