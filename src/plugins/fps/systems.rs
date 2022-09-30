@@ -1,41 +1,11 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{
-    diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin},
-    prelude::*,
-};
-use iyes_loopless::prelude::ConditionSet;
+use bevy::{prelude::{Res, Input, KeyCode, ResMut, Visibility, With, Query, Name, TextBundle, Color, Commands, Entity}, time::{Time, Timer}, diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin}, text::{Text, TextSection, TextAlignment, TextStyle}, ui::{Style, UiRect, Val}};
 
-use crate::state::GameState;
+use crate::plugins::assets::FontAssets;
 
-use super::assets::FontAssets;
-
-pub struct FpsPlugin;
-
-impl Plugin for FpsPlugin {
-    fn build(&self, app: &mut bevy::prelude::App) {
-        app.init_resource::<FpsTextVisibility>()
-            .add_plugin(FrameTimeDiagnosticsPlugin)
-            .add_system_set(
-                ConditionSet::new()
-                    .run_in_state(GameState::InGame)
-                    .with_system(toggle_fps_text_visibility)
-                    .with_system(set_fps_text_visibility)
-                    .with_system(update_fps_text)
-                    .into(),
-            );
-    }
-}
-
-#[derive(Component)]
-struct FpsText;
-
-#[derive(Component, Deref, DerefMut)]
-struct FpsTextTimer(Timer);
-
-#[derive(Clone, Copy, Default)]
-struct FpsTextVisibility(bool);
+use super::{FpsTextVisibility, FpsText, FpsTextTimer};
 
 #[autodefault]
 pub fn spawn_fps_text(commands: &mut Commands, fonts: &FontAssets) -> Entity {
@@ -68,7 +38,7 @@ pub fn spawn_fps_text(commands: &mut Commands, fonts: &FontAssets) -> Entity {
         .id()
 }
 
-fn toggle_fps_text_visibility(
+pub fn toggle_fps_text_visibility(
     input: Res<Input<KeyCode>>,
     mut fps_text_visibility: ResMut<FpsTextVisibility>,
 ) {
@@ -77,7 +47,7 @@ fn toggle_fps_text_visibility(
     }
 }
 
-fn set_fps_text_visibility(
+pub fn set_fps_text_visibility(
     mut query: Query<&mut Visibility, With<FpsText>>,
     fps_text_visibility: Res<FpsTextVisibility>,
 ) {
@@ -88,7 +58,7 @@ fn set_fps_text_visibility(
     }
 }
 
-fn update_fps_text(
+pub fn update_fps_text(
     time: Res<Time>,
     diagnostics: Res<Diagnostics>,
     fps_text_visibility: Res<FpsTextVisibility>,

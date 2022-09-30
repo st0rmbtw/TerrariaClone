@@ -1,10 +1,12 @@
 mod components;
 mod resources;
 mod systems;
+mod events;
 
 pub use components::*;
 pub use resources::*;
 pub use systems::*;
+pub use events::*;
 
 use bevy::prelude::{Plugin, App};
 use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet};

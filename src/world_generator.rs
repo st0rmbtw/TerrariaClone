@@ -176,7 +176,7 @@ pub fn generate(seed: u32) -> Array2<Cell> {
 
     remove_extra_walls(&mut world);
 
-    set_tile_slope(&mut world);
+    set_tile_neighbors(&mut world);
 
     world
 }
@@ -424,7 +424,7 @@ fn insert_dirt_specks_into_stone<F: NoiseFn<[f64; 2]>>(
     );
 }
 
-fn set_tile_slope(world: &mut Array2<Cell>) {
+fn set_tile_neighbors(world: &mut Array2<Cell>) {
     for y in 0..WORLD_SIZE_Y {
         for x in 0..WORLD_SIZE_X {
             if let Some(cell) = world.get((y, x)).cloned() {

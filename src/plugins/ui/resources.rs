@@ -1,5 +1,3 @@
-pub struct ToggleExtraUiEvent(pub bool);
-
 #[derive(Clone, Copy, Default)]
 pub struct ExtraUiVisibility(pub bool);
 

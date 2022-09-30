@@ -3,7 +3,7 @@ use bevy::{prelude::*, sprite::Anchor, math::{vec2, Vec3Swizzles}};
 use bevy_hanabi::prelude::*;
 use iyes_loopless::prelude::*;
 
-use crate::{state::{GameState, MovementState}, plugins::{world::{WorldData, TILE_SIZE, BlockPlaceEvent}, assets::{PlayerAssets, ItemAssets}, inventory::{SelectedItem, Inventory}, cursor::CursorPosition}, world_generator::WORLD_SIZE_X, util::{move_towards, inverse_lerp, map_range, get_rotation_by_direction, get_tile_coords, FRect, Lerp}, items::{get_animation_points, Item}};
+use crate::{state::{GameState, MovementState}, plugins::{world::{WorldData, TILE_SIZE, BlockPlaceEvent}, assets::{PlayerAssets, ItemAssets}, inventory::{SelectedItem, Inventory}, cursor::CursorPosition}, world_generator::WORLD_SIZE_X, util::{move_towards, inverse_lerp, map_range, get_rotation_by_direction, get_tile_coords, Lerp}, items::{get_animation_points, Item}};
 
 use super::*;
 
@@ -20,7 +20,6 @@ pub fn spawn_player(
             transform: Transform::from_xyz(WORLD_SIZE_X as f32 * 16. / 2., 5. * TILE_SIZE, 0.1)
         })
         .insert(Name::new("Player"))
-        .insert(GroundDetection::default())
         .insert(MovementState::default())
         .insert(FaceDirection::default())
         .with_children(|cmd| {
@@ -295,9 +294,8 @@ pub fn update() -> SystemSet {
         .with_system(gravity)
         .with_system(jump)
         .with_system(jump_apex)
-        .with_system(update_movement_state)
         .with_system(move_character)
-        .with_system(use_item)
+        .with_system(update_movement_state)
         .into()
 }
 
@@ -315,67 +313,10 @@ pub fn collision_check(
     world_data: Res<WorldData>,
     player_rect: Res<PlayerRect>,
     mut collisions: ResMut<Collisions>,
-    mut player_query: Query<&mut GroundDetection, With<Player>>,
 ) {
-    let mut ground_detection = player_query.single_mut();
+    let colls = get_collisions(player_rect.0, &world_data.tiles.view());
 
-    let left = (player_rect.left / TILE_SIZE).round() as usize;
-    let right = (player_rect.right / TILE_SIZE).round() as usize;
-    let bottom = (player_rect.bottom / TILE_SIZE).round().abs() as usize;
-    let top = (player_rect.top / TILE_SIZE).floor();
-
-    let utop = top.abs() as usize;
-
-    let mut col_left = false;
-    let mut col_right = false;
-    let mut col_down = false;
-    let mut col_top = false;
-
-    for x in left..(right + 1) {
-        if col_down {
-            break;
-        }
-
-        if world_data.tiles.get((bottom, x)).and_then(|cell| cell.tile).is_some() {
-            col_down = true;
-        }
-    }
-    
-    for x in left..(right + 1) {
-        if col_top {
-            break;
-        }
-
-        if top == 0. || world_data.tiles.get((utop, x)).and_then(|cell| cell.tile).is_some() {
-            col_top = true;
-        }
-    }
-
-    for y in utop..bottom {
-        if col_left {
-            break;
-        }
-
-        if world_data.tiles.get((y, left)).and_then(|cell| cell.tile).is_some() {
-            col_left = true;
-        }
-    }
-
-    for y in utop..bottom {
-        if col_right {
-            break;
-        }
-
-        if world_data.tiles.get((y, right)).and_then(|cell| cell.tile).is_some() {
-            col_right = true;
-        }
-    }
-
-    ground_detection.on_ground = col_down;
-    collisions.up = col_top;
-    collisions.down = col_down;
-    collisions.left = col_left;
-    collisions.right = col_right;
+    *collisions = colls;
 }
 
 pub fn horizontal_movement(
@@ -522,19 +463,15 @@ pub fn spawn_particles(
 
 pub fn update_movement_state(
     velocity: Res<PlayerVelocity>,
-    mut query: Query<(&GroundDetection, &mut MovementState), With<Player>>,
+    mut query: Query<&mut MovementState, With<Player>>,
 ) {
-    let (GroundDetection { on_ground }, mut movement_state) = query.single_mut();
+    let mut movement_state = query.single_mut();
 
-    *movement_state = match velocity.x {
-        x if x != 0. && *on_ground => MovementState::WALKING,
-        _ => match on_ground {
-            false => match velocity.y {
-                y if y < 0. => MovementState::FLYING,
-                _ => MovementState::FALLING,
-            },
-            _ => MovementState::IDLE,
-        },
+    *movement_state = match velocity.0 {
+        Vec2 { x, y } if x != 0. && y == 0. => MovementState::WALKING,
+        Vec2 { y, .. } if y < 0. => MovementState::FLYING,
+        Vec2 { y, ..} if y > 0. => MovementState::FALLING,
+        _ => MovementState::IDLE
     };
 }
 
@@ -745,7 +682,9 @@ pub fn use_item(
                 Item::Pickaxe(_) => (),
                 Item::Block(block) => {
                     let tile_pos = get_tile_coords(cursor.world_position);
-                    block_place_event_writer.send(BlockPlaceEvent { tile_pos, block, inventory_item_index: selected_item_index });
+                    block_place_event_writer.send(
+                        BlockPlaceEvent { tile_pos, block, inventory_item_index: selected_item_index }
+                    );
                 },
             }
         }
@@ -775,13 +714,4 @@ pub fn set_sprite_index(
 
         sprite.index = anim_offset + (new_sprite_index % WALKING_ANIMATION_MAX_INDEX);
     });
-}
-
-pub fn get_player_rect(position: Vec2) -> FRect {
-    FRect {
-        left: position.x - PLAYER_SPRITE_WIDTH / 2.,
-        right: position.x + PLAYER_SPRITE_WIDTH / 2.,
-        bottom: position.y - PLAYER_SPRITE_HEIGHT / 2.,
-        top: position.y + PLAYER_SPRITE_HEIGHT / 2.
-    }
 }

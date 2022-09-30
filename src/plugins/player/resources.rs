@@ -45,3 +45,17 @@ pub struct Collisions {
     pub left: bool,
     pub right: bool
 }
+
+impl Collisions {
+    pub fn none(&self) -> bool {
+        !self.up && !self.down && !self.left && !self.right
+    }
+
+    pub fn x(&self) -> bool {
+        self.left || self.right
+    }
+
+    pub fn y(&self) -> bool {
+        self.up || self.down
+    }
+}

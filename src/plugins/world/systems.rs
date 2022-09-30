@@ -11,8 +11,8 @@ use super::{get_chunk_position, CHUNK_SIZE_U, MAP_SIZE, TileChunk, UpdateNeighbo
 pub fn spawn_terrain(mut commands: Commands) {
     let current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
 
-    let seed = current_time.as_millis() as u32;
-    // let seed = 4289917359;
+    // let seed = current_time.as_millis() as u32;
+    let seed = 2404226870;
 
     println!("The world's seed is {}", seed);
 

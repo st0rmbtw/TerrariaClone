@@ -1,37 +1,12 @@
 use autodefault::autodefault;
-use bevy::prelude::*;
-use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet};
+use bevy::{prelude::{Commands, Camera2dBundle, OrthographicProjection, Transform, Res, Input, KeyCode, Query, With, GlobalTransform}, time::Time};
 
-use crate::{parallax::ParallaxCameraComponent, state::GameState, world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}};
+use crate::{parallax::ParallaxCameraComponent, plugins::{player::Player, world::TILE_SIZE}, world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}};
 
-use super::{player::Player, world::TILE_SIZE};
-
-const MAX_CAMERA_ZOOM: f32 = 1.1;
-const MIN_CAMERA_ZOOM: f32 = 0.5;
-const CAMERA_ZOOM_STEP: f32 = 0.3;
-
-pub struct CameraPlugin;
-
-impl Plugin for CameraPlugin {
-    fn build(&self, app: &mut App) {
-        app
-            .add_system(zoom)
-            .add_enter_system(GameState::InGame, setup_camera)
-            .add_system_set_to_stage(
-                CoreStage::PostUpdate,
-                ConditionSet::new()
-                    .run_in_state(GameState::InGame)
-                    .with_system(move_camera)
-                    .into(),
-            );
-    }
-}
-
-#[derive(Component)]
-pub struct MainCamera;
+use super::{MainCamera, CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM};
 
 #[autodefault]
-fn setup_camera(mut commands: Commands) {
+pub fn setup_camera(mut commands: Commands) {
     commands
         .spawn()
         .insert_bundle(Camera2dBundle {
@@ -42,7 +17,7 @@ fn setup_camera(mut commands: Commands) {
         .insert(MainCamera);
 }
 
-fn zoom(
+pub fn zoom(
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
     mut camera_query: Query<&mut OrthographicProjection, With<MainCamera>>,
@@ -62,7 +37,7 @@ fn zoom(
     }
 }
 
-fn move_camera(
+pub fn move_camera(
     mut player: Query<&Transform, With<Player>>,
     mut camera: Query<(&mut GlobalTransform, &OrthographicProjection), With<MainCamera>>,
 ) {

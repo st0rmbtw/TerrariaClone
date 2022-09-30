@@ -42,11 +42,6 @@ impl FaceDirection {
 #[derive(Component, PartialEq)]
 pub struct UseItemAnimation(pub bool);
 
-#[derive(Component, Default, Inspectable)]
-pub struct GroundDetection {
-    pub on_ground: bool,
-}
-
 #[derive(Component)]
 pub struct ChangeFlip;
 
