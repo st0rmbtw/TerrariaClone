@@ -11,7 +11,7 @@ pub use utils::*;
 use crate::state::GameState;
 use std::time::Duration;
 use iyes_loopless::prelude::*;
-use bevy::{prelude::{Plugin, App, CoreStage, SystemStage}, time::Timer};
+use bevy::{prelude::{Plugin, App, CoreStage}, time::Timer};
 use super::{world::TILE_SIZE, inventory::PlayerInventoryPlugin};
 
 pub const PLAYER_SPRITE_WIDTH: f32 = 2. * TILE_SIZE;

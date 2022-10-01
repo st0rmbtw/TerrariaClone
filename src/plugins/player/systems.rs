@@ -380,8 +380,8 @@ pub fn update_jump(
 }
 
 pub fn move_character(
-    time: Res<Time>,
-    velocity: Res<PlayerVelocity>,
+    mut velocity: ResMut<PlayerVelocity>,
+    world_data: Res<WorldData>,
     mut player_query: Query<&mut Transform, With<Player>>,
 ) {
     let mut transform = player_query.single_mut();
@@ -389,9 +389,21 @@ pub fn move_character(
     const MIN: f32 = PLAYER_SPRITE_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
     const MAX: f32 = WORLD_SIZE_X as f32 * TILE_SIZE - PLAYER_SPRITE_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
 
-    let velocity = velocity.0;
+    let raw = transform.translation.xy() + velocity.0;
+    let collisions = get_collisions(raw, &world_data.tiles.view());
+    
+    let player_left = raw.x - PLAYER_SPRITE_WIDTH / 2.;
+    let threshold = round(player_left, TILE_SIZE);
 
-    transform.translation.x = (transform.translation.x + velocity.x).clamp(MIN, MAX);
+    if !(player_left < threshold && collisions.left) {
+        transform.translation.x = raw.x;
+    } else {
+        velocity.x = 0.;
+    }
+
+    // TODO
+
+    transform.translation.x = transform.translation.x.clamp(MIN, MAX);
     transform.translation.y += velocity.y;
 }
 
@@ -414,21 +426,22 @@ pub fn asdads(
         }
     }
 
-    if collisions.left && velocity.x == 0. {
-        let threshold = (player_rect.left / TILE_SIZE).round() * TILE_SIZE + TILE_SIZE / 2. - 2.;
+    // if collisions.left && velocity.x == 0. {
+    //     let player_left = transform.translation.x - PLAYER_SPRITE_WIDTH * 0.6 / 2.;
+    //     let threshold = round(player_left, TILE_SIZE) + TILE_SIZE / 2.;
 
-        if player_rect.left < threshold {
-            transform.translation.x = threshold + TILE_SIZE / 2. + 3.5;
-        }
-    }
+    //     if player_left < threshold {
+    //         transform.translation.x = threshold + PLAYER_SPRITE_WIDTH * 0.6 / 2.;
+    //     }
+    // }
 
-    if collisions.right && velocity.x == 0. {
-        let threshold = (player_rect.right / TILE_SIZE).round() * TILE_SIZE - TILE_SIZE / 2. + 2.;
+    // if collisions.right && velocity.x == 0. {
+    //     let threshold = (player_rect.right / TILE_SIZE).round() * TILE_SIZE - TILE_SIZE / 2. + 2.;
 
-        if player_rect.right > threshold {
-            transform.translation.x = threshold - TILE_SIZE / 2. - 3.5;
-        }
-    }
+    //     if player_rect.right > threshold {
+    //         transform.translation.x = threshold - TILE_SIZE / 2. - 3.5;
+    //     }
+    // }
 }
 
 pub fn spawn_particles(
