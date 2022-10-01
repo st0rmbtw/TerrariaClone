@@ -318,9 +318,9 @@ pub fn update_neighbors(
             chunks.for_each_mut(|(chunk, tile_storage)| {
                 if chunk.pos == chunk_pos {
                     if let Some(entity) = tile_storage.get(&chunk_tile_pos) {
-                        let (mut tile_texture, block) = tiles.get_mut(entity).unwrap();
-
-                        tile_texture.0 = util::get_tile_start_index(*block) + get_tile_sprite_index(neighbors);
+                        if let Ok((mut tile_texture, block)) = tiles.get_mut(entity) {
+                            tile_texture.0 = util::get_tile_start_index(*block) + get_tile_sprite_index(neighbors);
+                        }
                     }
                 }
             });

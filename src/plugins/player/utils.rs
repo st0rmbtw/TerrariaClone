@@ -3,7 +3,7 @@ use ndarray::ArrayView2;
 
 use crate::{state::MovementState, util::FRect, world_generator::Cell, plugins::world::TILE_SIZE};
 
-use super::{Player, AnimationData, PlayerBodySprite, PLAYER_SPRITE_WIDTH, PLAYER_SPRITE_HEIGHT, Collisions, PlayerRect};
+use super::{Player, AnimationData, PlayerBodySprite, PLAYER_SPRITE_WIDTH, PLAYER_SPRITE_HEIGHT, Collisions};
 
 pub fn simple_animation<C: AnimationData + Component>(
     mut query: Query<
@@ -52,18 +52,6 @@ pub fn is_flying(
     false
 }
 
-pub fn is_falling(
-    player_query: Query<&MovementState, With<Player>>,
-) -> bool {
-    if let Ok(state) = player_query.get_single() {
-        if *state == MovementState::FALLING {
-            return true;
-        }
-    }
-
-    false
-}
-
 pub fn get_player_rect(position: Vec2) -> FRect {
     FRect {
         left: position.x - PLAYER_SPRITE_WIDTH / 2.,
@@ -73,11 +61,12 @@ pub fn get_player_rect(position: Vec2) -> FRect {
     }
 }
 
-pub fn get_collisions(player_rect: FRect, tiles: &ArrayView2<Cell>) -> Collisions {
-    let left = (player_rect.left / TILE_SIZE) as usize;
-    let right = (player_rect.right / TILE_SIZE) as usize;
-    let bottom = ((player_rect.bottom / TILE_SIZE).abs()) as usize;
-    let top = (player_rect.top / TILE_SIZE).floor();
+pub fn get_collisions(
+    player_position: Vec2,
+    tiles: &ArrayView2<Cell>,
+) -> Collisions {
+    let bottom = (((player_position.y - PLAYER_SPRITE_HEIGHT / 2.) - 8.) / TILE_SIZE).abs() as usize;
+    let top = (((player_position.y + PLAYER_SPRITE_HEIGHT / 2.) + 8.) / TILE_SIZE);
 
     let utop = top.abs() as usize;
 
@@ -85,6 +74,9 @@ pub fn get_collisions(player_rect: FRect, tiles: &ArrayView2<Cell>) -> Collision
     let mut col_right = false;
     let mut col_down = false;
     let mut col_top = false;
+
+    let left = (((player_position.x - (PLAYER_SPRITE_WIDTH * 0.5) / 2.)) / TILE_SIZE).round() as usize;
+    let right = (((player_position.x + (PLAYER_SPRITE_WIDTH * 0.5) / 2.)) / TILE_SIZE).round() as usize;
 
     for x in left..(right + 1) {
         if col_down {
@@ -106,6 +98,8 @@ pub fn get_collisions(player_rect: FRect, tiles: &ArrayView2<Cell>) -> Collision
         }
     }
 
+    let left = (((player_position.x - (PLAYER_SPRITE_WIDTH * 0.5) / 2.) + 8.) / TILE_SIZE) as usize;
+
     for y in utop..bottom {
         if col_left {
             break;
@@ -115,6 +109,8 @@ pub fn get_collisions(player_rect: FRect, tiles: &ArrayView2<Cell>) -> Collision
             col_left = true;
         }
     }
+
+    let right = (((player_position.x + (PLAYER_SPRITE_WIDTH * 0.5) / 2.) - 6.) / TILE_SIZE) as usize;
 
     for y in utop..bottom {
         if col_right {

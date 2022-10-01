@@ -83,9 +83,6 @@ pub struct IdleAnimationData(pub usize);
 pub struct FlyingAnimationData(pub usize);
 
 #[derive(Component, Clone, Copy, Default)]
-pub struct FallingAnimationData(pub usize);
-
-#[derive(Component, Clone, Copy, Default)]
 pub struct UseItemAnimationData(pub usize);
 
 impl AnimationData for IdleAnimationData {
@@ -96,14 +93,9 @@ impl AnimationData for FlyingAnimationData {
     fn index(&self) -> usize { self.0 }
 }
 
-impl AnimationData for FallingAnimationData {
-    fn index(&self) -> usize { self.0 }
-}
-
 #[derive(Bundle, Default)]
 pub struct MovementAnimationBundle {
     pub walking: WalkingAnimationData,
     pub idle: IdleAnimationData,
-    pub flying: FlyingAnimationData,
-    pub falling: FallingAnimationData
+    pub flying: FlyingAnimationData
 }

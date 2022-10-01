@@ -11,10 +11,10 @@ pub use utils::*;
 use crate::state::GameState;
 use std::time::Duration;
 use iyes_loopless::prelude::*;
-use bevy::{prelude::{Plugin, App, CoreStage}, time::Timer};
+use bevy::{prelude::{Plugin, App, CoreStage, SystemStage}, time::Timer};
 use super::{world::TILE_SIZE, inventory::PlayerInventoryPlugin};
 
-pub const PLAYER_SPRITE_WIDTH: f32 = 2. * TILE_SIZE * 0.75;
+pub const PLAYER_SPRITE_WIDTH: f32 = 2. * TILE_SIZE;
 pub const PLAYER_SPRITE_HEIGHT: f32 = 3. * TILE_SIZE;
 
 const WALKING_ANIMATION_MAX_INDEX: usize = 13;
@@ -24,13 +24,14 @@ const USE_ITEM_ANIMATION_FRAMES_COUNT: usize = 3;
 const MOVEMENT_ANIMATION_LABEL: &str = "movement_animation";
 const USE_ITEM_ANIMATION_LABEL: &str = "use_item_animation";
 
-const ACCELERATION: f32 = 6.;
-const SLOWDOWN: f32 = 8.;
-const MOVE_CLAMP: f32 = 3.;
+const GRAVITY: f32 = 0.4;
+const ACCELERATION: f32 = 0.08;
+const SLOWDOWN: f32 = 0.2;
+const MAX_RUN_SPEED: f32 = 3.;
 
 const JUMP_HEIGHT: i32 = 15;
 const JUMP_SPEED: f32 = 5.01;
-const MAX_FALL_SPEED: f32 = 25.;
+const MAX_FALL_SPEED: f32 = 10.;
 
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
@@ -45,16 +46,26 @@ impl Plugin for PlayerPlugin {
                 true,
             )))
             .init_resource::<PlayerVelocity>()
-            .init_resource::<PlayerRect>()
             .init_resource::<PlayerController>()
             .init_resource::<Collisions>()
             .insert_resource(UseItemAnimation(false))
             .add_enter_system(GameState::InGame, spawn_player)
             .add_system_set(update())
             .add_system_set_to_stage(
+                CoreStage::PreUpdate, 
+                ConditionSet::new()
+                    .run_in_state(GameState::InGame)
+                    .with_system(update_axis)
+                    .into()
+            )
+            
+            .add_system_set_to_stage(
                 CoreStage::PostUpdate, 
                 ConditionSet::new()
                     .run_in_state(GameState::InGame)
+                    .with_system(asdads)
+                    .with_system(update_movement_state)
+                    .with_system(update_face_direction)
                     .with_system(flip_player)
                     .with_system(spawn_particles)
                     .into()
@@ -71,7 +82,6 @@ impl Plugin for PlayerPlugin {
                     .with_system(walking_animation.run_if(is_walking))
                     .with_system(simple_animation::<IdleAnimationData>.run_if(is_idle))
                     .with_system(simple_animation::<FlyingAnimationData>.run_if(is_flying))
-                    .with_system(simple_animation::<FallingAnimationData>.run_if(is_falling))
 
                     .into(),
             )

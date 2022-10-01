@@ -104,7 +104,7 @@ pub fn spawn_tile_grid(mut commands: Commands, ui_assets: Res<UiAssets>) {
                 color: Color::rgba(1., 1., 1., MAX_TILE_GRID_OPACITY),
             },
             texture: ui_assets.radial.clone().into(),
-            transform: Transform::from_xyz(0., 0., 1.),
+            transform: Transform::from_xyz(0., 0., 2.),
         })
         .insert(TileGrid);
 }
@@ -246,7 +246,7 @@ pub fn update_tile_grid_opacity(
 
                 a.clamp(0., MAX_TILE_GRID_OPACITY)
             }
-            MovementState::FLYING | MovementState::FALLING => {
+            MovementState::FLYING => {
                 let mut a = sprite.color.a();
 
                 if a > 0. {

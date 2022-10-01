@@ -1,6 +1,6 @@
 use bevy::{prelude::{Deref, DerefMut}, time::Timer};
 
-use crate::{util::FRect, Velocity};
+use crate::Velocity;
 
 #[derive(Default, Clone, Copy)]
 pub struct InputAxis {
@@ -27,9 +27,6 @@ pub struct UseItemAnimationIndex(pub usize);
 
 #[derive(Clone, Copy, Default, Deref, DerefMut)]
 pub struct PlayerVelocity(pub Velocity);
-
-#[derive(Clone, Copy, Default, Deref, DerefMut)]
-pub struct PlayerRect(pub FRect);
 
 #[derive(Clone, Copy, Default)]
 pub struct PlayerController {

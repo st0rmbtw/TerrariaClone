@@ -15,6 +15,5 @@ pub enum MovementState {
     #[default]
     IDLE,
     WALKING,
-    FLYING,
-    FALLING,
+    FLYING
 }

@@ -1,9 +1,20 @@
 use autodefault::autodefault;
-use bevy::{prelude::*, sprite::Anchor, math::{vec2, Vec3Swizzles}};
+use bevy::{prelude::*, sprite::Anchor, math::Vec3Swizzles};
 use bevy_hanabi::prelude::*;
 use iyes_loopless::prelude::*;
 
-use crate::{state::{GameState, MovementState}, plugins::{world::{WorldData, TILE_SIZE, BlockPlaceEvent}, assets::{PlayerAssets, ItemAssets}, inventory::{SelectedItem, Inventory}, cursor::CursorPosition}, world_generator::WORLD_SIZE_X, util::{move_towards, inverse_lerp, map_range, get_rotation_by_direction, get_tile_coords, Lerp}, items::{get_animation_points, Item}};
+use crate::{
+    state::{GameState, MovementState}, 
+    plugins::{
+        world::{WorldData, TILE_SIZE, BlockPlaceEvent}, 
+        assets::{PlayerAssets, ItemAssets}, 
+        inventory::{SelectedItem, Inventory}, 
+        cursor::CursorPosition
+    }, 
+    world_generator::WORLD_SIZE_X, 
+    util::{move_towards, map_range, get_rotation_by_direction, get_tile_coords}, 
+    items::{get_animation_points, Item}
+};
 
 use super::*;
 
@@ -17,7 +28,7 @@ pub fn spawn_player(
         .spawn()
         .insert(Player)
         .insert_bundle(SpatialBundle {
-            transform: Transform::from_xyz(WORLD_SIZE_X as f32 * 16. / 2., 5. * TILE_SIZE, 0.1)
+            transform: Transform::from_xyz(WORLD_SIZE_X as f32 * 16. / 2., 5. * TILE_SIZE, 1.)
         })
         .insert(Name::new("Player"))
         .insert(MovementState::default())
@@ -104,8 +115,7 @@ pub fn spawn_player(
                     offset: 13,
                     count: 13,
                 },
-                flying: FlyingAnimationData(2),
-                falling: FallingAnimationData(13)
+                flying: FlyingAnimationData(2)
             })
             .insert(UseItemAnimationData(2))
             .insert(Name::new("Player left shoulder"));
@@ -124,8 +134,7 @@ pub fn spawn_player(
                     offset: 13,
                     count: 13,
                 },
-                flying: FlyingAnimationData(2),
-                falling: FallingAnimationData(13)
+                flying: FlyingAnimationData(2)
             })
             .insert(UseItemAnimationData(2))
             .insert(Name::new("Player left hand"));
@@ -184,7 +193,6 @@ pub fn spawn_player(
                     count: 13,
                 },
                 flying: FlyingAnimationData(5),
-                falling: FallingAnimationData(5),
             })
             .insert(Name::new("Player feet"));
             // endregion
@@ -286,50 +294,34 @@ pub fn spawn_player(
 pub fn update() -> SystemSet {
     ConditionSet::new()
         .run_in_state(GameState::InGame)
-        .with_system(update_rect)
-        .with_system(update_axis)
-        .with_system(update_face_direction)
         .with_system(collision_check)
         .with_system(horizontal_movement)
+        .with_system(update_jump)
         .with_system(gravity)
-        .with_system(jump)
-        .with_system(jump_apex)
         .with_system(move_character)
-        .with_system(update_movement_state)
         .into()
-}
-
-pub fn update_rect(
-    mut player_rect: ResMut<PlayerRect>,
-    player_query: Query<&Transform, With<Player>>,
-) {
-    let player_transform = player_query.single();
-    let player_pos = player_transform.translation.xy();
-
-    player_rect.0 = get_player_rect(player_pos);
 }
 
 pub fn collision_check(
     world_data: Res<WorldData>,
-    player_rect: Res<PlayerRect>,
     mut collisions: ResMut<Collisions>,
+    player: Query<&Transform, With<Player>>
 ) {
-    let colls = get_collisions(player_rect.0, &world_data.tiles.view());
+    let transform = player.single();
 
-    *collisions = colls;
+    *collisions = get_collisions(transform.translation.xy(), &world_data.tiles.view());
 }
 
 pub fn horizontal_movement(
     axis: Res<InputAxis>,
-    time: Res<Time>,
     collsions: Res<Collisions>,
     mut velocity: ResMut<PlayerVelocity>
 ) {
     if axis.is_moving() {
-        velocity.x += axis.x * ACCELERATION * time.delta_seconds();
-        velocity.x = velocity.x.clamp(-MOVE_CLAMP, MOVE_CLAMP);
+        velocity.x += axis.x * ACCELERATION;
+        velocity.x = velocity.x.clamp(-MAX_RUN_SPEED, MAX_RUN_SPEED);
     } else {
-        velocity.x = move_towards(velocity.x, 0., SLOWDOWN * time.delta_seconds());
+        velocity.x = move_towards(velocity.x, 0., SLOWDOWN);
     }
 
     if (velocity.x < 0. && collsions.left) || (velocity.x > 0. && collsions.right) {
@@ -338,7 +330,6 @@ pub fn horizontal_movement(
 }
 
 pub fn gravity(
-    time: Res<Time>,
     collisions: Res<Collisions>,
     player_controller: Res<PlayerController>,
     mut velocity: ResMut<PlayerVelocity>,
@@ -348,7 +339,7 @@ pub fn gravity(
             velocity.y = 0.;
         }
     } else {
-        velocity.y -= player_controller.fall_speed * time.delta_seconds();
+        velocity.y -= GRAVITY;
 
         if velocity.y < -MAX_FALL_SPEED {
             velocity.y = -MAX_FALL_SPEED;
@@ -356,19 +347,7 @@ pub fn gravity(
     }
 }
 
-pub fn jump_apex(
-    collisions: Res<Collisions>,
-    mut player_controller: ResMut<PlayerController>
-) {
-    if !collisions.down {
-        player_controller.apex_point = inverse_lerp(JUMP_HEIGHT as f32, 0., player_controller.jump as f32);
-        player_controller.fall_speed = 0f32.lerp(MAX_FALL_SPEED, player_controller.apex_point);
-    } else {
-        player_controller.apex_point = 0.;
-    }
-}
-
-pub fn jump(
+pub fn update_jump(
     input: Res<Input<KeyCode>>,
     collisions: Res<Collisions>,
     mut velocity: ResMut<PlayerVelocity>,
@@ -401,21 +380,31 @@ pub fn jump(
 }
 
 pub fn move_character(
+    time: Res<Time>,
     velocity: Res<PlayerVelocity>,
+    mut player_query: Query<&mut Transform, With<Player>>,
+) {
+    let mut transform = player_query.single_mut();
+
+    const MIN: f32 = PLAYER_SPRITE_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
+    const MAX: f32 = WORLD_SIZE_X as f32 * TILE_SIZE - PLAYER_SPRITE_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
+
+    let velocity = velocity.0;
+
+    transform.translation.x = (transform.translation.x + velocity.x).clamp(MIN, MAX);
+    transform.translation.y += velocity.y;
+}
+
+pub fn asdads(
+    mut velocity: ResMut<PlayerVelocity>,
     collisions: Res<Collisions>,
     mut player_query: Query<&mut Transform, With<Player>>,
 ) {
     let mut transform = player_query.single_mut();
 
-    const MIN: f32 = PLAYER_SPRITE_WIDTH / 2. - TILE_SIZE / 2.;
-    const MAX: f32 = WORLD_SIZE_X as f32 * TILE_SIZE - PLAYER_SPRITE_WIDTH / 2. - TILE_SIZE / 2.;
+    let pos = transform.translation.xy();
 
-    let raw = (transform.translation.xy() + velocity.0).clamp(vec2(MIN, -MAX), vec2(MAX, -MIN));
-    
-    transform.translation.x = raw.x;
-    transform.translation.y = raw.y;
-
-    let player_rect = get_player_rect(raw);
+    let player_rect = get_player_rect(transform.translation.xy());
 
     if collisions.down && velocity.y == 0. {
         let threshold = (player_rect.bottom / TILE_SIZE).round() * TILE_SIZE + TILE_SIZE / 2. - 1.;
@@ -429,7 +418,7 @@ pub fn move_character(
         let threshold = (player_rect.left / TILE_SIZE).round() * TILE_SIZE + TILE_SIZE / 2. - 2.;
 
         if player_rect.left < threshold {
-            transform.translation.x = threshold + PLAYER_SPRITE_WIDTH / 2. + 0.5;
+            transform.translation.x = threshold + TILE_SIZE / 2. + 3.5;
         }
     }
 
@@ -437,7 +426,7 @@ pub fn move_character(
         let threshold = (player_rect.right / TILE_SIZE).round() * TILE_SIZE - TILE_SIZE / 2. + 2.;
 
         if player_rect.right > threshold {
-            transform.translation.x = threshold - PLAYER_SPRITE_WIDTH / 2. - 0.5;
+            transform.translation.x = threshold - TILE_SIZE / 2. - 3.5;
         }
     }
 }
@@ -469,8 +458,7 @@ pub fn update_movement_state(
 
     *movement_state = match velocity.0 {
         Vec2 { x, y } if x != 0. && y == 0. => MovementState::WALKING,
-        Vec2 { y, .. } if y < 0. => MovementState::FLYING,
-        Vec2 { y, ..} if y > 0. => MovementState::FALLING,
+        Vec2 { y, .. } if y != 0. => MovementState::FLYING,
         _ => MovementState::IDLE
     };
 }
