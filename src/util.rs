@@ -164,7 +164,7 @@ impl FRect {
         self.left < rect.right
             && self.right > rect.left
             && self.bottom > rect.top
-            && self.top > -rect.bottom.abs()
+            && self.top > rect.bottom
     }
 }
 

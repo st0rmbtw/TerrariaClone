@@ -1,6 +1,6 @@
 use bevy::{prelude::{Deref, DerefMut}, time::Timer};
 
-use crate::Velocity;
+use crate::{Velocity, util::FRect};
 
 #[derive(Default, Clone, Copy)]
 pub struct InputAxis {
@@ -37,22 +37,22 @@ pub struct PlayerController {
 
 #[derive(Clone, Copy, Default)]
 pub struct Collisions {
-    pub up: bool,
-    pub down: bool,
-    pub left: bool,
+    pub top: bool,
+    pub bottom: Option<FRect>,
+    pub left: Option<FRect>,
     pub right: bool
 }
 
 impl Collisions {
     pub fn none(&self) -> bool {
-        !self.up && !self.down && !self.left && !self.right
+        !self.top && !self.bottom.is_some() && !self.left.is_some() && !self.right
     }
 
     pub fn x(&self) -> bool {
-        self.left || self.right
+        self.left.is_some() || self.right
     }
 
     pub fn y(&self) -> bool {
-        self.up || self.down
+        self.top || self.bottom.is_some()
     }
 }

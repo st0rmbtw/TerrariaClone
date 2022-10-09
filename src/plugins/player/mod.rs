@@ -51,11 +51,12 @@ impl Plugin for PlayerPlugin {
             .insert_resource(UseItemAnimation(false))
             .add_enter_system(GameState::InGame, spawn_player)
             .add_system_set(update())
+            .add_system(update_axis)
             .add_system_set_to_stage(
                 CoreStage::PreUpdate, 
                 ConditionSet::new()
                     .run_in_state(GameState::InGame)
-                    .with_system(update_axis)
+                    .with_system(collision_check)
                     .into()
             )
             
@@ -63,7 +64,6 @@ impl Plugin for PlayerPlugin {
                 CoreStage::PostUpdate, 
                 ConditionSet::new()
                     .run_in_state(GameState::InGame)
-                    .with_system(asdads)
                     .with_system(update_movement_state)
                     .with_system(update_face_direction)
                     .with_system(flip_player)

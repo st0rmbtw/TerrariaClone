@@ -11,7 +11,7 @@ use crate::{
         inventory::{SelectedItem, Inventory}, 
         cursor::CursorPosition
     }, 
-    world_generator::WORLD_SIZE_X, 
+    world_generator::{WORLD_SIZE_X}, 
     util::{move_towards, map_range, get_rotation_by_direction, get_tile_coords}, 
     items::{get_animation_points, Item}
 };
@@ -294,7 +294,6 @@ pub fn spawn_player(
 pub fn update() -> SystemSet {
     ConditionSet::new()
         .run_in_state(GameState::InGame)
-        .with_system(collision_check)
         .with_system(horizontal_movement)
         .with_system(update_jump)
         .with_system(gravity)
@@ -309,7 +308,7 @@ pub fn collision_check(
 ) {
     let transform = player.single();
 
-    *collisions = get_collisions(transform.translation.xy(), &world_data.tiles.view());
+    *collisions = get_collisions(transform.translation.xy(), &world_data);
 }
 
 pub fn horizontal_movement(
@@ -324,17 +323,16 @@ pub fn horizontal_movement(
         velocity.x = move_towards(velocity.x, 0., SLOWDOWN);
     }
 
-    if (velocity.x < 0. && collsions.left) || (velocity.x > 0. && collsions.right) {
+    if (velocity.x < 0. && collsions.left.is_some()) || (velocity.x > 0. && collsions.right) {
         velocity.x = 0.;
     }
 }
 
 pub fn gravity(
     collisions: Res<Collisions>,
-    player_controller: Res<PlayerController>,
     mut velocity: ResMut<PlayerVelocity>,
 ) {
-    if collisions.down {
+    if collisions.bottom.is_some() {
         if velocity.y < 0. {
             velocity.y = 0.;
         }
@@ -353,7 +351,7 @@ pub fn update_jump(
     mut velocity: ResMut<PlayerVelocity>,
     mut player_controller: ResMut<PlayerController>,
 ) {
-    if input.just_pressed(KeyCode::Space) && collisions.down {
+    if input.just_pressed(KeyCode::Space) && collisions.bottom.is_some() {
         player_controller.jump = JUMP_HEIGHT;
         velocity.y = JUMP_SPEED;
     }
@@ -372,7 +370,7 @@ pub fn update_jump(
         player_controller.jump = 0;
     }
 
-    if collisions.up {
+    if collisions.top {
         if velocity.y > 0. {
             velocity.y = 0.;
         }
@@ -380,9 +378,10 @@ pub fn update_jump(
 }
 
 pub fn move_character(
-    mut velocity: ResMut<PlayerVelocity>,
-    world_data: Res<WorldData>,
+    velocity: Res<PlayerVelocity>,
     mut player_query: Query<&mut Transform, With<Player>>,
+    #[cfg(feature = "debug")]
+    mut lines: ResMut<bevy_prototype_debug_lines::DebugLines>
 ) {
     let mut transform = player_query.single_mut();
 
@@ -390,58 +389,98 @@ pub fn move_character(
     const MAX: f32 = WORLD_SIZE_X as f32 * TILE_SIZE - PLAYER_SPRITE_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
 
     let raw = transform.translation.xy() + velocity.0;
-    let collisions = get_collisions(raw, &world_data.tiles.view());
+
+    transform.translation.x = raw.x.clamp(MIN, MAX);
+    transform.translation.y = raw.y;
     
-    let player_left = raw.x - PLAYER_SPRITE_WIDTH / 2.;
-    let threshold = round(player_left, TILE_SIZE);
+    #[cfg(feature = "debug")] {
+        let player_rect = get_player_rect(raw, 1.);
 
-    if !(player_left < threshold && collisions.left) {
-        transform.translation.x = raw.x;
-    } else {
-        velocity.x = 0.;
-    }
+        let bottom = (player_rect.bottom / TILE_SIZE).floor() * TILE_SIZE + TILE_SIZE / 2.;
+        let top = (player_rect.top / TILE_SIZE).ceil() * TILE_SIZE - TILE_SIZE / 2.;
+        let left = (player_rect.left / TILE_SIZE).ceil() * TILE_SIZE + TILE_SIZE / 2.;
+    
+        lines.line_colored(
+            Vec3::new(0., bottom, 2.),
+            Vec3::new(WORLD_SIZE_X as f32 * TILE_SIZE, bottom, 2.),
+            0.,
+            Color::RED
+        );
 
-    // TODO
+        lines.line_colored(
+            Vec3::new(0., top, 2.),
+            Vec3::new(WORLD_SIZE_X as f32 * TILE_SIZE, top, 2.),
+            0.,
+            Color::RED
+        );
 
-    transform.translation.x = transform.translation.x.clamp(MIN, MAX);
-    transform.translation.y += velocity.y;
-}
+        lines.line_colored(
+            Vec3::new(left, 0., 2.),
+            Vec3::new(left, WORLD_SIZE_Y as f32 * TILE_SIZE, 2.),
+            0.,
+            Color::RED
+        );
 
-pub fn asdads(
-    mut velocity: ResMut<PlayerVelocity>,
-    collisions: Res<Collisions>,
-    mut player_query: Query<&mut Transform, With<Player>>,
-) {
-    let mut transform = player_query.single_mut();
+        if let Some(col_left) = collisions.left {
+            lines.line_colored(
+                Vec3::new(col_left.left, col_left.bottom, 2.),
+                Vec3::new(col_left.left, col_left.top, 2.),
+                0.,
+                Color::RED
+            );
 
-    let pos = transform.translation.xy();
+            lines.line_colored(
+                Vec3::new(col_left.right, col_left.bottom, 2.),
+                Vec3::new(col_left.right, col_left.top, 2.),
+                0.,
+                Color::RED
+            );
 
-    let player_rect = get_player_rect(transform.translation.xy());
+            lines.line_colored(
+                Vec3::new(col_left.left, col_left.top, 2.),
+                Vec3::new(col_left.right, col_left.top, 2.),
+                0.,
+                Color::RED
+            );
 
-    if collisions.down && velocity.y == 0. {
-        let threshold = (player_rect.bottom / TILE_SIZE).round() * TILE_SIZE + TILE_SIZE / 2. - 1.;
-        
-        if player_rect.bottom < threshold {
-            transform.translation.y = threshold + PLAYER_SPRITE_HEIGHT / 2.;
+            lines.line_colored(
+                Vec3::new(col_left.left, col_left.bottom, 2.),
+                Vec3::new(col_left.right, col_left.bottom, 2.),
+                0.,
+                Color::RED
+            );
+        }
+
+        if let Some(col_down) = collisions.bottom {
+            lines.line_colored(
+                Vec3::new(col_down.left, col_down.bottom, 2.),
+                Vec3::new(col_down.left, col_down.top, 2.),
+                0.,
+                Color::WHITE
+            );
+
+            lines.line_colored(
+                Vec3::new(col_down.right, col_down.bottom, 2.),
+                Vec3::new(col_down.right, col_down.top, 2.),
+                0.,
+                Color::WHITE
+            );
+
+            lines.line_colored(
+                Vec3::new(col_down.left, col_down.top, 2.),
+                Vec3::new(col_down.right, col_down.top, 2.),
+                0.,
+                Color::WHITE
+            );
+
+            lines.line_colored(
+                Vec3::new(col_down.left, col_down.bottom, 2.),
+                Vec3::new(col_down.right, col_down.bottom, 2.),
+                0.,
+                Color::WHITE
+            );
         }
     }
-
-    // if collisions.left && velocity.x == 0. {
-    //     let player_left = transform.translation.x - PLAYER_SPRITE_WIDTH * 0.6 / 2.;
-    //     let threshold = round(player_left, TILE_SIZE) + TILE_SIZE / 2.;
-
-    //     if player_left < threshold {
-    //         transform.translation.x = threshold + PLAYER_SPRITE_WIDTH * 0.6 / 2.;
-    //     }
-    // }
-
-    // if collisions.right && velocity.x == 0. {
-    //     let threshold = (player_rect.right / TILE_SIZE).round() * TILE_SIZE - TILE_SIZE / 2. + 2.;
-
-    //     if player_rect.right > threshold {
-    //         transform.translation.x = threshold - TILE_SIZE / 2. - 3.5;
-    //     }
-    // }
 }
 
 pub fn spawn_particles(

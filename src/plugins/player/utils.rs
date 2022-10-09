@@ -1,7 +1,7 @@
 use bevy::{prelude::{Query, With, Component, Vec2}, sprite::TextureAtlasSprite};
-use ndarray::ArrayView2;
+use bevy_ecs_tilemap::tiles::TilePos;
 
-use crate::{state::MovementState, util::FRect, world_generator::Cell, plugins::world::TILE_SIZE};
+use crate::{state::MovementState, util::FRect, plugins::world::{TILE_SIZE, WorldData}};
 
 use super::{Player, AnimationData, PlayerBodySprite, PLAYER_SPRITE_WIDTH, PLAYER_SPRITE_HEIGHT, Collisions};
 
@@ -52,10 +52,10 @@ pub fn is_flying(
     false
 }
 
-pub fn get_player_rect(position: Vec2) -> FRect {
+pub fn get_player_rect(position: Vec2, x_multiplier: f32) -> FRect {
     FRect {
-        left: position.x - PLAYER_SPRITE_WIDTH / 2.,
-        right: position.x + PLAYER_SPRITE_WIDTH / 2.,
+        left: position.x - (PLAYER_SPRITE_WIDTH * x_multiplier) / 2.,
+        right: position.x + (PLAYER_SPRITE_WIDTH * x_multiplier) / 2.,
         bottom: position.y - PLAYER_SPRITE_HEIGHT / 2.,
         top: position.y + PLAYER_SPRITE_HEIGHT / 2.
     }
@@ -71,68 +71,101 @@ pub fn round(number: f32, multiple: f32) -> f32 {
 
 pub fn get_collisions(
     position: Vec2,
-    tiles: &ArrayView2<Cell>,
+    world_data: &WorldData
 ) -> Collisions {
-    let bottom = (round(position.y - PLAYER_SPRITE_HEIGHT / 2., TILE_SIZE) / TILE_SIZE).abs() as usize;
-    let top = (position.y + PLAYER_SPRITE_HEIGHT / 2.) / TILE_SIZE;
-
-    let utop = round(top, TILE_SIZE).abs() as usize;
-
-    let mut col_left = false;
+    let player_rect = get_player_rect(position, 0.65);
+    
+    let mut col_left: Option<FRect> = None;
     let mut col_right = false;
-    let mut col_down = false;
+    let mut col_down: Option<FRect> = None;
     let mut col_top = false;
+    
+    let left = (player_rect.left / TILE_SIZE).floor() as u32;
+    let right = (player_rect.right / TILE_SIZE).ceil() as u32;
+    let top = (player_rect.top / TILE_SIZE).ceil();
+    let bottom = ((player_rect.bottom) / TILE_SIZE).floor();
+    let utop = top.abs() as u32;
+    let ubottom = bottom.abs() as u32;
 
-    let left = (round(position.x - (PLAYER_SPRITE_WIDTH * 0.5) / 2., TILE_SIZE) / TILE_SIZE) as usize;
-    let right = (round(position.x + (PLAYER_SPRITE_WIDTH * 0.5) / 2., TILE_SIZE) / TILE_SIZE) as usize;
-
-    for x in left..(right + 1) {
-        if col_down {
+    for x in left..(right + 2) {
+        if col_down.is_some() {
             break;
         }
 
-        if tiles.get((bottom, x)).and_then(|cell| cell.tile).is_some() {
-            col_down = true;
+        if world_data.tile_exists(TilePos { x, y: ubottom }) {
+            let rect = FRect {
+                left: x as f32 * TILE_SIZE - TILE_SIZE / 2.,
+                right: x as f32 * TILE_SIZE + TILE_SIZE / 2.,
+                bottom: ubottom as f32 * TILE_SIZE + TILE_SIZE / 2.,
+                top: ubottom as f32 * TILE_SIZE - TILE_SIZE / 2.
+            };
+
+            if rect.intersect(player_rect) {
+                col_down = Some(rect);
+            }
         }
     }
-    
-    for x in left..(right + 1) {
+
+    for x in left..(right + 2) {
         if col_top {
             break;
         }
 
-        if top == 0. || tiles.get((utop, x)).and_then(|cell| cell.tile).is_some() {
-            col_top = true;
+        if world_data.tile_exists(TilePos { x, y: utop }) {
+            let rect = FRect {
+                left: x as f32 * TILE_SIZE - TILE_SIZE / 2.,
+                right: x as f32 * TILE_SIZE + TILE_SIZE / 2.,
+                bottom: utop as f32 * TILE_SIZE + TILE_SIZE / 2.,
+                top: utop as f32 * TILE_SIZE - TILE_SIZE / 2.
+            };
+
+            if rect.intersect(player_rect) {
+                col_top = true;
+            }
         }
     }
 
-    let left = (round(position.x - (PLAYER_SPRITE_WIDTH * 0.6 / 2.), TILE_SIZE) / TILE_SIZE) as usize;
-
-    for y in utop..bottom {
-        if col_left {
+    for y in utop..ubottom {
+        if col_left.is_some() {
             break;
         }
 
-        if tiles.get((y, left)).and_then(|cell| cell.tile).is_some() {
-            col_left = true;
+        if world_data.tile_exists(TilePos { x: left, y }) {
+            let rect = FRect {
+                left: left as f32 * TILE_SIZE - TILE_SIZE / 2.,
+                right: left as f32 * TILE_SIZE + TILE_SIZE / 2.,
+                bottom: y as f32 * TILE_SIZE - TILE_SIZE / 2.,
+                top: y as f32 * TILE_SIZE + TILE_SIZE / 2.
+            };
+
+            if rect.intersect(player_rect) {
+                col_left = Some(rect);
+            }
         }
     }
 
-    let right = (round(position.x + (PLAYER_SPRITE_WIDTH * 0.6 / 2.), TILE_SIZE) / TILE_SIZE) as usize;
-
-    for y in utop..bottom {
+    for y in utop..ubottom {
         if col_right {
             break;
         }
 
-        if tiles.get((y, right)).and_then(|cell| cell.tile).is_some() {
-            col_right = true;
+        if world_data.tile_exists(TilePos { x: right, y }) {
+            let rect = FRect {
+                left: right as f32 * TILE_SIZE - TILE_SIZE / 2.,
+                right: right as f32 * TILE_SIZE + TILE_SIZE / 2.,
+                bottom: y as f32 * TILE_SIZE - TILE_SIZE / 2.,
+                top: y as f32 * TILE_SIZE + TILE_SIZE / 2.
+            };
+
+            if rect.intersect(player_rect) {
+                col_right = true;
+            }
         }
     }
 
     Collisions { 
-        up: col_top, 
-        down: col_down, 
+        top: col_top, 
+        bottom: col_down, 
         left: col_left, 
         right: col_right 
     }
