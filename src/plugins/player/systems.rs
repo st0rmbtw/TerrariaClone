@@ -670,7 +670,7 @@ pub fn use_item(
 }
 
 // TODO: Debug function, remove in feature
-#[cfg(debug_assertions)]
+#[cfg(feature = "debug")]
 pub fn set_sprite_index(
     input: Res<Input<KeyCode>>,
     mut query: Query<(&mut TextureAtlasSprite, &WalkingAnimationData), With<PlayerBodySprite>>,

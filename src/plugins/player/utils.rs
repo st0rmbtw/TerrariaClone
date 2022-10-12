@@ -1,7 +1,7 @@
 use bevy::{prelude::{Query, With, Component, Vec2}, sprite::TextureAtlasSprite};
 use bevy_ecs_tilemap::tiles::TilePos;
 
-use crate::{state::MovementState, util::FRect, plugins::world::{TILE_SIZE, WorldData}};
+use crate::{state::MovementState, util::FRect, plugins::world::{TILE_SIZE, WorldData}, world_generator::WORLD_SIZE_Y};
 
 use super::{Player, AnimationData, PlayerBodySprite, PLAYER_SPRITE_WIDTH, PLAYER_SPRITE_HEIGHT, Collisions};
 
@@ -84,8 +84,12 @@ pub fn get_collisions(
 
     let uleft = left as u32;
     let uright = right as u32;
-    let utop = top as u32;
+    let mut utop = top as u32;
     let ubottom = bottom as u32;
+
+    if utop > WORLD_SIZE_Y as u32 {
+        utop = WORLD_SIZE_Y as u32;
+    }
 
     let mut result = velocity;
     let next_position = position + velocity;
@@ -100,8 +104,9 @@ pub fn get_collisions(
     let mut collisions = Collisions::default();
 
     for x in uleft..uright {
-        for y in utop..ubottom {
+        for y in ubottom..utop {
             if world_data.tile_exists(TilePos { x, y }) {  
+                dbg!(y);
                 let tile_pos = Vec2::new(x as f32 * TILE_SIZE, y as f32 * TILE_SIZE);
 
                 if (next_position.x + PLAYER_SPRITE_WIDTH / 2.) > tile_pos.x && next_position.x < (tile_pos.x + TILE_SIZE) && (next_position.y + PLAYER_SPRITE_HEIGHT / 2.) > tile_pos.y && next_position.y < (tile_pos.y + TILE_SIZE) {

@@ -149,7 +149,7 @@ pub fn spawn_chunk(
 
             let map_tile_pos = TilePos {
                 x: (chunk_pos.x as f32 * CHUNK_SIZE) as u32 + x,
-                y: WORLD_SIZE_Y as u32 - (chunk_pos.y as f32 * CHUNK_SIZE) as u32 - y - 1
+                y: (WORLD_SIZE_Y as f32 - (chunk_pos.y as f32 * CHUNK_SIZE) as f32 - y as f32 - 1.) as u32
             };
 
             if let Some(cell) = world_data.get_cell(map_tile_pos) {
