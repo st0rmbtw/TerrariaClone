@@ -13,13 +13,13 @@ lazy_static = "1.4.0"
 rand = "0.8.5"
 interpolation = "0.2"
 ndarray = "0.15.6"
-noise = "0.7.0"
+noise = "0.8.1"
 iyes_loopless = "0.7.1"
 autodefault = "2.0.0"
-bevy_hanabi = { git = "https://github.com/djeedai/bevy_hanabi", default-features = false, features = ["2d"] }
+bevy_hanabi = { git = "https://github.com/djeedai/bevy_hanabi.git", branch = "main", default-features = false, features = ["2d"] }
 bevy-inspector-egui = "0.13.0"
 bevy_prototype_debug_lines = { version = "0.8", optional = true }
-bevy_ecs_tilemap = { git = "https://github.com/StarArawn/bevy_ecs_tilemap" }
+bevy_ecs_tilemap = { version = "0.8.0" }
 
 [profile.dev]
 opt-level = 1
@@ -29,3 +29,4 @@ opt-level = 3
 
 [features]
 debug = ["dep:bevy_prototype_debug_lines"]
+debug_movement = []

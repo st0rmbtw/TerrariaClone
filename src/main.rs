@@ -26,7 +26,7 @@ fn main() {
         .set(WgpuFeatures::VERTEX_WRITABLE_STORAGE, true);
 
     app.insert_resource(settings)
-        .insert_resource(Msaa { samples: 4 })
+        .insert_resource(Msaa { samples: 1 })
         .insert_resource(WindowDescriptor {
             title: "Terraria".to_string(),
             present_mode: PresentMode::Fifo,

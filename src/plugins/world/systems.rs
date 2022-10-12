@@ -82,7 +82,7 @@ pub fn spawn_chunks(
         let camera_fov = get_camera_fov(camera_transform.translation().xy(), projection);
         let camera_chunk_pos = get_chunk_position_by_camera_fov(camera_fov);
 
-        for y in camera_chunk_pos.top..=camera_chunk_pos.bottom {
+        for y in camera_chunk_pos.bottom..=camera_chunk_pos.top {
             for x in camera_chunk_pos.left..=camera_chunk_pos.right {
                 let chunk_pos = IVec2::new(x, y);
 
@@ -110,7 +110,7 @@ pub fn despawn_chunks(
 
         for (entity, Chunk { pos: chunk_pos }) in chunks.iter() {
             if (chunk_pos.x < camera_chunk_pos.left || chunk_pos.x > camera_chunk_pos.right) ||
-               (chunk_pos.y > camera_chunk_pos.bottom || chunk_pos.y < camera_chunk_pos.top) 
+               (chunk_pos.y < camera_chunk_pos.bottom || chunk_pos.y > camera_chunk_pos.top) 
             {
                 chunk_manager.spawned_chunks.remove(&chunk_pos);
                 commands.entity(entity).despawn_recursive();
@@ -129,8 +129,8 @@ pub fn spawn_chunk(
     let chunk = commands.spawn()
         .insert(Chunk { pos: chunk_pos })
         .insert_bundle(SpatialBundle {
-            transform: Transform::from_xyz(chunk_pos.x as f32 * CHUNK_SIZE * TILE_SIZE, -(chunk_pos.y + 1) as f32 * CHUNK_SIZE * TILE_SIZE + TILE_SIZE, 0.),
-            ..default()  
+            transform: Transform::from_xyz(chunk_pos.x as f32 * CHUNK_SIZE * TILE_SIZE, chunk_pos.y as f32 * CHUNK_SIZE * TILE_SIZE, 0.),
+            ..default()
         })
         .id();
 
@@ -140,31 +140,31 @@ pub fn spawn_chunk(
     let wallmap_entity = commands.spawn().id();
     let mut wall_storage = TileStorage::empty(CHUNKMAP_SIZE);
 
-    for y in 0..CHUNK_SIZE as usize {
-        for x in 0..CHUNK_SIZE as usize {
-            let tile_pos = TilePos {
-                x: x as u32,
-                y: CHUNK_SIZE as u32 - 1 - y as u32,
+    for y in 0..CHUNK_SIZE_U {
+        for x in 0..CHUNK_SIZE_U {
+            let tile_pos = TilePos { 
+                x, 
+                y: y
             };
 
-            let tile_x = (chunk_pos.x as f32 * CHUNK_SIZE) as u32 + x as u32;
-            let tile_y = (chunk_pos.y as f32 * CHUNK_SIZE) as u32 + y as u32;
+            let map_tile_pos = TilePos {
+                x: (chunk_pos.x as f32 * CHUNK_SIZE) as u32 + x,
+                y: WORLD_SIZE_Y as u32 - (chunk_pos.y as f32 * CHUNK_SIZE) as u32 - y - 1
+            };
 
-            let cell_option = world_data.tiles.get((tile_y as usize, tile_x as usize));
-
-            if let Some(cell) = cell_option {
+            if let Some(cell) = world_data.get_cell(map_tile_pos) {
                 if let Some(tile) = cell.tile {
                     let tile_entity = spawn_tile(commands, tile, tile_pos, tilemap_entity);
 
                     commands.entity(tilemap_entity).add_child(tile_entity);
-                    tile_storage.set(&tile_pos, Some(tile_entity));
+                    tile_storage.set(&tile_pos, tile_entity);
                 }
 
                 if let Some(wall) = cell.wall {
                     let wall_entity = spawn_wall(commands, wall, tile_pos, wallmap_entity);
 
                     commands.entity(wallmap_entity).add_child(wall_entity);
-                    wall_storage.set(&tile_pos, Some(wall_entity));
+                    wall_storage.set(&tile_pos, wall_entity);
                 }
             }
         }
@@ -180,7 +180,7 @@ pub fn spawn_chunk(
             },
             size: CHUNKMAP_SIZE,
             storage: tile_storage,
-            texture: TilemapTexture(block_assets.tiles.clone()),
+            texture: TilemapTexture::Single(block_assets.tiles.clone()),
             tile_size: TilemapTileSize {
                 x: TILE_SIZE,
                 y: TILE_SIZE,
@@ -189,7 +189,7 @@ pub fn spawn_chunk(
                 x: 2.,
                 y: 2.
             },
-            transform: Transform::from_xyz(0., 0., 1.),
+            transform: Transform::from_xyz(0., 0., 2.),
             ..Default::default()
         });
 
@@ -203,12 +203,12 @@ pub fn spawn_chunk(
             },
             size: CHUNKMAP_SIZE,
             storage: wall_storage,
-            texture: TilemapTexture(wall_assets.walls.clone()),
+            texture: TilemapTexture::Single(wall_assets.walls.clone()),
             tile_size: TilemapTileSize {
                 x: WALL_SIZE,
                 y: WALL_SIZE,
             },
-            transform: Transform::from_xyz(0., 0., 0.),
+            transform: Transform::from_xyz(0., 0., 1.),
             ..Default::default()
         });
 
@@ -219,16 +219,12 @@ pub fn get_chunk_position_by_camera_fov(camera_fov: FRect) -> IRect {
     let mut rect = IRect { 
         left: (camera_fov.left / (CHUNK_SIZE * TILE_SIZE)).floor() as i32, 
         right: (camera_fov.right / (CHUNK_SIZE * TILE_SIZE)).ceil() as i32, 
-        bottom: (camera_fov.top / (CHUNK_SIZE * TILE_SIZE)).abs().ceil() as i32, 
-        top: (camera_fov.bottom / (CHUNK_SIZE * TILE_SIZE)).abs() as i32 - 1
+        bottom: (camera_fov.bottom / (CHUNK_SIZE * TILE_SIZE)).floor() as i32, 
+        top: (camera_fov.top / (CHUNK_SIZE * TILE_SIZE)).ceil() as i32,
     };
 
     const MAX_CHUNK_X: i32 = (WORLD_SIZE_X as f32 / CHUNK_SIZE) as i32;
     const MAX_CHUNK_Y: i32 = (WORLD_SIZE_Y as f32 / CHUNK_SIZE) as i32;
-
-    if rect.top < 0 {
-        rect.top = 0;
-    }
 
     if rect.left < 0 {
         rect.left = 0;
@@ -237,9 +233,13 @@ pub fn get_chunk_position_by_camera_fov(camera_fov: FRect) -> IRect {
     if rect.right > MAX_CHUNK_X {
         rect.right = MAX_CHUNK_X;
     }
+
+    if rect.top > MAX_CHUNK_Y {
+        rect.top = MAX_CHUNK_Y;
+    }
     
-    if rect.bottom > MAX_CHUNK_Y {
-        rect.bottom = MAX_CHUNK_Y;
+    if rect.bottom < 0 {
+        rect.bottom = 0;
     }
 
     rect
@@ -254,7 +254,8 @@ pub fn handle_block_place(
     mut chunks: Query<(&TileChunk, &mut TileStorage, Entity)>
 ) {
     for event in events.iter() {
-        let map_tile_pos = TilePos { x: event.tile_pos.x as u32, y: event.tile_pos.y.abs() as u32 };
+        let map_tile_pos = TilePos { x: event.tile_pos.x as u32, y: (WORLD_SIZE_Y as u32).checked_sub(event.tile_pos.y as u32 + 1).unwrap_or(0) };
+
         let neighbors = world_data.get_neighbours(map_tile_pos);
         let tile = Tile { tile_type: event.block, neighbors };
 
@@ -274,7 +275,7 @@ pub fn handle_block_place(
                     let tile_entity = spawn_tile(&mut commands, tile, chunk_tile_pos, tilemap_entity);
 
                     commands.entity(tilemap_entity).add_child(tile_entity);
-                    tile_storage.set(&chunk_tile_pos, Some(tile_entity));
+                    tile_storage.set(&chunk_tile_pos, tile_entity);
                 }
             });
 

@@ -12,10 +12,10 @@ use crate::state::GameState;
 use std::time::Duration;
 use iyes_loopless::prelude::*;
 use bevy::{prelude::{Plugin, App, CoreStage}, time::Timer};
-use super::{world::TILE_SIZE, inventory::PlayerInventoryPlugin};
+use super::{inventory::PlayerInventoryPlugin};
 
-pub const PLAYER_SPRITE_WIDTH: f32 = 2. * TILE_SIZE;
-pub const PLAYER_SPRITE_HEIGHT: f32 = 3. * TILE_SIZE;
+pub const PLAYER_SPRITE_WIDTH: f32 = 20. /* 2. * TILE_SIZE */;
+pub const PLAYER_SPRITE_HEIGHT: f32 = 42. /* 3. * TILE_SIZE */;
 
 const WALKING_ANIMATION_MAX_INDEX: usize = 13;
 
@@ -50,16 +50,20 @@ impl Plugin for PlayerPlugin {
             .init_resource::<Collisions>()
             .insert_resource(UseItemAnimation(false))
             .add_enter_system(GameState::InGame, spawn_player)
-            .add_system_set(update())
             .add_system(update_axis)
-            .add_system_set_to_stage(
-                CoreStage::PreUpdate, 
-                ConditionSet::new()
+            // Update
+            .add_system(
+                collide
                     .run_in_state(GameState::InGame)
-                    .with_system(collision_check)
-                    .into()
+                    .label("collide")
+                    .after("gravity")
             )
-            
+            .add_system(
+                move_character
+                    .run_in_state(GameState::InGame)
+                    .after("collide")
+            )
+            //
             .add_system_set_to_stage(
                 CoreStage::PostUpdate, 
                 ConditionSet::new()
@@ -117,5 +121,39 @@ impl Plugin for PlayerPlugin {
                     .with_system(player_using_item)
                     .into(),
             );
+
+        #[cfg(feature = "debug_movement")] {
+            app.add_system(
+                debug_horizontal_movement
+                    .run_in_state(GameState::InGame)
+                    .label("horizontal_movement")
+            )
+            .add_system(
+                debug_vertical_movement
+                    .run_in_state(GameState::InGame)
+                    .label("gravity")
+                    .after("horizontal_movement")
+            );
+        }
+
+        #[cfg(not(feature = "debug_movement"))] {
+            app.add_system(
+                horizontal_movement
+                    .run_in_state(GameState::InGame)
+                    .label("horizontal_movement")
+            )
+            .add_system(
+                update_jump
+                    .run_in_state(GameState::InGame)
+                    .label("update_jump")
+                    .after("horizontal_movement")
+            )
+            .add_system(
+                gravity
+                    .run_in_state(GameState::InGame)
+                    .label("gravity")
+                    .after("update_jump")
+            );
+        }
     }
 }

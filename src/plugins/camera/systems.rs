@@ -55,8 +55,8 @@ pub fn move_camera(
                 camera_translation.x = player_transform.translation.x.clamp(min, max);
             }
             {
-                let max = -projection_top + TILE_SIZE / 2.;
-                let min = -(WORLD_SIZE_Y as f32 * 16.) + projection_top + TILE_SIZE / 2.;
+                let min = projection_top - TILE_SIZE / 2.;
+                let max = (WORLD_SIZE_Y as f32 * 16.) + projection_top + TILE_SIZE / 2.;
                 camera_translation.y = player_transform.translation.y.clamp(min, max);
             }
         }

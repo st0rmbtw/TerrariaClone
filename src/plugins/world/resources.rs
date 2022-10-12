@@ -13,6 +13,10 @@ pub struct WorldData {
 }
 
 impl WorldData {
+    pub fn get_cell(&self, pos: TilePos) -> Option<&Cell> {
+        self.tiles.get((pos.y as usize, pos.x as usize))
+    }
+
     pub fn get_cell_mut(&mut self, pos: TilePos) -> Option<&mut Cell> {
         self.tiles.get_mut((pos.y as usize, pos.x as usize))
     }

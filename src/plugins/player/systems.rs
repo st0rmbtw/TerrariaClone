@@ -11,7 +11,7 @@ use crate::{
         inventory::{SelectedItem, Inventory}, 
         cursor::CursorPosition
     }, 
-    world_generator::{WORLD_SIZE_X}, 
+    world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}, 
     util::{move_towards, map_range, get_rotation_by_direction, get_tile_coords}, 
     items::{get_animation_points, Item}
 };
@@ -28,7 +28,7 @@ pub fn spawn_player(
         .spawn()
         .insert(Player)
         .insert_bundle(SpatialBundle {
-            transform: Transform::from_xyz(WORLD_SIZE_X as f32 * 16. / 2., 5. * TILE_SIZE, 1.)
+            transform: Transform::from_xyz(WORLD_SIZE_X as f32 * 16. / 2., WORLD_SIZE_Y as f32 * TILE_SIZE, 3.)
         })
         .insert(Name::new("Player"))
         .insert(MovementState::default())
@@ -291,29 +291,29 @@ pub fn spawn_player(
     });
 }
 
-pub fn update() -> SystemSet {
-    ConditionSet::new()
-        .run_in_state(GameState::InGame)
-        .with_system(horizontal_movement)
-        .with_system(update_jump)
-        .with_system(gravity)
-        .with_system(move_character)
-        .into()
+#[cfg(feature = "debug_movement")]
+pub fn debug_horizontal_movement(
+    axis: Res<InputAxis>,
+    mut velocity: ResMut<PlayerVelocity>
+) {
+    velocity.x = axis.x * 10.;
 }
 
-pub fn collision_check(
-    world_data: Res<WorldData>,
-    mut collisions: ResMut<Collisions>,
-    player: Query<&Transform, With<Player>>
+#[cfg(feature = "debug_movement")]
+pub fn debug_vertical_movement(
+    input: Res<Input<KeyCode>>,
+    mut velocity: ResMut<PlayerVelocity>
 ) {
-    let transform = player.single();
+    let up = input.pressed(KeyCode::W);
+    let down = input.pressed(KeyCode::S);
 
-    *collisions = get_collisions(transform.translation.xy(), &world_data);
+    let y = -(down as i8) + up as i8;
+
+    velocity.y = y as f32 * 10.;
 }
 
 pub fn horizontal_movement(
     axis: Res<InputAxis>,
-    collsions: Res<Collisions>,
     mut velocity: ResMut<PlayerVelocity>
 ) {
     if axis.is_moving() {
@@ -322,26 +322,15 @@ pub fn horizontal_movement(
     } else {
         velocity.x = move_towards(velocity.x, 0., SLOWDOWN);
     }
-
-    if (velocity.x < 0. && collsions.left.is_some()) || (velocity.x > 0. && collsions.right) {
-        velocity.x = 0.;
-    }
 }
 
 pub fn gravity(
-    collisions: Res<Collisions>,
     mut velocity: ResMut<PlayerVelocity>,
 ) {
-    if collisions.bottom.is_some() {
-        if velocity.y < 0. {
-            velocity.y = 0.;
-        }
-    } else {
-        velocity.y -= GRAVITY;
+    velocity.y -= GRAVITY;
 
-        if velocity.y < -MAX_FALL_SPEED {
-            velocity.y = -MAX_FALL_SPEED;
-        }
+    if velocity.y < -MAX_FALL_SPEED {
+        velocity.y = -MAX_FALL_SPEED;
     }
 }
 
@@ -351,7 +340,7 @@ pub fn update_jump(
     mut velocity: ResMut<PlayerVelocity>,
     mut player_controller: ResMut<PlayerController>,
 ) {
-    if input.just_pressed(KeyCode::Space) && collisions.bottom.is_some() {
+    if input.just_pressed(KeyCode::Space) && collisions.bottom {
         player_controller.jump = JUMP_HEIGHT;
         velocity.y = JUMP_SPEED;
     }
@@ -368,12 +357,6 @@ pub fn update_jump(
         }
     } else {
         player_controller.jump = 0;
-    }
-
-    if collisions.top {
-        if velocity.y > 0. {
-            velocity.y = 0.;
-        }
     }
 }
 
@@ -394,93 +377,47 @@ pub fn move_character(
     transform.translation.y = raw.y;
     
     #[cfg(feature = "debug")] {
-        let player_rect = get_player_rect(raw, 1.);
+        // let player_rect = get_player_rect(raw, 1.);
 
-        let bottom = (player_rect.bottom / TILE_SIZE).floor() * TILE_SIZE + TILE_SIZE / 2.;
-        let top = (player_rect.top / TILE_SIZE).ceil() * TILE_SIZE - TILE_SIZE / 2.;
-        let left = (player_rect.left / TILE_SIZE).ceil() * TILE_SIZE + TILE_SIZE / 2.;
+        // let bottom = (player_rect.bottom / TILE_SIZE).floor() * TILE_SIZE + TILE_SIZE / 2.;
+        // let top = (player_rect.top / TILE_SIZE).ceil() * TILE_SIZE - TILE_SIZE / 2.;
+        // let left = (player_rect.left / TILE_SIZE).ceil() * TILE_SIZE + TILE_SIZE / 2.;
     
-        lines.line_colored(
-            Vec3::new(0., bottom, 2.),
-            Vec3::new(WORLD_SIZE_X as f32 * TILE_SIZE, bottom, 2.),
-            0.,
-            Color::RED
-        );
+        // lines.line_colored(
+        //     Vec3::new(0., bottom, 2.),
+        //     Vec3::new(WORLD_SIZE_X as f32 * TILE_SIZE, bottom, 2.),
+        //     0.,
+        //     Color::RED
+        // );
 
-        lines.line_colored(
-            Vec3::new(0., top, 2.),
-            Vec3::new(WORLD_SIZE_X as f32 * TILE_SIZE, top, 2.),
-            0.,
-            Color::RED
-        );
+        // lines.line_colored(
+        //     Vec3::new(0., top, 2.),
+        //     Vec3::new(WORLD_SIZE_X as f32 * TILE_SIZE, top, 2.),
+        //     0.,
+        //     Color::RED
+        // );
 
-        lines.line_colored(
-            Vec3::new(left, 0., 2.),
-            Vec3::new(left, WORLD_SIZE_Y as f32 * TILE_SIZE, 2.),
-            0.,
-            Color::RED
-        );
-
-        if let Some(col_left) = collisions.left {
-            lines.line_colored(
-                Vec3::new(col_left.left, col_left.bottom, 2.),
-                Vec3::new(col_left.left, col_left.top, 2.),
-                0.,
-                Color::RED
-            );
-
-            lines.line_colored(
-                Vec3::new(col_left.right, col_left.bottom, 2.),
-                Vec3::new(col_left.right, col_left.top, 2.),
-                0.,
-                Color::RED
-            );
-
-            lines.line_colored(
-                Vec3::new(col_left.left, col_left.top, 2.),
-                Vec3::new(col_left.right, col_left.top, 2.),
-                0.,
-                Color::RED
-            );
-
-            lines.line_colored(
-                Vec3::new(col_left.left, col_left.bottom, 2.),
-                Vec3::new(col_left.right, col_left.bottom, 2.),
-                0.,
-                Color::RED
-            );
-        }
-
-        if let Some(col_down) = collisions.bottom {
-            lines.line_colored(
-                Vec3::new(col_down.left, col_down.bottom, 2.),
-                Vec3::new(col_down.left, col_down.top, 2.),
-                0.,
-                Color::WHITE
-            );
-
-            lines.line_colored(
-                Vec3::new(col_down.right, col_down.bottom, 2.),
-                Vec3::new(col_down.right, col_down.top, 2.),
-                0.,
-                Color::WHITE
-            );
-
-            lines.line_colored(
-                Vec3::new(col_down.left, col_down.top, 2.),
-                Vec3::new(col_down.right, col_down.top, 2.),
-                0.,
-                Color::WHITE
-            );
-
-            lines.line_colored(
-                Vec3::new(col_down.left, col_down.bottom, 2.),
-                Vec3::new(col_down.right, col_down.bottom, 2.),
-                0.,
-                Color::WHITE
-            );
-        }
+        // lines.line_colored(
+        //     Vec3::new(left, 0., 2.),
+        //     Vec3::new(left, WORLD_SIZE_Y as f32 * TILE_SIZE, 2.),
+        //     0.,
+        //     Color::RED
+        // );
     }
+}
+
+pub fn collide(
+    player_query: Query<&Transform, With<Player>>,
+    world_data: Res<WorldData>,
+    mut velocity: ResMut<PlayerVelocity>,
+    mut collisions: ResMut<Collisions>
+) {
+    let transform = player_query.single();
+
+    let (new_velocity, new_collisions) = get_collisions(transform.translation.xy(), velocity.0, &world_data);
+
+    velocity.0 = new_velocity;
+    *collisions = new_collisions;
 }
 
 pub fn spawn_particles(
@@ -503,6 +440,7 @@ pub fn spawn_particles(
 }
 
 pub fn update_movement_state(
+    player_controller: Res<PlayerController>,
     velocity: Res<PlayerVelocity>,
     mut query: Query<&mut MovementState, With<Player>>,
 ) {
@@ -510,7 +448,7 @@ pub fn update_movement_state(
 
     *movement_state = match velocity.0 {
         Vec2 { x, y } if x != 0. && y == 0. => MovementState::WALKING,
-        Vec2 { y, .. } if y != 0. => MovementState::FLYING,
+        Vec2 { y, .. } if y != 0. || player_controller.jump > 0 => MovementState::FLYING,
         _ => MovementState::IDLE
     };
 }

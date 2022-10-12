@@ -100,9 +100,8 @@ macro_rules! handles{
         }
 
         impl $struct_name {
-            // This is purely an example—not a good one.
-            fn handles(&self) -> Vec<&$field_type> {
-                vec![$(&self.$field_name),*]
+            pub fn handles(&self) -> Vec<$field_type> {
+                vec![$(self.$field_name.clone()),*]
             }
         }
     }

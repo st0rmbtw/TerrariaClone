@@ -69,104 +69,93 @@ pub fn round(number: f32, multiple: f32) -> f32 {
     result
 }
 
+// Returns new player velocity and collisions struct 
 pub fn get_collisions(
     position: Vec2,
+    velocity: Vec2,
     world_data: &WorldData
-) -> Collisions {
-    let player_rect = get_player_rect(position, 0.65);
+) -> (Vec2, Collisions) {
+    let player_rect = get_player_rect(position, 1.);
     
-    let mut col_left: Option<FRect> = None;
-    let mut col_right = false;
-    let mut col_down: Option<FRect> = None;
-    let mut col_top = false;
-    
-    let left = (player_rect.left / TILE_SIZE).floor() as u32;
-    let right = (player_rect.right / TILE_SIZE).ceil() as u32;
-    let top = (player_rect.top / TILE_SIZE).ceil();
-    let bottom = ((player_rect.bottom) / TILE_SIZE).floor();
-    let utop = top.abs() as u32;
-    let ubottom = bottom.abs() as u32;
+    let left = (player_rect.left / TILE_SIZE) - 1.;
+    let right = (player_rect.right / TILE_SIZE) + 2.;
+    let top = (player_rect.top / TILE_SIZE) + 2.;
+    let bottom = (player_rect.bottom / TILE_SIZE) - 1.;
 
-    for x in left..(right + 2) {
-        if col_down.is_some() {
-            break;
-        }
+    let uleft = left as u32;
+    let uright = right as u32;
+    let utop = top as u32;
+    let ubottom = bottom as u32;
 
-        if world_data.tile_exists(TilePos { x, y: ubottom }) {
-            let rect = FRect {
-                left: x as f32 * TILE_SIZE - TILE_SIZE / 2.,
-                right: x as f32 * TILE_SIZE + TILE_SIZE / 2.,
-                bottom: ubottom as f32 * TILE_SIZE + TILE_SIZE / 2.,
-                top: ubottom as f32 * TILE_SIZE - TILE_SIZE / 2.
-            };
+    let mut result = velocity;
+    let next_position = position + velocity;
 
-            if rect.intersect(player_rect) {
-                col_down = Some(rect);
+    let mut num5 = u32::MAX;
+    let mut num6 = u32::MAX;
+    let mut num7 = u32::MAX;
+    let mut num8 = u32::MAX;
+
+    let mut num9 = (top + 3.) * TILE_SIZE;
+
+    let mut collisions = Collisions::default();
+
+    for x in uleft..uright {
+        for y in utop..ubottom {
+            if world_data.tile_exists(TilePos { x, y }) {  
+                let tile_pos = Vec2::new(x as f32 * TILE_SIZE, y as f32 * TILE_SIZE);
+
+                if (next_position.x + PLAYER_SPRITE_WIDTH / 2.) > tile_pos.x && next_position.x < (tile_pos.x + TILE_SIZE) && (next_position.y + PLAYER_SPRITE_HEIGHT / 2.) > tile_pos.y && next_position.y < (tile_pos.y + TILE_SIZE) {
+                    if player_rect.top <= tile_pos.y {
+                        collisions.bottom = true;
+                        dbg!("D");
+                        if num9 > tile_pos.y {
+                            num7 = x;
+                            num8 = y;
+                            if num7 != num5 {
+                                result.y = tile_pos.y - player_rect.top;
+                                num9 = tile_pos.y;
+                            }
+                        }
+                    } else {
+                        if player_rect.right <= tile_pos.x {
+                            dbg!("C");
+                            num5 = x;
+                            num6 = y;
+                            if num6 != num8 {
+                                result.x = tile_pos.x - player_rect.right;
+                            }
+                            if num7 == num5 {
+                                result.y = velocity.y;
+                            }
+                        } else {
+                            if position.x >= tile_pos.x + TILE_SIZE {
+                                dbg!("B");
+                                num5 = x;
+                                num6 = y;
+                                if num6 != num8 {
+                                    result.x = tile_pos.x + TILE_SIZE - position.x;
+                                }
+                                if num7 == num5 {
+                                    result.y = velocity.y;
+                                }
+                            } else {
+                                if position.y >= tile_pos.y + TILE_SIZE {
+                                    collisions.top = true;
+                                    dbg!("A");
+                                    num7 = x;
+                                    num8 = y;
+                                    result.y = tile_pos.y + TILE_SIZE - position.y + 0.01;
+                                    if num8 == num6 {
+                                        result.x = velocity.x;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
-
-    for x in left..(right + 2) {
-        if col_top {
-            break;
-        }
-
-        if world_data.tile_exists(TilePos { x, y: utop }) {
-            let rect = FRect {
-                left: x as f32 * TILE_SIZE - TILE_SIZE / 2.,
-                right: x as f32 * TILE_SIZE + TILE_SIZE / 2.,
-                bottom: utop as f32 * TILE_SIZE + TILE_SIZE / 2.,
-                top: utop as f32 * TILE_SIZE - TILE_SIZE / 2.
-            };
-
-            if rect.intersect(player_rect) {
-                col_top = true;
-            }
-        }
-    }
-
-    for y in utop..ubottom {
-        if col_left.is_some() {
-            break;
-        }
-
-        if world_data.tile_exists(TilePos { x: left, y }) {
-            let rect = FRect {
-                left: left as f32 * TILE_SIZE - TILE_SIZE / 2.,
-                right: left as f32 * TILE_SIZE + TILE_SIZE / 2.,
-                bottom: y as f32 * TILE_SIZE - TILE_SIZE / 2.,
-                top: y as f32 * TILE_SIZE + TILE_SIZE / 2.
-            };
-
-            if rect.intersect(player_rect) {
-                col_left = Some(rect);
-            }
-        }
-    }
-
-    for y in utop..ubottom {
-        if col_right {
-            break;
-        }
-
-        if world_data.tile_exists(TilePos { x: right, y }) {
-            let rect = FRect {
-                left: right as f32 * TILE_SIZE - TILE_SIZE / 2.,
-                right: right as f32 * TILE_SIZE + TILE_SIZE / 2.,
-                bottom: y as f32 * TILE_SIZE - TILE_SIZE / 2.,
-                top: y as f32 * TILE_SIZE + TILE_SIZE / 2.
-            };
-
-            if rect.intersect(player_rect) {
-                col_right = true;
-            }
-        }
-    }
-
-    Collisions { 
-        top: col_top, 
-        bottom: col_down, 
-        left: col_left, 
-        right: col_right 
-    }
+        
+    (result, collisions)
 }

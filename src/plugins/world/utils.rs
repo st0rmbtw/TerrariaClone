@@ -2,14 +2,14 @@ use bevy::prelude::{IVec2, Vec2, OrthographicProjection};
 use bevy_ecs_tilemap::tiles::TilePos;
 use rand::{thread_rng, Rng};
 
-use crate::{util::FRect, world_generator::Neighbors};
+use crate::{util::FRect, world_generator::{Neighbors, WORLD_SIZE_Y}};
 
-use super::CHUNK_SIZE;
+use super::{CHUNK_SIZE, CHUNK_SIZE_U};
 
 pub fn get_chunk_position(pos: TilePos) -> IVec2 {
     IVec2 { 
         x: (pos.x / CHUNK_SIZE as u32) as i32,
-        y: (pos.y / CHUNK_SIZE as u32) as i32
+        y: ((WORLD_SIZE_Y as u32 / CHUNK_SIZE_U) - 1 - pos.y / CHUNK_SIZE_U) as i32
     }
 }
 
@@ -17,8 +17,8 @@ pub fn get_camera_fov(camera_pos: Vec2, projection: &OrthographicProjection) -> 
     FRect {
         left: camera_pos.x + projection.left * projection.scale,
         right: camera_pos.x + projection.right * projection.scale,
-        top: camera_pos.y - projection.top * projection.scale,
-        bottom: camera_pos.y - projection.bottom * projection.scale,
+        top: camera_pos.y + projection.top * projection.scale,
+        bottom: camera_pos.y + projection.bottom * projection.scale,
     }
 }
 

@@ -38,21 +38,21 @@ pub struct PlayerController {
 #[derive(Clone, Copy, Default)]
 pub struct Collisions {
     pub top: bool,
-    pub bottom: Option<FRect>,
-    pub left: Option<FRect>,
+    pub bottom: bool,
+    pub left: bool,
     pub right: bool
 }
 
 impl Collisions {
     pub fn none(&self) -> bool {
-        !self.top && !self.bottom.is_some() && !self.left.is_some() && !self.right
+        !self.top && !self.bottom && !self.left && !self.right
     }
 
     pub fn x(&self) -> bool {
-        self.left.is_some() || self.right
+        self.left || self.right
     }
 
     pub fn y(&self) -> bool {
-        self.top || self.bottom.is_some()
+        self.top || self.bottom
     }
 }

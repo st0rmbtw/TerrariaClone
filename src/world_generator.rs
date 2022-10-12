@@ -115,18 +115,16 @@ pub fn generate(seed: u32) -> Array2<Cell> {
 
     // region: Init noises
 
-    let noise = SuperSimplex::new()
+    let noise = SuperSimplex::new(seed);
         // .set_octaves(24)
         // .set_frequency(10.)
         // .set_persistence(0.)
         // .set_lacunarity(1.)
-        .set_seed(seed);
 
-    let terrain_noise = SuperSimplex::new();
+    let terrain_noise = SuperSimplex::new(seed);
 
-    let epic_cave_noise = OpenSimplex::new()
+    let epic_cave_noise = OpenSimplex::new(seed);
         // .set_octaves(3)
-        .set_seed(seed);
 
     // endregion
 
@@ -205,7 +203,7 @@ fn remove_extra_walls(world: &mut Array2<Cell>) {
     }
 }
 
-fn insert_specks<F: NoiseFn<[f64; 2]>>(
+fn insert_specks<F: NoiseFn<f64, 2>>(
     world: &mut ArrayViewMut2<Cell>,
     noise: F,
     frequency: f64,
@@ -261,7 +259,7 @@ fn add_grass(world: &mut Array2<Cell>, level: Level) {
     }
 }
 
-fn make_surface_rough<F: NoiseFn<[f64; 2]>>(
+fn make_surface_rough<F: NoiseFn<f64, 2>>(
     world: &mut Array2<Cell>,
     terrain_noise: F,
     start_y: usize,
@@ -288,7 +286,7 @@ fn make_surface_rough<F: NoiseFn<[f64; 2]>>(
     }
 }
 
-fn make_epic_cave<F: NoiseFn<[f64; 2]>>(
+fn make_epic_cave<F: NoiseFn<f64, 2>>(
     world: &mut Array2<Cell>,
     epic_cave_noise: F,
     frequency: f64,
@@ -314,7 +312,7 @@ fn make_epic_cave<F: NoiseFn<[f64; 2]>>(
     }
 }
 
-fn make_caves<F: NoiseFn<[f64; 2]>>(
+fn make_caves<F: NoiseFn<f64, 2>>(
     world: &mut Array2<Cell>,
     noise: F,
     max_level: usize,
@@ -348,7 +346,7 @@ fn make_caves<F: NoiseFn<[f64; 2]>>(
     make_small_caves(world, noise, max_level);
 }
 
-fn make_small_caves<F: NoiseFn<[f64; 2]>>(world: &mut Array2<Cell>, noise: F, max_level: usize) {
+fn make_small_caves<F: NoiseFn<f64, 2>>(world: &mut Array2<Cell>, noise: F, max_level: usize) {
     let q = 120.;
 
     for y in 0..world.nrows() {
@@ -391,7 +389,7 @@ fn replace<D: Dimension>(
 }
 
 #[inline]
-fn insert_stone_specks_into_dirt<F: NoiseFn<[f64; 2]>>(
+fn insert_stone_specks_into_dirt<F: NoiseFn<f64, 2>>(
     world: &mut Array2<Cell>,
     level: Level,
     noise: F,
@@ -408,7 +406,7 @@ fn insert_stone_specks_into_dirt<F: NoiseFn<[f64; 2]>>(
 }
 
 #[inline]
-fn insert_dirt_specks_into_stone<F: NoiseFn<[f64; 2]>>(
+fn insert_dirt_specks_into_stone<F: NoiseFn<f64, 2>>(
     world: &mut Array2<Cell>,
     level: Level,
     noise: F,
