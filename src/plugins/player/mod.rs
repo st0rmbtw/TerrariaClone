@@ -8,14 +8,14 @@ pub use resources::*;
 pub use systems::*;
 pub use utils::*;
 
-use crate::state::GameState;
+use crate::{state::GameState, labels::PlayerLabel};
 use std::time::Duration;
 use iyes_loopless::prelude::*;
 use bevy::{prelude::{Plugin, App, CoreStage}, time::Timer};
 use super::{inventory::PlayerInventoryPlugin};
 
-pub const PLAYER_SPRITE_WIDTH: f32 = 20. /* 2. * TILE_SIZE */;
-pub const PLAYER_SPRITE_HEIGHT: f32 = 42. /* 3. * TILE_SIZE */;
+pub const PLAYER_WIDTH: f32 = 20. /* 2. * TILE_SIZE */;
+pub const PLAYER_HEIGHT: f32 = 42. /* 3. * TILE_SIZE */;
 
 const WALKING_ANIMATION_MAX_INDEX: usize = 13;
 
@@ -27,11 +27,11 @@ const USE_ITEM_ANIMATION_LABEL: &str = "use_item_animation";
 const GRAVITY: f32 = 0.4;
 const ACCELERATION: f32 = 0.08;
 const SLOWDOWN: f32 = 0.2;
-const MAX_RUN_SPEED: f32 = 3.;
+pub const MAX_RUN_SPEED: f32 = 3.;
 
 const JUMP_HEIGHT: i32 = 15;
 const JUMP_SPEED: f32 = 5.01;
-const MAX_FALL_SPEED: f32 = 10.;
+pub const MAX_FALL_SPEED: f32 = 10.;
 
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
@@ -53,15 +53,10 @@ impl Plugin for PlayerPlugin {
             .add_system(update_axis)
             // Update
             .add_system(
-                collide
+                move_player
                     .run_in_state(GameState::InGame)
-                    .label("collide")
-                    .after("gravity")
-            )
-            .add_system(
-                move_character
-                    .run_in_state(GameState::InGame)
-                    .after("collide")
+                    .label(PlayerLabel::MovePlayer)
+                    .after(PlayerLabel::Collide)
             )
             //
             .add_system_set_to_stage(
@@ -122,37 +117,43 @@ impl Plugin for PlayerPlugin {
                     .into(),
             );
 
-        #[cfg(feature = "debug_movement")] {
-            app.add_system(
-                debug_horizontal_movement
-                    .run_in_state(GameState::InGame)
-                    .label("horizontal_movement")
-            )
-            .add_system(
-                debug_vertical_movement
-                    .run_in_state(GameState::InGame)
-                    .label("gravity")
-                    .after("horizontal_movement")
-            );
-        }
-
         #[cfg(not(feature = "debug_movement"))] {
             app.add_system(
                 horizontal_movement
                     .run_in_state(GameState::InGame)
-                    .label("horizontal_movement")
+                    .label(PlayerLabel::HorizontalMovement)
             )
             .add_system(
                 update_jump
                     .run_in_state(GameState::InGame)
-                    .label("update_jump")
-                    .after("horizontal_movement")
+                    .label(PlayerLabel::Jump)
+                    .after(PlayerLabel::HorizontalMovement)
             )
             .add_system(
                 gravity
                     .run_in_state(GameState::InGame)
-                    .label("gravity")
-                    .after("update_jump")
+                    .label(PlayerLabel::Gravity)
+                    .after(PlayerLabel::Jump)
+            )
+            .add_system(
+                collide
+                    .run_in_state(GameState::InGame)
+                    .label(PlayerLabel::Collide)
+                    .after(PlayerLabel::Gravity)
+            );
+        }
+
+        #[cfg(feature = "debug_movement")] {
+            app.add_system(
+                debug_horizontal_movement
+                    .run_in_state(GameState::InGame)
+                    .label(PlayerLabel::HorizontalMovement)
+            )
+            .add_system(
+                debug_vertical_movement
+                    .run_in_state(GameState::InGame)
+                    .label(PlayerLabel::Collide)
+                    .after(PlayerLabel::HorizontalMovement)
             );
         }
     }

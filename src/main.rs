@@ -20,23 +20,18 @@ use iyes_loopless::prelude::AppLooplessStateExt;
 fn main() {
     let mut app = App::new();
 
-    let mut settings = WgpuSettings::default();
-    settings
-        .features
-        .set(WgpuFeatures::VERTEX_WRITABLE_STORAGE, true);
-
-    app.insert_resource(settings)
-        .insert_resource(Msaa { samples: 1 })
+    app
+        .insert_resource(Msaa { samples: 4 })
         .insert_resource(WindowDescriptor {
             title: "Terraria".to_string(),
             present_mode: PresentMode::Fifo,
             cursor_visible: false,
             position: WindowPosition::Centered(MonitorSelection::Current),
-            mode: WindowMode::BorderlessFullscreen,
+            mode: WindowMode::Windowed,
             ..default()
         })
         .insert_resource(AssetServerSettings {
-            watch_for_changes: false,
+            watch_for_changes: true,
             ..default()
         })
         .insert_resource(ImageSettings::default_nearest())

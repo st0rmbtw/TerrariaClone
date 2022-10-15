@@ -1,5 +1,5 @@
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Camera2dBundle, OrthographicProjection, Transform, Res, Input, KeyCode, Query, With, GlobalTransform}, time::Time};
+use bevy::{prelude::{Commands, Camera2dBundle, OrthographicProjection, Transform, Res, Input, KeyCode, Query, With, GlobalTransform}, time::Time, render::camera::{WindowOrigin, DepthCalculation}};
 
 use crate::{parallax::ParallaxCameraComponent, plugins::{player::Player, world::TILE_SIZE}, world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}};
 
@@ -10,7 +10,10 @@ pub fn setup_camera(mut commands: Commands) {
     commands
         .spawn()
         .insert_bundle(Camera2dBundle {
-            projection: OrthographicProjection { scale: 0.9 },
+            projection: OrthographicProjection { 
+                scale: 0.9, 
+                depth_calculation: DepthCalculation::ZDifference 
+            },
             transform: Transform::from_xyz(0., 0., 500.),
         })
         .insert(ParallaxCameraComponent)
@@ -55,8 +58,8 @@ pub fn move_camera(
                 camera_translation.x = player_transform.translation.x.clamp(min, max);
             }
             {
-                let min = projection_top - TILE_SIZE / 2.;
-                let max = (WORLD_SIZE_Y as f32 * 16.) + projection_top + TILE_SIZE / 2.;
+                let max = -(projection_top - TILE_SIZE / 2.);
+                let min = -((WORLD_SIZE_Y as f32 * 16.) + projection_top + TILE_SIZE / 2.);
                 camera_translation.y = player_transform.translation.y.clamp(min, max);
             }
         }

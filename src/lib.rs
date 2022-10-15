@@ -24,3 +24,16 @@ pub struct Bounds {
     pub min: Vec2,
     pub max: Vec2
 }
+
+pub mod labels {
+    use bevy::prelude::SystemLabel;
+
+    #[derive(Debug, SystemLabel)]
+    pub enum PlayerLabel {
+        HorizontalMovement,
+        Jump,
+        Gravity,
+        Collide,
+        MovePlayer,
+    }
+}

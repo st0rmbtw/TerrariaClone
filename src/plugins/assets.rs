@@ -115,7 +115,7 @@ pub struct PlayerAssets {
         padding_x = 0.,
         padding_y = 0.
     ))]
-    #[asset(path = "sprites/player/Player_Right_Arm2.png")]
+    #[asset(path = "sprites/player/Player_Right_Arm.png")]
     pub right_arm: Handle<TextureAtlas>,
 
     #[asset(texture_atlas(
@@ -126,7 +126,7 @@ pub struct PlayerAssets {
         padding_x = 0.,
         padding_y = 0.
     ))]
-    #[asset(path = "sprites/player/Player_Hair_1_2.png")]
+    #[asset(path = "sprites/player/Player_Hair_1.png")]
     pub hair: Handle<TextureAtlas>,
 
     #[asset(texture_atlas(

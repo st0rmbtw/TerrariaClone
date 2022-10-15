@@ -1,10 +1,10 @@
 use autodefault::autodefault;
 use bevy::{prelude::*, sprite::Anchor, math::Vec3Swizzles};
+use bevy_ecs_tilemap::tiles::TilePos;
 use bevy_hanabi::prelude::*;
-use iyes_loopless::prelude::*;
 
 use crate::{
-    state::{GameState, MovementState}, 
+    state::{MovementState}, 
     plugins::{
         world::{WorldData, TILE_SIZE, BlockPlaceEvent}, 
         assets::{PlayerAssets, ItemAssets}, 
@@ -28,7 +28,7 @@ pub fn spawn_player(
         .spawn()
         .insert(Player)
         .insert_bundle(SpatialBundle {
-            transform: Transform::from_xyz(WORLD_SIZE_X as f32 * 16. / 2., WORLD_SIZE_Y as f32 * TILE_SIZE, 3.)
+            transform: Transform::from_xyz(WORLD_SIZE_X as f32 * 16. / 2., 0., 3.)
         })
         .insert(Name::new("Player"))
         .insert(MovementState::default())
@@ -360,7 +360,7 @@ pub fn update_jump(
     }
 }
 
-pub fn move_character(
+pub fn move_player(
     velocity: Res<PlayerVelocity>,
     mut player_query: Query<&mut Transform, With<Player>>,
     #[cfg(feature = "debug")]
@@ -368,55 +368,139 @@ pub fn move_character(
 ) {
     let mut transform = player_query.single_mut();
 
-    const MIN: f32 = PLAYER_SPRITE_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
-    const MAX: f32 = WORLD_SIZE_X as f32 * TILE_SIZE - PLAYER_SPRITE_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
+    const MIN: f32 = PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
+    const MAX: f32 = WORLD_SIZE_X as f32 * TILE_SIZE - PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
 
     let raw = transform.translation.xy() + velocity.0;
 
     transform.translation.x = raw.x.clamp(MIN, MAX);
     transform.translation.y = raw.y;
-    
+
     #[cfg(feature = "debug")] {
-        // let player_rect = get_player_rect(raw, 1.);
-
-        // let bottom = (player_rect.bottom / TILE_SIZE).floor() * TILE_SIZE + TILE_SIZE / 2.;
-        // let top = (player_rect.top / TILE_SIZE).ceil() * TILE_SIZE - TILE_SIZE / 2.;
-        // let left = (player_rect.left / TILE_SIZE).ceil() * TILE_SIZE + TILE_SIZE / 2.;
-    
-        // lines.line_colored(
-        //     Vec3::new(0., bottom, 2.),
-        //     Vec3::new(WORLD_SIZE_X as f32 * TILE_SIZE, bottom, 2.),
-        //     0.,
-        //     Color::RED
-        // );
-
-        // lines.line_colored(
-        //     Vec3::new(0., top, 2.),
-        //     Vec3::new(WORLD_SIZE_X as f32 * TILE_SIZE, top, 2.),
-        //     0.,
-        //     Color::RED
-        // );
-
-        // lines.line_colored(
-        //     Vec3::new(left, 0., 2.),
-        //     Vec3::new(left, WORLD_SIZE_Y as f32 * TILE_SIZE, 2.),
-        //     0.,
-        //     Color::RED
-        // );
+        lines.line_colored(
+            Vec3::new(0., transform.translation.y - PLAYER_HEIGHT / 2., 3.),
+            Vec3::new(WORLD_SIZE_X as f32 * TILE_SIZE, transform.translation.y - PLAYER_HEIGHT / 2., 3.),
+            0.,
+            Color::GREEN
+        );
     }
 }
 
 pub fn collide(
-    player_query: Query<&Transform, With<Player>>,
+    mut player_query: Query<&mut Transform, With<Player>>,
     world_data: Res<WorldData>,
     mut velocity: ResMut<PlayerVelocity>,
-    mut collisions: ResMut<Collisions>
+    mut collisions: ResMut<Collisions>,
+    #[cfg(feature = "debug")]
+    mut lines: ResMut<bevy_prototype_debug_lines::DebugLines>
 ) {
-    let transform = player_query.single();
+    let mut transform = player_query.single_mut();
 
-    let (new_velocity, new_collisions) = get_collisions(transform.translation.xy(), velocity.0, &world_data);
+    let position = transform.translation.xy().abs();
 
-    velocity.0 = new_velocity;
+    let left = ((position.x - PLAYER_WIDTH / 2.) / TILE_SIZE) - 1.;
+    let right = ((position.x + PLAYER_WIDTH / 2.) / TILE_SIZE) + 2.;
+    let mut bottom = ((position.y + PLAYER_HEIGHT / 2.) / TILE_SIZE) + 2.;
+    let mut top = ((position.y - PLAYER_HEIGHT / 2.) / TILE_SIZE) - 1.;
+
+    if top < 0. {
+        top = 0.;
+    }
+
+    if bottom > WORLD_SIZE_Y as f32 {
+        bottom = WORLD_SIZE_Y as f32;
+    }
+
+    let uleft = left as u32;
+    let uright = right as u32;
+    let utop = top as u32;
+    let ubottom = bottom as u32;
+
+    let mut result = velocity.0;
+    let next_position = position - velocity.0;
+
+    let mut num5 = u32::MAX;
+    let mut num6 = u32::MAX;
+    let mut num7 = u32::MAX;
+    let mut num8 = u32::MAX;
+
+    let mut num9 = (bottom + 3.) * TILE_SIZE;
+
+    let mut new_collisions = Collisions::default();
+
+    for x in uleft..uright {
+        for y in utop..ubottom {
+            if world_data.tile_exists(TilePos { x, y }) {
+                let tile_pos = Vec2::new(x as f32 * TILE_SIZE, y as f32 * TILE_SIZE);
+                
+                if (next_position.x + PLAYER_WIDTH / 2.) > (tile_pos.x - TILE_SIZE / 2.) && (next_position.x - PLAYER_WIDTH / 2.) < (tile_pos.x + TILE_SIZE / 2.) && (next_position.y + PLAYER_HEIGHT / 2.) > (tile_pos.y - TILE_SIZE / 2.) && (next_position.y - PLAYER_HEIGHT / 2.) < (tile_pos.y + TILE_SIZE / 2.) {
+                    if position.y + PLAYER_HEIGHT / 2. <= tile_pos.y - TILE_SIZE / 2. {
+                        new_collisions.bottom = true;
+                        dbg!("D");
+                        if num9 > tile_pos.y {
+                            num7 = x;
+                            num8 = y;
+                            if num7 != num5 {
+                                result.y = dbg!((tile_pos.y - TILE_SIZE / 2.) - (position.y + PLAYER_HEIGHT / 2.));
+                                num9 = tile_pos.y;
+                            }
+                        }
+                    } else {
+                        
+                        if position.x + PLAYER_WIDTH / 2. <= tile_pos.x - TILE_SIZE / 2. {
+                            dbg!("C");
+                            num5 = x;
+                            num6 = y;
+                            if num6 != num8 {
+                                result.x = tile_pos.x - TILE_SIZE - (position.x + PLAYER_WIDTH / 2.);
+                            }
+                            if num7 == num5 {
+                                result.y = velocity.y;
+                            }
+                        } else {
+                            if position.x - PLAYER_WIDTH / 2. >= tile_pos.x + TILE_SIZE / 2. {
+                                dbg!("B");
+                                num5 = x;
+                                num6 = y;
+                                if num6 != num8 {
+                                    result.x = tile_pos.x + TILE_SIZE - (position.x - PLAYER_WIDTH / 2.);
+                                }
+                                if num7 == num5 {
+                                    result.y = velocity.y;
+                                }
+                            } else {
+                                if position.y >= tile_pos.y + TILE_SIZE / 2. {
+                                    collisions.top = true;
+                                    dbg!("A");
+                                    num7 = x;
+                                    num8 = y;
+                                    result.y = tile_pos.y + TILE_SIZE / 2. - position.y + 0.01;
+                                    if num8 == num6 {
+                                        result.x = velocity.x;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if velocity.y != result.y {
+        velocity.y = 0.;
+        transform.translation.y += result.y;
+    } else {
+        velocity.y = result.y;
+    }
+
+    if velocity.x != result.x {
+        velocity.x = 0.;
+        transform.translation.x += result.x;
+    } else {
+        velocity.x = result.x;
+    }
+
     *collisions = new_collisions;
 }
 
@@ -428,8 +512,8 @@ pub fn spawn_particles(
         let (mut effect, mut effect_transform) = effects.get_mut(particle_effects.walking).unwrap();
 
         effect_transform.translation = match face_direction {
-            FaceDirection::LEFT => Vec3::new(0., -PLAYER_SPRITE_HEIGHT / 2., 0.),
-            FaceDirection::RIGHT => Vec3::new(0., -PLAYER_SPRITE_HEIGHT / 2., 0.),
+            FaceDirection::LEFT => Vec3::new(0., -PLAYER_HEIGHT / 2., 0.),
+            FaceDirection::RIGHT => Vec3::new(0., -PLAYER_HEIGHT / 2., 0.),
         };
 
         effect

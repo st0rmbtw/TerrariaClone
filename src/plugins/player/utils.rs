@@ -3,7 +3,7 @@ use bevy_ecs_tilemap::tiles::TilePos;
 
 use crate::{state::MovementState, util::FRect, plugins::world::{TILE_SIZE, WorldData}, world_generator::WORLD_SIZE_Y};
 
-use super::{Player, AnimationData, PlayerBodySprite, PLAYER_SPRITE_WIDTH, PLAYER_SPRITE_HEIGHT, Collisions};
+use super::{Player, AnimationData, PlayerBodySprite, PLAYER_WIDTH, PLAYER_HEIGHT, Collisions};
 
 pub fn simple_animation<C: AnimationData + Component>(
     mut query: Query<
@@ -54,10 +54,10 @@ pub fn is_flying(
 
 pub fn get_player_rect(position: Vec2, x_multiplier: f32) -> FRect {
     FRect {
-        left: position.x - (PLAYER_SPRITE_WIDTH * x_multiplier) / 2.,
-        right: position.x + (PLAYER_SPRITE_WIDTH * x_multiplier) / 2.,
-        bottom: position.y - PLAYER_SPRITE_HEIGHT / 2.,
-        top: position.y + PLAYER_SPRITE_HEIGHT / 2.
+        left: position.x - (PLAYER_WIDTH * x_multiplier) / 2.,
+        right: position.x + (PLAYER_WIDTH * x_multiplier) / 2.,
+        top: position.y - PLAYER_HEIGHT / 2.,
+        bottom: position.y + PLAYER_HEIGHT / 2.,
     }
 }
 
@@ -75,85 +75,86 @@ pub fn get_collisions(
     velocity: Vec2,
     world_data: &WorldData
 ) -> (Vec2, Collisions) {
-    let player_rect = get_player_rect(position, 1.);
-    
-    let left = (player_rect.left / TILE_SIZE) - 1.;
-    let right = (player_rect.right / TILE_SIZE) + 2.;
-    let top = (player_rect.top / TILE_SIZE) + 2.;
-    let bottom = (player_rect.bottom / TILE_SIZE) - 1.;
+    let left = ((position.x - PLAYER_WIDTH / 2.) / TILE_SIZE) - 1.;
+    let right = ((position.x + PLAYER_WIDTH / 2.) / TILE_SIZE) + 2.;
+    let mut bottom = ((position.y + PLAYER_HEIGHT / 2.) / TILE_SIZE) + 2.;
+    let mut top = ((position.y - PLAYER_HEIGHT / 2.) / TILE_SIZE) - 1.;
+
+    if top < 0. {
+        top = 0.;
+    }
+
+    if bottom > WORLD_SIZE_Y as f32 {
+        bottom = WORLD_SIZE_Y as f32;
+    }
 
     let uleft = left as u32;
     let uright = right as u32;
-    let mut utop = top as u32;
+    let utop = top as u32;
     let ubottom = bottom as u32;
 
-    if utop > WORLD_SIZE_Y as u32 {
-        utop = WORLD_SIZE_Y as u32;
-    }
-
     let mut result = velocity;
-    let next_position = position + velocity;
+    let next_position = position - velocity;
 
     let mut num5 = u32::MAX;
     let mut num6 = u32::MAX;
     let mut num7 = u32::MAX;
     let mut num8 = u32::MAX;
 
-    let mut num9 = (top + 3.) * TILE_SIZE;
+    let mut num9 = (bottom + 3.) * TILE_SIZE;
 
     let mut collisions = Collisions::default();
 
     for x in uleft..uright {
-        for y in ubottom..utop {
-            if world_data.tile_exists(TilePos { x, y }) {  
-                dbg!(y);
+        for y in utop..ubottom {
+            if world_data.tile_exists(TilePos { x, y }) {
                 let tile_pos = Vec2::new(x as f32 * TILE_SIZE, y as f32 * TILE_SIZE);
-
-                if (next_position.x + PLAYER_SPRITE_WIDTH / 2.) > tile_pos.x && next_position.x < (tile_pos.x + TILE_SIZE) && (next_position.y + PLAYER_SPRITE_HEIGHT / 2.) > tile_pos.y && next_position.y < (tile_pos.y + TILE_SIZE) {
-                    if player_rect.top <= tile_pos.y {
+                
+                if (next_position.x + PLAYER_WIDTH / 2.) > (tile_pos.x - TILE_SIZE / 2.) && (next_position.x - PLAYER_WIDTH / 2.) < (tile_pos.x + TILE_SIZE / 2.) && (next_position.y + PLAYER_HEIGHT / 2.) > (tile_pos.y - TILE_SIZE / 2.) && (next_position.y - PLAYER_HEIGHT / 2.) < (tile_pos.y + TILE_SIZE / 2.) {
+                    if position.y + PLAYER_HEIGHT / 2. <= tile_pos.y - TILE_SIZE / 2. {
                         collisions.bottom = true;
                         dbg!("D");
                         if num9 > tile_pos.y {
                             num7 = x;
                             num8 = y;
                             if num7 != num5 {
-                                result.y = tile_pos.y - player_rect.top;
+                                result.y = dbg!((tile_pos.y - TILE_SIZE / 2.) - (position.y + PLAYER_HEIGHT / 2.));
                                 num9 = tile_pos.y;
                             }
                         }
                     } else {
-                        if player_rect.right <= tile_pos.x {
+                        if position.x + PLAYER_WIDTH / 2. <= tile_pos.x - TILE_SIZE / 2. {
                             dbg!("C");
                             num5 = x;
                             num6 = y;
                             if num6 != num8 {
-                                result.x = tile_pos.x - player_rect.right;
+                                result.x = tile_pos.x - TILE_SIZE - (position.x + PLAYER_WIDTH / 2.);
                             }
                             if num7 == num5 {
                                 result.y = velocity.y;
                             }
                         } else {
-                            if position.x >= tile_pos.x + TILE_SIZE {
+                            if position.x - PLAYER_WIDTH / 2. >= tile_pos.x + TILE_SIZE / 2. {
                                 dbg!("B");
                                 num5 = x;
                                 num6 = y;
                                 if num6 != num8 {
-                                    result.x = tile_pos.x + TILE_SIZE - position.x;
+                                    result.x = tile_pos.x + TILE_SIZE - (position.x - PLAYER_WIDTH / 2.);
                                 }
                                 if num7 == num5 {
                                     result.y = velocity.y;
                                 }
                             } else {
-                                if position.y >= tile_pos.y + TILE_SIZE {
-                                    collisions.top = true;
-                                    dbg!("A");
-                                    num7 = x;
-                                    num8 = y;
-                                    result.y = tile_pos.y + TILE_SIZE - position.y + 0.01;
-                                    if num8 == num6 {
-                                        result.x = velocity.x;
-                                    }
-                                }
+                                // if position.y >= tile_pos.y + TILE_SIZE / 2. {
+                                //     collisions.top = true;
+                                //     dbg!("A");
+                                //     num7 = x;
+                                //     num8 = y;
+                                //     result.y = tile_pos.y + TILE_SIZE / 2. - position.y + 0.01;
+                                //     if num8 == num6 {
+                                //         result.x = velocity.x;
+                                //     }
+                                // }
                             }
                         }
                     }

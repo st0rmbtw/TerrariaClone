@@ -133,10 +133,10 @@ pub struct FRect {
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
 pub struct URect {
-    pub left: usize,
-    pub right: usize,
-    pub top: usize,
-    pub bottom: usize,
+    pub left: u32,
+    pub right: u32,
+    pub top: u32,
+    pub bottom: u32,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
@@ -185,7 +185,7 @@ pub fn inside_f(p: (f32, f32), rect: FRect) -> bool {
 }
 
 pub fn get_tile_coords(world_coords: Vec2) -> Vec2 {
-    (world_coords / TILE_SIZE).round()
+    (world_coords / TILE_SIZE).round().abs()
 }
 
 pub fn get_rotation_by_direction(direction: FaceDirection) -> Quat {

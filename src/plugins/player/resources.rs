@@ -1,6 +1,6 @@
 use bevy::{prelude::{Deref, DerefMut}, time::Timer};
 
-use crate::{Velocity, util::FRect};
+use crate::Velocity;
 
 #[derive(Default, Clone, Copy)]
 pub struct InputAxis {

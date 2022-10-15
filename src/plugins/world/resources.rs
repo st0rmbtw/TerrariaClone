@@ -1,10 +1,10 @@
-use bevy::{utils::HashSet, prelude::IVec2};
+use bevy::utils::HashSet;
 use bevy_ecs_tilemap::tiles::TilePos;
 use ndarray::Array2;
 
 use crate::world_generator::{Cell, Neighbors, Tile};
 
-use super::MAP_SIZE;
+use super::{MAP_SIZE, ChunkPos};
 
 pub struct WorldData {
     pub width: u16,
@@ -45,5 +45,5 @@ impl WorldData {
 
 #[derive(Default)]
 pub struct ChunkManager {
-    pub spawned_chunks: HashSet<IVec2>
+    pub spawned_chunks: HashSet<ChunkPos>
 }

@@ -2,9 +2,9 @@ use std::time::Duration;
 
 use autodefault::autodefault;
 use bevy::{prelude::{Res, Commands, Vec3, Color, NodeBundle, default, TextBundle, Name, ImageBundle, Transform, Component, GlobalTransform, Query, With, Without, ResMut, Camera, Vec2, Visibility, BuildChildren}, ui::{Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Size, Val, AlignSelf, UiRect}, text::{Text, TextStyle}, sprite::{SpriteBundle, Sprite}, window::Windows, render::camera::RenderTarget, time::Time};
-use interpolation::EaseFunction;
+use interpolation::{EaseFunction};
 
-use crate::{plugins::{assets::{FontAssets, CursorAssets, UiAssets}, camera::MainCamera, ui::UiVisibility, world::TILE_SIZE, player::Player}, animation::{Tween, TweeningType, TransformScaleLens, Animator}, lens::UiColorLens, TRANSPARENT, util::get_tile_coords, state::MovementState};
+use crate::{plugins::{assets::{FontAssets, CursorAssets, UiAssets}, camera::MainCamera, ui::UiVisibility, world::TILE_SIZE, player::{Player, PlayerVelocity, MAX_RUN_SPEED, MAX_FALL_SPEED}}, animation::{Tween, TweeningType, TransformScaleLens, Animator}, lens::UiColorLens, TRANSPARENT, util::{get_tile_coords, Lerp}, state::MovementState};
 
 use super::{HoveredInfoMarker, CursorContainer, CursorForeground, CursorBackground, TileGrid, MAX_TILE_GRID_OPACITY, CursorPosition, HoveredInfo, MIN_TILE_GRID_OPACITY};
 
@@ -104,7 +104,7 @@ pub fn spawn_tile_grid(mut commands: Commands, ui_assets: Res<UiAssets>) {
                 color: Color::rgba(1., 1., 1., MAX_TILE_GRID_OPACITY),
             },
             texture: ui_assets.radial.clone().into(),
-            transform: Transform::from_xyz(0., 0., 2.),
+            transform: Transform::from_xyz(0., 0., 5.),
         })
         .insert(TileGrid);
 }
@@ -220,52 +220,25 @@ pub fn update_tile_grid_position(
 ) {
     let mut transform = query.single_mut();
     
-    let tile_coords = get_tile_coords(cursor.world_position);
+    let tile_coords = (cursor.world_position / TILE_SIZE).round();
 
     transform.translation.x = tile_coords.x * TILE_SIZE;
     transform.translation.y = tile_coords.y * TILE_SIZE;
 }
 
 pub fn update_tile_grid_opacity(
-    time: Res<Time>,
-    player: Query<&MovementState, With<Player>>,
+    velocity: Res<PlayerVelocity>,
     mut tile_grid: Query<&mut Sprite, With<TileGrid>>,
 ) {
-    if let Ok(movement_state) = player.get_single() {
-        let mut sprite = tile_grid.single_mut();
+    let mut sprite = tile_grid.single_mut();
 
-        let opacity = match movement_state {
-            MovementState::WALKING => {
-                let mut a = sprite.color.a();
+    let opacity = if velocity.x.abs() > 0. {
+        MIN_TILE_GRID_OPACITY.lerp(MAX_TILE_GRID_OPACITY, 1. - velocity.x.abs() / MAX_RUN_SPEED)
+    } else if velocity.y.abs() > 0. {
+        0f32.lerp(MAX_TILE_GRID_OPACITY, 1. - velocity.y.abs() / MAX_FALL_SPEED)
+    } else {
+        MAX_TILE_GRID_OPACITY
+    };
 
-                if a > MIN_TILE_GRID_OPACITY {
-                    a = a - time.delta_seconds() * 0.7;
-                } else if a < MIN_TILE_GRID_OPACITY {
-                    a = a + time.delta_seconds() * 0.7;
-                }
-
-                a.clamp(0., MAX_TILE_GRID_OPACITY)
-            }
-            MovementState::FLYING => {
-                let mut a = sprite.color.a();
-
-                if a > 0. {
-                    a = (a - time.delta_seconds() * 0.7).clamp(0., MAX_TILE_GRID_OPACITY);
-                }
-
-                a
-            }
-            _ => {
-                let mut a = sprite.color.a();
-
-                if a < MAX_TILE_GRID_OPACITY {
-                    a = (a + time.delta_seconds() * 0.7).clamp(0., MAX_TILE_GRID_OPACITY);
-                }
-
-                a
-            }
-        };
-
-        sprite.color = *sprite.color.set_a(opacity);
-    }
+    sprite.color = *sprite.color.set_a(opacity.clamp(0., MAX_TILE_GRID_OPACITY));
 }
