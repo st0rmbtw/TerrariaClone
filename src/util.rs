@@ -100,9 +100,8 @@ macro_rules! handles{
         }
 
         impl $struct_name {
-            // This is purely an example—not a good one.
-            fn handles(&self) -> Vec<&$field_type> {
-                vec![$(&self.$field_name),*]
+            pub fn handles(&self) -> Vec<$field_type> {
+                vec![$(self.$field_name.clone()),*]
             }
         }
     }
@@ -110,7 +109,7 @@ macro_rules! handles{
 
 pub(crate) use handles;
 
-use crate::plugins::{TILE_SIZE, FaceDirection};
+use crate::{plugins::{world::TILE_SIZE, player::FaceDirection}, block::Block, wall::Wall};
 
 pub fn on_btn_clicked<B: Component>(
     query: Query<&Interaction, (Changed<Interaction>, With<Button>, With<B>)>,
@@ -134,10 +133,10 @@ pub struct FRect {
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
 pub struct URect {
-    pub left: usize,
-    pub right: usize,
-    pub top: usize,
-    pub bottom: usize,
+    pub left: u32,
+    pub right: u32,
+    pub top: u32,
+    pub bottom: u32,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
@@ -164,7 +163,12 @@ impl FRect {
         self.left < rect.right
             && self.right > rect.left
             && self.bottom > rect.top
-            && self.top > -rect.bottom.abs()
+            && self.top > rect.bottom
+    }
+
+    
+    pub fn inside(&self, point: (f32, f32)) -> bool {
+        point.0 < self.bottom && point.0 > self.top && point.1 > self.left && point.1 < self.right
     }
 }
 
@@ -181,12 +185,8 @@ impl Mul<f32> for FRect {
     }
 }
 
-pub fn inside_f(p: (f32, f32), rect: FRect) -> bool {
-    p.0 < rect.bottom && p.0 > rect.top && p.1 > rect.left && p.1 < rect.right
-}
-
 pub fn get_tile_coords(world_coords: Vec2) -> Vec2 {
-    (world_coords / TILE_SIZE).round()
+    (world_coords / TILE_SIZE).round().abs()
 }
 
 pub fn get_rotation_by_direction(direction: FaceDirection) -> Quat {
@@ -220,5 +220,21 @@ fn clamp01(value: f32) -> f32 {
         return 1.;
     } else {
         return value;
+    }
+}
+
+
+pub fn get_tile_start_index(block: Block) -> u32 {
+    match block {
+        Block::Dirt => 0,
+        Block::Stone => 16 * 15,
+        Block::Grass => 16 * 30
+    }
+}
+
+pub fn get_wall_start_index(wall: Wall) -> u32 {
+    match wall {
+        Wall::StoneWall => 0,
+        Wall::DirtWall => 5 * 13,
     }
 }

@@ -2,41 +2,35 @@ use bevy::{
     asset::AssetServerSettings,
     prelude::*,
     render::{
-        settings::{WgpuFeatures, WgpuSettings},
         texture::ImageSettings,
     },
-    window::PresentMode,
+    window::{PresentMode, WindowMode},
 };
+use bevy_ecs_tilemap::TilemapPlugin;
 use bevy_hanabi::HanabiPlugin;
 use game::{
     animation::TweeningPlugin,
     parallax::ParallaxPlugin,
-    plugins::{BackgroundPlugin, PlayerUiPlugin, SettingsPlugin, CursorPlugin},
-};
-use game::{
-    plugins::{AssetsPlugin, FpsPlugin, MenuPlugin, PlayerPlugin, CameraPlugin, WorldPlugin},
-    state::GameState,
+    state::GameState, 
+    plugins::{assets::AssetsPlugin, cursor::CursorPlugin, camera::CameraPlugin, background::BackgroundPlugin, ui::PlayerUiPlugin, settings::SettingsPlugin, menu::MenuPlugin, world::WorldPlugin, player::PlayerPlugin, fps::FpsPlugin},
 };
 use iyes_loopless::prelude::AppLooplessStateExt;
 
 fn main() {
     let mut app = App::new();
 
-    let mut settings = WgpuSettings::default();
-    settings
-        .features
-        .set(WgpuFeatures::VERTEX_WRITABLE_STORAGE, true);
-
-    app.insert_resource(settings)
+    app
         .insert_resource(Msaa { samples: 4 })
         .insert_resource(WindowDescriptor {
             title: "Terraria".to_string(),
             present_mode: PresentMode::Fifo,
             cursor_visible: false,
+            position: WindowPosition::Centered(MonitorSelection::Current),
+            mode: WindowMode::Windowed,
             ..default()
         })
         .insert_resource(AssetServerSettings {
-            watch_for_changes: false,
+            watch_for_changes: true,
             ..default()
         })
         .insert_resource(ImageSettings::default_nearest())
@@ -48,6 +42,7 @@ fn main() {
         .add_loopless_state(GameState::AssetLoading)
         .add_plugins(DefaultPlugins)
         .add_plugin(TweeningPlugin)
+        .add_plugin(TilemapPlugin)
         .add_plugin(AssetsPlugin)
         .add_plugin(CursorPlugin)
         .add_plugin(CameraPlugin)
@@ -61,8 +56,10 @@ fn main() {
         .add_plugin(PlayerPlugin)
         .add_plugin(FpsPlugin);
 
-    #[cfg(debug_assertions)]
-    app.add_plugin(game::plugins::DebugPlugin);
+    #[cfg(feature = "debug")] {
+        use game::plugins::debug::DebugPlugin;
+        app.add_plugin(DebugPlugin);
+    }
 
     app.run();
 }

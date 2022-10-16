@@ -1,51 +1,12 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{
-    prelude::{
-        App, BuildChildren, Button, Changed, Color, Commands, Component, Entity, EventReader, Name,
-        NodeBundle, ParallelSystemDescriptorCoercion, Plugin, Query, TextBundle, Visibility, With,
-    },
-    text::{Text, TextAlignment, TextStyle},
-    ui::{AlignItems, Interaction, JustifyContent, Size, Style, UiRect, Val},
-};
+use bevy::{prelude::{Query, Visibility, With, EventReader, Button, Name, Color, TextBundle, Entity, Commands, NodeBundle, BuildChildren, Changed}, ui::{Interaction, Style, UiRect, Val, AlignItems, JustifyContent, Size}, text::{TextAlignment, TextStyle, Text}};
 use interpolation::EaseFunction;
-use iyes_loopless::prelude::*;
 
-use crate::{
-    animation::{
-        component_animator_system, AnimationSystem, Animator, Tween, TweeningDirection,
-        TweeningType,
-    },
-    lens::TextFontSizeLens,
-    state::GameState,
-    TRANSPARENT,
-};
+use crate::{plugins::{ui::ToggleExtraUiEvent, assets::FontAssets}, animation::{Animator, Tween, TweeningType, TweeningDirection}, TRANSPARENT, lens::TextFontSizeLens};
 
-use super::{FontAssets, ToggleExtraUiEvent};
-
-// region: Plugin
-pub struct SettingsPlugin;
-
-impl Plugin for SettingsPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_system_set(
-            ConditionSet::new()
-                .run_in_state(GameState::InGame)
-                .with_system(update)
-                .with_system(set_btn_visibility)
-                .into(),
-        )
-        .add_system(component_animator_system::<Text>.label(AnimationSystem::AnimationUpdate));
-    }
-}
-// endregion
-
-#[derive(Component)]
-struct SettingsButtonContainer;
-
-#[derive(Component)]
-struct SettingsButtonText;
+use super::{SettingsButtonContainer, SettingsButtonText};
 
 #[autodefault(except(TextFontSizeLens))]
 pub fn spawn_ingame_settings_button(commands: &mut Commands, fonts: &FontAssets) -> Entity {
@@ -99,7 +60,7 @@ pub fn spawn_ingame_settings_button(commands: &mut Commands, fonts: &FontAssets)
         .id()
 }
 
-fn set_btn_visibility(
+pub fn set_btn_visibility(
     mut query: Query<&mut Visibility, With<SettingsButtonContainer>>,
     mut events: EventReader<ToggleExtraUiEvent>,
 ) {
@@ -110,7 +71,7 @@ fn set_btn_visibility(
     }
 }
 
-fn update(
+pub fn update(
     mut query: Query<
         (&Interaction, &mut Animator<Text>),
         (With<Button>, With<Text>, Changed<Interaction>),

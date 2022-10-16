@@ -1,48 +1,33 @@
 use autodefault::autodefault;
-use bevy::prelude::*;
-use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet};
+use bevy::{
+    prelude::{
+        Commands, Camera2dBundle, OrthographicProjection, Transform, Res, Input, KeyCode, Query, 
+        With, GlobalTransform
+    }, 
+    time::Time, 
+    render::camera::DepthCalculation
+};
 
-use crate::{parallax::ParallaxCameraComponent, state::GameState, world_generator::WORLD_SIZE_X};
+use crate::{parallax::ParallaxCameraComponent, plugins::{player::Player, world::TILE_SIZE}, world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}};
 
-use super::{Player, TILE_SIZE};
-
-pub struct CameraPlugin;
-
-impl Plugin for CameraPlugin {
-    fn build(&self, app: &mut App) {
-        app
-            .add_system(zoom)
-            .add_enter_system(GameState::InGame, setup_camera)
-            .add_system_set_to_stage(
-                CoreStage::PostUpdate,
-                ConditionSet::new()
-                    .run_in_state(GameState::InGame)
-                    .with_system(move_camera)
-                    .into(),
-            );
-    }
-}
-
-#[derive(Component)]
-pub struct MainCamera;
-
-const MAX_CAMERA_ZOOM: f32 = 1.1;
-const MIN_CAMERA_ZOOM: f32 = 0.5;
-const CAMERA_ZOOM_STEP: f32 = 0.3;
+use super::{MainCamera, CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM};
 
 #[autodefault]
-fn setup_camera(mut commands: Commands) {
+pub fn setup_camera(mut commands: Commands) {
     commands
         .spawn()
         .insert_bundle(Camera2dBundle {
-            projection: OrthographicProjection { scale: 0.9 },
+            projection: OrthographicProjection { 
+                scale: 0.9, 
+                depth_calculation: DepthCalculation::ZDifference 
+            },
             transform: Transform::from_xyz(0., 0., 500.),
         })
         .insert(ParallaxCameraComponent)
         .insert(MainCamera);
 }
 
-fn zoom(
+pub fn zoom(
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
     mut camera_query: Query<&mut OrthographicProjection, With<MainCamera>>,
@@ -62,7 +47,7 @@ fn zoom(
     }
 }
 
-fn move_camera(
+pub fn move_camera(
     mut player: Query<&Transform, With<Player>>,
     mut camera: Query<(&mut GlobalTransform, &OrthographicProjection), With<MainCamera>>,
 ) {
@@ -72,14 +57,18 @@ fn move_camera(
 
             let projection_left = projection.left * projection.scale;
             let projection_right = projection.right * projection.scale;
+            let projection_top = projection.top * projection.scale;
             
             {
                 let min = projection_left.abs() - TILE_SIZE / 2.;
                 let max = (WORLD_SIZE_X as f32 * 16.) - projection_right - TILE_SIZE / 2.;
                 camera_translation.x = player_transform.translation.x.clamp(min, max);
             }
-
-            camera_translation.y = player_transform.translation.y;
+            {
+                let max = -(projection_top - TILE_SIZE / 2.);
+                let min = -((WORLD_SIZE_Y as f32 * 16.) + projection_top + TILE_SIZE / 2.);
+                camera_translation.y = player_transform.translation.y.clamp(min, max);
+            }
         }
     }
 }

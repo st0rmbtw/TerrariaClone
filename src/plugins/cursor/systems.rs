@@ -1,123 +1,40 @@
 use std::time::Duration;
 
-use super::{
-    CursorAssets, FontAssets, MainCamera, Player, UiAssets, UiVisibility, TILE_SIZE,
-};
-use crate::{
-    animation::{
-        component_animator_system, AnimationSystem, Animator, TransformScaleLens, Tween,
-        TweeningType,
-    },
-    lens::UiColorLens,
-    state::{GameState, MovementState},
-    TRANSPARENT, util::get_tile_coords,
-};
 use autodefault::autodefault;
 use bevy::{
     prelude::{
-        default, App, BuildChildren, Camera, Color, Commands, Component, CoreStage, Deref,
-        DerefMut, GlobalTransform, ImageBundle, Name, NodeBundle, Plugin, Query, Res, ResMut,
-        TextBundle, Transform, Vec2, Vec3, Visibility, With, Without,
-    },
-    render::camera::RenderTarget,
-    sprite::{Sprite, SpriteBundle},
-    text::{Text, TextStyle},
-    time::Time,
+        Res, Commands, Vec3, Color, NodeBundle, default, TextBundle, Name, ImageBundle, Transform, 
+        Component, GlobalTransform, Query, With, Without, ResMut, Camera, Vec2, Visibility, 
+        BuildChildren
+    }, 
     ui::{
-        AlignItems, AlignSelf, FocusPolicy, JustifyContent, PositionType, Size, Style, UiColor,
-        UiRect, Val,
-    },
-    window::Windows,
+        Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Size, Val, AlignSelf, UiRect
+    }, 
+    text::{Text, TextStyle}, 
+    sprite::{SpriteBundle, Sprite}, 
+    window::Windows, 
+    render::camera::RenderTarget
 };
 use interpolation::EaseFunction;
-use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet, IntoConditionalSystem};
 
-const MAX_TILE_GRID_OPACITY: f32 = 0.8;
-const MIN_TILE_GRID_OPACITY: f32 = 0.2;
+use crate::{
+    plugins::{
+        assets::{FontAssets, CursorAssets, UiAssets}, 
+        camera::MainCamera, 
+        ui::UiVisibility, 
+        world::TILE_SIZE, 
+        player::{PlayerVelocity, MAX_RUN_SPEED, MAX_FALL_SPEED}
+    }, 
+    animation::{Tween, TweeningType, TransformScaleLens, Animator}, 
+    lens::UiColorLens, 
+    TRANSPARENT, 
+    util::Lerp,
+};
 
-// region: Plugin
-
-pub struct CursorPlugin;
-
-impl Plugin for CursorPlugin {
-    fn build(&self, app: &mut App) {
-        app.insert_resource(HoveredInfo::default())
-            .insert_resource(CursorPosition::default())
-            .add_enter_system(GameState::MainMenu, setup)
-            .add_enter_system(GameState::InGame, spawn_tile_grid)
-            .add_system_set(
-                ConditionSet::new()
-                    .run_in_state(GameState::InGame)
-                    .with_system(set_visibility::<TileGrid>)
-                    .with_system(set_visibility::<CursorBackground>)
-                    .with_system(update_tile_grid_opacity)
-                    .into(),
-            )
-            .add_system_set_to_stage(
-                CoreStage::Last,
-                ConditionSet::new()
-                    .run_not_in_state(GameState::AssetLoading)
-                    .with_system(set_ui_component_z::<HoveredInfoMarker>)
-                    .with_system(set_ui_component_z::<CursorBackground>)
-                    .with_system(set_cursor_foreground_z)
-                    .into(),
-            )
-            .add_system_set(
-                ConditionSet::new()
-                    .run_not_in_state(GameState::AssetLoading)
-                    .run_if_resource_equals(UiVisibility(true))
-                    .with_system(update_cursor_position)
-                    .with_system(update_hovered_info_position)
-                    .with_system(update_hovered_info)
-                    .into(),
-            )
-            .add_system_set_to_stage(
-                CoreStage::PreUpdate,
-                ConditionSet::new()
-                    .run_in_state(GameState::InGame)
-                    .run_if_resource_equals(UiVisibility(true))
-                    .with_system(update_tile_grid_position)
-                    .into(),
-            )
-            .add_system(
-                component_animator_system::<UiColor>
-                    .run_not_in_state(GameState::AssetLoading)
-                    .label(AnimationSystem::AnimationUpdate),
-            );
-    }
-}
-
-// endregion
-
-// region: Components
-
-#[derive(Component)]
-struct CursorContainer;
-
-#[derive(Component)]
-struct CursorBackground;
-
-#[derive(Component)]
-struct CursorForeground;
-
-#[derive(Default)]
-pub struct CursorPosition {
-    pub position: Vec2,
-    pub world_position: Vec2,
-}
-
-#[derive(Default, Deref, DerefMut)]
-pub struct HoveredInfo(pub String);
-
-#[derive(Component)]
-struct HoveredInfoMarker;
-
-#[derive(Component)]
-struct TileGrid;
-// endregion
+use super::{HoveredInfoMarker, CursorContainer, CursorForeground, CursorBackground, TileGrid, MAX_TILE_GRID_OPACITY, CursorPosition, HoveredInfo, MIN_TILE_GRID_OPACITY};
 
 #[autodefault(except(TransformScaleLens, UiColorLens))]
-fn setup(mut commands: Commands, cursor_assets: Res<CursorAssets>, fonts: Res<FontAssets>) {
+pub fn setup(mut commands: Commands, cursor_assets: Res<CursorAssets>, fonts: Res<FontAssets>) {
     let animate_scale = Tween::new(
         EaseFunction::QuadraticInOut,
         TweeningType::PingPong,
@@ -205,19 +122,19 @@ fn setup(mut commands: Commands, cursor_assets: Res<CursorAssets>, fonts: Res<Fo
 }
 
 #[autodefault]
-fn spawn_tile_grid(mut commands: Commands, ui_assets: Res<UiAssets>) {
+pub fn spawn_tile_grid(mut commands: Commands, ui_assets: Res<UiAssets>) {
     commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
                 color: Color::rgba(1., 1., 1., MAX_TILE_GRID_OPACITY),
             },
             texture: ui_assets.radial.clone().into(),
-            transform: Transform::from_xyz(0., 0., 1.),
+            transform: Transform::from_xyz(0., 0., 5.),
         })
         .insert(TileGrid);
 }
 
-fn set_ui_component_z<C: Component>(
+pub fn set_ui_component_z<C: Component>(
     mut query: Query<
         (&mut Transform, &mut GlobalTransform),
         With<C>,
@@ -229,7 +146,7 @@ fn set_ui_component_z<C: Component>(
     global_transform.translation_mut().z = 10.;
 }
  
-fn set_cursor_foreground_z(
+pub fn set_cursor_foreground_z(
     mut cursor_foreground_query: Query<
         (&mut Transform, &mut GlobalTransform),
         (With<CursorForeground>, Without<CursorBackground>),
@@ -242,7 +159,7 @@ fn set_cursor_foreground_z(
     cursor_foreground_global_transform.translation_mut().z = 10.1;
 }
 
-fn update_cursor_position(
+pub fn update_cursor_position(
     wnds: Res<Windows>,
     mut cursor: ResMut<CursorPosition>,
     cemera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
@@ -287,7 +204,7 @@ fn update_cursor_position(
     }
 }
 
-fn set_visibility<C: Component>(
+pub fn set_visibility<C: Component>(
     ui_visibility: Res<UiVisibility>,
     mut query: Query<&mut Visibility, With<C>>,
 ) {
@@ -298,7 +215,7 @@ fn set_visibility<C: Component>(
     }
 }
 
-fn update_hovered_info_position(
+pub fn update_hovered_info_position(
     cursor: Res<CursorPosition>,
     mut query: Query<&mut Style, With<HoveredInfoMarker>>,
 ) {
@@ -311,7 +228,7 @@ fn update_hovered_info_position(
     }
 }
 
-fn update_hovered_info(
+pub fn update_hovered_info(
     hovered_info: Res<HoveredInfo>,
     mut query: Query<&mut Text, With<HoveredInfoMarker>>,
 ) {
@@ -322,58 +239,31 @@ fn update_hovered_info(
     }
 }
 
-fn update_tile_grid_position(
+pub fn update_tile_grid_position(
     cursor: Res<CursorPosition>,
     mut query: Query<&mut Transform, With<TileGrid>>,
 ) {
     let mut transform = query.single_mut();
     
-    let tile_coords = get_tile_coords(cursor.world_position);
+    let tile_coords = (cursor.world_position / TILE_SIZE).round();
 
     transform.translation.x = tile_coords.x * TILE_SIZE;
     transform.translation.y = tile_coords.y * TILE_SIZE;
 }
 
-fn update_tile_grid_opacity(
-    time: Res<Time>,
-    player: Query<&MovementState, With<Player>>,
+pub fn update_tile_grid_opacity(
+    velocity: Res<PlayerVelocity>,
     mut tile_grid: Query<&mut Sprite, With<TileGrid>>,
 ) {
-    if let Ok(movement_state) = player.get_single() {
-        let mut sprite = tile_grid.single_mut();
+    let mut sprite = tile_grid.single_mut();
 
-        let opacity = match movement_state {
-            MovementState::WALKING => {
-                let mut a = sprite.color.a();
+    let opacity = if velocity.x.abs() > 0. {
+        MIN_TILE_GRID_OPACITY.lerp(MAX_TILE_GRID_OPACITY, 1. - velocity.x.abs() / MAX_RUN_SPEED)
+    } else if velocity.y.abs() > 0. {
+        0f32.lerp(MAX_TILE_GRID_OPACITY, 1. - velocity.y.abs() / MAX_FALL_SPEED)
+    } else {
+        MAX_TILE_GRID_OPACITY
+    };
 
-                if a > MIN_TILE_GRID_OPACITY {
-                    a = a - time.delta_seconds() * 0.7;
-                } else if a < MIN_TILE_GRID_OPACITY {
-                    a = a + time.delta_seconds() * 0.7;
-                }
-
-                a.clamp(0., MAX_TILE_GRID_OPACITY)
-            }
-            MovementState::FLYING | MovementState::FALLING => {
-                let mut a = sprite.color.a();
-
-                if a > 0. {
-                    a = (a - time.delta_seconds() * 0.7).clamp(0., MAX_TILE_GRID_OPACITY);
-                }
-
-                a
-            }
-            _ => {
-                let mut a = sprite.color.a();
-
-                if a < MAX_TILE_GRID_OPACITY {
-                    a = (a + time.delta_seconds() * 0.7).clamp(0., MAX_TILE_GRID_OPACITY);
-                }
-
-                a
-            }
-        };
-
-        sprite.color = *sprite.color.set_a(opacity);
-    }
+    sprite.color = *sprite.color.set_a(opacity.clamp(0., MAX_TILE_GRID_OPACITY));
 }

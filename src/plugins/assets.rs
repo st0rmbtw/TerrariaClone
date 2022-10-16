@@ -33,40 +33,22 @@ impl Plugin for AssetsPlugin {
     }
 }
 
-#[derive(AssetCollection)]
-pub struct BlockAssets {
-    #[asset(texture_atlas(
-        tile_size_x = 16.,
-        tile_size_y = 16.,
-        rows = 15,
-        columns = 16,
-        padding_x = 2.,
-        padding_y = 2.
-    ))]
-    #[asset(path = "sprites/tiles/Tiles_0.png")]
-    pub dirt: Handle<TextureAtlas>,
+handles! {
+    Handle<Image>,
+    #[derive(AssetCollection)]
+    pub struct BlockAssets {
+        #[asset(path = "sprites/tiles/Tiles_0.png")]
+        pub dirt: Handle<Image>,
 
-    #[asset(texture_atlas(
-        tile_size_x = 16.,
-        tile_size_y = 16.,
-        rows = 15,
-        columns = 16,
-        padding_x = 2.,
-        padding_y = 2.
-    ))]
-    #[asset(path = "sprites/tiles/Tiles_2.png")]
-    pub grass: Handle<TextureAtlas>,
+        #[asset(path = "sprites/tiles/Tiles_2.png")]
+        pub grass: Handle<Image>,
 
-    #[asset(texture_atlas(
-        tile_size_x = 16.,
-        tile_size_y = 16.,
-        rows = 15,
-        columns = 16,
-        padding_x = 2.,
-        padding_y = 2.
-    ))]
-    #[asset(path = "sprites/tiles/Tiles_1.png")]
-    pub stone: Handle<TextureAtlas>,
+        #[asset(path = "sprites/tiles/Tiles_1.png")]
+        pub stone: Handle<Image>,
+
+        #[asset(path = "sprites/tiles/Tiles2.png")]
+        pub tiles: Handle<Image>,
+    }
 }
 
 handles! {
@@ -133,7 +115,7 @@ pub struct PlayerAssets {
         padding_x = 0.,
         padding_y = 0.
     ))]
-    #[asset(path = "sprites/player/Player_Right_Arm2.png")]
+    #[asset(path = "sprites/player/Player_Right_Arm.png")]
     pub right_arm: Handle<TextureAtlas>,
 
     #[asset(texture_atlas(
@@ -144,7 +126,7 @@ pub struct PlayerAssets {
         padding_x = 0.,
         padding_y = 0.
     ))]
-    #[asset(path = "sprites/player/Player_Hair_1_2.png")]
+    #[asset(path = "sprites/player/Player_Hair_1.png")]
     pub hair: Handle<TextureAtlas>,
 
     #[asset(texture_atlas(
@@ -259,15 +241,20 @@ handles! {
     }
 }
 
-#[derive(AssetCollection)]
-pub struct WallAssets {
-    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 32., columns = 13, rows = 5))]
-    #[asset(path = "sprites/walls/Wall_2.png")]
-    pub wall_2: Handle<TextureAtlas>,
+handles! {
+    Handle<Image>,
+    #[derive(AssetCollection)]
+    pub struct WallAssets {
+        #[asset(path = "sprites/walls/Wall_2.png")]
+        pub wall_2: Handle<Image>,
+
+        #[asset(path = "sprites/walls/Walls.png")]
+        pub walls: Handle<Image>,
+    }
 }
 
 impl WallAssets {
-    pub fn get_by_wall(&self, id: Wall) -> Option<Handle<TextureAtlas>> {
+    pub fn get_by_wall(&self, id: Wall) -> Option<Handle<Image>> {
         match id {
             Wall::DirtWall => Some(self.wall_2.clone()),
             _ => None,
@@ -298,7 +285,7 @@ fn setup(
     cursor_assets: Res<CursorAssets>,
 ) {
     for handle in background_assets.handles() {
-        let atlas = texture_atlasses.get(handle).unwrap();
+        let atlas = texture_atlasses.get(&handle).unwrap();
         let mut image = images.get_mut(&atlas.texture).unwrap();
 
         image.sampler_descriptor = ImageSampler::linear();
@@ -315,7 +302,7 @@ fn setup(
 }
 
 impl BlockAssets {
-    pub fn get_by_block(&self, block: Block) -> Option<Handle<TextureAtlas>> {
+    pub fn get_by_block(&self, block: Block) -> Option<Handle<Image>> {
         match block {
             Block::Dirt => Some(self.dirt.clone()),
             Block::Stone => Some(self.stone.clone()),
