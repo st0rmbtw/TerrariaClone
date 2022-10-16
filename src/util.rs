@@ -165,6 +165,11 @@ impl FRect {
             && self.bottom > rect.top
             && self.top > rect.bottom
     }
+
+    
+    pub fn inside(&self, point: (f32, f32)) -> bool {
+        point.0 < self.bottom && point.0 > self.top && point.1 > self.left && point.1 < self.right
+    }
 }
 
 impl Mul<f32> for FRect {
@@ -178,10 +183,6 @@ impl Mul<f32> for FRect {
             bottom: self.bottom * rhs,
         }
     }
-}
-
-pub fn inside_f(p: (f32, f32), rect: FRect) -> bool {
-    p.0 < rect.bottom && p.0 > rect.top && p.1 > rect.left && p.1 < rect.right
 }
 
 pub fn get_tile_coords(world_coords: Vec2) -> Vec2 {

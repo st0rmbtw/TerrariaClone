@@ -4,7 +4,7 @@ use bevy_ecs_tilemap::tiles::TilePos;
 use bevy_hanabi::prelude::*;
 
 use crate::{
-    state::{MovementState}, 
+    state::MovementState,
     plugins::{
         world::{WorldData, TILE_SIZE, BlockPlaceEvent}, 
         assets::{PlayerAssets, ItemAssets}, 
@@ -197,7 +197,7 @@ pub fn spawn_player(
             .insert(Name::new("Player feet"));
             // endregion
 
-            // region: Using item
+            // region: Used item
             cmd.spawn_bundle(SpriteBundle {
                 sprite: Sprite {
                     anchor: Anchor::BottomLeft,
@@ -208,42 +208,44 @@ pub fn spawn_player(
                 transform: Transform::from_xyz(0., 0., 0.15),
             })
             .insert(ChangeFlip)
-            .insert(UsingItemMarker)
+            .insert(UsedItem)
             .insert(Name::new("Using item"));
 
             // endregion
 
-            // cmd.spawn_bundle(SpriteBundle {
-            //     sprite: Sprite {
-            //         color: Color::RED,
-            //         custom_size: Some(Vec2::new(PLAYER_SPRITE_WIDTH, 1.))
-            //     },
-            //     transform: Transform::from_xyz(0., -PLAYER_SPRITE_HEIGHT / 2., 0.5),
-            // });
+            #[cfg(feature = "debug")] {
+                cmd.spawn_bundle(SpriteBundle {
+                    sprite: Sprite {
+                        color: Color::RED,
+                        custom_size: Some(Vec2::new(PLAYER_WIDTH, 1.))
+                    },
+                    transform: Transform::from_xyz(0., -PLAYER_HEIGHT / 2., 0.5),
+                });
 
-            // cmd.spawn_bundle(SpriteBundle {
-            //     sprite: Sprite {
-            //         color: Color::RED,
-            //         custom_size: Some(Vec2::new(PLAYER_SPRITE_WIDTH, 1.))
-            //     },
-            //     transform: Transform::from_xyz(0., PLAYER_SPRITE_HEIGHT / 2., 0.5),
-            // });
+                cmd.spawn_bundle(SpriteBundle {
+                    sprite: Sprite {
+                        color: Color::RED,
+                        custom_size: Some(Vec2::new(PLAYER_WIDTH, 1.))
+                    },
+                    transform: Transform::from_xyz(0., PLAYER_HEIGHT / 2., 0.5),
+                });
 
-            // cmd.spawn_bundle(SpriteBundle {
-            //     sprite: Sprite {
-            //         color: Color::RED,
-            //         custom_size: Some(Vec2::new(1., PLAYER_SPRITE_HEIGHT))
-            //     },
-            //     transform: Transform::from_xyz(-PLAYER_SPRITE_WIDTH / 2., 0., 0.5),
-            // });
+                cmd.spawn_bundle(SpriteBundle {
+                    sprite: Sprite {
+                        color: Color::RED,
+                        custom_size: Some(Vec2::new(1., PLAYER_HEIGHT))
+                    },
+                    transform: Transform::from_xyz(-PLAYER_WIDTH / 2., 0., 0.5),
+                });
 
-            // cmd.spawn_bundle(SpriteBundle {
-            //     sprite: Sprite {
-            //         color: Color::RED,
-            //         custom_size: Some(Vec2::new(1., PLAYER_SPRITE_HEIGHT))
-            //     },
-            //     transform: Transform::from_xyz(PLAYER_SPRITE_WIDTH / 2., 0., 0.5),
-            // });
+                cmd.spawn_bundle(SpriteBundle {
+                    sprite: Sprite {
+                        color: Color::RED,
+                        custom_size: Some(Vec2::new(1., PLAYER_HEIGHT))
+                    },
+                    transform: Transform::from_xyz(PLAYER_WIDTH / 2., 0., 0.5),
+                });
+            }
         })
         .id();
 
@@ -360,32 +362,6 @@ pub fn update_jump(
     }
 }
 
-pub fn move_player(
-    velocity: Res<PlayerVelocity>,
-    mut player_query: Query<&mut Transform, With<Player>>,
-    #[cfg(feature = "debug")]
-    mut lines: ResMut<bevy_prototype_debug_lines::DebugLines>
-) {
-    let mut transform = player_query.single_mut();
-
-    const MIN: f32 = PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
-    const MAX: f32 = WORLD_SIZE_X as f32 * TILE_SIZE - PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
-
-    let raw = transform.translation.xy() + velocity.0;
-
-    transform.translation.x = raw.x.clamp(MIN, MAX);
-    transform.translation.y = raw.y;
-
-    #[cfg(feature = "debug")] {
-        lines.line_colored(
-            Vec3::new(0., transform.translation.y - PLAYER_HEIGHT / 2., 3.),
-            Vec3::new(WORLD_SIZE_X as f32 * TILE_SIZE, transform.translation.y - PLAYER_HEIGHT / 2., 3.),
-            0.,
-            Color::GREEN
-        );
-    }
-}
-
 pub fn collide(
     mut player_query: Query<&mut Transform, With<Player>>,
     world_data: Res<WorldData>,
@@ -419,10 +395,10 @@ pub fn collide(
     let mut result = velocity.0;
     let next_position = position - velocity.0;
 
-    let mut num5 = u32::MAX;
-    let mut num6 = u32::MAX;
-    let mut num7 = u32::MAX;
-    let mut num8 = u32::MAX;
+    let mut num5: i32 = -1;
+    let mut num6: i32 = -1;
+    let mut num7: i32 = -1;
+    let mut num8: i32 = -1;
 
     let mut num9 = (bottom + 3.) * TILE_SIZE;
 
@@ -435,46 +411,51 @@ pub fn collide(
                 
                 if (next_position.x + PLAYER_WIDTH / 2.) > (tile_pos.x - TILE_SIZE / 2.) && (next_position.x - PLAYER_WIDTH / 2.) < (tile_pos.x + TILE_SIZE / 2.) && (next_position.y + PLAYER_HEIGHT / 2.) > (tile_pos.y - TILE_SIZE / 2.) && (next_position.y - PLAYER_HEIGHT / 2.) < (tile_pos.y + TILE_SIZE / 2.) {
                     if position.y + PLAYER_HEIGHT / 2. <= tile_pos.y - TILE_SIZE / 2. {
+                        #[cfg(debug_assertions)]
+                        println!("Down");
                         new_collisions.bottom = true;
-                        dbg!("D");
                         if num9 > tile_pos.y {
-                            num7 = x;
-                            num8 = y;
+                            num7 = x as i32;
+                            num8 = y as i32;
                             if num7 != num5 {
-                                result.y = dbg!((tile_pos.y - TILE_SIZE / 2.) - (position.y + PLAYER_HEIGHT / 2.));
+                                let a = (tile_pos.y - TILE_SIZE / 2.) - (position.y + PLAYER_HEIGHT / 2.);
+                                result.y = a - a % (TILE_SIZE / 2.);
                                 num9 = tile_pos.y;
                             }
                         }
                     } else {
                         
                         if position.x + PLAYER_WIDTH / 2. <= tile_pos.x - TILE_SIZE / 2. {
-                            dbg!("C");
-                            num5 = x;
-                            num6 = y;
+                            #[cfg(debug_assertions)]
+                            println!("Right");
+                            num5 = x as i32;
+                            num6 = y as i32;
                             if num6 != num8 {
-                                result.x = tile_pos.x - TILE_SIZE - (position.x + PLAYER_WIDTH / 2.);
+                                result.x = (tile_pos.x - TILE_SIZE / 2.) - (position.x + PLAYER_WIDTH / 2.);
                             }
                             if num7 == num5 {
                                 result.y = velocity.y;
                             }
                         } else {
                             if position.x - PLAYER_WIDTH / 2. >= tile_pos.x + TILE_SIZE / 2. {
-                                dbg!("B");
-                                num5 = x;
-                                num6 = y;
+                                #[cfg(debug_assertions)]
+                                println!("Left");
+                                num5 = x as i32;
+                                num6 = y as i32;
                                 if num6 != num8 {
-                                    result.x = tile_pos.x + TILE_SIZE - (position.x - PLAYER_WIDTH / 2.);
+                                    result.x = (tile_pos.x + TILE_SIZE / 2.) - (position.x - PLAYER_WIDTH / 2.);
                                 }
                                 if num7 == num5 {
                                     result.y = velocity.y;
                                 }
                             } else {
                                 if position.y >= tile_pos.y + TILE_SIZE / 2. {
+                                    #[cfg(debug_assertions)]
+                                    println!("Up");
                                     collisions.top = true;
-                                    dbg!("A");
-                                    num7 = x;
-                                    num8 = y;
-                                    result.y = tile_pos.y + TILE_SIZE / 2. - position.y + 0.01;
+                                    num7 = x as i32;
+                                    num8 = y as i32;
+                                    result.y = (tile_pos.y + TILE_SIZE / 2.) - (position.y - PLAYER_HEIGHT / 2.) + 0.01;
                                     if num8 == num6 {
                                         result.x = velocity.x;
                                     }
@@ -502,6 +483,24 @@ pub fn collide(
     }
 
     *collisions = new_collisions;
+    // *velocity = PlayerVelocity(result);
+}
+
+pub fn move_player(
+    velocity: Res<PlayerVelocity>,
+    mut player_query: Query<&mut Transform, With<Player>>,
+    #[cfg(feature = "debug")]
+    mut lines: ResMut<bevy_prototype_debug_lines::DebugLines>
+) {
+    let mut transform = player_query.single_mut();
+
+    const MIN: f32 = PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
+    const MAX: f32 = WORLD_SIZE_X as f32 * TILE_SIZE - PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
+
+    let raw = transform.translation.xy() + velocity.0;
+
+    transform.translation.x = raw.x.clamp(MIN, MAX);
+    transform.translation.y = raw.y;
 }
 
 pub fn spawn_particles(
@@ -628,7 +627,7 @@ pub fn player_using_item(
 
 pub fn set_using_item_visibility(
     anim: Res<UseItemAnimation>,
-    mut using_item_query: Query<&mut Visibility, With<UsingItemMarker>>,
+    mut using_item_query: Query<&mut Visibility, With<UsedItem>>,
 ) {
     let mut visibility = using_item_query.single_mut();
     visibility.is_visible = anim.0;
@@ -637,7 +636,7 @@ pub fn set_using_item_visibility(
 pub fn set_using_item_image(
     item_assets: Res<ItemAssets>,
     selected_item: Res<SelectedItem>,
-    mut using_item_query: Query<&mut Handle<Image>, With<UsingItemMarker>>,
+    mut using_item_query: Query<&mut Handle<Image>, With<UsedItem>>,
 ) {
     let mut image = using_item_query.single_mut();
 
@@ -649,7 +648,7 @@ pub fn set_using_item_image(
 pub fn set_using_item_position(
     index: Res<UseItemAnimationIndex>,
     selected_item: Res<SelectedItem>,
-    mut using_item_query: Query<&mut Transform, With<UsingItemMarker>>,
+    mut using_item_query: Query<&mut Transform, With<UsedItem>>,
     player_query: Query<&FaceDirection, With<Player>>,
 ) {
     let mut transform = using_item_query.single_mut();
@@ -665,7 +664,7 @@ pub fn set_using_item_position(
 
 pub fn set_using_item_rotation_on_player_direction_change(
     player_query: Query<&FaceDirection, (With<Player>, Changed<FaceDirection>)>,
-    mut using_item_query: Query<&mut Transform, With<UsingItemMarker>>,
+    mut using_item_query: Query<&mut Transform, With<UsedItem>>,
 ) {
     let player_query_result = player_query.get_single();
     let using_item_query_result = using_item_query.get_single_mut();
@@ -681,7 +680,7 @@ pub fn set_using_item_rotation(
     time: Res<Time>,
     index: Res<UseItemAnimationIndex>,
     selected_item: Res<SelectedItem>,
-    mut using_item_query: Query<&mut Transform, With<UsingItemMarker>>,
+    mut using_item_query: Query<&mut Transform, With<UsedItem>>,
     player_query: Query<&FaceDirection, With<Player>>,
 ) {
     const ROTATION_STEP: f32 = -11.;

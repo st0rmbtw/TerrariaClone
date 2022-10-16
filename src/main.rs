@@ -2,7 +2,6 @@ use bevy::{
     asset::AssetServerSettings,
     prelude::*,
     render::{
-        settings::{WgpuFeatures, WgpuSettings},
         texture::ImageSettings,
     },
     window::{PresentMode, WindowMode},

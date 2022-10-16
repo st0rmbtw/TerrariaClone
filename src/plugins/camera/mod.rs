@@ -1,4 +1,4 @@
-use bevy::prelude::{Plugin, App, CoreStage};
+use bevy::prelude::{Plugin, App};
 use iyes_loopless::prelude::{ConditionSet, AppLooplessStateExt};
 
 use crate::{state::GameState, labels::PlayerLabel};

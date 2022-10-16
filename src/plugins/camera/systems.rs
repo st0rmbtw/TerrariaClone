@@ -1,5 +1,12 @@
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Camera2dBundle, OrthographicProjection, Transform, Res, Input, KeyCode, Query, With, GlobalTransform}, time::Time, render::camera::{WindowOrigin, DepthCalculation}};
+use bevy::{
+    prelude::{
+        Commands, Camera2dBundle, OrthographicProjection, Transform, Res, Input, KeyCode, Query, 
+        With, GlobalTransform
+    }, 
+    time::Time, 
+    render::camera::DepthCalculation
+};
 
 use crate::{parallax::ParallaxCameraComponent, plugins::{player::Player, world::TILE_SIZE}, world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}};
 

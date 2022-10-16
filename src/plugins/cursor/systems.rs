@@ -1,10 +1,35 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Res, Commands, Vec3, Color, NodeBundle, default, TextBundle, Name, ImageBundle, Transform, Component, GlobalTransform, Query, With, Without, ResMut, Camera, Vec2, Visibility, BuildChildren}, ui::{Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Size, Val, AlignSelf, UiRect}, text::{Text, TextStyle}, sprite::{SpriteBundle, Sprite}, window::Windows, render::camera::RenderTarget, time::Time};
-use interpolation::{EaseFunction};
+use bevy::{
+    prelude::{
+        Res, Commands, Vec3, Color, NodeBundle, default, TextBundle, Name, ImageBundle, Transform, 
+        Component, GlobalTransform, Query, With, Without, ResMut, Camera, Vec2, Visibility, 
+        BuildChildren
+    }, 
+    ui::{
+        Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Size, Val, AlignSelf, UiRect
+    }, 
+    text::{Text, TextStyle}, 
+    sprite::{SpriteBundle, Sprite}, 
+    window::Windows, 
+    render::camera::RenderTarget
+};
+use interpolation::EaseFunction;
 
-use crate::{plugins::{assets::{FontAssets, CursorAssets, UiAssets}, camera::MainCamera, ui::UiVisibility, world::TILE_SIZE, player::{Player, PlayerVelocity, MAX_RUN_SPEED, MAX_FALL_SPEED}}, animation::{Tween, TweeningType, TransformScaleLens, Animator}, lens::UiColorLens, TRANSPARENT, util::{get_tile_coords, Lerp}, state::MovementState};
+use crate::{
+    plugins::{
+        assets::{FontAssets, CursorAssets, UiAssets}, 
+        camera::MainCamera, 
+        ui::UiVisibility, 
+        world::TILE_SIZE, 
+        player::{PlayerVelocity, MAX_RUN_SPEED, MAX_FALL_SPEED}
+    }, 
+    animation::{Tween, TweeningType, TransformScaleLens, Animator}, 
+    lens::UiColorLens, 
+    TRANSPARENT, 
+    util::Lerp,
+};
 
 use super::{HoveredInfoMarker, CursorContainer, CursorForeground, CursorBackground, TileGrid, MAX_TILE_GRID_OPACITY, CursorPosition, HoveredInfo, MIN_TILE_GRID_OPACITY};
 

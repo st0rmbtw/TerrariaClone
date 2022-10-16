@@ -49,7 +49,7 @@ pub struct ChangeFlip;
 pub struct PlayerBodySprite;
 
 #[derive(Component)]
-pub struct UsingItemMarker;
+pub struct UsedItem;
 
 pub trait AnimationData {
     fn index(&self) -> usize;
