@@ -1,7 +1,7 @@
 use autodefault::autodefault;
 use bevy::{prelude::{Commands, Res, NodeBundle, Name, Input, BuildChildren, EventWriter, ResMut, KeyCode, Query, Visibility, With}, ui::{Style, Size, FlexDirection, Val, JustifyContent, AlignItems, UiRect}};
 
-use crate::{plugins::{assets::{FontAssets, UiAssets}, fps::spawn_fps_text, inventory::spawn_inventory_ui, settings::spawn_ingame_settings_button}, TRANSPARENT, util::RectExtensions};
+use crate::{plugins::{assets::{FontAssets, UiAssets}, fps::spawn_fps_text, inventory::spawn_inventory_ui, settings::spawn_ingame_settings_button}, TRANSPARENT, util::RectExtensions, language::LanguageContent};
 
 use super::{MainUiContainer, ToggleExtraUiEvent, ExtraUiVisibility, UiVisibility};
 
@@ -10,6 +10,7 @@ pub fn spawn_ui_container(
     mut commands: Commands,
     font_assets: Res<FontAssets>,
     ui_assets: Res<UiAssets>,
+    language_content: Res<LanguageContent>
 ) {
     let main_id = commands
         .spawn_bundle(NodeBundle {
@@ -65,8 +66,8 @@ pub fn spawn_ui_container(
         .id();
 
     let fps_text = spawn_fps_text(&mut commands, &font_assets);
-    let inventory = spawn_inventory_ui(&mut commands, &ui_assets, &font_assets);
-    let settings_btn = spawn_ingame_settings_button(&mut commands, &font_assets);
+    let inventory = spawn_inventory_ui(&mut commands, &ui_assets, &font_assets, &language_content);
+    let settings_btn = spawn_ingame_settings_button(&mut commands, &font_assets, &language_content);
 
     // TODO: Make a health bar in feature, stub now
     let health_bar = commands

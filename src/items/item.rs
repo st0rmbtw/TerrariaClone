@@ -1,6 +1,6 @@
 use bevy::{math::vec2, prelude::Vec2};
 
-use crate::block::Block;
+use crate::{block::Block, language::LanguageContent};
 
 use super::Pickaxe;
 
@@ -21,10 +21,10 @@ impl Item {
         }
     }
 
-    pub fn name(&self) -> &str {
+    pub fn name(&self, language_content: &LanguageContent) -> String {
         match self {
-            Item::Pickaxe(pickaxe) => pickaxe.name(),
-            Item::Block(block) => block.name(),
+            Item::Pickaxe(pickaxe) => language_content.pickaxe_name(*pickaxe),
+            Item::Block(block) => language_content.block_name(*block),
         }
     }
 
