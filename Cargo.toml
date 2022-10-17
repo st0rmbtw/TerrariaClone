@@ -33,3 +33,4 @@ opt-level = 3
 debug = ["dep:bevy_prototype_debug_lines"]
 debug_grid = ["dep:bevy_prototype_debug_lines"]
 debug_movement = []
+free_camera = []

@@ -59,8 +59,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         .add_plugin(SettingsPlugin)
         .add_plugin(MenuPlugin)
         .add_plugin(WorldPlugin)
-        .add_plugin(PlayerPlugin)
+        .add_plugin(PlayerInventoryPlugin)
         .add_plugin(FpsPlugin);
+
+    #[cfg(not(feature = "free_camera"))] {
+        use game::plugins::player::PlayerPlugin;
+        app.add_plugin(PlayerPlugin);
+    }
 
     #[cfg(feature = "debug")] {
         use game::plugins::debug::DebugPlugin;

@@ -12,7 +12,6 @@ use crate::{state::GameState, labels::PlayerLabel};
 use std::time::Duration;
 use iyes_loopless::prelude::*;
 use bevy::{prelude::{Plugin, App, CoreStage}, time::Timer};
-use super::{inventory::PlayerInventoryPlugin};
 
 pub const PLAYER_WIDTH: f32 = 20. /* 2. * TILE_SIZE */;
 pub const PLAYER_HEIGHT: f32 = 42. /* 3. * TILE_SIZE */;
@@ -36,7 +35,7 @@ pub const MAX_FALL_SPEED: f32 = 10.;
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugin(PlayerInventoryPlugin)
+        app
             .insert_resource(InputAxis::default())
             .insert_resource(MovementAnimationIndex::default())
             .insert_resource(UseItemAnimationIndex::default())
