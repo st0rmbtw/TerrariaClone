@@ -1,9 +1,9 @@
 use std::borrow::Cow;
 
 use autodefault::autodefault;
-use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, Size, PositionType, AlignContent, Interaction}, text::{Text, TextStyle, TextAlignment}};
+use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color, MouseButton, EventWriter}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, Size, PositionType, AlignContent, Interaction}, text::{Text, TextStyle, TextAlignment}};
 
-use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets}, cursor::HoveredInfo}, TRANSPARENT, util::{EntityCommandsExtensions, RectExtensions}, language::LanguageContent};
+use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets}, cursor::{HoveredInfo, CursorPosition}, world::BlockPlaceEvent}, TRANSPARENT, util::{EntityCommandsExtensions, RectExtensions, get_tile_coords}, language::LanguageContent, items::Item};
 
 use super::{Inventory, HOTBAR_LENGTH, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, KEYCODE_TO_DIGIT, CELL_COUNT_IN_ROW, INVENTORY_ROWS_COUNT, HotbarUi};
 
@@ -398,6 +398,29 @@ pub fn inventory_cell_background_hover(
         
                     name.to_string()
                 }
+            }
+        }
+    }
+}
+
+pub fn use_item(
+    input: Res<Input<MouseButton>>,
+    cursor: Res<CursorPosition>,
+    inventory: Res<Inventory>,
+    mut block_place_event_writer: EventWriter<BlockPlaceEvent>
+) {
+    if input.pressed(MouseButton::Left) {
+        let selected_item_index = inventory.selected_slot;
+
+        if let Some(item_stack) = inventory.selected_item() {
+            match item_stack.item {
+                Item::Pickaxe(_) => (),
+                Item::Block(block) => {
+                    let tile_pos = get_tile_coords(cursor.world_position);
+                    block_place_event_writer.send(
+                        BlockPlaceEvent { tile_pos, block, inventory_item_index: selected_item_index }
+                    );
+                },
             }
         }
     }

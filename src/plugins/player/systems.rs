@@ -6,14 +6,13 @@ use bevy_hanabi::prelude::*;
 use crate::{
     state::MovementState,
     plugins::{
-        world::{WorldData, TILE_SIZE, BlockPlaceEvent}, 
+        world::{WorldData, TILE_SIZE}, 
         assets::{PlayerAssets, ItemAssets}, 
-        inventory::{SelectedItem, Inventory}, 
-        cursor::CursorPosition
+        inventory::SelectedItem,
     }, 
     world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}, 
-    util::{move_towards, map_range, get_tile_coords}, 
-    items::{get_animation_points, Item}
+    util::{move_towards, map_range}, 
+    items::get_animation_points
 };
 
 use super::*;
@@ -727,29 +726,6 @@ pub fn use_item_animation(
     query.for_each_mut(|(mut sprite, anim_data)| {
         sprite.index = anim_data.0 + index.0;
     });
-}
-
-pub fn use_item(
-    input: Res<Input<MouseButton>>,
-    cursor: Res<CursorPosition>,
-    inventory: Res<Inventory>,
-    mut block_place_event_writer: EventWriter<BlockPlaceEvent>
-) {
-    if input.pressed(MouseButton::Left) {
-        let selected_item_index = inventory.selected_slot;
-
-        if let Some(item_stack) = inventory.selected_item() {
-            match item_stack.item {
-                Item::Pickaxe(_) => (),
-                Item::Block(block) => {
-                    let tile_pos = get_tile_coords(cursor.world_position);
-                    block_place_event_writer.send(
-                        BlockPlaceEvent { tile_pos, block, inventory_item_index: selected_item_index }
-                    );
-                },
-            }
-        }
-    }
 }
 
 // TODO: Debug function, remove in feature
