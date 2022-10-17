@@ -6,14 +6,13 @@ use bevy_hanabi::prelude::*;
 use crate::{
     state::MovementState,
     plugins::{
-        world::{WorldData, TILE_SIZE, BlockPlaceEvent}, 
+        world::{WorldData, TILE_SIZE}, 
         assets::{PlayerAssets, ItemAssets}, 
-        inventory::{SelectedItem, Inventory}, 
-        cursor::CursorPosition
+        inventory::SelectedItem,
     }, 
     world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}, 
-    util::{move_towards, map_range, get_tile_coords}, 
-    items::{get_animation_points, Item}
+    util::{move_towards, map_range}, 
+    items::get_animation_points
 };
 
 use super::*;
