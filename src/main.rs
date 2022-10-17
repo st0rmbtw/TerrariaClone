@@ -12,7 +12,12 @@ use game::{
     animation::TweeningPlugin,
     parallax::ParallaxPlugin,
     state::GameState, 
-    plugins::{assets::AssetsPlugin, cursor::CursorPlugin, camera::CameraPlugin, background::BackgroundPlugin, ui::PlayerUiPlugin, settings::SettingsPlugin, menu::MenuPlugin, world::WorldPlugin, player::PlayerPlugin, fps::FpsPlugin}, language::{load_language, Language},
+    plugins::{
+        assets::AssetsPlugin, cursor::CursorPlugin, camera::CameraPlugin, background::BackgroundPlugin, 
+        ui::PlayerUiPlugin, settings::SettingsPlugin, menu::MenuPlugin, world::WorldPlugin, 
+        inventory::PlayerInventoryPlugin, fps::FpsPlugin
+    }, 
+    language::{load_language, Language},
 };
 use iyes_loopless::prelude::AppLooplessStateExt;
 use rand::seq::SliceRandom;
