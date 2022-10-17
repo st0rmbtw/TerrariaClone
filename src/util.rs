@@ -6,6 +6,8 @@ use bevy::{
     ui::{Interaction, UiRect, Val},
 };
 
+use crate::{plugins::world::TILE_SIZE, block::Block, wall::Wall};
+
 pub trait Lerp<T> {
     fn lerp(self, other: T, t: f32) -> T;
 }
@@ -109,8 +111,6 @@ macro_rules! handles{
 
 pub(crate) use handles;
 
-use crate::{plugins::{world::TILE_SIZE, player::FaceDirection}, block::Block, wall::Wall};
-
 pub fn on_btn_clicked<B: Component>(
     query: Query<&Interaction, (Changed<Interaction>, With<Button>, With<B>)>,
 ) -> bool {
@@ -187,15 +187,6 @@ impl Mul<f32> for FRect {
 
 pub fn get_tile_coords(world_coords: Vec2) -> Vec2 {
     (world_coords / TILE_SIZE).round().abs()
-}
-
-pub fn get_rotation_by_direction(direction: FaceDirection) -> Quat {
-    let start_rotation = match direction {
-        FaceDirection::LEFT => -0.5,
-        FaceDirection::RIGHT => 2.,
-    };
-
-    Quat::from_rotation_z(start_rotation)
 }
 
 pub fn move_towards(current: f32, target: f32, max_delta: f32) -> f32 {

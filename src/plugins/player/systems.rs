@@ -12,7 +12,7 @@ use crate::{
         cursor::CursorPosition
     }, 
     world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}, 
-    util::{move_towards, map_range, get_rotation_by_direction, get_tile_coords}, 
+    util::{move_towards, map_range, get_tile_coords}, 
     items::{get_animation_points, Item}
 };
 

@@ -8,7 +8,10 @@ use bevy::{
     render::camera::DepthCalculation
 };
 
-use crate::{parallax::ParallaxCameraComponent, plugins::{player::Player, world::TILE_SIZE}, world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}};
+use crate::{parallax::ParallaxCameraComponent, plugins::world::TILE_SIZE, world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}};
+
+#[cfg(not(feature = "free_camera"))]
+use crate::plugins::player::Player;
 
 use super::{MainCamera, CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM};
 
@@ -47,6 +50,7 @@ pub fn zoom(
     }
 }
 
+#[cfg(not(feature = "free_camera"))]
 pub fn move_camera(
     mut player: Query<&Transform, With<Player>>,
     mut camera: Query<(&mut GlobalTransform, &OrthographicProjection), With<MainCamera>>,
@@ -70,5 +74,38 @@ pub fn move_camera(
                 camera_translation.y = player_transform.translation.y.clamp(min, max);
             }
         }
+    }
+}
+
+#[cfg(feature = "free_camera")]
+pub fn move_camera(
+    mut camera: Query<&mut GlobalTransform, With<MainCamera>>,
+    input: Res<Input<KeyCode>>
+) {
+    use bevy::prelude::Vec2;
+
+    const CAMERA_MOVE_SPEED: f32 = 15.;
+
+    let mut move_direction = Vec2::new(0., 0.);
+
+    if input.pressed(KeyCode::A) {
+        move_direction.x = -1.;
+    }
+
+    if input.pressed(KeyCode::D) {
+        move_direction.x = 1.;
+    }
+
+    if input.pressed(KeyCode::W) {
+        move_direction.y = 1.;
+    }
+
+    if input.pressed(KeyCode::S) {
+        move_direction.y = -1.;
+    }
+
+    if let Ok(mut camera_transform) = camera.get_single_mut() {
+        camera_transform.translation_mut().x += move_direction.x * CAMERA_MOVE_SPEED;
+        camera_transform.translation_mut().y += move_direction.y * CAMERA_MOVE_SPEED;
     }
 }

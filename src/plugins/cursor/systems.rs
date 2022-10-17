@@ -22,14 +22,16 @@ use crate::{
         assets::{FontAssets, CursorAssets, UiAssets}, 
         camera::MainCamera, 
         ui::UiVisibility, 
-        world::TILE_SIZE, 
-        player::{PlayerVelocity, MAX_RUN_SPEED, MAX_FALL_SPEED}
+        world::TILE_SIZE
     }, 
     animation::{Tween, TweeningType, TransformScaleLens, Animator}, 
     lens::UiColorLens, 
     TRANSPARENT, 
     util::Lerp,
 };
+
+#[cfg(not(feature = "free_camera"))]
+use crate::plugins::player::{PlayerVelocity, MAX_RUN_SPEED, MAX_FALL_SPEED};
 
 use super::{HoveredInfoMarker, CursorContainer, CursorForeground, CursorBackground, TileGrid, MAX_TILE_GRID_OPACITY, CursorPosition, HoveredInfo, MIN_TILE_GRID_OPACITY};
 
@@ -251,6 +253,7 @@ pub fn update_tile_grid_position(
     transform.translation.y = tile_coords.y * TILE_SIZE;
 }
 
+#[cfg(not(feature = "free_camera"))]
 pub fn update_tile_grid_opacity(
     velocity: Res<PlayerVelocity>,
     mut tile_grid: Query<&mut Sprite, With<TileGrid>>,

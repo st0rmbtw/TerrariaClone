@@ -12,7 +12,7 @@ use game::{
     animation::TweeningPlugin,
     parallax::ParallaxPlugin,
     state::GameState, 
-    plugins::{assets::AssetsPlugin, cursor::CursorPlugin, camera::CameraPlugin, background::BackgroundPlugin, ui::PlayerUiPlugin, settings::SettingsPlugin, menu::MenuPlugin, world::WorldPlugin, player::PlayerPlugin, fps::FpsPlugin},
+    plugins::{assets::AssetsPlugin, cursor::CursorPlugin, camera::CameraPlugin, background::BackgroundPlugin, ui::PlayerUiPlugin, settings::SettingsPlugin, menu::MenuPlugin, world::WorldPlugin, fps::FpsPlugin, inventory::PlayerInventoryPlugin},
 };
 use iyes_loopless::prelude::AppLooplessStateExt;
 
@@ -53,8 +53,13 @@ fn main() {
         .add_plugin(SettingsPlugin)
         .add_plugin(MenuPlugin)
         .add_plugin(WorldPlugin)
-        .add_plugin(PlayerPlugin)
+        .add_plugin(PlayerInventoryPlugin)
         .add_plugin(FpsPlugin);
+
+    #[cfg(not(feature = "free_camera"))] {
+        use game::plugins::player::PlayerPlugin;
+        app.add_plugin(PlayerPlugin);
+    }
 
     #[cfg(feature = "debug")] {
         use game::plugins::debug::DebugPlugin;

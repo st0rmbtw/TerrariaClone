@@ -4,6 +4,7 @@ pub mod cursor;
 pub mod fps;
 pub mod inventory;
 pub mod menu;
+#[cfg(not(feature = "free_camera"))]
 pub mod player;
 pub mod settings;
 pub mod camera;
