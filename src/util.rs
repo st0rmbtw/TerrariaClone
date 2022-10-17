@@ -2,7 +2,7 @@ use std::ops::Mul;
 
 use bevy::{
     ecs::system::EntityCommands,
-    prelude::{default, Button, Changed, Component, Query, With, Vec2, Quat},
+    prelude::{default, Button, Changed, Component, Query, With, Vec2},
     ui::{Interaction, UiRect, Val},
 };
 
