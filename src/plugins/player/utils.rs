@@ -1,8 +1,8 @@
-use bevy::{prelude::{Query, With, Component, Vec2}, sprite::TextureAtlasSprite};
+use bevy::{prelude::{Query, With, Component, Vec2, Quat}, sprite::TextureAtlasSprite};
 
 use crate::{state::MovementState, util::FRect};
 
-use super::{Player, AnimationData, PlayerBodySprite, PLAYER_WIDTH, PLAYER_HEIGHT};
+use super::{Player, AnimationData, PlayerBodySprite, PLAYER_WIDTH, PLAYER_HEIGHT, FaceDirection};
 
 pub fn simple_animation<C: AnimationData + Component>(
     mut query: Query<
@@ -66,4 +66,13 @@ pub fn round(number: f32, multiple: f32) -> f32 {
     result *= number.signum();
 
     result
+}
+
+pub fn get_rotation_by_direction(direction: FaceDirection) -> Quat {
+    let start_rotation = match direction {
+        FaceDirection::LEFT => -0.5,
+        FaceDirection::RIGHT => 2.,
+    };
+
+    Quat::from_rotation_z(start_rotation)
 }
