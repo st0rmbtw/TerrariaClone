@@ -14,9 +14,6 @@ use super::ui::UiVisibility;
 
 pub const SPAWN_PLAYER_UI_LABEL: &str = "spawn_player_ui";
 
-const ITEMS_STRING: &str = "Items";
-const INVENTORY_STRING: &str = "Inventory";
-
 // 5 is a total count of inventory rows. -1 because the hotbar is a first row
 const INVENTORY_ROWS_COUNT: usize = 5 - 1;
 

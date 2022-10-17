@@ -1,9 +1,9 @@
+use std::error::Error;
+
 use bevy::{
     asset::AssetServerSettings,
     prelude::*,
-    render::{
-        texture::ImageSettings,
-    },
+    render::texture::ImageSettings,
     window::{PresentMode, WindowMode},
 };
 use bevy_ecs_tilemap::TilemapPlugin;
@@ -12,17 +12,23 @@ use game::{
     animation::TweeningPlugin,
     parallax::ParallaxPlugin,
     state::GameState, 
-    plugins::{assets::AssetsPlugin, cursor::CursorPlugin, camera::CameraPlugin, background::BackgroundPlugin, ui::PlayerUiPlugin, settings::SettingsPlugin, menu::MenuPlugin, world::WorldPlugin, player::PlayerPlugin, fps::FpsPlugin},
+    plugins::{assets::AssetsPlugin, cursor::CursorPlugin, camera::CameraPlugin, background::BackgroundPlugin, ui::PlayerUiPlugin, settings::SettingsPlugin, menu::MenuPlugin, world::WorldPlugin, player::PlayerPlugin, fps::FpsPlugin}, language::{load_language, Language},
 };
 use iyes_loopless::prelude::AppLooplessStateExt;
+use rand::seq::SliceRandom;
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
+    let language_content = load_language(Language::US)?;
+
+    let title = language_content.titles.choose(&mut rand::thread_rng()).unwrap();
+
     let mut app = App::new();
 
     app
+        .insert_resource(language_content.clone())
         .insert_resource(Msaa { samples: 4 })
         .insert_resource(WindowDescriptor {
-            title: "Terraria".to_string(),
+            title: title.to_owned(),
             present_mode: PresentMode::Fifo,
             cursor_visible: false,
             position: WindowPosition::Centered(MonitorSelection::Current),
@@ -62,4 +68,6 @@ fn main() {
     }
 
     app.run();
+
+    Ok(())
 }

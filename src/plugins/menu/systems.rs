@@ -5,7 +5,7 @@ use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveE
 use interpolation::EaseFunction;
 use iyes_loopless::state::NextState;
 
-use crate::{animation::{Tween, TweeningType, Animator, AnimatorState, TweeningDirection}, lens::TextFontSizeLens, parallax::ParallaxCameraComponent, plugins::{camera::MainCamera, assets::FontAssets}, TRANSPARENT, util::RectExtensions, TEXT_COLOR, state::GameState};
+use crate::{animation::{Tween, TweeningType, Animator, AnimatorState, TweeningDirection}, lens::TextFontSizeLens, parallax::ParallaxCameraComponent, plugins::{camera::MainCamera, assets::FontAssets}, TRANSPARENT, util::RectExtensions, TEXT_COLOR, state::GameState, language::LanguageContent};
 
 use super::{Menu, SinglePlayerButton, SettingsButton, ExitButton};
 
@@ -39,7 +39,7 @@ pub fn setup_camera(mut commands: Commands) {
 pub fn menu_button(
     children: &mut ChildBuilder,
     text_style: TextStyle,
-    button_name: &str,
+    button_name: String,
     marker: impl Component,
 ) {
     children
@@ -66,7 +66,11 @@ pub fn menu_button(
         });
 }
 
-pub fn setup_main_menu(mut commands: Commands, fonts: Res<FontAssets>) {
+pub fn setup_main_menu(
+    mut commands: Commands, 
+    fonts: Res<FontAssets>,
+    language_content: Res<LanguageContent>
+) {
     let text_style = TextStyle {
         font: fonts.andy_bold.clone(),
         font_size: 48.,
@@ -93,11 +97,21 @@ pub fn setup_main_menu(mut commands: Commands, fonts: Res<FontAssets>) {
             menu_button(
                 children,
                 text_style.clone(),
-                "Single Player",
+                language_content.ui.single_player.clone(),
                 SinglePlayerButton,
             );
-            menu_button(children, text_style.clone(), "Settings", SettingsButton);
-            menu_button(children, text_style.clone(), "Exit", ExitButton);
+            menu_button(
+                children, 
+                text_style.clone(), 
+                language_content.ui.settings.clone(), 
+                SettingsButton
+            );
+            menu_button(
+                children, 
+                text_style.clone(), 
+                language_content.ui.exit.clone(), 
+                ExitButton
+            );
         });
 }
 

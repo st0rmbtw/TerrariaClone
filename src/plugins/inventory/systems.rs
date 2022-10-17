@@ -3,15 +3,16 @@ use std::borrow::Cow;
 use autodefault::autodefault;
 use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, Size, PositionType, AlignContent, Interaction}, text::{Text, TextStyle, TextAlignment}};
 
-use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets}, cursor::HoveredInfo}, TRANSPARENT, util::{EntityCommandsExtensions, RectExtensions}};
+use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets}, cursor::HoveredInfo}, TRANSPARENT, util::{EntityCommandsExtensions, RectExtensions}, language::LanguageContent};
 
-use super::{Inventory, HOTBAR_LENGTH, SelectedItem, SelectedItemNameMarker, INVENTORY_STRING, ITEMS_STRING, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, KEYCODE_TO_DIGIT, CELL_COUNT_IN_ROW, INVENTORY_ROWS_COUNT, HotbarUi};
+use super::{Inventory, HOTBAR_LENGTH, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, KEYCODE_TO_DIGIT, CELL_COUNT_IN_ROW, INVENTORY_ROWS_COUNT, HotbarUi};
 
 #[autodefault]
 pub fn spawn_inventory_ui(
     commands: &mut Commands,
     ui_assets: &UiAssets,
     fonts: &FontAssets,
+    language_content: &LanguageContent
 ) -> Entity {
     commands
         .spawn_bundle(NodeBundle {
@@ -39,7 +40,7 @@ pub fn spawn_inventory_ui(
                         align_self: AlignSelf::Center,
                     },
                     text: Text::from_section(
-                        "".to_string(),
+                        language_content.ui.items.clone(),
                         TextStyle {
                             font: fonts.andy_bold.clone(),
                             font_size: 20.,
@@ -304,20 +305,21 @@ pub fn update_selected_item_name_text(
     mut selected_item_name_query: Query<&mut Text, With<SelectedItemNameMarker>>,
     current_item: Res<SelectedItem>,
     extra_ui_visibility: Res<ExtraUiVisibility>,
+    language_content: Res<LanguageContent>
 ) {
     if current_item.is_changed() || extra_ui_visibility.is_changed() {
         let mut text = selected_item_name_query.single_mut();
 
         text.sections[0].value = if extra_ui_visibility.0 {
-            INVENTORY_STRING.to_string()
+            language_content.ui.inventory.clone()
         } else {
             let name = current_item
                 .0
                 .map(|item_stack| item_stack.item);
 
             name
-                .map(|item| item.name().to_string())
-                .unwrap_or(ITEMS_STRING.to_string())
+                .map(|item| item.name(&language_content))
+                .unwrap_or(language_content.ui.items.clone())
         }
     }
 }
@@ -381,13 +383,14 @@ pub fn inventory_cell_background_hover(
     query: Query<(&Interaction, &InventoryCellIndex), Changed<Interaction>>,
     inventory: Res<Inventory>,
     mut info: ResMut<HoveredInfo>,
+    language_content: Res<LanguageContent>
 ) {
     for (interaction, cell_index) in &query {
         if let Some(item_stack) = inventory.get_item(cell_index.0) {
             info.0 = match interaction {
                 Interaction::None => "".to_string(),
                 _ => {
-                    let mut name = item_stack.item.name().to_owned();
+                    let mut name = item_stack.item.name(&language_content).to_owned();
                     
                     if item_stack.stack > 1 {
                         name.push_str(&format!(" ({})", item_stack.stack.to_string()));

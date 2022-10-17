@@ -4,12 +4,16 @@ use autodefault::autodefault;
 use bevy::{prelude::{Query, Visibility, With, EventReader, Button, Name, Color, TextBundle, Entity, Commands, NodeBundle, BuildChildren, Changed}, ui::{Interaction, Style, UiRect, Val, AlignItems, JustifyContent, Size}, text::{TextAlignment, TextStyle, Text}};
 use interpolation::EaseFunction;
 
-use crate::{plugins::{ui::ToggleExtraUiEvent, assets::FontAssets}, animation::{Animator, Tween, TweeningType, TweeningDirection}, TRANSPARENT, lens::TextFontSizeLens};
+use crate::{plugins::{ui::ToggleExtraUiEvent, assets::FontAssets}, animation::{Animator, Tween, TweeningType, TweeningDirection}, TRANSPARENT, lens::TextFontSizeLens, language::LanguageContent};
 
 use super::{SettingsButtonContainer, SettingsButtonText};
 
 #[autodefault(except(TextFontSizeLens))]
-pub fn spawn_ingame_settings_button(commands: &mut Commands, fonts: &FontAssets) -> Entity {
+pub fn spawn_ingame_settings_button(
+    commands: &mut Commands, 
+    fonts: &FontAssets,
+    language_content: &LanguageContent
+) -> Entity {
     let tween = Tween::new(
         EaseFunction::QuadraticInOut,
         TweeningType::Once,
@@ -42,7 +46,7 @@ pub fn spawn_ingame_settings_button(commands: &mut Commands, fonts: &FontAssets)
                     flex_shrink: 0.,
                 },
                 text: Text::from_section(
-                    "Settings".to_string(),
+                    language_content.ui.settings.clone(),
                     TextStyle {
                         font: fonts.andy_bold.clone(),
                         font_size: 32.,
