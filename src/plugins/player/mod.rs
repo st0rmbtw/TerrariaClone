@@ -83,7 +83,6 @@ impl Plugin for PlayerPlugin {
 
                     .into(),
             )
-            .add_system(use_item)
             .add_system_set_to_stage(
                 CoreStage::PostUpdate,
                 ConditionSet::new()

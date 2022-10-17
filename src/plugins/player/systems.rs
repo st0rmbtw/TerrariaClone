@@ -729,29 +729,6 @@ pub fn use_item_animation(
     });
 }
 
-pub fn use_item(
-    input: Res<Input<MouseButton>>,
-    cursor: Res<CursorPosition>,
-    inventory: Res<Inventory>,
-    mut block_place_event_writer: EventWriter<BlockPlaceEvent>
-) {
-    if input.pressed(MouseButton::Left) {
-        let selected_item_index = inventory.selected_slot;
-
-        if let Some(item_stack) = inventory.selected_item() {
-            match item_stack.item {
-                Item::Pickaxe(_) => (),
-                Item::Block(block) => {
-                    let tile_pos = get_tile_coords(cursor.world_position);
-                    block_place_event_writer.send(
-                        BlockPlaceEvent { tile_pos, block, inventory_item_index: selected_item_index }
-                    );
-                },
-            }
-        }
-    }
-}
-
 // TODO: Debug function, remove in feature
 #[cfg(feature = "debug")]
 pub fn set_sprite_index(

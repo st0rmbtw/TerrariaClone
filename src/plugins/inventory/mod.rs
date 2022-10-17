@@ -55,6 +55,7 @@ impl Plugin for PlayerInventoryPlugin {
                     .with_system(scroll_select_item)
                     .with_system(select_item)
                     .with_system(set_selected_item)
+                    .with_system(use_item)
                     .into(),
             )
             .add_system_set(
