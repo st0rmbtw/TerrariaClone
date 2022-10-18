@@ -9,6 +9,8 @@ use crate::{block::Block, wall::Wall as WallType};
 pub const WORLD_SIZE_X: usize = 1750;
 pub const WORLD_SIZE_Y: usize = 900;
 
+pub type CellArray = Array2<Cell>;
+
 #[derive(Clone, Copy)]
 pub struct Level {
     pub sky: (usize, usize),
@@ -22,17 +24,6 @@ pub struct Neighbors {
     pub bottom: bool,
     pub left: bool,
     pub right: bool,
-}
-
-impl Neighbors {
-    pub fn or(&self, neighbors: Neighbors) -> Neighbors {
-        Neighbors { 
-            top: self.top || neighbors.top, 
-            bottom: self.bottom || neighbors.bottom, 
-            left: self.left || neighbors.left, 
-            right: self.right || neighbors.right 
-        }
-    }
 }
 
 impl Neighbors {
@@ -56,9 +47,7 @@ impl Neighbors {
     pub const TOP_BOTTOM_RIGHT: Neighbors = Neighbors { top: true, bottom: true, right: true, ..Neighbors::NONE };
     pub const TOP_LEFT_RIGHT: Neighbors = Neighbors { top: true, left: true, right: true, ..Neighbors::NONE };
     pub const BOTTOM_LEFT_RIGHT: Neighbors = Neighbors { bottom: true, left: true, right: true, ..Neighbors::NONE };
-}
 
-impl Neighbors {
     pub fn is_all(&self) -> bool {
         self.top && self.bottom && self.left && self.right
     }
@@ -66,8 +55,104 @@ impl Neighbors {
     pub fn is_none(&self) -> bool {
         !self.top && !self.bottom && !self.left && !self.right
     }
+
+    pub fn or(&self, neighbors: Neighbors) -> Neighbors {
+        Neighbors { 
+            top: self.top || neighbors.top, 
+            bottom: self.bottom || neighbors.bottom, 
+            left: self.left || neighbors.left, 
+            right: self.right || neighbors.right 
+        }
+    }
+
+    pub fn not(&self) -> Neighbors {
+        Neighbors { 
+            top: !self.top, 
+            bottom: !self.bottom, 
+            left: !self.left, 
+            right: !self.right 
+        }
+    }
 }
 
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct DirtConnections {
+    pub top: bool,
+    pub bottom: bool,
+    pub left: bool,
+    pub right: bool,
+}
+
+impl DirtConnections {
+    pub const NONE: DirtConnections = DirtConnections { top: false, bottom: false, left: false, right: false };
+    pub const ALL: DirtConnections = DirtConnections { top: true, bottom: true, left: true, right: true };
+
+    pub const TOP: DirtConnections = DirtConnections { top: true, ..DirtConnections::NONE };
+    pub const BOTTOM: DirtConnections = DirtConnections { bottom: true, ..DirtConnections::NONE };
+    pub const LEFT: DirtConnections = DirtConnections { left: true, ..DirtConnections::NONE };
+    pub const RIGHT: DirtConnections = DirtConnections { right: true, ..DirtConnections::NONE };
+
+    pub const TOP_BOTTOM: DirtConnections = DirtConnections { top: true, bottom: true, ..DirtConnections::NONE };
+    pub const LEFT_RIGHT: DirtConnections = DirtConnections { left: true, right: true, ..DirtConnections::NONE };
+
+    pub const TOP_LEFT: DirtConnections = DirtConnections { top: true, left: true, ..DirtConnections::NONE };
+    pub const TOP_RIGHT: DirtConnections = DirtConnections { top: true, right: true, ..DirtConnections::NONE };
+    pub const BOTTOM_LEFT: DirtConnections = DirtConnections { bottom: true, left: true, ..DirtConnections::NONE };
+    pub const BOTTOM_RIGHT: DirtConnections = DirtConnections { bottom: true, right: true, ..DirtConnections::NONE };
+
+    pub const TOP_BOTTOM_LEFT: DirtConnections = DirtConnections { top: true, bottom: true, left: true, ..DirtConnections::NONE };
+    pub const TOP_BOTTOM_RIGHT: DirtConnections = DirtConnections { top: true, bottom: true, right: true, ..DirtConnections::NONE };
+    pub const TOP_LEFT_RIGHT: DirtConnections = DirtConnections { top: true, left: true, right: true, ..DirtConnections::NONE };
+    pub const BOTTOM_LEFT_RIGHT: DirtConnections = DirtConnections { bottom: true, left: true, right: true, ..DirtConnections::NONE };
+
+    pub fn any(&self) -> bool {
+        self.left || self.right || self.top || self.bottom
+    }
+}
+
+impl DirtConnections {
+    fn and(&self, other: Neighbors) -> DirtConnections {
+        DirtConnections { 
+            top: self.top && other.top,
+            bottom: self.bottom && other.bottom,
+            left: self.left && other.left,
+            right: self.right && other.right
+        }
+    }
+}
+
+/* #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DirtConnection {
+    Vertical,
+    Horizontal,
+    Top,
+    Bottom,
+    Left,
+    Right,
+    TopLeft,
+    TopRight,
+    BottomLeft,
+    BottomRight
+}
+
+impl DirtConnection {
+    fn require_neighbors(&self) -> Neighbors {
+        match self {
+            DirtConnection::Vertical => Neighbors::TOP_BOTTOM,
+            DirtConnection::Horizontal => Neighbors::LEFT_RIGHT,
+            DirtConnection::Top => Neighbors::TOP,
+            DirtConnection::Bottom => Neighbors::BOTTOM,
+            DirtConnection::Left => Neighbors::LEFT,
+            DirtConnection::Right => Neighbors::RIGHT,
+            DirtConnection::TopLeft => Neighbors::TOP_LEFT,
+            DirtConnection::TopRight => Neighbors::TOP_RIGHT,
+            DirtConnection::BottomLeft => Neighbors::BOTTOM_LEFT,
+            DirtConnection::BottomRight => Neighbors::BOTTOM_RIGHT,
+        }
+    }
+}
+ */
 #[derive(Clone, Copy)]
 pub struct Wall {
     pub wall_type: WallType,
@@ -78,7 +163,9 @@ pub struct Wall {
 pub struct Tile {
     pub tile_type: Block,
     pub neighbors: Neighbors,
+    pub dirt_connections: DirtConnections
 }
+
 #[derive(Clone, Copy, Default)]
 pub struct Cell {
     pub tile: Option<Tile>,
@@ -86,7 +173,7 @@ pub struct Cell {
 }
 
 #[autodefault(except(Level, Tile, Wall))]
-pub fn generate(seed: u32) -> Array2<Cell> {
+pub fn generate(seed: u32) -> CellArray {
     // region: Init world
 
     let mut rng = StdRng::seed_from_u64(seed as u64);
@@ -98,6 +185,7 @@ pub fn generate(seed: u32) -> Array2<Cell> {
         tile: Some(Tile {
             tile_type: Block::Stone,
             neighbors: Neighbors::default(),
+            dirt_connections: DirtConnections::default()
         }),
     });
 
@@ -176,10 +264,12 @@ pub fn generate(seed: u32) -> Array2<Cell> {
 
     set_tile_neighbors(&mut world);
 
+    set_tile_dirt_connections(&mut world);
+
     world
 }
 
-fn remove_extra_walls(world: &mut Array2<Cell>) {
+fn remove_extra_walls(world: &mut CellArray) {
     for x in 0..WORLD_SIZE_X {
         let mut y: usize = 0;
 
@@ -221,13 +311,14 @@ fn insert_specks<F: NoiseFn<f64, 2>>(
                 world[[y, x]].tile = Some(Tile {
                     tile_type: speck_block,
                     neighbors: Neighbors::default(),
+                    dirt_connections: DirtConnections::default(),
                 });
             }
         }
     }
 }
 
-fn add_grass(world: &mut Array2<Cell>, level: Level) {
+fn add_grass(world: &mut CellArray, level: Level) {
     println!("Adding grass...");
 
     for x in 0..world.ncols() {
@@ -249,6 +340,7 @@ fn add_grass(world: &mut Array2<Cell>, level: Level) {
                     world[[y, x]].tile = Some(Tile {
                         tile_type: Block::Grass,
                         neighbors: Neighbors::default(),
+                        dirt_connections: DirtConnections::default(),
                     });
                 }
             }
@@ -260,7 +352,7 @@ fn add_grass(world: &mut Array2<Cell>, level: Level) {
 }
 
 fn make_surface_rough<F: NoiseFn<f64, 2>>(
-    world: &mut Array2<Cell>,
+    world: &mut CellArray,
     terrain_noise: F,
     start_y: usize,
     q: f64,
@@ -287,7 +379,7 @@ fn make_surface_rough<F: NoiseFn<f64, 2>>(
 }
 
 fn make_epic_cave<F: NoiseFn<f64, 2>>(
-    world: &mut Array2<Cell>,
+    world: &mut CellArray,
     epic_cave_noise: F,
     frequency: f64,
     threshold: f64,
@@ -313,7 +405,7 @@ fn make_epic_cave<F: NoiseFn<f64, 2>>(
 }
 
 fn make_caves<F: NoiseFn<f64, 2>>(
-    world: &mut Array2<Cell>,
+    world: &mut CellArray,
     noise: F,
     max_level: usize,
     frequency: f64,
@@ -346,7 +438,7 @@ fn make_caves<F: NoiseFn<f64, 2>>(
     make_small_caves(world, noise, max_level);
 }
 
-fn make_small_caves<F: NoiseFn<f64, 2>>(world: &mut Array2<Cell>, noise: F, max_level: usize) {
+fn make_small_caves<F: NoiseFn<f64, 2>>(world: &mut CellArray, noise: F, max_level: usize) {
     let q = 120.;
 
     for y in 0..world.nrows() {
@@ -383,6 +475,7 @@ fn replace<D: Dimension>(
             cell.tile = replacement.map(|block| Tile {
                 tile_type: block,
                 neighbors: Neighbors::default(),
+                dirt_connections: DirtConnections::default(),
             })
         }
     }
@@ -390,7 +483,7 @@ fn replace<D: Dimension>(
 
 #[inline]
 fn insert_stone_specks_into_dirt<F: NoiseFn<f64, 2>>(
-    world: &mut Array2<Cell>,
+    world: &mut CellArray,
     level: Level,
     noise: F,
 ) {
@@ -407,7 +500,7 @@ fn insert_stone_specks_into_dirt<F: NoiseFn<f64, 2>>(
 
 #[inline]
 fn insert_dirt_specks_into_stone<F: NoiseFn<f64, 2>>(
-    world: &mut Array2<Cell>,
+    world: &mut CellArray,
     level: Level,
     noise: F,
 ) {
@@ -422,7 +515,7 @@ fn insert_dirt_specks_into_stone<F: NoiseFn<f64, 2>>(
     );
 }
 
-fn set_tile_neighbors(world: &mut Array2<Cell>) {
+fn set_tile_neighbors(world: &mut CellArray) {
     for y in 0..WORLD_SIZE_Y {
         for x in 0..WORLD_SIZE_X {
             if let Some(cell) = world.get((y, x)).cloned() {
@@ -491,4 +584,66 @@ fn set_tile_neighbors(world: &mut Array2<Cell>) {
             }
         }
     }
+}
+
+fn set_tile_dirt_connections(world: &mut CellArray) {
+    for y in 0..WORLD_SIZE_Y {
+        for x in 0..WORLD_SIZE_X {
+            if let Some(cell) = world.get((y, x)).cloned() {
+                let mut new_tile = cell.tile;
+
+                if let Some(tile) = &mut new_tile {
+                    tile.dirt_connections = get_dirt_connection((y, x), tile.tile_type, world);
+                } 
+
+                world[[y, x]] = Cell {
+                    tile: new_tile,
+                    ..cell
+                };
+            }
+        }
+    }
+}
+
+fn get_dirt_connection(tile_pos: (usize, usize), block: Block, world: &CellArray) -> DirtConnections {
+    let y = tile_pos.0;
+    let x = tile_pos.1;
+
+    let mut dirt_connections = DirtConnections::default();
+
+    if x != 0 {
+        dirt_connections.left = world.get((y, x - 1)).and_then(|cell| cell.tile).filter(|tile| tile.tile_type == Block::Dirt).is_some();
+    }
+
+    if x != WORLD_SIZE_X - 1 {
+        dirt_connections.right = world.get((y, x + 1)).and_then(|cell| cell.tile).filter(|tile| tile.tile_type == Block::Dirt).is_some();
+    }
+
+    if y != 0 {
+        dirt_connections.top = world.get((y - 1, x)).and_then(|cell| cell.tile).filter(|tile| tile.tile_type == Block::Dirt).is_some();
+    }
+
+    if y != WORLD_SIZE_Y - 1 {
+        dirt_connections.bottom = world.get((y + 1, x)).and_then(|cell| cell.tile).filter(|tile| tile.tile_type == Block::Dirt).is_some();
+    }
+
+    let mut neighbors = Neighbors::default();
+
+    if x != 0 {
+        neighbors.left = world.get((y, x - 1)).and_then(|cell| cell.tile).filter(|tile| tile.tile_type == block).is_some();
+    }
+
+    if x != WORLD_SIZE_X - 1 {
+        neighbors.right = world.get((y, x + 1)).and_then(|cell| cell.tile).filter(|tile| tile.tile_type == block).is_some();
+    }
+
+    if y != 0 {
+        neighbors.top = world.get((y - 1, x)).and_then(|cell| cell.tile).filter(|tile| tile.tile_type == block).is_some();
+    }
+
+    if y != WORLD_SIZE_Y - 1 {
+        neighbors.bottom = world.get((y + 1, x)).and_then(|cell| cell.tile).filter(|tile| tile.tile_type == block).is_some();
+    }
+
+    dirt_connections.and(neighbors.not())
 }

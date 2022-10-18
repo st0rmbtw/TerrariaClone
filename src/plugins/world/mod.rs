@@ -26,7 +26,7 @@ const CHUNKMAP_SIZE: TilemapSize = TilemapSize {
     y: CHUNK_SIZE as u32,
 };
 
-const MAP_SIZE: TilemapSize = TilemapSize {
+pub const MAP_SIZE: TilemapSize = TilemapSize {
     x: WORLD_SIZE_X as u32,
     y: WORLD_SIZE_Y as u32
 };
