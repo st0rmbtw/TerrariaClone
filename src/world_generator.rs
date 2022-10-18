@@ -75,84 +75,57 @@ impl Neighbors {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
+pub enum DirtConnection {
+    Connected,
+    // Is connected with the same tile
+    NotConnected(bool)
+}
+
+impl Default for DirtConnection {
+    fn default() -> Self {
+        Self::NotConnected(false)
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct DirtConnections {
-    pub top: bool,
-    pub bottom: bool,
-    pub left: bool,
-    pub right: bool,
+    pub top: DirtConnection,
+    pub bottom: DirtConnection,
+    pub left: DirtConnection,
+    pub right: DirtConnection,
 }
 
 impl DirtConnections {
-    pub const NONE: DirtConnections = DirtConnections { top: false, bottom: false, left: false, right: false };
-    pub const ALL: DirtConnections = DirtConnections { top: true, bottom: true, left: true, right: true };
+//     pub const NONE: DirtConnections = DirtConnections { top: DirtConnection::NotConnected(false), bottom: DirtConnection::NotConnected(false), left: DirtConnection::NotConnected(false), right: DirtConnection::NotConnected(false) };
+//     pub const ALL: DirtConnections = DirtConnections { top: true, bottom: true, left: true, right: true };
 
-    pub const TOP: DirtConnections = DirtConnections { top: true, ..DirtConnections::NONE };
-    pub const BOTTOM: DirtConnections = DirtConnections { bottom: true, ..DirtConnections::NONE };
-    pub const LEFT: DirtConnections = DirtConnections { left: true, ..DirtConnections::NONE };
-    pub const RIGHT: DirtConnections = DirtConnections { right: true, ..DirtConnections::NONE };
+//     pub const TOP: DirtConnections = DirtConnections { top: true, ..DirtConnections::NONE };
+//     pub const BOTTOM: DirtConnections = DirtConnections { bottom: true, ..DirtConnections::NONE };
+//     pub const LEFT: DirtConnections = DirtConnections { left: true, ..DirtConnections::NONE };
+//     pub const RIGHT: DirtConnections = DirtConnections { right: true, ..DirtConnections::NONE };
 
-    pub const TOP_BOTTOM: DirtConnections = DirtConnections { top: true, bottom: true, ..DirtConnections::NONE };
-    pub const LEFT_RIGHT: DirtConnections = DirtConnections { left: true, right: true, ..DirtConnections::NONE };
+//     pub const TOP_BOTTOM: DirtConnections = DirtConnections { top: true, bottom: true, ..DirtConnections::NONE };
+//     pub const LEFT_RIGHT: DirtConnections = DirtConnections { left: true, right: true, ..DirtConnections::NONE };
 
-    pub const TOP_LEFT: DirtConnections = DirtConnections { top: true, left: true, ..DirtConnections::NONE };
-    pub const TOP_RIGHT: DirtConnections = DirtConnections { top: true, right: true, ..DirtConnections::NONE };
-    pub const BOTTOM_LEFT: DirtConnections = DirtConnections { bottom: true, left: true, ..DirtConnections::NONE };
-    pub const BOTTOM_RIGHT: DirtConnections = DirtConnections { bottom: true, right: true, ..DirtConnections::NONE };
+//     pub const TOP_LEFT: DirtConnections = DirtConnections { top: true, left: true, ..DirtConnections::NONE };
+//     pub const TOP_RIGHT: DirtConnections = DirtConnections { top: true, right: true, ..DirtConnections::NONE };
+//     pub const BOTTOM_LEFT: DirtConnections = DirtConnections { bottom: true, left: true, ..DirtConnections::NONE };
+//     pub const BOTTOM_RIGHT: DirtConnections = DirtConnections { bottom: true, right: true, ..DirtConnections::NONE };
 
-    pub const TOP_BOTTOM_LEFT: DirtConnections = DirtConnections { top: true, bottom: true, left: true, ..DirtConnections::NONE };
-    pub const TOP_BOTTOM_RIGHT: DirtConnections = DirtConnections { top: true, bottom: true, right: true, ..DirtConnections::NONE };
-    pub const TOP_LEFT_RIGHT: DirtConnections = DirtConnections { top: true, left: true, right: true, ..DirtConnections::NONE };
-    pub const BOTTOM_LEFT_RIGHT: DirtConnections = DirtConnections { bottom: true, left: true, right: true, ..DirtConnections::NONE };
+//     pub const TOP_BOTTOM_LEFT: DirtConnections = DirtConnections { top: true, bottom: true, left: true, ..DirtConnections::NONE };
+//     pub const TOP_BOTTOM_RIGHT: DirtConnections = DirtConnections { top: true, bottom: true, right: true, ..DirtConnections::NONE };
+//     pub const TOP_LEFT_RIGHT: DirtConnections = DirtConnections { top: true, left: true, right: true, ..DirtConnections::NONE };
+//     pub const BOTTOM_LEFT_RIGHT: DirtConnections = DirtConnections { bottom: true, left: true, right: true, ..DirtConnections::NONE };
 
     pub fn any(&self) -> bool {
-        self.left || self.right || self.top || self.bottom
+        self.left == DirtConnection::Connected || 
+        self.right == DirtConnection::Connected || 
+        self.top == DirtConnection::Connected || 
+        self.bottom == DirtConnection::Connected
     }
 }
 
-impl DirtConnections {
-    fn and(&self, other: Neighbors) -> DirtConnections {
-        DirtConnections { 
-            top: self.top && other.top,
-            bottom: self.bottom && other.bottom,
-            left: self.left && other.left,
-            right: self.right && other.right
-        }
-    }
-}
-
-/* #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DirtConnection {
-    Vertical,
-    Horizontal,
-    Top,
-    Bottom,
-    Left,
-    Right,
-    TopLeft,
-    TopRight,
-    BottomLeft,
-    BottomRight
-}
-
-impl DirtConnection {
-    fn require_neighbors(&self) -> Neighbors {
-        match self {
-            DirtConnection::Vertical => Neighbors::TOP_BOTTOM,
-            DirtConnection::Horizontal => Neighbors::LEFT_RIGHT,
-            DirtConnection::Top => Neighbors::TOP,
-            DirtConnection::Bottom => Neighbors::BOTTOM,
-            DirtConnection::Left => Neighbors::LEFT,
-            DirtConnection::Right => Neighbors::RIGHT,
-            DirtConnection::TopLeft => Neighbors::TOP_LEFT,
-            DirtConnection::TopRight => Neighbors::TOP_RIGHT,
-            DirtConnection::BottomLeft => Neighbors::BOTTOM_LEFT,
-            DirtConnection::BottomRight => Neighbors::BOTTOM_RIGHT,
-        }
-    }
-}
- */
 #[derive(Clone, Copy)]
 pub struct Wall {
     pub wall_type: WallType,
@@ -612,38 +585,60 @@ fn get_dirt_connection(tile_pos: (usize, usize), block: Block, world: &CellArray
     let mut dirt_connections = DirtConnections::default();
 
     if x != 0 {
-        dirt_connections.left = world.get((y, x - 1)).and_then(|cell| cell.tile).filter(|tile| tile.tile_type == Block::Dirt).is_some();
+        let tile = world.get((y, x - 1)).and_then(|cell| cell.tile);
+
+        dirt_connections.left = if let Some(tile) = tile {
+            if tile.tile_type == Block::Dirt {
+                DirtConnection::Connected
+            } else {
+                DirtConnection::NotConnected(tile.tile_type == block)
+            }
+        } else {
+            DirtConnection::NotConnected(false)
+        }
     }
 
     if x != WORLD_SIZE_X - 1 {
-        dirt_connections.right = world.get((y, x + 1)).and_then(|cell| cell.tile).filter(|tile| tile.tile_type == Block::Dirt).is_some();
+        let tile = world.get((y, x + 1)).and_then(|cell| cell.tile);
+
+        dirt_connections.right = if let Some(tile) = tile {
+            if tile.tile_type == Block::Dirt {
+                DirtConnection::Connected
+            } else {
+                DirtConnection::NotConnected(tile.tile_type == block)
+            }
+        } else {
+            DirtConnection::NotConnected(false)
+        }
     }
 
-    if y != 0 {
-        dirt_connections.top = world.get((y - 1, x)).and_then(|cell| cell.tile).filter(|tile| tile.tile_type == Block::Dirt).is_some();
+    if y != 0 { 
+        let tile = world.get((y - 1, x)).and_then(|cell| cell.tile);
+
+        dirt_connections.top = if let Some(tile) = tile {
+            if tile.tile_type == Block::Dirt {
+                DirtConnection::Connected
+            } else {
+                DirtConnection::NotConnected(tile.tile_type == block)
+            }
+        } else {
+            DirtConnection::NotConnected(false)
+        }
     }
 
     if y != WORLD_SIZE_Y - 1 {
-        dirt_connections.bottom = world.get((y + 1, x)).and_then(|cell| cell.tile).filter(|tile| tile.tile_type == Block::Dirt).is_some();
+        let tile =  world.get((y + 1, x)).and_then(|cell| cell.tile);
+
+        dirt_connections.bottom = if let Some(tile) = tile {
+            if tile.tile_type == Block::Dirt {
+                DirtConnection::Connected
+            } else {
+                DirtConnection::NotConnected(tile.tile_type == block)
+            }
+        } else {
+            DirtConnection::NotConnected(false)
+        }
     }
 
-    let mut neighbors = Neighbors::default();
-
-    if x != 0 {
-        neighbors.left = world.get((y, x - 1)).and_then(|cell| cell.tile).filter(|tile| tile.tile_type == block).is_some();
-    }
-
-    if x != WORLD_SIZE_X - 1 {
-        neighbors.right = world.get((y, x + 1)).and_then(|cell| cell.tile).filter(|tile| tile.tile_type == block).is_some();
-    }
-
-    if y != 0 {
-        neighbors.top = world.get((y - 1, x)).and_then(|cell| cell.tile).filter(|tile| tile.tile_type == block).is_some();
-    }
-
-    if y != WORLD_SIZE_Y - 1 {
-        neighbors.bottom = world.get((y + 1, x)).and_then(|cell| cell.tile).filter(|tile| tile.tile_type == block).is_some();
-    }
-
-    dirt_connections.and(neighbors.not())
+    dirt_connections
 }

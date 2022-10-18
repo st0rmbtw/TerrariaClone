@@ -2,7 +2,7 @@ use bevy::prelude::{Vec2, OrthographicProjection, UVec2};
 use bevy_ecs_tilemap::tiles::TilePos;
 use rand::{thread_rng, Rng};
 
-use crate::{util::FRect, world_generator::{Neighbors, DirtConnections}};
+use crate::{util::FRect, world_generator::{Neighbors, DirtConnections, DirtConnection}};
 
 use super::{CHUNK_SIZE_U, ChunkPos};
 
@@ -68,23 +68,48 @@ pub fn get_tile_sprite_index_by_neighbors(slope: Neighbors) -> u32 {
 pub fn get_tile_sprite_index_by_dirt_connections(dirt_connections: DirtConnections) -> u32 {
     let rand: u32 = thread_rng().gen_range(1..3);
 
+    /* DirtConnections::ALL => 16 * 11 + rand + 5,
+    DirtConnections::TOP => 16 * 6 + rand + 7,
+    DirtConnections::BOTTOM => 16 * 5 + rand + 7,
+    DirtConnections::LEFT => (7 + rand - 1) * 16 + 9,
+    DirtConnections::RIGHT => (7 + rand - 1) * 16 + 8,
+    DirtConnections::TOP_BOTTOM => (12 + rand - 1) * 16 + 6,
+    DirtConnections::TOP_LEFT_RIGHT => (5 + rand - 1) * 16 + 11,
+    DirtConnections::BOTTOM_LEFT_RIGHT => (8 + rand - 1) * 16 + 11,
+    DirtConnections::LEFT_RIGHT => 11 * 16 + 8 + rand,
+    DirtConnections::BOTTOM_LEFT => (6 + rand * 2) * 16 + 2,
+    DirtConnections::BOTTOM_RIGHT => (6 + rand * 2) * 16 + 3,
+    DirtConnections::TOP_LEFT => (5 + (rand - 1) * 2) * 16 + 2,
+    DirtConnections::TOP_RIGHT => (5 + (rand - 1) * 2) * 16 + 3,
+    DirtConnections::TOP_BOTTOM_LEFT => (5 + rand - 1) * 16 + 12,
+    DirtConnections::TOP_BOTTOM_RIGHT => (8 + rand - 1) * 16 + 12, */
+
     match dirt_connections {
-        DirtConnections::NONE => panic!(),
-        DirtConnections::ALL => 16 * 11 + rand + 5,
-        DirtConnections::TOP => 16 * 6 + rand + 7,
-        DirtConnections::BOTTOM => 16 * 5 + rand + 7,
-        DirtConnections::LEFT => (7 + rand - 1) * 16 + 9,
-        DirtConnections::RIGHT => (7 + rand - 1) * 16 + 8,
-        DirtConnections::TOP_BOTTOM => (12 + rand - 1) * 16 + 6,
-        DirtConnections::TOP_LEFT_RIGHT => (5 + rand - 1) * 16 + 11,
-        DirtConnections::BOTTOM_LEFT_RIGHT => (8 + rand - 1) * 16 + 11,
-        DirtConnections::LEFT_RIGHT => 11 * 16 + 8 + rand,
-        DirtConnections::BOTTOM_LEFT => (6 + rand * 2) * 16 + 2,
-        DirtConnections::BOTTOM_RIGHT => (6 + rand * 2) * 16 + 3,
-        DirtConnections::TOP_LEFT => (5 + (rand - 1) * 2) * 16 + 2,
-        DirtConnections::TOP_RIGHT => (5 + (rand - 1) * 2) * 16 + 3,
-        DirtConnections::TOP_BOTTOM_LEFT => (5 + rand - 1) * 16 + 12,
-        DirtConnections::TOP_BOTTOM_RIGHT => (8 + rand - 1) * 16 + 12,
+        DirtConnections { 
+            top: DirtConnection::Connected, 
+            bottom: DirtConnection::NotConnected(false),
+            left: DirtConnection::NotConnected(false),
+            right: DirtConnection::NotConnected(false), 
+        } => 16 * 6 + rand + 7,
+        DirtConnections { 
+            top: DirtConnection::NotConnected(false), 
+            bottom: DirtConnection::Connected,
+            left: DirtConnection::NotConnected(false),
+            right: DirtConnection::NotConnected(false), 
+        } => 16 * 6 + rand + 7,
+        DirtConnections { 
+            top: DirtConnection::Connected, 
+            bottom: DirtConnection::NotConnected(false),
+            left: DirtConnection::NotConnected(false),
+            right: DirtConnection::NotConnected(false), 
+        } => 16 * 6 + rand + 7,
+        DirtConnections { 
+            top: DirtConnection::Connected, 
+            bottom: DirtConnection::NotConnected(false),
+            left: DirtConnection::NotConnected(false),
+            right: DirtConnection::NotConnected(false), 
+        } => 16 * 6 + rand + 7,
+
     }
 }
 
