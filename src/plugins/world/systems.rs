@@ -20,7 +20,7 @@ use bevy_ecs_tilemap::{
 };
 use iyes_loopless::state::NextState;
 
-use crate::{util::{self, FRect, URect}, block::Block, world_generator::{Tile, WORLD_SIZE_X, WORLD_SIZE_Y, generate, Wall, DirtConnections}, plugins::{inventory::Inventory, world::{CHUNK_SIZE, TILE_SIZE}, assets::{BlockAssets, WallAssets}, camera::MainCamera}, state::GameState};
+use crate::{util::{self, FRect, URect}, block::Block, world_generator::{Tile, WORLD_SIZE_X, WORLD_SIZE_Y, generate, Wall, DirtConnections, get_dirt_connections}, plugins::{inventory::Inventory, world::{CHUNK_SIZE, TILE_SIZE}, assets::{BlockAssets, WallAssets}, camera::MainCamera}, state::GameState};
 
 use super::{get_chunk_pos, CHUNK_SIZE_U, MAP_SIZE, TileChunk, UpdateNeighborsEvent, WorldData, BlockPlaceEvent, get_tile_sprite_index_by_neighbors, WallChunk, WALL_SIZE, CHUNKMAP_SIZE, Chunk, get_camera_fov, ChunkManager, get_wall_sprite_index, ChunkPos, get_chunk_tile_pos, get_tile_sprite_index_by_dirt_connections};
 
@@ -114,7 +114,7 @@ pub fn spawn_tile(
 ) -> Entity {
     let mut index = util::get_tile_start_index(tile.tile_type);
 
-    index += if tile.dirt_connections.any() && tile.tile_type.merge_with_dirt() {
+    index += if tile.dirt_connections.any() {
         get_tile_sprite_index_by_dirt_connections(tile.dirt_connections)
     } else {
         get_tile_sprite_index_by_neighbors(tile.neighbors)
@@ -384,12 +384,18 @@ pub fn update_neighbors(
             let chunk_pos = get_chunk_pos(pos);
             let chunk_tile_pos = get_chunk_tile_pos(pos);
 
+            let dirt_connections = get_dirt_connections((tile_pos.y as usize, tile_pos.x as usize), event.tile.tile_type, &world_data.tiles);
+
             chunks.iter()
                 .filter(|(chunk, _)| chunk.pos == chunk_pos)
                 .for_each(|(_, tile_storage)| {
                     if let Some(entity) = tile_storage.get(&chunk_tile_pos) {
                         if let Ok((mut tile_texture, block)) = tiles.get_mut(entity) {
-                            tile_texture.0 = util::get_tile_start_index(*block) + get_tile_sprite_index_by_neighbors(neighbors);
+                            tile_texture.0 = util::get_tile_start_index(*block) + if dirt_connections.any() {
+                                get_tile_sprite_index_by_dirt_connections(dirt_connections)
+                            } else {
+                                get_tile_sprite_index_by_neighbors(neighbors)
+                            }
                         }
                     }
                 });

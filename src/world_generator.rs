@@ -566,7 +566,9 @@ fn set_tile_dirt_connections(world: &mut CellArray) {
                 let mut new_tile = cell.tile;
 
                 if let Some(tile) = &mut new_tile {
-                    tile.dirt_connections = get_dirt_connection((y, x), tile.tile_type, world);
+                    if tile.tile_type.merge_with_dirt() {
+                        tile.dirt_connections = get_dirt_connections((y, x), tile.tile_type, world);
+                    }
                 } 
 
                 world[[y, x]] = Cell {
@@ -578,7 +580,7 @@ fn set_tile_dirt_connections(world: &mut CellArray) {
     }
 }
 
-fn get_dirt_connection(tile_pos: (usize, usize), block: Block, world: &CellArray) -> DirtConnections {
+pub fn get_dirt_connections(tile_pos: (usize, usize), block: Block, world: &CellArray) -> DirtConnections {
     let y = tile_pos.0;
     let x = tile_pos.1;
 

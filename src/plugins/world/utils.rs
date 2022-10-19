@@ -68,48 +68,127 @@ pub fn get_tile_sprite_index_by_neighbors(slope: Neighbors) -> u32 {
 pub fn get_tile_sprite_index_by_dirt_connections(dirt_connections: DirtConnections) -> u32 {
     let rand: u32 = thread_rng().gen_range(1..3);
 
-    /* DirtConnections::ALL => 16 * 11 + rand + 5,
-    DirtConnections::TOP => 16 * 6 + rand + 7,
-    DirtConnections::BOTTOM => 16 * 5 + rand + 7,
-    DirtConnections::LEFT => (7 + rand - 1) * 16 + 9,
-    DirtConnections::RIGHT => (7 + rand - 1) * 16 + 8,
-    DirtConnections::TOP_BOTTOM => (12 + rand - 1) * 16 + 6,
-    DirtConnections::TOP_LEFT_RIGHT => (5 + rand - 1) * 16 + 11,
-    DirtConnections::BOTTOM_LEFT_RIGHT => (8 + rand - 1) * 16 + 11,
-    DirtConnections::LEFT_RIGHT => 11 * 16 + 8 + rand,
-    DirtConnections::BOTTOM_LEFT => (6 + rand * 2) * 16 + 2,
-    DirtConnections::BOTTOM_RIGHT => (6 + rand * 2) * 16 + 3,
-    DirtConnections::TOP_LEFT => (5 + (rand - 1) * 2) * 16 + 2,
-    DirtConnections::TOP_RIGHT => (5 + (rand - 1) * 2) * 16 + 3,
-    DirtConnections::TOP_BOTTOM_LEFT => (5 + rand - 1) * 16 + 12,
-    DirtConnections::TOP_BOTTOM_RIGHT => (8 + rand - 1) * 16 + 12, */
-
     match dirt_connections {
+        // ALL
+        DirtConnections {
+            top: DirtConnection::Connected,
+            bottom: DirtConnection::Connected,
+            left: DirtConnection::Connected,
+            right: DirtConnection::Connected, 
+        } => 16 * 11 + rand + 5,
+        // TOP
         DirtConnections { 
             top: DirtConnection::Connected, 
-            bottom: DirtConnection::NotConnected(false),
-            left: DirtConnection::NotConnected(false),
-            right: DirtConnection::NotConnected(false), 
+            bottom: DirtConnection::NotConnected(..),
+            left: DirtConnection::NotConnected(true),
+            right: DirtConnection::NotConnected(true),
         } => 16 * 6 + rand + 7,
+        // TOP
         DirtConnections { 
+            top: DirtConnection::Connected, 
+            bottom: DirtConnection::NotConnected(..),
+            left: DirtConnection::NotConnected(false),
+            right: DirtConnection::NotConnected(false),
+        } => (7 + rand -1) * 16 + 6,
+        // BOTTOM
+        DirtConnections {
+            top: DirtConnection::NotConnected(true), 
+            bottom: DirtConnection::Connected,
+            left: DirtConnection::NotConnected(true),
+            right: DirtConnection::NotConnected(true), 
+        } => 16 * 5 + rand + 7,
+        DirtConnections {
             top: DirtConnection::NotConnected(false), 
             bottom: DirtConnection::Connected,
-            left: DirtConnection::NotConnected(false),
-            right: DirtConnection::NotConnected(false), 
-        } => 16 * 6 + rand + 7,
+            left: DirtConnection::NotConnected(true),
+            right: DirtConnection::NotConnected(true), 
+        } => (4 + rand - 1) * 16 + 6,
+        // LEFT
         DirtConnections { 
-            top: DirtConnection::Connected, 
-            bottom: DirtConnection::NotConnected(false),
-            left: DirtConnection::NotConnected(false),
-            right: DirtConnection::NotConnected(false), 
-        } => 16 * 6 + rand + 7,
+            top: DirtConnection::NotConnected(true), 
+            bottom: DirtConnection::NotConnected(true),
+            left: DirtConnection::Connected,
+            right: DirtConnection::NotConnected(true), 
+        } => (7 + rand - 1) * 16 + 9,
+        // RIGHT
         DirtConnections { 
-            top: DirtConnection::Connected, 
-            bottom: DirtConnection::NotConnected(false),
-            left: DirtConnection::NotConnected(false),
-            right: DirtConnection::NotConnected(false), 
-        } => 16 * 6 + rand + 7,
-
+            top: DirtConnection::NotConnected(true), 
+            bottom: DirtConnection::NotConnected(true),
+            left: DirtConnection::NotConnected(true),
+            right: DirtConnection::Connected, 
+        } => (7 + rand - 1) * 16 + 8,
+        // TOP AND BOTTOM
+        DirtConnections { 
+            top: DirtConnection::Connected,
+            bottom: DirtConnection::Connected,
+            left: DirtConnection::NotConnected(true),
+            right: DirtConnection::NotConnected(true)
+         } => (12 + rand - 1) * 16 + 6,
+        // TOP AND LEFT AND RIGHT
+        DirtConnections {
+            top: DirtConnection::Connected,
+            left: DirtConnection::Connected,
+            right: DirtConnection::Connected,
+            bottom: DirtConnection::NotConnected(true)
+        } => (5 + rand - 1) * 16 + 11,
+        // BOTTOM AND LEFT AND RIGHT
+        DirtConnections {
+            top: DirtConnection::NotConnected(true),
+            left: DirtConnection::Connected,
+            right: DirtConnection::Connected,
+            bottom: DirtConnection::Connected
+        } => (8 + rand - 1) * 16 + 11,
+        // LEFT AND RIGHT
+        DirtConnections {
+            top: DirtConnection::NotConnected(true),
+            left: DirtConnection::Connected,
+            right: DirtConnection::Connected,
+            bottom: DirtConnection::NotConnected(true)
+        } => 11 * 16 + 8 + rand,
+        // BOTTOM AND LEFT
+        DirtConnections {
+            top: DirtConnection::NotConnected(true),
+            left: DirtConnection::Connected,
+            right: DirtConnection::NotConnected(true),
+            bottom: DirtConnection::Connected
+        } => (6 + rand * 2) * 16 + 2,
+        // BOTTOM AND RIGHT
+        DirtConnections {
+            top: DirtConnection::NotConnected(true),
+            left: DirtConnection::NotConnected(true),
+            right: DirtConnection::Connected,
+            bottom: DirtConnection::Connected
+        } => (6 + rand * 2) * 16 + 3,
+        // TOP AND LEFT
+        DirtConnections {
+            top: DirtConnection::Connected,
+            bottom: DirtConnection::NotConnected(true),
+            left: DirtConnection::Connected,
+            right: DirtConnection::NotConnected(true),
+        } => (5 + (rand - 1) * 2) * 16 + 2,
+        // TOP AND RIGHT
+        DirtConnections {
+            top: DirtConnection::Connected,
+            bottom: DirtConnection::NotConnected(true),
+            left: DirtConnection::NotConnected(true),
+            right: DirtConnection::Connected,
+        } => (5 + (rand - 1) * 2) * 16 + 3,
+        // TOP AND BOTTOM AND LEFT
+        DirtConnections {
+            top: DirtConnection::Connected,
+            bottom: DirtConnection::Connected,
+            left: DirtConnection::Connected,
+            right: DirtConnection::NotConnected(true)
+        } => (5 + rand - 1) * 16 + 12,
+        // TOP AND BOTTOM AND RIGHT
+        DirtConnections {
+            top: DirtConnection::Connected,
+            bottom: DirtConnection::Connected,
+            left: DirtConnection::NotConnected(true),
+            right: DirtConnection::Connected
+        } => (8 + rand - 1) * 16 + 12,
+        // _ => panic!("{:#?}", dirt_connections)
+        _ => 16 * 3 + rand + 8
     }
 }
 
