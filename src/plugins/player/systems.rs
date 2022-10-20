@@ -12,7 +12,7 @@ use crate::{
     }, 
     world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}, 
     util::{move_towards, map_range}, 
-    items::get_animation_points
+    items::get_animation_points, CellArrayExtensions
 };
 
 use super::*;
@@ -405,7 +405,7 @@ pub fn collide(
 
     for x in uleft..uright {
         for y in utop..ubottom {
-            if world_data.tile_exists(TilePos { x, y }) {
+            if world_data.tiles.tile_exists(TilePos { x, y }) {
                 let tile_pos = Vec2::new(x as f32 * TILE_SIZE, y as f32 * TILE_SIZE);
                 
                 if (next_position.x + PLAYER_WIDTH / 2.) > (tile_pos.x - TILE_SIZE / 2.) && (next_position.x - PLAYER_WIDTH / 2.) < (tile_pos.x + TILE_SIZE / 2.) && (next_position.y + PLAYER_HEIGHT / 2.) > (tile_pos.y - TILE_SIZE / 2.) && (next_position.y - PLAYER_HEIGHT / 2.) < (tile_pos.y + TILE_SIZE / 2.) {

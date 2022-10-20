@@ -1,10 +1,11 @@
 use autodefault::autodefault;
 use bevy::prelude::default;
+use bevy_ecs_tilemap::tiles::TilePos;
 use ndarray::prelude::*;
 use noise::{NoiseFn, OpenSimplex, Seedable, SuperSimplex};
-use rand::{rngs::StdRng, Rng, SeedableRng};
+use rand::{rngs::StdRng, Rng, SeedableRng, thread_rng};
 
-use crate::{block::Block, wall::Wall as WallType};
+use crate::{block::Block, wall::Wall as WallType, To2dArrayIndex, plugins::world::MAP_SIZE, CellArrayExtensions, util::get_tile_start_index};
 
 pub const WORLD_SIZE_X: usize = 1750;
 pub const WORLD_SIZE_Y: usize = 900;
@@ -18,125 +19,630 @@ pub struct Level {
     pub stone: (usize, usize),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct Neighbors {
-    pub top: bool,
-    pub bottom: bool,
-    pub left: bool,
-    pub right: bool,
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Neighbors<T: PartialEq + Eq> {
+    pub top: Option<T>,
+    pub bottom: Option<T>,
+    pub left: Option<T>,
+    pub right: Option<T>,
 }
 
-impl Neighbors {
-    pub const NONE: Neighbors = Neighbors { top: false, bottom: false, left: false, right: false };
-    pub const ALL: Neighbors = Neighbors { top: true, bottom: true, left: true, right: true };
-
-    pub const TOP: Neighbors = Neighbors { top: true, ..Neighbors::NONE };
-    pub const BOTTOM: Neighbors = Neighbors { bottom: true, ..Neighbors::NONE };
-    pub const LEFT: Neighbors = Neighbors { left: true, ..Neighbors::NONE };
-    pub const RIGHT: Neighbors = Neighbors { right: true, ..Neighbors::NONE };
-
-    pub const TOP_BOTTOM: Neighbors = Neighbors { top: true, bottom: true, ..Neighbors::NONE };
-    pub const LEFT_RIGHT: Neighbors = Neighbors { left: true, right: true, ..Neighbors::NONE };
-
-    pub const TOP_LEFT: Neighbors = Neighbors { top: true, left: true, ..Neighbors::NONE };
-    pub const TOP_RIGHT: Neighbors = Neighbors { top: true, right: true, ..Neighbors::NONE };
-    pub const BOTTOM_LEFT: Neighbors = Neighbors { bottom: true, left: true, ..Neighbors::NONE };
-    pub const BOTTOM_RIGHT: Neighbors = Neighbors { bottom: true, right: true, ..Neighbors::NONE };
-
-    pub const TOP_BOTTOM_LEFT: Neighbors = Neighbors { top: true, bottom: true, left: true, ..Neighbors::NONE };
-    pub const TOP_BOTTOM_RIGHT: Neighbors = Neighbors { top: true, bottom: true, right: true, ..Neighbors::NONE };
-    pub const TOP_LEFT_RIGHT: Neighbors = Neighbors { top: true, left: true, right: true, ..Neighbors::NONE };
-    pub const BOTTOM_LEFT_RIGHT: Neighbors = Neighbors { bottom: true, left: true, right: true, ..Neighbors::NONE };
-
-    pub fn is_all(&self) -> bool {
-        self.top && self.bottom && self.left && self.right
-    }
-
-    pub fn is_none(&self) -> bool {
-        !self.top && !self.bottom && !self.left && !self.right
-    }
-
-    pub fn or(&self, neighbors: Neighbors) -> Neighbors {
-        Neighbors { 
-            top: self.top || neighbors.top, 
-            bottom: self.bottom || neighbors.bottom, 
-            left: self.left || neighbors.left, 
-            right: self.right || neighbors.right 
-        }
-    }
-
-    pub fn not(&self) -> Neighbors {
-        Neighbors { 
-            top: !self.top, 
-            bottom: !self.bottom, 
-            left: !self.left, 
-            right: !self.right 
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
-pub enum DirtConnection {
-    Connected,
-    // Is connected with the same tile
-    NotConnected(bool)
-}
-
-impl Default for DirtConnection {
+impl<T: PartialEq + Eq> Default for Neighbors<T> {
     fn default() -> Self {
-        Self::NotConnected(false)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct DirtConnections {
-    pub top: DirtConnection,
-    pub bottom: DirtConnection,
-    pub left: DirtConnection,
-    pub right: DirtConnection,
-}
-
-impl DirtConnections {
-//     pub const NONE: DirtConnections = DirtConnections { top: DirtConnection::NotConnected(false), bottom: DirtConnection::NotConnected(false), left: DirtConnection::NotConnected(false), right: DirtConnection::NotConnected(false) };
-//     pub const ALL: DirtConnections = DirtConnections { top: true, bottom: true, left: true, right: true };
-
-//     pub const TOP: DirtConnections = DirtConnections { top: true, ..DirtConnections::NONE };
-//     pub const BOTTOM: DirtConnections = DirtConnections { bottom: true, ..DirtConnections::NONE };
-//     pub const LEFT: DirtConnections = DirtConnections { left: true, ..DirtConnections::NONE };
-//     pub const RIGHT: DirtConnections = DirtConnections { right: true, ..DirtConnections::NONE };
-
-//     pub const TOP_BOTTOM: DirtConnections = DirtConnections { top: true, bottom: true, ..DirtConnections::NONE };
-//     pub const LEFT_RIGHT: DirtConnections = DirtConnections { left: true, right: true, ..DirtConnections::NONE };
-
-//     pub const TOP_LEFT: DirtConnections = DirtConnections { top: true, left: true, ..DirtConnections::NONE };
-//     pub const TOP_RIGHT: DirtConnections = DirtConnections { top: true, right: true, ..DirtConnections::NONE };
-//     pub const BOTTOM_LEFT: DirtConnections = DirtConnections { bottom: true, left: true, ..DirtConnections::NONE };
-//     pub const BOTTOM_RIGHT: DirtConnections = DirtConnections { bottom: true, right: true, ..DirtConnections::NONE };
-
-//     pub const TOP_BOTTOM_LEFT: DirtConnections = DirtConnections { top: true, bottom: true, left: true, ..DirtConnections::NONE };
-//     pub const TOP_BOTTOM_RIGHT: DirtConnections = DirtConnections { top: true, bottom: true, right: true, ..DirtConnections::NONE };
-//     pub const TOP_LEFT_RIGHT: DirtConnections = DirtConnections { top: true, left: true, right: true, ..DirtConnections::NONE };
-//     pub const BOTTOM_LEFT_RIGHT: DirtConnections = DirtConnections { bottom: true, left: true, right: true, ..DirtConnections::NONE };
-
-    pub fn any(&self) -> bool {
-        self.left == DirtConnection::Connected || 
-        self.right == DirtConnection::Connected || 
-        self.top == DirtConnection::Connected || 
-        self.bottom == DirtConnection::Connected
+        Self { 
+            top: None, 
+            bottom: None, 
+            left: None, 
+            right: None 
+        }
     }
 }
 
 #[derive(Clone, Copy)]
 pub struct Wall {
     pub wall_type: WallType,
-    pub neighbors: Neighbors,
+    pub neighbors: Neighbors<WallType>,
+}
+
+impl Wall {
+    pub fn get_sprite_index(&self) -> u32 {
+        let rand: u32 = thread_rng().gen_range(1..3);
+
+        match self.neighbors {
+            //  #
+            // #X#
+            //  #
+            Neighbors { 
+                top: Some(bt), 
+                bottom: Some(bb), 
+                left: Some(bl), 
+                right: Some(br) 
+            } if bt == self.wall_type && bb == self.wall_type && bl == self.wall_type && br == self.wall_type => 13 + rand,
+            
+            //
+            // X
+            //
+            Neighbors { 
+                top: None, 
+                bottom: None, 
+                left: None, 
+                right: None 
+            } => 13 * 3 + 8 + rand,
+
+            // #
+            // X
+            //
+            Neighbors { 
+                top: Some(b), 
+                bottom: None, 
+                left: None, 
+                right: None 
+            } if b == self.wall_type => 13 * 2 + rand,
+
+            //
+            // X
+            // #
+            Neighbors { 
+                top: None, 
+                bottom: Some(b), 
+                left: None, 
+                right: None 
+            } if b == self.wall_type => rand + 6,
+
+            //  #
+            //  X
+            //  #
+            Neighbors { 
+                top: Some(bt), 
+                bottom: Some(bb), 
+                left: None, 
+                right: None 
+            } if bt == self.wall_type && bb == self.wall_type => (rand - 1) * 13 + 5,
+
+            //  #
+            // #X#
+            //
+            Neighbors { 
+                top: Some(bt), 
+                bottom: None,
+                left: Some(bl),
+                right: Some(br)
+            } if bt == self.wall_type && bl == self.wall_type && br == self.wall_type => 13 * 2 + rand,
+
+            //  
+            // #X#
+            //  #
+            Neighbors { 
+                top: None, 
+                bottom: Some(bb),
+                left: Some(bl),
+                right: Some(br)
+            } if bb == self.wall_type && bl == self.wall_type && br == self.wall_type => 1 + rand,
+
+            //  
+            // #X#
+            //
+            Neighbors { 
+                top: None, 
+                bottom: None,
+                left: Some(bl),
+                right: Some(br)
+            } if bl == self.wall_type && br == self.wall_type => 13 * 4 + 5 + rand,
+
+            //  
+            // #X
+            //  #
+            Neighbors { 
+                top: None, 
+                bottom: Some(bb),
+                left: Some(bl),
+                right: None
+            } if bb == self.wall_type && bl == self.wall_type => 13 * 3 + 1 + (rand - 1) * 2,
+
+            //  
+            //  X#
+            //  #
+            Neighbors { 
+                top: None, 
+                bottom: Some(bb),
+                left: None,
+                right: Some(br)
+            } if bb == self.wall_type && br == self.wall_type => 13 * 3 + (rand - 1) * 2,
+
+            //  
+            // #X
+            //  #
+            Neighbors { 
+                top: None, 
+                bottom: Some(bb),
+                left: Some(bl),
+                right: None
+            } if bb == self.wall_type && bl == self.wall_type => 13 * 3 + 1 + (rand - 1) * 2,
+
+            //  #
+            // #X
+            //
+            Neighbors { 
+                top: Some(bt),
+                bottom: None,
+                left: Some(bl),
+                right: None
+            } if bt == self.wall_type && bl == self.wall_type => 13 * 4 + 1 + (rand - 1) * 2,
+
+            //  #
+            //  X#
+            //
+            Neighbors { 
+                top: Some(bt),
+                bottom: None,
+                left: None,
+                right: Some(br)
+            } if bt == self.wall_type && br == self.wall_type => 13 * 4 + (rand - 1) * 2,
+
+            //  #
+            // #X
+            //  #
+            Neighbors { 
+                top: Some(bt),
+                bottom: Some(bb),
+                left: Some(bl),
+                right: None
+            } if bt == self.wall_type && bb == self.wall_type && bl == self.wall_type => 13 * (rand - 1) + 4,
+
+            //  #
+            //  X#
+            //  #
+            Neighbors { 
+                top: Some(bt),
+                bottom: Some(bb),
+                left: None,
+                right: Some(br)
+            } if bt == self.wall_type && bb == self.wall_type && br == self.wall_type => 13 * (rand - 1),
+
+
+            _ => 16 * 3 + rand + 8
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct Tile {
     pub tile_type: Block,
-    pub neighbors: Neighbors,
-    pub dirt_connections: DirtConnections
+    pub neighbors: Neighbors<Block>,
+}
+
+impl Tile {
+    pub fn get_sprite_index(&self) -> u32 {
+        let rand: u32 = thread_rng().gen_range(1..3);
+
+        /*
+         * "$" - Any block
+         * "#" - Dirt
+         * "X" - The same block
+        */
+
+        let mut index: u32;
+
+        match self.neighbors {
+            //  $
+            // $X$
+            //  $
+            Neighbors { 
+                top: Some(_), 
+                bottom: Some(_), 
+                left: Some(_), 
+                right: Some(_) 
+            } => index = rand + 16,
+            
+            //
+            // X
+            //
+            Neighbors { 
+                top: None, 
+                bottom: None, 
+                left: None, 
+                right: None 
+            } => index = 16 * 3 + rand + 8,
+
+            // $
+            // X
+            //
+            Neighbors { 
+                top: Some(_), 
+                bottom: None, 
+                left: None, 
+                right: None 
+            } => index = 16 * 3 + rand + 5,
+
+            //
+            // X
+            // $
+            Neighbors { 
+                top: None, 
+                bottom: Some(_), 
+                left: None, 
+                right: None 
+            } => index = rand + 6,
+
+            //
+            // $X
+            //
+            Neighbors { 
+                top: None, 
+                bottom: None, 
+                left: Some(_), 
+                right: None 
+            } => index = (rand - 1) * 16 + 12,
+
+            //
+            //  X$
+            //
+            Neighbors { 
+                top: None, 
+                bottom: None, 
+                left: None, 
+                right: Some(_) 
+            } => index = (rand - 1) * 16 + 9,
+
+            //  $
+            //  X
+            //  $
+            Neighbors { 
+                top: Some(_), 
+                bottom: Some(_), 
+                left: None, 
+                right: None
+            } => index = (rand - 1) * 16 + 5,
+
+            //  $
+            // $X$
+            //
+            Neighbors { 
+                top: Some(_), 
+                bottom: None,
+                left: Some(_),
+                right: Some(_)
+            } => index = 16 * 2 + rand + 1,
+
+            //  
+            // $X$
+            //  $
+            Neighbors { 
+                top: None, 
+                bottom: Some(_),
+                left: Some(_),
+                right: Some(_)
+            } => index = rand,
+
+            //  
+            // $X$
+            //
+            Neighbors { 
+                top: None, 
+                bottom: None,
+                left: Some(_),
+                right: Some(_)
+            } => index = 4 * 16 + 5 + rand,
+
+            //  
+            // $X
+            //  $
+            Neighbors { 
+                top: None, 
+                bottom: Some(_),
+                left: Some(_),
+                right: None
+            } => index = 16 * 3 + 1 + (rand - 1) * 2,
+
+            //  
+            //  X$
+            //  $
+            Neighbors { 
+                top: None, 
+                bottom: Some(_),
+                left: None,
+                right: Some(_)
+            } => index = 16 * 3 + (rand - 1) * 2,
+
+            //  $
+            // $X
+            //
+            Neighbors { 
+                top: Some(_),
+                bottom: None,
+                left: Some(_),
+                right: None
+            } => index = 16 * 4 + 1 + (rand - 1) * 2,
+
+            //  $
+            //  X$
+            //
+            Neighbors { 
+                top: Some(_),
+                bottom: None,
+                left: None,
+                right: Some(_)
+            } => index = 16 * 4 + (rand - 1) * 2,
+
+            //  $
+            // $X
+            //  $
+            Neighbors { 
+                top: Some(_),
+                bottom: Some(_),
+                left: Some(_),
+                right: None
+            } => index = (rand - 1) * 16 + 4,
+
+            //  $
+            //  X$
+            //  $
+            Neighbors { 
+                top: Some(_),
+                bottom: Some(_),
+                left: None,
+                right: Some(_)
+            } => index = (rand - 1) * 16,
+        };
+
+        if self.tile_type.merge_with_dirt() {
+            match self.neighbors {
+                //  #
+                // #X#
+                //  #
+                Neighbors { 
+                    top: Some(Block::Dirt), 
+                    bottom: Some(Block::Dirt), 
+                    left: Some(Block::Dirt), 
+                    right: Some(Block::Dirt) 
+                } => index = 16 * 11 + rand + 5,
+
+                //  #
+                // XXX
+                //  X
+                Neighbors {
+                    top: Some(Block::Dirt), 
+                    bottom: Some(bb), 
+                    left: Some(bl), 
+                    right: Some(br)
+                } if bb == self.tile_type && bl == self.tile_type && br == self.tile_type => index = 16 * 6 + rand + 7,
+
+                //
+                // #X
+                //
+                Neighbors { 
+                    top: None, 
+                    bottom: None, 
+                    left: Some(Block::Dirt), 
+                    right: None 
+                } => index = 13 * 16 + rand,
+
+                //
+                // X#
+                //
+                Neighbors { 
+                    top: None, 
+                    bottom: None, 
+                    left: None, 
+                    right: Some(Block::Dirt) 
+                } => index = 13 * 16 + rand + 3,
+
+                //  X
+                // XX#
+                //  X
+                Neighbors { 
+                    top: Some(bt),
+                    bottom: Some(bb),
+                    left: Some(bl),
+                    right: Some(Block::Dirt) 
+                } if bt == self.tile_type && bl == self.tile_type && bb == self.tile_type => index = (7 + rand) * 16 + 8,
+
+                //
+                // X
+                // #
+                Neighbors { 
+                    top: None, 
+                    bottom: Some(Block::Dirt), 
+                    left: None, 
+                    right: None 
+                } => index = (5 + rand - 1) * 16 + 6,
+
+                //  X
+                // XX
+                //  #
+                Neighbors { 
+                    top: Some(bt),
+                    bottom: Some(Block::Dirt),
+                    left: Some(bl),
+                    right: None 
+                } if bl == self.tile_type && bt == self.tile_type => index = (5 + rand) * 16 + 5,
+
+                // #
+                // XX
+                // X
+                Neighbors { 
+                    top: Some(Block::Dirt),
+                    bottom: Some(bb),
+                    left: None,
+                    right: Some(br)
+                } if br == self.tile_type && bb == self.tile_type => index = (8 + rand) * 16 + 4,
+
+                // X
+                // XX
+                // #
+                Neighbors { 
+                    top: Some(bt),
+                    bottom: Some(Block::Dirt),
+                    left: None,
+                    right: Some(br)
+                } if bt == self.tile_type && br == self.tile_type => index = (5 + rand) * 16 + 4,
+
+                //  #
+                // XX
+                //  X
+                Neighbors { 
+                    top: Some(Block::Dirt),
+                    bottom: Some(bb),
+                    left: Some(bl),
+                    right: None
+                } if bb == self.tile_type && bl == self.tile_type => index = (8 + rand) * 16 + 5,
+
+                //  #
+                //  X
+                //
+                Neighbors {
+                    top: Some(Block::Dirt),
+                    bottom: None, 
+                    left: None, 
+                    right: None
+                } => index = (8 + rand) * 16 + 6,
+
+                //  #
+                // #X#
+                //  X
+                Neighbors { 
+                    top: Some(Block::Dirt), 
+                    bottom: Some(bb),
+                    left: Some(Block::Dirt),
+                    right: Some(Block::Dirt)
+                } if bb == self.tile_type => index = (8 + rand) * 16 + 11,
+
+                //  X
+                // #X#
+                //  #
+                Neighbors { 
+                    top: Some(bt), 
+                    bottom: Some(Block::Dirt),
+                    left: Some(Block::Dirt),
+                    right: Some(Block::Dirt)
+                } if bt == self.tile_type => index = (5 + rand) * 16 + 11,
+
+                // 
+                // #X#
+                //
+                Neighbors { 
+                    top: None, 
+                    bottom: None,
+                    left: Some(Block::Dirt),
+                    right: Some(Block::Dirt)
+                } => index = 11 * 16 + 9 + rand,
+
+                //  X
+                // #XX
+                //  #
+                Neighbors { 
+                    top: Some(bt),
+                    bottom: Some(Block::Dirt),
+                    left: Some(Block::Dirt),
+                    right: Some(br)
+                } if bt == self.tile_type && br == self.tile_type => index = (6 + rand * 2) * 16 + 2,
+
+                //  X
+                // XX# 
+                //  #
+                Neighbors { 
+                    top: Some(bt),
+                    bottom: Some(Block::Dirt),
+                    left: Some(bl),
+                    right: Some(Block::Dirt)
+                } if bt == self.tile_type && bl == self.tile_type => index = (6 + rand * 2) * 16 + 3,
+
+                //  #
+                // XX#
+                //  X
+                Neighbors { 
+                    top: Some(Block::Dirt),
+                    bottom: Some(bb),
+                    left: Some(bl),
+                    right: Some(Block::Dirt)
+                } if bb == self.tile_type && bl == self.tile_type => index = (5 + rand * 2) * 16 + 3,
+
+                //  #
+                // #XX
+                //  X
+                Neighbors { 
+                    top: Some(Block::Dirt),
+                    bottom: Some(bb),
+                    left: Some(Block::Dirt),
+                    right: Some(br)
+                } if bb == self.tile_type && br == self.tile_type => index = (5 + rand * 2) * 16 + 2,
+
+                //  X
+                // XXX
+                //  #
+                Neighbors { 
+                    top: Some(bt),
+                    bottom: Some(Block::Dirt),
+                    left: Some(bl),
+                    right: Some(br)
+                } if bt == self.tile_type && bl == self.tile_type && br == self.tile_type => index = 5 * 16 + 8 + rand,
+
+                //  #
+                // XXX
+                //
+                Neighbors { 
+                    top: Some(Block::Dirt),
+                    bottom: None,
+                    left: Some(bl),
+                    right: Some(br)
+                } if bl == self.tile_type && br == self.tile_type => index = 16 + 13 + rand,
+
+                //  
+                // XXX
+                //  #
+                Neighbors { 
+                    top: Some(Block::Dirt),
+                    bottom: None,
+                    left: Some(bl),
+                    right: Some(br)
+                } if bl == self.tile_type && br == self.tile_type => index = 13 + rand,
+
+                //  #
+                //  X
+                //  X
+                Neighbors { 
+                    top: Some(Block::Dirt),
+                    bottom: Some(bb),
+                    left: None,
+                    right: None
+                } if bb == self.tile_type => index = (8 + rand) * 16 + 7,
+
+                //  X
+                //  X
+                //  #
+                Neighbors { 
+                    top: Some(bt),
+                    bottom: Some(Block::Dirt),
+                    left: None,
+                    right: None
+                } if bt == self.tile_type => index = (5 + rand) * 16 + 7,
+
+                // 
+                // #XX
+                // 
+                Neighbors { 
+                    top: None,
+                    bottom: None,
+                    left: Some(Block::Dirt),
+                    right: Some(br)
+                } if br == self.tile_type => index = 14 * 16 + rand,
+
+                // 
+                // XX#
+                // 
+                Neighbors { 
+                    top: None,
+                    bottom: None,
+                    left: Some(bl),
+                    right: Some(Block::Dirt)
+                } if bl == self.tile_type => index = 14 * 16 + 3 + rand,
+
+                _ => () /* index = 16 * 3 + rand + 8 */ 
+            };
+        } 
+
+        get_tile_start_index(self.tile_type) + index
+    }
 }
 
 #[derive(Clone, Copy, Default)]
@@ -157,8 +663,7 @@ pub fn generate(seed: u32) -> CellArray {
     world.fill(Cell {
         tile: Some(Tile {
             tile_type: Block::Stone,
-            neighbors: Neighbors::default(),
-            dirt_connections: DirtConnections::default()
+            neighbors: Neighbors::<Block>::default()
         }),
     });
 
@@ -237,8 +742,6 @@ pub fn generate(seed: u32) -> CellArray {
 
     set_tile_neighbors(&mut world);
 
-    set_tile_dirt_connections(&mut world);
-
     world
 }
 
@@ -284,7 +787,6 @@ fn insert_specks<F: NoiseFn<f64, 2>>(
                 world[[y, x]].tile = Some(Tile {
                     tile_type: speck_block,
                     neighbors: Neighbors::default(),
-                    dirt_connections: DirtConnections::default(),
                 });
             }
         }
@@ -313,7 +815,6 @@ fn add_grass(world: &mut CellArray, level: Level) {
                     world[[y, x]].tile = Some(Tile {
                         tile_type: Block::Grass,
                         neighbors: Neighbors::default(),
-                        dirt_connections: DirtConnections::default(),
                     });
                 }
             }
@@ -448,7 +949,6 @@ fn replace<D: Dimension>(
             cell.tile = replacement.map(|block| Tile {
                 tile_type: block,
                 neighbors: Neighbors::default(),
-                dirt_connections: DirtConnections::default(),
             })
         }
     }
@@ -489,39 +989,37 @@ fn insert_dirt_specks_into_stone<F: NoiseFn<f64, 2>>(
 }
 
 fn set_tile_neighbors(world: &mut CellArray) {
-    for y in 0..WORLD_SIZE_Y {
-        for x in 0..WORLD_SIZE_X {
-            if let Some(cell) = world.get((y, x)).cloned() {
+    for y in 0..WORLD_SIZE_Y as u32 {
+        for x in 0..WORLD_SIZE_X as u32 {
+            let tile_pos = TilePos { x, y };
+
+            if let Some(cell) = world.get(tile_pos.to_2d_array_index()).cloned() {
                 let mut new_tile = cell.tile;
                 let mut new_wall = cell.wall;
-
-                let prev_y_option = y.checked_sub(1);
-                let prev_x_option = x.checked_sub(1);
-                let next_y_option = y.checked_add(1);
-                let next_x_option = x.checked_add(1);
-
-                let prev_y = prev_y_option.unwrap_or(y);
-                let prev_x = prev_x_option.unwrap_or(x);
-                let next_y = next_y_option.unwrap_or(y);
-                let next_x = next_x_option.unwrap_or(x);
 
                 if cell.tile.is_some() {
                     new_tile = Some(Tile {
                         neighbors: Neighbors {
-                            left: x == 0 || world.get((y, prev_x))
-                                .and_then(|t| t.tile)
-                                .is_some(),
-                            right: x == (WORLD_SIZE_X - 1) || world.get((y, next_x))
-                                .and_then(|t| t.tile)
-                                .is_some(),
-                            top: prev_y_option
-                                .and(world.get((prev_y, x)))
-                                .and_then(|t| t.tile)
-                                .is_some(),
-                            bottom: next_y_option
-                                .and(world.get((next_y, x)))
-                                .and_then(|t| t.tile)
-                                .is_some(),
+                            left: tile_pos.square_west()
+                                .map(|pos| world.get_tile(pos))
+                                .flatten()
+                                .map(|tile| tile.tile_type),
+
+                            right: tile_pos.square_east(&MAP_SIZE)
+                                .map(|pos| world.get_tile(pos))
+                                .flatten()
+                                .map(|tile| tile.tile_type),
+
+                            top: tile_pos.square_south()
+                                .map(|pos| world.get_tile(pos))
+                                .flatten()
+                                .map(|tile| tile.tile_type),
+
+                            bottom: tile_pos.square_north(&MAP_SIZE)
+                                .map(|pos| world.get_tile(pos))
+                                .flatten()
+                                .map(|tile| tile.tile_type),
+                                
                         },
                         ..cell.tile.unwrap()
                     });
@@ -530,26 +1028,32 @@ fn set_tile_neighbors(world: &mut CellArray) {
                 if cell.wall.is_some() {
                     new_wall = Some(Wall {
                         neighbors: Neighbors {
-                            left: x == 0 || world.get((y, prev_x))
-                                .and_then(|t| t.wall)
-                                .is_some(),
-                            right: x == (WORLD_SIZE_X - 1) || world.get((y, next_x))
-                                .and_then(|t| t.wall)
-                                .is_some(),
-                            top: prev_y_option
-                                .and(world.get((prev_y, x)))
-                                .and_then(|t| t.wall)
-                                .is_some(),
-                            bottom: next_y_option
-                                .and(world.get((next_y, x)))
-                                .and_then(|t| t.wall)
-                                .is_some(),
+                            left: tile_pos.square_west()
+                                .map(|pos| world.get_wall(pos))
+                                .flatten()
+                                .map(|wall| wall.wall_type),
+
+                            right: tile_pos.square_east(&MAP_SIZE)
+                                .map(|pos| world.get_wall(pos))
+                                .flatten()
+                                .map(|wall| wall.wall_type),
+
+                            top: tile_pos.square_south()
+                                .map(|pos| world.get_wall(pos))
+                                .flatten()
+                                .map(|wall| wall.wall_type),
+
+                            bottom: tile_pos.square_north(&MAP_SIZE)
+                                .map(|pos| world.get_wall(pos))
+                                .flatten()
+                                .map(|wall| wall.wall_type),
+                                
                         },
                         ..cell.wall.unwrap()
                     });
                 }
 
-                world[[y, x]] = Cell {
+                world[[y as usize, x as usize]] = Cell {
                     tile: new_tile,
                     wall: new_wall,
                     ..default()
@@ -557,90 +1061,4 @@ fn set_tile_neighbors(world: &mut CellArray) {
             }
         }
     }
-}
-
-fn set_tile_dirt_connections(world: &mut CellArray) {
-    for y in 0..WORLD_SIZE_Y {
-        for x in 0..WORLD_SIZE_X {
-            if let Some(cell) = world.get((y, x)).cloned() {
-                let mut new_tile = cell.tile;
-
-                if let Some(tile) = &mut new_tile {
-                    if tile.tile_type.merge_with_dirt() {
-                        tile.dirt_connections = get_dirt_connections((y, x), tile.tile_type, world);
-                    }
-                } 
-
-                world[[y, x]] = Cell {
-                    tile: new_tile,
-                    ..cell
-                };
-            }
-        }
-    }
-}
-
-pub fn get_dirt_connections(tile_pos: (usize, usize), block: Block, world: &CellArray) -> DirtConnections {
-    let y = tile_pos.0;
-    let x = tile_pos.1;
-
-    let mut dirt_connections = DirtConnections::default();
-
-    if x != 0 {
-        let tile = world.get((y, x - 1)).and_then(|cell| cell.tile);
-
-        dirt_connections.left = if let Some(tile) = tile {
-            if tile.tile_type == Block::Dirt {
-                DirtConnection::Connected
-            } else {
-                DirtConnection::NotConnected(tile.tile_type == block)
-            }
-        } else {
-            DirtConnection::NotConnected(false)
-        }
-    }
-
-    if x != WORLD_SIZE_X - 1 {
-        let tile = world.get((y, x + 1)).and_then(|cell| cell.tile);
-
-        dirt_connections.right = if let Some(tile) = tile {
-            if tile.tile_type == Block::Dirt {
-                DirtConnection::Connected
-            } else {
-                DirtConnection::NotConnected(tile.tile_type == block)
-            }
-        } else {
-            DirtConnection::NotConnected(false)
-        }
-    }
-
-    if y != 0 { 
-        let tile = world.get((y - 1, x)).and_then(|cell| cell.tile);
-
-        dirt_connections.top = if let Some(tile) = tile {
-            if tile.tile_type == Block::Dirt {
-                DirtConnection::Connected
-            } else {
-                DirtConnection::NotConnected(tile.tile_type == block)
-            }
-        } else {
-            DirtConnection::NotConnected(false)
-        }
-    }
-
-    if y != WORLD_SIZE_Y - 1 {
-        let tile =  world.get((y + 1, x)).and_then(|cell| cell.tile);
-
-        dirt_connections.bottom = if let Some(tile) = tile {
-            if tile.tile_type == Block::Dirt {
-                DirtConnection::Connected
-            } else {
-                DirtConnection::NotConnected(tile.tile_type == block)
-            }
-        } else {
-            DirtConnection::NotConnected(false)
-        }
-    }
-
-    dirt_connections
 }
