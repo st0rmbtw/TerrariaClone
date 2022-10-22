@@ -391,21 +391,21 @@ impl Tile {
                 // #X#
                 //  #
                 Neighbors { 
-                    top: Some(Block::Dirt), 
+                    top: Some(Block::Dirt | Block::Grass), 
                     bottom: Some(Block::Dirt), 
                     left: Some(Block::Dirt), 
                     right: Some(Block::Dirt) 
                 } => index = 16 * 11 + rand + 5,
 
                 //  #
-                // XXX
-                //  X
+                // $X$
+                //  $
                 Neighbors {
-                    top: Some(Block::Dirt), 
+                    top: Some(Block::Dirt | Block::Grass), 
                     bottom: Some(bb), 
                     left: Some(bl), 
                     right: Some(br)
-                } if bb == self.tile_type && bl == self.tile_type && br == self.tile_type => index = 16 * 6 + rand + 7,
+                } if bb != Block::Dirt && bl != Block::Dirt && br != Block::Dirt => index = 16 * 6 + rand + 7,
 
                 //
                 // #X
@@ -427,15 +427,15 @@ impl Tile {
                     right: Some(Block::Dirt) 
                 } => index = 13 * 16 + rand + 3,
 
-                //  X
-                // XX#
-                //  X
+                //  $
+                // $X#
+                //  $
                 Neighbors { 
                     top: Some(bt),
                     bottom: Some(bb),
                     left: Some(bl),
                     right: Some(Block::Dirt) 
-                } if bt == self.tile_type && bl == self.tile_type && bb == self.tile_type => index = (7 + rand) * 16 + 8,
+                } if (bt != Block::Dirt && bt != Block::Grass) && bl != Block::Dirt && bb != Block::Dirt => index = (7 + rand) * 16 + 8,
 
                 //
                 // X
@@ -447,51 +447,51 @@ impl Tile {
                     right: None 
                 } => index = (5 + rand - 1) * 16 + 6,
 
-                //  X
-                // XX
+                //  $
+                // $X
                 //  #
                 Neighbors { 
                     top: Some(bt),
                     bottom: Some(Block::Dirt),
                     left: Some(bl),
                     right: None 
-                } if bl == self.tile_type && bt == self.tile_type => index = (5 + rand) * 16 + 5,
+                } if bl != Block::Dirt && bt != Block::Dirt => index = (5 + rand) * 16 + 5,
 
                 // #
-                // XX
-                // X
+                // X$
+                // $
                 Neighbors { 
-                    top: Some(Block::Dirt),
+                    top: Some(Block::Dirt | Block::Grass),
                     bottom: Some(bb),
                     left: None,
                     right: Some(br)
-                } if br == self.tile_type && bb == self.tile_type => index = (8 + rand) * 16 + 4,
+                } if br != Block::Dirt && bb != Block::Dirt => index = (8 + rand) * 16 + 4,
 
-                // X
-                // XX
+                // $
+                // X$
                 // #
                 Neighbors { 
                     top: Some(bt),
                     bottom: Some(Block::Dirt),
                     left: None,
                     right: Some(br)
-                } if bt == self.tile_type && br == self.tile_type => index = (5 + rand) * 16 + 4,
+                } if (bt != Block::Dirt && bt != Block::Grass) && br != Block::Dirt => index = (5 + rand) * 16 + 4,
 
                 //  #
-                // XX
-                //  X
+                // $X
+                //  $
                 Neighbors { 
-                    top: Some(Block::Dirt),
+                    top: Some(Block::Dirt | Block::Grass),
                     bottom: Some(bb),
                     left: Some(bl),
                     right: None
-                } if bb == self.tile_type && bl == self.tile_type => index = (8 + rand) * 16 + 5,
+                } if bb != Block::Dirt && bl != Block::Dirt => index = (8 + rand) * 16 + 5,
 
                 //  #
                 //  X
                 //
                 Neighbors {
-                    top: Some(Block::Dirt),
+                    top: Some(Block::Dirt | Block::Grass),
                     bottom: None, 
                     left: None, 
                     right: None
@@ -499,15 +499,15 @@ impl Tile {
 
                 //  #
                 // #X#
-                //  X
+                //  $
                 Neighbors { 
-                    top: Some(Block::Dirt), 
+                    top: Some(Block::Dirt | Block::Grass), 
                     bottom: Some(bb),
                     left: Some(Block::Dirt),
                     right: Some(Block::Dirt)
-                } if bb == self.tile_type => index = (8 + rand) * 16 + 11,
+                } if bb != Block::Dirt => index = (8 + rand) * 16 + 11,
 
-                //  X
+                //  $
                 // #X#
                 //  #
                 Neighbors { 
@@ -515,7 +515,7 @@ impl Tile {
                     bottom: Some(Block::Dirt),
                     left: Some(Block::Dirt),
                     right: Some(Block::Dirt)
-                } if bt == self.tile_type => index = (5 + rand) * 16 + 11,
+                } if (bt != Block::Dirt && bt != Block::Grass) => index = (5 + rand) * 16 + 11,
 
                 // 
                 // #X#
@@ -527,87 +527,87 @@ impl Tile {
                     right: Some(Block::Dirt)
                 } => index = 11 * 16 + 9 + rand,
 
-                //  X
-                // #XX
+                //  $
+                // #X$
                 //  #
                 Neighbors { 
                     top: Some(bt),
                     bottom: Some(Block::Dirt),
                     left: Some(Block::Dirt),
                     right: Some(br)
-                } if bt == self.tile_type && br == self.tile_type => index = (6 + rand * 2) * 16 + 2,
+                } if (bt != Block::Dirt && bt != Block::Grass) && br != Block::Dirt => index = (6 + rand * 2) * 16 + 2,
 
-                //  X
-                // XX# 
+                //  $
+                // $X# 
                 //  #
                 Neighbors { 
                     top: Some(bt),
                     bottom: Some(Block::Dirt),
                     left: Some(bl),
                     right: Some(Block::Dirt)
-                } if bt == self.tile_type && bl == self.tile_type => index = (6 + rand * 2) * 16 + 3,
+                } if (bt != Block::Dirt && bt != Block::Grass) && bl != Block::Dirt => index = (6 + rand * 2) * 16 + 3,
 
                 //  #
-                // XX#
-                //  X
+                // $X#
+                //  $
                 Neighbors { 
-                    top: Some(Block::Dirt),
+                    top: Some(Block::Dirt | Block::Grass),
                     bottom: Some(bb),
                     left: Some(bl),
                     right: Some(Block::Dirt)
-                } if bb == self.tile_type && bl == self.tile_type => index = (5 + rand * 2) * 16 + 3,
+                } if bb != Block::Dirt && bl != Block::Dirt => index = (5 + rand * 2) * 16 + 3,
 
                 //  #
-                // #XX
-                //  X
+                // #X$
+                //  $
                 Neighbors { 
-                    top: Some(Block::Dirt),
+                    top: Some(Block::Dirt | Block::Grass),
                     bottom: Some(bb),
                     left: Some(Block::Dirt),
                     right: Some(br)
-                } if bb == self.tile_type && br == self.tile_type => index = (5 + rand * 2) * 16 + 2,
+                } if bb != Block::Dirt && br != Block::Dirt => index = (5 + rand * 2) * 16 + 2,
 
-                //  X
-                // XXX
+                //  $
+                // $X$
                 //  #
                 Neighbors { 
                     top: Some(bt),
                     bottom: Some(Block::Dirt),
                     left: Some(bl),
                     right: Some(br)
-                } if bt == self.tile_type && bl == self.tile_type && br == self.tile_type => index = 5 * 16 + 8 + rand,
+                } if (bt != Block::Dirt && bt != Block::Grass) && bl != Block::Dirt && br != Block::Dirt => index = 5 * 16 + 8 + rand,
 
                 //  #
-                // XXX
+                // $X$
                 //
                 Neighbors { 
-                    top: Some(Block::Dirt),
+                    top: Some(Block::Dirt | Block::Grass),
                     bottom: None,
                     left: Some(bl),
                     right: Some(br)
-                } if bl == self.tile_type && br == self.tile_type => index = 16 + 13 + rand,
+                } if bl != Block::Dirt && br != Block::Dirt => index = 16 + 13 + rand,
 
                 //  
-                // XXX
+                // $X$
                 //  #
                 Neighbors { 
-                    top: Some(Block::Dirt),
-                    bottom: None,
+                    top: None,
+                    bottom: Some(Block::Dirt),
                     left: Some(bl),
                     right: Some(br)
-                } if bl == self.tile_type && br == self.tile_type => index = 13 + rand,
+                } if bl != Block::Dirt && br != Block::Dirt => index = 13 + rand,
 
                 //  #
                 //  X
-                //  X
+                //  $
                 Neighbors { 
-                    top: Some(Block::Dirt),
+                    top: Some(Block::Dirt | Block::Grass),
                     bottom: Some(bb),
                     left: None,
                     right: None
-                } if bb == self.tile_type => index = (8 + rand) * 16 + 7,
+                } if bb != Block::Dirt => index = (8 + rand) * 16 + 7,
 
-                //  X
+                //  $
                 //  X
                 //  #
                 Neighbors { 
@@ -615,29 +615,79 @@ impl Tile {
                     bottom: Some(Block::Dirt),
                     left: None,
                     right: None
-                } if bt == self.tile_type => index = (5 + rand) * 16 + 7,
+                } if (bt != Block::Dirt && bt != Block::Grass) => index = (5 + rand) * 16 + 7,
 
                 // 
-                // #XX
+                // #X$
                 // 
                 Neighbors { 
                     top: None,
                     bottom: None,
                     left: Some(Block::Dirt),
                     right: Some(br)
-                } if br == self.tile_type => index = 14 * 16 + rand,
+                } if br != Block::Dirt => index = 14 * 16 + rand,
 
                 // 
-                // XX#
+                // $X#
                 // 
                 Neighbors { 
                     top: None,
                     bottom: None,
                     left: Some(bl),
                     right: Some(Block::Dirt)
-                } if bl == self.tile_type => index = 14 * 16 + 3 + rand,
+                } if bl != Block::Dirt => index = 14 * 16 + 3 + rand,
 
-                _ => () /* index = 16 * 3 + rand + 8 */ 
+                //  #
+                // $X$
+                //  #
+                Neighbors { 
+                    top: Some(Block::Dirt | Block::Grass),
+                    bottom: Some(Block::Dirt),
+                    left: Some(bl),
+                    right: Some(br)
+                } if bl != Block::Dirt && br != Block::Dirt => index = 10 * 16 + 8 + rand,
+
+                //  #
+                // #X$
+                //  #
+                Neighbors { 
+                    top: Some(Block::Dirt | Block::Grass),
+                    bottom: Some(Block::Dirt),
+                    left: Some(Block::Dirt),
+                    right: Some(br)
+                } if br != Block::Dirt => index = (5 + rand) * 16 + 12,
+
+                //  $
+                // #X$
+                //  $
+                Neighbors { 
+                    top: Some(bt),
+                    bottom: Some(bb),
+                    left: Some(Block::Dirt),
+                    right: Some(br)
+                } if bt != Block::Dirt && bb != Block::Dirt && br != Block::Dirt => index = (7 + rand) * 16 + 9,
+
+                //  $
+                // $X#
+                //  $
+                Neighbors { 
+                    top: Some(bt),
+                    bottom: Some(bb),
+                    left: Some(bl),
+                    right: Some(Block::Dirt)
+                } if bt != Block::Dirt && bb != Block::Dirt && bl != Block::Dirt => index = (7 + rand) * 16 + 8,
+
+                //  
+                // #X$
+                //  $
+                Neighbors { 
+                    top: None,
+                    bottom: Some(bb),
+                    left: Some(Block::Dirt),
+                    right: Some(br)
+                } if bb != Block::Dirt && br != Block::Dirt => index = 11 * 16 + rand,
+
+                _ => ()
             };
         } 
 
