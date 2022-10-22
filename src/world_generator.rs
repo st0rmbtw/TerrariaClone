@@ -5,7 +5,7 @@ use ndarray::prelude::*;
 use noise::{NoiseFn, OpenSimplex, Seedable, SuperSimplex};
 use rand::{rngs::StdRng, Rng, SeedableRng, thread_rng};
 
-use crate::{block::Block, wall::Wall as WallType, To2dArrayIndex, plugins::world::MAP_SIZE, CellArrayExtensions, util::get_tile_start_index};
+use crate::{block::Block, wall::Wall as WallType, To2dArrayIndex, plugins::world::MAP_SIZE, CellArrayExtensions, util::{get_tile_start_index, get_wall_start_index}};
 
 pub const WORLD_SIZE_X: usize = 1750;
 pub const WORLD_SIZE_Y: usize = 900;
@@ -48,7 +48,7 @@ impl Wall {
     pub fn get_sprite_index(&self) -> u32 {
         let rand: u32 = thread_rng().gen_range(1..3);
 
-        match self.neighbors {
+        get_wall_start_index(self.wall_type) + match self.neighbors {
             //  #
             // #X#
             //  #

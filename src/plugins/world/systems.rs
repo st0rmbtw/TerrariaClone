@@ -20,7 +20,7 @@ use bevy_ecs_tilemap::{
 };
 use iyes_loopless::state::NextState;
 
-use crate::{util::{FRect, URect}, block::Block, world_generator::{Tile, WORLD_SIZE_X, WORLD_SIZE_Y, generate, Wall}, plugins::{inventory::Inventory, world::{CHUNK_SIZE, TILE_SIZE}, assets::{BlockAssets, WallAssets}, camera::MainCamera}, state::GameState, CellArrayExtensions};
+use crate::{util::{FRect, URect}, world_generator::{Tile, WORLD_SIZE_X, WORLD_SIZE_Y, generate, Wall}, plugins::{inventory::Inventory, world::{CHUNK_SIZE, TILE_SIZE}, assets::{BlockAssets, WallAssets}, camera::MainCamera}, state::GameState, CellArrayExtensions};
 
 use super::{get_chunk_pos, CHUNK_SIZE_U, MAP_SIZE, TileChunk, UpdateNeighborsEvent, WorldData, BlockPlaceEvent, WallChunk, WALL_SIZE, CHUNKMAP_SIZE, Chunk, get_camera_fov, ChunkManager, ChunkPos, get_chunk_tile_pos};
 
@@ -358,7 +358,7 @@ const MAP_TYPE: TilemapType = TilemapType::Square { diagonal_neighbors: false };
 pub fn update_neighbors(
     mut world_data: ResMut<WorldData>,
     mut events: EventReader<UpdateNeighborsEvent>,
-    mut tiles: Query<(&mut TileTexture, &Block)>,
+    mut tiles: Query<&mut TileTexture>,
     chunks: Query<(&TileChunk, &TileStorage)>
 ) {
     for event in events.iter() {
@@ -378,7 +378,7 @@ pub fn update_neighbors(
                     .filter(|(chunk, _)| chunk.pos == chunk_pos)
                     .for_each(|(_, tile_storage)| {
                         if let Some(entity) = tile_storage.get(&chunk_tile_pos) {
-                            if let Ok((mut tile_texture, block)) = tiles.get_mut(entity) {
+                            if let Ok(mut tile_texture) = tiles.get_mut(entity) {
                                 tile_texture.0 = tile.get_sprite_index();   
                             }
                         }
