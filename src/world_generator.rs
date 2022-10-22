@@ -687,6 +687,16 @@ impl Tile {
                     right: Some(br)
                 } if bb != Block::Dirt && br != Block::Dirt => index = 11 * 16 + rand,
 
+                //  $
+                // #X
+                //  $
+                Neighbors { 
+                    top: Some(bt),
+                    bottom: Some(bb),
+                    left: Some(Block::Dirt),
+                    right: None
+                } if (bt != Block::Dirt && bt != Block::Grass) && bb != Block::Dirt => index = 3 * 16 + 13 + rand,
+
                 _ => ()
             };
         } 
