@@ -831,6 +831,28 @@ impl Tile {
                     ..
                 } => index = 12 * 16 + rand,
 
+                //  $
+                //  X#
+                //  $
+                Neighbors {
+                    north: Some(_),
+                    south: Some(_),
+                    west: None,
+                    east: Some(Block::Dirt),
+                    ..
+                } => index = 2 * 16 + 13 + rand,
+
+                //  $
+                //  X#
+                //  $
+                Neighbors {
+                    north: Some(_),
+                    south: Some(_),
+                    west: Some(Block::Dirt),
+                    east: None,
+                    ..
+                } => index = 3 * 16 + 13 + rand,
+
                 _ => ()
             };
         } 
