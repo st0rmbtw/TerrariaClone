@@ -46,7 +46,7 @@ pub struct Wall {
 
 impl Wall {
     pub fn get_sprite_index(&self) -> u32 {
-        let rand: u32 = thread_rng().gen_range(1..3);
+        let rand: u32 = thread_rng().gen_range(0..3);
 
         get_wall_start_index(self.wall_type) + match self.neighbors {
             //  #
@@ -57,7 +57,7 @@ impl Wall {
                 bottom: Some(bb), 
                 left: Some(bl), 
                 right: Some(br) 
-            } if bt == self.wall_type && bb == self.wall_type && bl == self.wall_type && br == self.wall_type => 13 + rand,
+            } if bt == self.wall_type && bb == self.wall_type && bl == self.wall_type && br == self.wall_type => 13 + 1 + rand,
             
             //
             // X
@@ -67,7 +67,7 @@ impl Wall {
                 bottom: None, 
                 left: None, 
                 right: None 
-            } => 13 * 3 + 8 + rand,
+            } => 13 * 3 + 9 + rand,
 
             // #
             // X
@@ -77,7 +77,7 @@ impl Wall {
                 bottom: None, 
                 left: None, 
                 right: None 
-            } if b == self.wall_type => 13 * 2 + rand,
+            } if b == self.wall_type => 13 * 2 + 1 + rand,
 
             //
             // X
@@ -97,7 +97,7 @@ impl Wall {
                 bottom: Some(bb), 
                 left: None, 
                 right: None 
-            } if bt == self.wall_type && bb == self.wall_type => (rand - 1) * 13 + 5,
+            } if bt == self.wall_type && bb == self.wall_type => rand * 13 + 5,
 
             //  #
             // #X#
@@ -107,7 +107,7 @@ impl Wall {
                 bottom: None,
                 left: Some(bl),
                 right: Some(br)
-            } if bt == self.wall_type && bl == self.wall_type && br == self.wall_type => 13 * 2 + rand,
+            } if bt == self.wall_type && bl == self.wall_type && br == self.wall_type => 13 * 2 + 1 + rand,
 
             //  
             // #X#
@@ -127,7 +127,7 @@ impl Wall {
                 bottom: None,
                 left: Some(bl),
                 right: Some(br)
-            } if bl == self.wall_type && br == self.wall_type => 13 * 4 + 5 + rand,
+            } if bl == self.wall_type && br == self.wall_type => 13 * 4 + 6 + rand,
 
             //  
             // #X
@@ -137,7 +137,7 @@ impl Wall {
                 bottom: Some(bb),
                 left: Some(bl),
                 right: None
-            } if bb == self.wall_type && bl == self.wall_type => 13 * 3 + 1 + (rand - 1) * 2,
+            } if bb == self.wall_type && bl == self.wall_type => 13 * 3 + 1 + rand * 2,
 
             //  
             //  X#
@@ -147,17 +147,7 @@ impl Wall {
                 bottom: Some(bb),
                 left: None,
                 right: Some(br)
-            } if bb == self.wall_type && br == self.wall_type => 13 * 3 + (rand - 1) * 2,
-
-            //  
-            // #X
-            //  #
-            Neighbors { 
-                top: None, 
-                bottom: Some(bb),
-                left: Some(bl),
-                right: None
-            } if bb == self.wall_type && bl == self.wall_type => 13 * 3 + 1 + (rand - 1) * 2,
+            } if bb == self.wall_type && br == self.wall_type => 13 * 3 + rand * 2,
 
             //  #
             // #X
@@ -167,7 +157,7 @@ impl Wall {
                 bottom: None,
                 left: Some(bl),
                 right: None
-            } if bt == self.wall_type && bl == self.wall_type => 13 * 4 + 1 + (rand - 1) * 2,
+            } if bt == self.wall_type && bl == self.wall_type => 13 * 4 + 1 + rand * 2,
 
             //  #
             //  X#
@@ -177,7 +167,7 @@ impl Wall {
                 bottom: None,
                 left: None,
                 right: Some(br)
-            } if bt == self.wall_type && br == self.wall_type => 13 * 4 + (rand - 1) * 2,
+            } if bt == self.wall_type && br == self.wall_type => 13 * 4 + rand * 2,
 
             //  #
             // #X
@@ -187,7 +177,7 @@ impl Wall {
                 bottom: Some(bb),
                 left: Some(bl),
                 right: None
-            } if bt == self.wall_type && bb == self.wall_type && bl == self.wall_type => 13 * (rand - 1) + 4,
+            } if bt == self.wall_type && bb == self.wall_type && bl == self.wall_type => 13 * rand + 4,
 
             //  #
             //  X#
@@ -197,10 +187,9 @@ impl Wall {
                 bottom: Some(bb),
                 left: None,
                 right: Some(br)
-            } if bt == self.wall_type && bb == self.wall_type && br == self.wall_type => 13 * (rand - 1),
+            } if bt == self.wall_type && bb == self.wall_type && br == self.wall_type => 13 * rand,
 
-
-            _ => 16 * 3 + rand + 8
+            _ => panic!()
         }
     }
 }
