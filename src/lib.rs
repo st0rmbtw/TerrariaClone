@@ -1,8 +1,9 @@
 use bevy::prelude::{Color, Vec2};
-use bevy_ecs_tilemap::tiles::TilePos;
+use bevy_ecs_tilemap::{tiles::TilePos, prelude::Neighbors};
 use block::Block;
 use plugins::world::MAP_SIZE;
-use world_generator::{Tile, Cell, Neighbors, CellArray, Wall};
+use wall::Wall as WallType;
+use world_generator::{Tile, Cell, CellArray, Wall};
 
 #[macro_use]
 extern crate lazy_static;
@@ -61,6 +62,7 @@ pub trait CellArrayExtensions {
     fn get_wall(&self, pos: TilePos) -> Option<&Wall>;
     fn tile_exists(&self, pos: TilePos) -> bool;
     fn get_tile_neighbors(&self, pos: TilePos) -> Neighbors<Block>;
+    fn get_wall_neighbors(&self, pos: TilePos) -> Neighbors<WallType>;
 
     fn set_cell(&mut self, pos: TilePos, cell: Cell);
     fn set_tile(&mut self, pos: TilePos, tile: Option<Tile>);
@@ -93,26 +95,90 @@ impl CellArrayExtensions for CellArray {
 
     fn get_tile_neighbors(&self, tile_pos: TilePos) -> Neighbors<Block> {
         Neighbors {
-            left: tile_pos.square_west()
+            west: tile_pos.square_west()
                 .map(|pos| self.get_tile(pos))
                 .flatten()
                 .map(|tile| tile.tile_type),
 
-            right: tile_pos.square_east(&MAP_SIZE)
+            east: tile_pos.square_east(&MAP_SIZE)
                 .map(|pos| self.get_tile(pos))
                 .flatten()
                 .map(|tile| tile.tile_type),
 
-            top: tile_pos.square_south()
+            north: tile_pos.square_south()
                 .map(|pos| self.get_tile(pos))
                 .flatten()
                 .map(|tile| tile.tile_type),
 
-            bottom: tile_pos.square_north(&MAP_SIZE)
+            south: tile_pos.square_north(&MAP_SIZE)
+                .map(|pos| self.get_tile(pos))
+                .flatten()
+                .map(|tile| tile.tile_type),
+
+            north_west: tile_pos.square_south_west()
+                .map(|pos| self.get_tile(pos))
+                .flatten()
+                .map(|tile| tile.tile_type),
+
+            south_west: tile_pos.square_north_west(&MAP_SIZE)
+                .map(|pos| self.get_tile(pos))
+                .flatten()
+                .map(|tile| tile.tile_type),
+
+            south_east: tile_pos.square_north_east(&MAP_SIZE)
+                .map(|pos| self.get_tile(pos))
+                .flatten()
+                .map(|tile| tile.tile_type),
+            
+            north_east: tile_pos.square_south_east(&MAP_SIZE)
                 .map(|pos| self.get_tile(pos))
                 .flatten()
                 .map(|tile| tile.tile_type),
                 
+        }
+    }
+
+    fn get_wall_neighbors(&self, pos: TilePos) -> Neighbors<WallType> {
+        Neighbors {
+            west: pos.square_west()
+                .map(|pos| self.get_wall(pos))
+                .flatten()
+                .map(|wall| wall.wall_type),
+
+            east: pos.square_east(&MAP_SIZE)
+                .map(|pos| self.get_wall(pos))
+                .flatten()
+                .map(|wall| wall.wall_type),
+
+            north: pos.square_south()
+                .map(|pos| self.get_wall(pos))
+                .flatten()
+                .map(|wall| wall.wall_type),
+
+            south: pos.square_north(&MAP_SIZE)
+                .map(|pos| self.get_wall(pos))
+                .flatten()
+                .map(|wall| wall.wall_type),
+
+            north_west: pos.square_south_west()
+                .map(|pos| self.get_wall(pos))
+                .flatten()
+                .map(|wall| wall.wall_type),
+
+            south_west: pos.square_north_west(&MAP_SIZE)
+                .map(|pos| self.get_wall(pos))
+                .flatten()
+                .map(|wall| wall.wall_type),
+
+            south_east: pos.square_north_east(&MAP_SIZE)
+                .map(|pos| self.get_wall(pos))
+                .flatten()
+                .map(|wall| wall.wall_type),
+            
+            north_east: pos.square_south_east(&MAP_SIZE)
+                .map(|pos| self.get_wall(pos))
+                .flatten()
+                .map(|wall| wall.wall_type),
         }
     }
 

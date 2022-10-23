@@ -1,11 +1,11 @@
 use autodefault::autodefault;
 use bevy::prelude::default;
-use bevy_ecs_tilemap::tiles::TilePos;
+use bevy_ecs_tilemap::{tiles::TilePos, prelude::Neighbors};
 use ndarray::prelude::*;
 use noise::{NoiseFn, OpenSimplex, Seedable, SuperSimplex};
 use rand::{rngs::StdRng, Rng, SeedableRng, thread_rng};
 
-use crate::{block::Block, wall::Wall as WallType, To2dArrayIndex, plugins::world::MAP_SIZE, CellArrayExtensions, util::{get_tile_start_index, get_wall_start_index}};
+use crate::{block::Block, wall::Wall as WallType, To2dArrayIndex, CellArrayExtensions, util::{get_tile_start_index, get_wall_start_index}};
 
 pub const WORLD_SIZE_X: usize = 1750;
 pub const WORLD_SIZE_Y: usize = 900;
@@ -17,25 +17,6 @@ pub struct Level {
     pub sky: (usize, usize),
     pub dirt: (usize, usize),
     pub stone: (usize, usize),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Neighbors<T: PartialEq + Eq> {
-    pub top: Option<T>,
-    pub bottom: Option<T>,
-    pub left: Option<T>,
-    pub right: Option<T>,
-}
-
-impl<T: PartialEq + Eq> Default for Neighbors<T> {
-    fn default() -> Self {
-        Self { 
-            top: None, 
-            bottom: None, 
-            left: None, 
-            right: None 
-        }
-    }
 }
 
 #[derive(Clone, Copy)]
@@ -53,140 +34,154 @@ impl Wall {
             // #X#
             //  #
             Neighbors { 
-                top: Some(bt), 
-                bottom: Some(bb), 
-                left: Some(bl), 
-                right: Some(br) 
+                north: Some(bt), 
+                south: Some(bb), 
+                west: Some(bl), 
+                east: Some(br),
+                ..
             } if bt == self.wall_type && bb == self.wall_type && bl == self.wall_type && br == self.wall_type => 13 + 1 + rand,
             
             //
             // X
             //
             Neighbors { 
-                top: None, 
-                bottom: None, 
-                left: None, 
-                right: None 
+                north: None, 
+                south: None, 
+                west: None, 
+                east: None,
+                ..
             } => 13 * 3 + 9 + rand,
 
             // #
             // X
             //
             Neighbors { 
-                top: Some(b), 
-                bottom: None, 
-                left: None, 
-                right: None 
+                north: Some(b), 
+                south: None, 
+                west: None, 
+                east: None,
+                ..
             } if b == self.wall_type => 13 * 2 + 1 + rand,
 
             //
             // X
             // #
             Neighbors { 
-                top: None, 
-                bottom: Some(b), 
-                left: None, 
-                right: None 
+                north: None, 
+                south: Some(b), 
+                west: None, 
+                east: None,
+                ..
             } if b == self.wall_type => rand + 6,
 
             //  #
             //  X
             //  #
             Neighbors { 
-                top: Some(bt), 
-                bottom: Some(bb), 
-                left: None, 
-                right: None 
+                north: Some(bt), 
+                south: Some(bb), 
+                west: None, 
+                east: None,
+                ..
             } if bt == self.wall_type && bb == self.wall_type => rand * 13 + 5,
 
             //  #
             // #X#
             //
             Neighbors { 
-                top: Some(bt), 
-                bottom: None,
-                left: Some(bl),
-                right: Some(br)
+                north: Some(bt), 
+                south: None,
+                west: Some(bl),
+                east: Some(br),
+                ..
             } if bt == self.wall_type && bl == self.wall_type && br == self.wall_type => 13 * 2 + 1 + rand,
 
             //  
             // #X#
             //  #
             Neighbors { 
-                top: None, 
-                bottom: Some(bb),
-                left: Some(bl),
-                right: Some(br)
+                north: None, 
+                south: Some(bb),
+                west: Some(bl),
+                east: Some(br),
+                ..
             } if bb == self.wall_type && bl == self.wall_type && br == self.wall_type => 1 + rand,
 
             //  
             // #X#
             //
             Neighbors { 
-                top: None, 
-                bottom: None,
-                left: Some(bl),
-                right: Some(br)
+                north: None, 
+                south: None,
+                west: Some(bl),
+                east: Some(br),
+                ..
             } if bl == self.wall_type && br == self.wall_type => 13 * 4 + 6 + rand,
 
             //  
             // #X
             //  #
             Neighbors { 
-                top: None, 
-                bottom: Some(bb),
-                left: Some(bl),
-                right: None
+                north: None, 
+                south: Some(bb),
+                west: Some(bl),
+                east: None,
+                ..
             } if bb == self.wall_type && bl == self.wall_type => 13 * 3 + 1 + rand * 2,
 
             //  
             //  X#
             //  #
             Neighbors { 
-                top: None, 
-                bottom: Some(bb),
-                left: None,
-                right: Some(br)
+                north: None, 
+                south: Some(bb),
+                west: None,
+                east: Some(br),
+                ..
             } if bb == self.wall_type && br == self.wall_type => 13 * 3 + rand * 2,
 
             //  #
             // #X
             //
             Neighbors { 
-                top: Some(bt),
-                bottom: None,
-                left: Some(bl),
-                right: None
+                north: Some(bt),
+                south: None,
+                west: Some(bl),
+                east: None,
+                ..
             } if bt == self.wall_type && bl == self.wall_type => 13 * 4 + 1 + rand * 2,
 
             //  #
             //  X#
             //
             Neighbors { 
-                top: Some(bt),
-                bottom: None,
-                left: None,
-                right: Some(br)
+                north: Some(bt),
+                south: None,
+                west: None,
+                east: Some(br),
+                ..
             } if bt == self.wall_type && br == self.wall_type => 13 * 4 + rand * 2,
 
             //  #
             // #X
             //  #
             Neighbors { 
-                top: Some(bt),
-                bottom: Some(bb),
-                left: Some(bl),
-                right: None
+                north: Some(bt),
+                south: Some(bb),
+                west: Some(bl),
+                east: None,
+                ..
             } if bt == self.wall_type && bb == self.wall_type && bl == self.wall_type => 13 * rand + 4,
 
             //  #
             //  X#
             //  #
             Neighbors { 
-                top: Some(bt),
-                bottom: Some(bb),
-                left: None,
-                right: Some(br)
+                north: Some(bt),
+                south: Some(bb),
+                west: None,
+                east: Some(br),
+                ..
             } if bt == self.wall_type && bb == self.wall_type && br == self.wall_type => 13 * rand,
 
             _ => panic!()
@@ -194,7 +189,7 @@ impl Wall {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub struct Tile {
     pub tile_type: Block,
     pub neighbors: Neighbors<Block>,
@@ -217,160 +212,176 @@ impl Tile {
             // $X$
             //  $
             Neighbors { 
-                top: Some(_), 
-                bottom: Some(_), 
-                left: Some(_), 
-                right: Some(_) 
+                north: Some(_), 
+                south: Some(_), 
+                west: Some(_), 
+                east: Some(_),
+                ..
             } => index = 16 + 1 + rand,
             
             //
             // X
             //
             Neighbors { 
-                top: None, 
-                bottom: None, 
-                left: None, 
-                right: None 
+                north: None, 
+                south: None, 
+                west: None, 
+                east: None,
+                ..
             } => index = 16 * 3 + rand + 9,
 
             // $
             // X
             //
             Neighbors { 
-                top: Some(_), 
-                bottom: None, 
-                left: None, 
-                right: None 
+                north: Some(_), 
+                south: None, 
+                west: None, 
+                east: None,
+                ..
             } => index = 16 * 3 + rand + 6,
 
             //
             // X
             // $
             Neighbors { 
-                top: None, 
-                bottom: Some(_), 
-                left: None, 
-                right: None  
+                north: None, 
+                south: Some(_), 
+                west: None, 
+                east: None,
+                ..
             } => index = rand + 6,
 
             //
             // $X
             //
             Neighbors { 
-                top: None, 
-                bottom: None, 
-                left: Some(_), 
-                right: None 
+                north: None, 
+                south: None, 
+                west: Some(_), 
+                east: None,
+                ..
             } => index = rand * 16 + 12,
 
             //
             //  X$
             //
             Neighbors { 
-                top: None, 
-                bottom: None, 
-                left: None, 
-                right: Some(_) 
+                north: None, 
+                south: None, 
+                west: None, 
+                east: Some(_),
+                ..
             } => index = rand * 16 + 9,
 
             //  $
             //  X
             //  $
             Neighbors { 
-                top: Some(_), 
-                bottom: Some(_), 
-                left: None, 
-                right: None
+                north: Some(_), 
+                south: Some(_), 
+                west: None, 
+                east: None,
+                ..
             } => index = rand * 16 + 5,
 
             //  $
             // $X$
             //
             Neighbors { 
-                top: Some(_), 
-                bottom: None,
-                left: Some(_),
-                right: Some(_)
+                north: Some(_), 
+                south: None,
+                west: Some(_),
+                east: Some(_),
+                ..
             } => index = 16 * 2 + 1 + rand,
 
             //  
             // $X$
             //  $
             Neighbors { 
-                top: None, 
-                bottom: Some(_),
-                left: Some(_),
-                right: Some(_)
+                north: None, 
+                south: Some(_),
+                west: Some(_),
+                east: Some(_),
+                ..
             } => index = rand + 1,
 
             //  
             // $X$
             //
             Neighbors { 
-                top: None, 
-                bottom: None,
-                left: Some(_),
-                right: Some(_)
+                north: None, 
+                south: None,
+                west: Some(_),
+                east: Some(_),
+                ..
             } => index = 4 * 16 + 6 + rand,
 
             //  
             // $X
             //  $
             Neighbors { 
-                top: None, 
-                bottom: Some(_),
-                left: Some(_),
-                right: None
+                north: None, 
+                south: Some(_),
+                west: Some(_),
+                east: None,
+                ..
             } => index = 16 * 3 + 1 + rand * 2,
 
             //  
             //  X$
             //  $
             Neighbors { 
-                top: None, 
-                bottom: Some(_),
-                left: None,
-                right: Some(_)
+                north: None, 
+                south: Some(_),
+                west: None,
+                east: Some(_),
+                ..
             } => index = 16 * 3 + rand * 2,
 
             //  $
             // $X
             //
             Neighbors { 
-                top: Some(_),
-                bottom: None,
-                left: Some(_),
-                right: None
+                north: Some(_),
+                south: None,
+                west: Some(_),
+                east: None,
+                ..
             } => index = 16 * 4 + 1 + rand * 2,
 
             //  $
             //  X$
             //
             Neighbors { 
-                top: Some(_),
-                bottom: None,
-                left: None,
-                right: Some(_)
+                north: Some(_),
+                south: None,
+                west: None,
+                east: Some(_),
+                ..
             } => index = 16 * 4 + rand * 2,
 
             //  $
             // $X
             //  $
             Neighbors { 
-                top: Some(_),
-                bottom: Some(_),
-                left: Some(_),
-                right: None
+                north: Some(_),
+                south: Some(_),
+                west: Some(_),
+                east: None,
+                ..
             } => index = rand * 16 + 4,
 
             //  $
             //  X$
             //  $
             Neighbors { 
-                top: Some(_),
-                bottom: Some(_),
-                left: None,
-                right: Some(_)
+                north: Some(_),
+                south: Some(_),
+                west: None,
+                east: Some(_),
+                ..
             } => index = rand * 16,
         };
 
@@ -380,321 +391,445 @@ impl Tile {
                 // #X#
                 //  #
                 Neighbors { 
-                    top: Some(Block::Dirt | Block::Grass), 
-                    bottom: Some(Block::Dirt), 
-                    left: Some(Block::Dirt), 
-                    right: Some(Block::Dirt) 
+                    north: Some(Block::Dirt | Block::Grass), 
+                    south: Some(Block::Dirt), 
+                    west: Some(Block::Dirt), 
+                    east: Some(Block::Dirt),
+                    .. 
                 } => index = 16 * 11 + 6 + rand,
 
                 //  #
                 // $X$
                 //  $
                 Neighbors {
-                    top: Some(Block::Dirt | Block::Grass), 
-                    bottom: Some(bb), 
-                    left: Some(bl), 
-                    right: Some(br)
+                    north: Some(Block::Dirt | Block::Grass), 
+                    south: Some(bb), 
+                    west: Some(bl), 
+                    east: Some(br),
+                    ..
                 } if bb != Block::Dirt && bl != Block::Dirt && br != Block::Dirt => index = 16 * 6 + 8 + rand,
 
                 //
                 // #X
                 //
                 Neighbors { 
-                    top: None, 
-                    bottom: None, 
-                    left: Some(Block::Dirt), 
-                    right: None 
+                    north: None, 
+                    south: None, 
+                    west: Some(Block::Dirt), 
+                    east: None,
+                    .. 
                 } => index = 13 * 16 + rand,
 
                 //
                 // X#
                 //
                 Neighbors { 
-                    top: None, 
-                    bottom: None, 
-                    left: None, 
-                    right: Some(Block::Dirt) 
+                    north: None, 
+                    south: None, 
+                    west: None, 
+                    east: Some(Block::Dirt),
+                    .. 
                 } => index = 13 * 16 + 3 + rand,
 
                 //  $
                 // $X#
                 //  $
                 Neighbors { 
-                    top: Some(bt),
-                    bottom: Some(bb),
-                    left: Some(bl),
-                    right: Some(Block::Dirt) 
+                    north: Some(bt),
+                    south: Some(bb),
+                    west: Some(bl),
+                    east: Some(Block::Dirt),
+                    .. 
                 } if (bt != Block::Dirt && bt != Block::Grass) && bl != Block::Dirt && bb != Block::Dirt => index = (7 + rand) * 16 + 8,
 
                 //
                 // X
                 // #
                 Neighbors { 
-                    top: None, 
-                    bottom: Some(Block::Dirt), 
-                    left: None,  
-                    right: None 
+                    north: None, 
+                    south: Some(Block::Dirt), 
+                    west: None,  
+                    east: None,
+                    .. 
                 } => index = (5 + rand) * 16 + 6,
 
                 //  $
                 // $X
                 //  #
                 Neighbors { 
-                    top: Some(bt),
-                    bottom: Some(Block::Dirt),
-                    left: Some(bl),
-                    right: None 
+                    north: Some(bt),
+                    south: Some(Block::Dirt),
+                    west: Some(bl),
+                    east: None,
+                    .. 
                 } if bl != Block::Dirt && bt != Block::Dirt => index = (5 + rand) * 16 + 5,
 
                 // #
                 // X$
                 // $
                 Neighbors { 
-                    top: Some(Block::Dirt | Block::Grass),
-                    bottom: Some(bb),
-                    left: None,
-                    right: Some(br)
+                    north: Some(Block::Dirt | Block::Grass),
+                    south: Some(bb),
+                    west: None,
+                    east: Some(br),
+                    ..
                 } if br != Block::Dirt && bb != Block::Dirt => index = (8 + rand) * 16 + 4,
 
                 // $
                 // X$
                 // #
                 Neighbors { 
-                    top: Some(bt),
-                    bottom: Some(Block::Dirt),
-                    left: None,
-                    right: Some(br)
+                    north: Some(bt),
+                    south: Some(Block::Dirt),
+                    west: None,
+                    east: Some(br),
+                    ..
                 } if (bt != Block::Dirt && bt != Block::Grass) && br != Block::Dirt => index = (5 + rand) * 16 + 4,
 
                 //  #
                 // $X
                 //  $
                 Neighbors { 
-                    top: Some(Block::Dirt | Block::Grass),
-                    bottom: Some(bb),
-                    left: Some(bl),
-                    right: None
+                    north: Some(Block::Dirt | Block::Grass),
+                    south: Some(bb),
+                    west: Some(bl),
+                    east: None,
+                    ..
                 } if bb != Block::Dirt && bl != Block::Dirt => index = (8 + rand) * 16 + 5,
 
                 //  #
                 //  X
                 //
                 Neighbors {
-                    top: Some(Block::Dirt | Block::Grass),
-                    bottom: None, 
-                    left: None, 
-                    right: None
+                    north: Some(Block::Dirt | Block::Grass),
+                    south: None, 
+                    west: None, 
+                    east: None,
+                    ..
                 } => index = (8 + rand) * 16 + 6,
 
                 //  #
                 // #X#
                 //  $
                 Neighbors { 
-                    top: Some(Block::Dirt | Block::Grass), 
-                    bottom: Some(bb),
-                    left: Some(Block::Dirt),
-                    right: Some(Block::Dirt)
+                    north: Some(Block::Dirt | Block::Grass), 
+                    south: Some(bb),
+                    west: Some(Block::Dirt),
+                    east: Some(Block::Dirt),
+                    ..
                 } if bb != Block::Dirt => index = (5 + rand) * 16 + 11,
 
                 //  $
                 // #X#
                 //  #
                 Neighbors { 
-                    top: Some(bt), 
-                    bottom: Some(Block::Dirt),
-                    left: Some(Block::Dirt),
-                    right: Some(Block::Dirt)
+                    north: Some(bt), 
+                    south: Some(Block::Dirt),
+                    west: Some(Block::Dirt),
+                    east: Some(Block::Dirt),
+                    ..
                 } if (bt != Block::Dirt && bt != Block::Grass) => index = (8 + rand) * 16 + 11,
 
                 // 
                 // #X#
                 //
                 Neighbors { 
-                    top: None, 
-                    bottom: None,
-                    left: Some(Block::Dirt),
-                    right: Some(Block::Dirt)
+                    north: None, 
+                    south: None,
+                    west: Some(Block::Dirt),
+                    east: Some(Block::Dirt),
+                    ..
                 } => index = 11 * 16 + 9 + rand,
 
                 //  $
                 // #X$
                 //  #
                 Neighbors { 
-                    top: Some(bt),
-                    bottom: Some(Block::Dirt),
-                    left: Some(Block::Dirt),
-                    right: Some(br)
+                    north: Some(bt),
+                    south: Some(Block::Dirt),
+                    west: Some(Block::Dirt),
+                    east: Some(br),
+                    ..
                 } if (bt != Block::Dirt && bt != Block::Grass) && br != Block::Dirt => index = (6 + rand * 2) * 16 + 2,
 
                 //  $
                 // $X# 
                 //  #
                 Neighbors { 
-                    top: Some(bt),
-                    bottom: Some(Block::Dirt),
-                    left: Some(bl),
-                    right: Some(Block::Dirt)
+                    north: Some(bt),
+                    south: Some(Block::Dirt),
+                    west: Some(bl),
+                    east: Some(Block::Dirt),
+                    ..
                 } if (bt != Block::Dirt && bt != Block::Grass) && bl != Block::Dirt => index = (6 + rand * 2) * 16 + 3,
 
                 //  #
                 // $X#
                 //  $
                 Neighbors { 
-                    top: Some(Block::Dirt | Block::Grass),
-                    bottom: Some(bb),
-                    left: Some(bl),
-                    right: Some(Block::Dirt)
+                    north: Some(Block::Dirt | Block::Grass),
+                    south: Some(bb),
+                    west: Some(bl),
+                    east: Some(Block::Dirt),
+                    ..
                 } if bb != Block::Dirt && bl != Block::Dirt => index = (5 + rand * 2) * 16 + 3,
 
                 //  #
                 // #X$
                 //  $
                 Neighbors { 
-                    top: Some(Block::Dirt | Block::Grass),
-                    bottom: Some(bb),
-                    left: Some(Block::Dirt),
-                    right: Some(br)
+                    north: Some(Block::Dirt | Block::Grass),
+                    south: Some(bb),
+                    west: Some(Block::Dirt),
+                    east: Some(br),
+                    ..
                 } if bb != Block::Dirt && br != Block::Dirt => index = (5 + rand * 2) * 16 + 2,
 
                 //  $
                 // $X$
                 //  #
                 Neighbors { 
-                    top: Some(bt),
-                    bottom: Some(Block::Dirt),
-                    left: Some(bl),
-                    right: Some(br)
+                    north: Some(bt),
+                    south: Some(Block::Dirt),
+                    west: Some(bl),
+                    east: Some(br),
+                    ..
                 } if (bt != Block::Dirt && bt != Block::Grass) && bl != Block::Dirt && br != Block::Dirt => index = 5 * 16 + 8 + rand,
 
                 //  #
                 // $X$
                 //
                 Neighbors { 
-                    top: Some(Block::Dirt | Block::Grass),
-                    bottom: None,
-                    left: Some(bl),
-                    right: Some(br)
+                    north: Some(Block::Dirt | Block::Grass),
+                    south: None,
+                    west: Some(bl),
+                    east: Some(br),
+                    ..
                 } if bl != Block::Dirt && br != Block::Dirt => index = 16 + 13 + rand,
 
                 //  
                 // $X$
                 //  #
                 Neighbors { 
-                    top: None,
-                    bottom: Some(Block::Dirt),
-                    left: Some(bl),
-                    right: Some(br)
+                    north: None,
+                    south: Some(Block::Dirt),
+                    west: Some(bl),
+                    east: Some(br),
+                    ..
                 } if bl != Block::Dirt && br != Block::Dirt => index = 13 + rand,
 
                 //  #
                 //  X
                 //  $
                 Neighbors { 
-                    top: Some(Block::Dirt | Block::Grass),
-                    bottom: Some(bb),
-                    left: None,
-                    right: None
+                    north: Some(Block::Dirt | Block::Grass),
+                    south: Some(bb),
+                    west: None,
+                    east: None,
+                    ..
                 } if bb != Block::Dirt => index = (8 + rand) * 16 + 7,
 
                 //  $
                 //  X
                 //  #
                 Neighbors { 
-                    top: Some(bt),
-                    bottom: Some(Block::Dirt),
-                    left: None,
-                    right: None
+                    north: Some(bt),
+                    south: Some(Block::Dirt),
+                    west: None,
+                    east: None,
+                    ..
                 } if (bt != Block::Dirt && bt != Block::Grass) => index = (5 + rand) * 16 + 7,
 
                 // 
                 // #X$
                 // 
                 Neighbors { 
-                    top: None,
-                    bottom: None,
-                    left: Some(Block::Dirt),
-                    right: Some(br)
+                    north: None,
+                    south: None,
+                    west: Some(Block::Dirt),
+                    east: Some(br),
+                    ..
                 } if br != Block::Dirt => index = 14 * 16 + rand,
 
                 // 
                 // $X#
                 // 
                 Neighbors { 
-                    top: None,
-                    bottom: None,
-                    left: Some(bl),
-                    right: Some(Block::Dirt)
+                    north: None,
+                    south: None,
+                    west: Some(bl),
+                    east: Some(Block::Dirt),
+                    ..
                 } if bl != Block::Dirt => index = 14 * 16 + 3 + rand,
 
                 //  #
                 // $X$
                 //  #
                 Neighbors { 
-                    top: Some(Block::Dirt | Block::Grass),
-                    bottom: Some(Block::Dirt),
-                    left: Some(bl),
-                    right: Some(br)
+                    north: Some(Block::Dirt | Block::Grass),
+                    south: Some(Block::Dirt),
+                    west: Some(bl),
+                    east: Some(br),
+                    ..
                 } if bl != Block::Dirt && br != Block::Dirt => index = 10 * 16 + 8 + rand,
 
                 //  #
                 // #X$
                 //  #
                 Neighbors { 
-                    top: Some(Block::Dirt | Block::Grass),
-                    bottom: Some(Block::Dirt),
-                    left: Some(Block::Dirt),
-                    right: Some(br)
+                    north: Some(Block::Dirt | Block::Grass),
+                    south: Some(Block::Dirt),
+                    west: Some(Block::Dirt),
+                    east: Some(br),
+                    ..
                 } if br != Block::Dirt => index = (5 + rand) * 16 + 12,
 
                 //  $
                 // #X$
                 //  $
                 Neighbors { 
-                    top: Some(bt),
-                    bottom: Some(bb),
-                    left: Some(Block::Dirt),
-                    right: Some(br)
+                    north: Some(bt),
+                    south: Some(bb),
+                    west: Some(Block::Dirt),
+                    east: Some(br),
+                    ..
                 } if bt != Block::Dirt && bb != Block::Dirt && br != Block::Dirt => index = (7 + rand) * 16 + 9,
 
                 //  $
                 // $X#
                 //  $
                 Neighbors { 
-                    top: Some(bt),
-                    bottom: Some(bb),
-                    left: Some(bl),
-                    right: Some(Block::Dirt)
+                    north: Some(bt),
+                    south: Some(bb),
+                    west: Some(bl),
+                    east: Some(Block::Dirt),
+                    ..
                 } if bt != Block::Dirt && bb != Block::Dirt && bl != Block::Dirt => index = (7 + rand) * 16 + 8,
 
                 //  
                 // #X$
                 //  $
                 Neighbors { 
-                    top: None,
-                    bottom: Some(bb),
-                    left: Some(Block::Dirt),
-                    right: Some(br)
+                    north: None,
+                    south: Some(bb),
+                    west: Some(Block::Dirt),
+                    east: Some(br),
+                    ..
                 } if bb != Block::Dirt && br != Block::Dirt => index = 11 * 16 + rand,
 
                 //  $
                 // #X
                 //  $
                 Neighbors { 
-                    top: Some(bt),
-                    bottom: Some(bb),
-                    left: Some(Block::Dirt),
-                    right: None
+                    north: Some(bt),
+                    south: Some(bb),
+                    west: Some(Block::Dirt),
+                    east: None,
+                    ..
                 } if (bt != Block::Dirt && bt != Block::Grass) && bb != Block::Dirt => index = 3 * 16 + 13 + rand,
 
                 //  #
                 // $X#
                 //  #
                 Neighbors { 
-                    top: Some(Block::Dirt),
-                    bottom: Some(Block::Dirt),
-                    left: Some(bl),
-                    right: Some(Block::Dirt)
+                    north: Some(Block::Dirt),
+                    south: Some(Block::Dirt),
+                    west: Some(bl),
+                    east: Some(Block::Dirt),
+                    ..
                 } if bl != Block::Dirt => index = (8 + rand) * 16 + 12,
+
+                //  $
+                // $X$
+                //  $#
+                Neighbors {
+                    north: Some(_),
+                    south: Some(_),
+                    west: Some(_),
+                    east: Some(_),
+                    south_east: Some(Block::Dirt),
+                    ..
+                } => index = (5 + rand * 2) * 16,
+
+                //  $#
+                // $X$
+                //  $
+                Neighbors {
+                    north: Some(_),
+                    south: Some(_),
+                    west: Some(_),
+                    east: Some(_),
+                    north_east: Some(Block::Dirt),
+                    ..
+                } => index = (6 + rand * 2) * 16,
+
+                //  $
+                // $X$
+                // #$
+                Neighbors {
+                    north: Some(_),
+                    south: Some(_),
+                    west: Some(_),
+                    east: Some(_),
+                    south_west: Some(Block::Dirt),
+                    ..
+                } => index = (5 + rand * 2) * 16 + 1,
+
+                // #$
+                // $X$
+                //  $
+                Neighbors {
+                    north: Some(_),
+                    south: Some(_),
+                    west: Some(_),
+                    east: Some(_),
+                    north_west: Some(Block::Dirt),
+                    ..
+                } => index = (6 + rand * 2) * 16 + 1,
+
+                //  $
+                // $X#
+                //  
+                Neighbors {
+                    north: Some(_),
+                    south: None,
+                    west: Some(_),
+                    east: Some(Block::Dirt),
+                    ..
+                } => index = 12 * 16 + 3 + rand,
+
+                //  
+                // $X#
+                //  $
+                Neighbors {
+                    north: None,
+                    south: Some(_),
+                    west: Some(_),
+                    east: Some(Block::Dirt),
+                    ..
+                } => index = 11 * 16 + 3 + rand,
+
+                //  
+                // #X$
+                //  $
+                Neighbors {
+                    north: None,
+                    south: Some(_),
+                    west: Some(Block::Dirt),
+                    east: Some(_),
+                    ..
+                } => index = 11 * 16 + rand,
+
+                //  $
+                // #X$
+                //  
+                Neighbors {
+                    north: Some(_),
+                    south: None,
+                    west: Some(Block::Dirt),
+                    east: Some(_),
+                    ..
+                } => index = 12 * 16 + rand,
 
                 _ => ()
             };
@@ -710,7 +845,7 @@ pub struct Cell {
     pub wall: Option<Wall>,
 }
 
-#[autodefault(except(Level, Tile, Wall))]
+#[autodefault(except(Level, Tile, Wall, Neighbors))]
 pub fn generate(seed: u32) -> CellArray {
     // region: Init world
 
@@ -722,12 +857,33 @@ pub fn generate(seed: u32) -> CellArray {
     world.fill(Cell {
         tile: Some(Tile {
             tile_type: Block::Stone,
-            neighbors: Neighbors::<Block>::default()
+            neighbors: Neighbors::<Block> {
+                north: None,
+                north_west: None,
+                west: None,
+                south_west: None,
+                south: None,
+                south_east: None,
+                east: None,
+                north_east: None,
+            }
         }),
     });
 
     for cell in world.slice_mut(s![.., 0..WORLD_SIZE_X]).iter_mut() {
-        cell.wall = Some(Wall { wall_type: WallType::DirtWall, neighbors: Neighbors::default() });
+        cell.wall = Some(Wall { 
+            wall_type: WallType::DirtWall, 
+            neighbors: Neighbors {
+                north: None,
+                north_west: None,
+                west: None,
+                south_west: None,
+                south: None,
+                south_east: None,
+                east: None,
+                north_east: None,
+            } 
+        });
     }
 
     let level = Level {
@@ -845,7 +1001,16 @@ fn insert_specks<F: NoiseFn<f64, 2>>(
             if a > (frequency * 10.).powi(-1) {
                 world[[y, x]].tile = Some(Tile {
                     tile_type: speck_block,
-                    neighbors: Neighbors::default(),
+                    neighbors: Neighbors {
+                        north: None,
+                        north_west: None,
+                        west: None,
+                        south_west: None,
+                        south: None,
+                        south_east: None,
+                        east: None,
+                        north_east: None,
+                    }
                 });
             }
         }
@@ -873,7 +1038,16 @@ fn add_grass(world: &mut CellArray, level: Level) {
                 if prev_block.is_none() {
                     world[[y, x]].tile = Some(Tile {
                         tile_type: Block::Grass,
-                        neighbors: Neighbors::default(),
+                        neighbors: Neighbors {
+                            north: None,
+                            north_west: None,
+                            west: None,
+                            south_west: None,
+                            south: None,
+                            south_east: None,
+                            east: None,
+                            north_east: None,
+                        }
                     });
                 }
             }
@@ -1007,7 +1181,16 @@ fn replace<D: Dimension>(
         if cell.tile.map(|tile| tile.tile_type) == replace {
             cell.tile = replacement.map(|block| Tile {
                 tile_type: block,
-                neighbors: Neighbors::default(),
+                neighbors: Neighbors {
+                    north: None,
+                    north_west: None,
+                    west: None,
+                    south_west: None,
+                    south: None,
+                    south_east: None,
+                    east: None,
+                    north_east: None,
+                },
             })
         }
     }
@@ -1058,56 +1241,14 @@ fn set_tile_neighbors(world: &mut CellArray) {
 
                 if cell.tile.is_some() {
                     new_tile = Some(Tile {
-                        neighbors: Neighbors {
-                            left: tile_pos.square_west()
-                                .map(|pos| world.get_tile(pos))
-                                .flatten()
-                                .map(|tile| tile.tile_type),
-
-                            right: tile_pos.square_east(&MAP_SIZE)
-                                .map(|pos| world.get_tile(pos))
-                                .flatten()
-                                .map(|tile| tile.tile_type),
-
-                            top: tile_pos.square_south()
-                                .map(|pos| world.get_tile(pos))
-                                .flatten()
-                                .map(|tile| tile.tile_type),
-
-                            bottom: tile_pos.square_north(&MAP_SIZE)
-                                .map(|pos| world.get_tile(pos))
-                                .flatten()
-                                .map(|tile| tile.tile_type),
-                                
-                        },
+                        neighbors: world.get_tile_neighbors(tile_pos),
                         ..cell.tile.unwrap()
                     });
                 }
 
                 if cell.wall.is_some() {
                     new_wall = Some(Wall {
-                        neighbors: Neighbors {
-                            left: tile_pos.square_west()
-                                .map(|pos| world.get_wall(pos))
-                                .flatten()
-                                .map(|wall| wall.wall_type),
-
-                            right: tile_pos.square_east(&MAP_SIZE)
-                                .map(|pos| world.get_wall(pos))
-                                .flatten()
-                                .map(|wall| wall.wall_type),
-
-                            top: tile_pos.square_south()
-                                .map(|pos| world.get_wall(pos))
-                                .flatten()
-                                .map(|wall| wall.wall_type),
-
-                            bottom: tile_pos.square_north(&MAP_SIZE)
-                                .map(|pos| world.get_wall(pos))
-                                .flatten()
-                                .map(|wall| wall.wall_type),
-                                
-                        },
+                        neighbors: world.get_wall_neighbors(tile_pos),
                         ..cell.wall.unwrap()
                     });
                 }
