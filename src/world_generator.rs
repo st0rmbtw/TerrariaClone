@@ -213,15 +213,15 @@ pub struct Tile {
 
 impl Tile {
     pub fn get_sprite_index(&self) -> u32 {
-        let rand: u32 = thread_rng().gen_range(1..3);
+        let rand: u32 = thread_rng().gen_range(0..3);
 
         /*
          * "$" - Any block
          * "#" - Dirt
-         * "X" - The same block
+         * "X" - This block
         */
 
-        let mut index: u32;
+        let mut index: u32; 
 
         match self.neighbors {
             //  $
@@ -232,7 +232,7 @@ impl Tile {
                 bottom: Some(_), 
                 left: Some(_), 
                 right: Some(_) 
-            } => index = rand + 16,
+            } => index = 16 + 1 + rand,
             
             //
             // X
@@ -242,7 +242,7 @@ impl Tile {
                 bottom: None, 
                 left: None, 
                 right: None 
-            } => index = 16 * 3 + rand + 8,
+            } => index = 16 * 3 + rand + 9,
 
             // $
             // X
@@ -252,7 +252,7 @@ impl Tile {
                 bottom: None, 
                 left: None, 
                 right: None 
-            } => index = 16 * 3 + rand + 5,
+            } => index = 16 * 3 + rand + 6,
 
             //
             // X
@@ -261,7 +261,7 @@ impl Tile {
                 top: None, 
                 bottom: Some(_), 
                 left: None, 
-                right: None 
+                right: None  
             } => index = rand + 6,
 
             //
@@ -272,7 +272,7 @@ impl Tile {
                 bottom: None, 
                 left: Some(_), 
                 right: None 
-            } => index = (rand - 1) * 16 + 12,
+            } => index = rand * 16 + 12,
 
             //
             //  X$
@@ -282,7 +282,7 @@ impl Tile {
                 bottom: None, 
                 left: None, 
                 right: Some(_) 
-            } => index = (rand - 1) * 16 + 9,
+            } => index = rand * 16 + 9,
 
             //  $
             //  X
@@ -292,7 +292,7 @@ impl Tile {
                 bottom: Some(_), 
                 left: None, 
                 right: None
-            } => index = (rand - 1) * 16 + 5,
+            } => index = rand * 16 + 5,
 
             //  $
             // $X$
@@ -302,7 +302,7 @@ impl Tile {
                 bottom: None,
                 left: Some(_),
                 right: Some(_)
-            } => index = 16 * 2 + rand + 1,
+            } => index = 16 * 2 + 1 + rand,
 
             //  
             // $X$
@@ -312,7 +312,7 @@ impl Tile {
                 bottom: Some(_),
                 left: Some(_),
                 right: Some(_)
-            } => index = rand,
+            } => index = rand + 1,
 
             //  
             // $X$
@@ -322,7 +322,7 @@ impl Tile {
                 bottom: None,
                 left: Some(_),
                 right: Some(_)
-            } => index = 4 * 16 + 5 + rand,
+            } => index = 4 * 16 + 6 + rand,
 
             //  
             // $X
@@ -332,7 +332,7 @@ impl Tile {
                 bottom: Some(_),
                 left: Some(_),
                 right: None
-            } => index = 16 * 3 + 1 + (rand - 1) * 2,
+            } => index = 16 * 3 + 1 + rand * 2,
 
             //  
             //  X$
@@ -342,7 +342,7 @@ impl Tile {
                 bottom: Some(_),
                 left: None,
                 right: Some(_)
-            } => index = 16 * 3 + (rand - 1) * 2,
+            } => index = 16 * 3 + rand * 2,
 
             //  $
             // $X
@@ -352,7 +352,7 @@ impl Tile {
                 bottom: None,
                 left: Some(_),
                 right: None
-            } => index = 16 * 4 + 1 + (rand - 1) * 2,
+            } => index = 16 * 4 + 1 + rand * 2,
 
             //  $
             //  X$
@@ -362,7 +362,7 @@ impl Tile {
                 bottom: None,
                 left: None,
                 right: Some(_)
-            } => index = 16 * 4 + (rand - 1) * 2,
+            } => index = 16 * 4 + rand * 2,
 
             //  $
             // $X
@@ -372,7 +372,7 @@ impl Tile {
                 bottom: Some(_),
                 left: Some(_),
                 right: None
-            } => index = (rand - 1) * 16 + 4,
+            } => index = rand * 16 + 4,
 
             //  $
             //  X$
@@ -382,7 +382,7 @@ impl Tile {
                 bottom: Some(_),
                 left: None,
                 right: Some(_)
-            } => index = (rand - 1) * 16,
+            } => index = rand * 16,
         };
 
         if self.tile_type.merge_with_dirt() {
@@ -395,7 +395,7 @@ impl Tile {
                     bottom: Some(Block::Dirt), 
                     left: Some(Block::Dirt), 
                     right: Some(Block::Dirt) 
-                } => index = 16 * 11 + rand + 5,
+                } => index = 16 * 11 + 6 + rand,
 
                 //  #
                 // $X$
@@ -405,7 +405,7 @@ impl Tile {
                     bottom: Some(bb), 
                     left: Some(bl), 
                     right: Some(br)
-                } if bb != Block::Dirt && bl != Block::Dirt && br != Block::Dirt => index = 16 * 6 + rand + 7,
+                } if bb != Block::Dirt && bl != Block::Dirt && br != Block::Dirt => index = 16 * 6 + 8 + rand,
 
                 //
                 // #X
@@ -425,7 +425,7 @@ impl Tile {
                     bottom: None, 
                     left: None, 
                     right: Some(Block::Dirt) 
-                } => index = 13 * 16 + rand + 3,
+                } => index = 13 * 16 + 3 + rand,
 
                 //  $
                 // $X#
@@ -443,9 +443,9 @@ impl Tile {
                 Neighbors { 
                     top: None, 
                     bottom: Some(Block::Dirt), 
-                    left: None, 
+                    left: None,  
                     right: None 
-                } => index = (5 + rand - 1) * 16 + 6,
+                } => index = (5 + rand) * 16 + 6,
 
                 //  $
                 // $X
@@ -505,7 +505,7 @@ impl Tile {
                     bottom: Some(bb),
                     left: Some(Block::Dirt),
                     right: Some(Block::Dirt)
-                } if bb != Block::Dirt => index = (8 + rand) * 16 + 11,
+                } if bb != Block::Dirt => index = (5 + rand) * 16 + 11,
 
                 //  $
                 // #X#
@@ -515,7 +515,7 @@ impl Tile {
                     bottom: Some(Block::Dirt),
                     left: Some(Block::Dirt),
                     right: Some(Block::Dirt)
-                } if (bt != Block::Dirt && bt != Block::Grass) => index = (5 + rand) * 16 + 11,
+                } if (bt != Block::Dirt && bt != Block::Grass) => index = (8 + rand) * 16 + 11,
 
                 // 
                 // #X#
@@ -696,6 +696,16 @@ impl Tile {
                     left: Some(Block::Dirt),
                     right: None
                 } if (bt != Block::Dirt && bt != Block::Grass) && bb != Block::Dirt => index = 3 * 16 + 13 + rand,
+
+                //  #
+                // $X#
+                //  #
+                Neighbors { 
+                    top: Some(Block::Dirt),
+                    bottom: Some(Block::Dirt),
+                    left: Some(bl),
+                    right: Some(Block::Dirt)
+                } if bl != Block::Dirt => index = (8 + rand) * 16 + 12,
 
                 _ => ()
             };
