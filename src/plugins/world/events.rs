@@ -1,7 +1,7 @@
 use bevy::prelude::{UVec2, Vec2};
 use bevy_ecs_tilemap::tiles::TilePos;
 
-use crate::{block::Block, world_generator::Tile};
+use crate::block::Block;
 
 use super::ChunkPos;
 
@@ -19,5 +19,4 @@ pub struct UpdateNeighborsEvent {
     pub tile_pos: TilePos,
     pub chunk_tile_pos: TilePos,
     pub chunk_pos: ChunkPos,
-    pub tile: Tile,
 }

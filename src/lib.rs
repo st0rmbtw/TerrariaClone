@@ -98,42 +98,42 @@ impl CellArrayExtensions for CellArray {
             west: tile_pos.square_west()
                 .map(|pos| self.get_tile(pos))
                 .flatten()
-                .map(|tile| tile.tile_type),
+                .map(|tile| tile.block),
 
             east: tile_pos.square_east(&MAP_SIZE)
                 .map(|pos| self.get_tile(pos))
                 .flatten()
-                .map(|tile| tile.tile_type),
+                .map(|tile| tile.block),
 
             north: tile_pos.square_south()
                 .map(|pos| self.get_tile(pos))
                 .flatten()
-                .map(|tile| tile.tile_type),
+                .map(|tile| tile.block),
 
             south: tile_pos.square_north(&MAP_SIZE)
                 .map(|pos| self.get_tile(pos))
                 .flatten()
-                .map(|tile| tile.tile_type),
+                .map(|tile| tile.block),
 
             north_west: tile_pos.square_south_west()
                 .map(|pos| self.get_tile(pos))
                 .flatten()
-                .map(|tile| tile.tile_type),
+                .map(|tile| tile.block),
 
             south_west: tile_pos.square_north_west(&MAP_SIZE)
                 .map(|pos| self.get_tile(pos))
                 .flatten()
-                .map(|tile| tile.tile_type),
+                .map(|tile| tile.block),
 
             south_east: tile_pos.square_north_east(&MAP_SIZE)
                 .map(|pos| self.get_tile(pos))
                 .flatten()
-                .map(|tile| tile.tile_type),
+                .map(|tile| tile.block),
             
             north_east: tile_pos.square_south_east(&MAP_SIZE)
                 .map(|pos| self.get_tile(pos))
                 .flatten()
-                .map(|tile| tile.tile_type),
+                .map(|tile| tile.block),
                 
         }
     }

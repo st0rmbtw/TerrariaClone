@@ -1,11 +1,10 @@
 use autodefault::autodefault;
-use bevy::prelude::default;
-use bevy_ecs_tilemap::{tiles::TilePos, prelude::Neighbors};
+use bevy_ecs_tilemap::prelude::Neighbors;
 use ndarray::prelude::*;
 use noise::{NoiseFn, OpenSimplex, Seedable, SuperSimplex};
 use rand::{rngs::StdRng, Rng, SeedableRng, thread_rng};
 
-use crate::{block::Block, wall::Wall as WallType, To2dArrayIndex, CellArrayExtensions, util::{get_tile_start_index, get_wall_start_index}};
+use crate::{block::Block, wall::Wall as WallType, util::{get_tile_start_index, get_wall_start_index}};
 
 pub const WORLD_SIZE_X: usize = 1750;
 pub const WORLD_SIZE_Y: usize = 900;
@@ -21,15 +20,14 @@ pub struct Level {
 
 #[derive(Clone, Copy)]
 pub struct Wall {
-    pub wall_type: WallType,
-    pub neighbors: Neighbors<WallType>,
+    pub wall_type: WallType
 }
 
 impl Wall {
-    pub fn get_sprite_index(&self) -> u32 {
+    pub fn get_sprite_index(neighbors: Neighbors<WallType>, wall_type: WallType) -> u32 {
         let rand: u32 = thread_rng().gen_range(0..3);
 
-        get_wall_start_index(self.wall_type) + match self.neighbors {
+        get_wall_start_index(wall_type) + match neighbors {
             //  #
             // #X#
             //  #
@@ -39,7 +37,7 @@ impl Wall {
                 west: Some(bl), 
                 east: Some(br),
                 ..
-            } if bt == self.wall_type && bb == self.wall_type && bl == self.wall_type && br == self.wall_type => 13 + 1 + rand,
+            } if bt == wall_type && bb == wall_type && bl == wall_type && br == wall_type => 13 + 1 + rand,
             
             //
             // X
@@ -61,7 +59,7 @@ impl Wall {
                 west: None, 
                 east: None,
                 ..
-            } if b == self.wall_type => 13 * 2 + 1 + rand,
+            } if b == wall_type => 13 * 2 + 1 + rand,
 
             //
             // X
@@ -72,7 +70,7 @@ impl Wall {
                 west: None, 
                 east: None,
                 ..
-            } if b == self.wall_type => rand + 6,
+            } if b == wall_type => rand + 6,
 
             //  #
             //  X
@@ -83,7 +81,7 @@ impl Wall {
                 west: None, 
                 east: None,
                 ..
-            } if bt == self.wall_type && bb == self.wall_type => rand * 13 + 5,
+            } if bt == wall_type && bb == wall_type => rand * 13 + 5,
 
             //  #
             // #X#
@@ -94,7 +92,7 @@ impl Wall {
                 west: Some(bl),
                 east: Some(br),
                 ..
-            } if bt == self.wall_type && bl == self.wall_type && br == self.wall_type => 13 * 2 + 1 + rand,
+            } if bt == wall_type && bl == wall_type && br == wall_type => 13 * 2 + 1 + rand,
 
             //  
             // #X#
@@ -105,7 +103,7 @@ impl Wall {
                 west: Some(bl),
                 east: Some(br),
                 ..
-            } if bb == self.wall_type && bl == self.wall_type && br == self.wall_type => 1 + rand,
+            } if bb == wall_type && bl == wall_type && br == wall_type => 1 + rand,
 
             //  
             // #X#
@@ -116,7 +114,7 @@ impl Wall {
                 west: Some(bl),
                 east: Some(br),
                 ..
-            } if bl == self.wall_type && br == self.wall_type => 13 * 4 + 6 + rand,
+            } if bl == wall_type && br == wall_type => 13 * 4 + 6 + rand,
 
             //  
             // #X
@@ -127,7 +125,7 @@ impl Wall {
                 west: Some(bl),
                 east: None,
                 ..
-            } if bb == self.wall_type && bl == self.wall_type => 13 * 3 + 1 + rand * 2,
+            } if bb == wall_type && bl == wall_type => 13 * 3 + 1 + rand * 2,
 
             //  
             //  X#
@@ -138,7 +136,7 @@ impl Wall {
                 west: None,
                 east: Some(br),
                 ..
-            } if bb == self.wall_type && br == self.wall_type => 13 * 3 + rand * 2,
+            } if bb == wall_type && br == wall_type => 13 * 3 + rand * 2,
 
             //  #
             // #X
@@ -149,7 +147,7 @@ impl Wall {
                 west: Some(bl),
                 east: None,
                 ..
-            } if bt == self.wall_type && bl == self.wall_type => 13 * 4 + 1 + rand * 2,
+            } if bt == wall_type && bl == wall_type => 13 * 4 + 1 + rand * 2,
 
             //  #
             //  X#
@@ -160,7 +158,7 @@ impl Wall {
                 west: None,
                 east: Some(br),
                 ..
-            } if bt == self.wall_type && br == self.wall_type => 13 * 4 + rand * 2,
+            } if bt == wall_type && br == wall_type => 13 * 4 + rand * 2,
 
             //  #
             // #X
@@ -171,7 +169,7 @@ impl Wall {
                 west: Some(bl),
                 east: None,
                 ..
-            } if bt == self.wall_type && bb == self.wall_type && bl == self.wall_type => 13 * rand + 4,
+            } if bt == wall_type && bb == wall_type && bl == wall_type => 13 * rand + 4,
 
             //  #
             //  X#
@@ -182,7 +180,7 @@ impl Wall {
                 west: None,
                 east: Some(br),
                 ..
-            } if bt == self.wall_type && bb == self.wall_type && br == self.wall_type => 13 * rand,
+            } if bt == wall_type && bb == wall_type && br == wall_type => 13 * rand,
 
             _ => panic!()
         }
@@ -191,12 +189,11 @@ impl Wall {
 
 #[derive(Clone, Copy)]
 pub struct Tile {
-    pub tile_type: Block,
-    pub neighbors: Neighbors<Block>,
+    pub block: Block,
 }
 
 impl Tile {
-    pub fn get_sprite_index(&self) -> u32 {
+    pub fn get_sprite_index(neighbors: Neighbors<Block>, block: Block) -> u32 {
         /*
          * "$" - Any block
          * "#" - Dirt
@@ -205,25 +202,19 @@ impl Tile {
 
         let rand: u32 = thread_rng().gen_range(0..3);
 
-        let index: u32 = if self.tile_type.merge_with_dirt() { 
-            Self::get_sprite_index_by_dirt_connections(self.neighbors, rand) 
-        } else {
-            Self::get_sprite_index_by_neighbors(self.neighbors, rand)
-        };
+        let mut index = Self::get_sprite_index_by_neighbors(neighbors, rand);
 
-
-        get_tile_start_index(self.tile_type) + index
-    }
-
-    fn get_sprite_index_by_dirt_connections(neighbors: Neighbors<Block>, rand: u32) -> u32 {
-        fn not(block: Option<Block>, top: bool) -> Option<Block> {
-            if top {
-                if block == Some(Block::Dirt) || block == Some(Block::Grass) { None } else { block }
-            } else {
-                if block == Some(Block::Dirt) { None } else { block }
+        if block.merge_with_dirt() { 
+            if let Some(idx) = Self::get_sprite_index_by_dirt_connections(neighbors, rand) {
+                index = idx;
             }
         }
 
+
+        get_tile_start_index(block) + index
+    }
+
+    fn get_sprite_index_by_dirt_connections(neighbors: Neighbors<Block>, rand: u32) -> Option<u32> {
         match neighbors {
             //  #
             // #X#
@@ -234,7 +225,7 @@ impl Tile {
                 west: Some(Block::Dirt), 
                 east: Some(Block::Dirt),
                 .. 
-            } => 16 * 11 + 6 + rand,
+            } => Some(16 * 11 + 6 + rand),
 
             //  #
             // $X$
@@ -245,7 +236,7 @@ impl Tile {
                 west: Some(bl), 
                 east: Some(br),
                 ..
-            } if bb != Block::Dirt && bl != Block::Dirt && br != Block::Dirt => 16 * 6 + 8 + rand,
+            } if bb != Block::Dirt && bl != Block::Dirt && br != Block::Dirt => Some(16 * 6 + 8 + rand),
 
             //
             // #X
@@ -256,7 +247,7 @@ impl Tile {
                 west: Some(Block::Dirt), 
                 east: None,
                 .. 
-            } => 13 * 16 + rand,
+            } => Some(13 * 16 + rand),
 
             //
             // X#
@@ -267,7 +258,7 @@ impl Tile {
                 west: None, 
                 east: Some(Block::Dirt),
                 .. 
-            } => 13 * 16 + 3 + rand,
+            } => Some(13 * 16 + 3 + rand),
 
             //  $
             // $X#
@@ -278,7 +269,7 @@ impl Tile {
                 west: Some(bl),
                 east: Some(Block::Dirt),
                 .. 
-            } if (bt != Block::Dirt && bt != Block::Grass) && bl != Block::Dirt && bb != Block::Dirt => (7 + rand) * 16 + 8,
+            } if (bt != Block::Dirt && bt != Block::Grass) && bl != Block::Dirt && bb != Block::Dirt => Some((7 + rand) * 16 + 8),
 
             //
             // X
@@ -289,7 +280,7 @@ impl Tile {
                 west: None,  
                 east: None,
                 .. 
-            } => (5 + rand) * 16 + 6,
+            } => Some((5 + rand) * 16 + 6),
 
             //  $
             // $X
@@ -300,7 +291,7 @@ impl Tile {
                 west: Some(bl),
                 east: None,
                 .. 
-            } if bl != Block::Dirt && bt != Block::Dirt => (5 + rand) * 16 + 5,
+            } if bl != Block::Dirt && bt != Block::Dirt => Some((5 + rand) * 16 + 5),
 
             // #
             // X$
@@ -311,7 +302,7 @@ impl Tile {
                 west: None,
                 east: Some(br),
                 ..
-            } if br != Block::Dirt && bb != Block::Dirt => (8 + rand) * 16 + 4,
+            } if br != Block::Dirt && bb != Block::Dirt => Some((8 + rand) * 16 + 4),
 
             // $
             // X$
@@ -322,7 +313,7 @@ impl Tile {
                 west: None,
                 east: Some(br),
                 ..
-            } if (bt != Block::Dirt && bt != Block::Grass) && br != Block::Dirt => (5 + rand) * 16 + 4,
+            } if (bt != Block::Dirt && bt != Block::Grass) && br != Block::Dirt => Some((5 + rand) * 16 + 4),
 
             //  #
             // $X
@@ -333,7 +324,7 @@ impl Tile {
                 west: Some(bl),
                 east: None,
                 ..
-            } if bb != Block::Dirt && bl != Block::Dirt => (8 + rand) * 16 + 5,
+            } if bb != Block::Dirt && bl != Block::Dirt => Some((8 + rand) * 16 + 5),
 
             //  #
             //  X
@@ -344,7 +335,7 @@ impl Tile {
                 west: None, 
                 east: None,
                 ..
-            } => (8 + rand) * 16 + 6,
+            } => Some((8 + rand) * 16 + 6),
 
             //  #
             // #X#
@@ -355,7 +346,7 @@ impl Tile {
                 west: Some(Block::Dirt),
                 east: Some(Block::Dirt),
                 ..
-            } if bb != Block::Dirt => (5 + rand) * 16 + 11,
+            } if bb != Block::Dirt => Some((5 + rand) * 16 + 11),
 
             //  $
             // #X#
@@ -366,7 +357,7 @@ impl Tile {
                 west: Some(Block::Dirt),
                 east: Some(Block::Dirt),
                 ..
-            } if (bt != Block::Dirt && bt != Block::Grass) => (8 + rand) * 16 + 11,
+            } if (bt != Block::Dirt && bt != Block::Grass) => Some((8 + rand) * 16 + 11),
 
             // 
             // #X#
@@ -377,7 +368,7 @@ impl Tile {
                 west: Some(Block::Dirt),
                 east: Some(Block::Dirt),
                 ..
-            } => 11 * 16 + 9 + rand,
+            } => Some(11 * 16 + 9 + rand),
 
             //  $
             // #X$
@@ -388,7 +379,7 @@ impl Tile {
                 west: Some(Block::Dirt),
                 east: Some(br),
                 ..
-            } if (bt != Block::Dirt && bt != Block::Grass) && br != Block::Dirt => (6 + rand * 2) * 16 + 2,
+            } if (bt != Block::Dirt && bt != Block::Grass) && br != Block::Dirt => Some((6 + rand * 2) * 16 + 2),
 
             //  $
             // $X# 
@@ -399,7 +390,7 @@ impl Tile {
                 west: Some(bl),
                 east: Some(Block::Dirt),
                 ..
-            } if (bt != Block::Dirt && bt != Block::Grass) && bl != Block::Dirt => (6 + rand * 2) * 16 + 3,
+            } if (bt != Block::Dirt && bt != Block::Grass) && bl != Block::Dirt => Some((6 + rand * 2) * 16 + 3),
 
             //  #
             // $X#
@@ -410,7 +401,7 @@ impl Tile {
                 west: Some(bl),
                 east: Some(Block::Dirt),
                 ..
-            } if bb != Block::Dirt && bl != Block::Dirt => (5 + rand * 2) * 16 + 3,
+            } if bb != Block::Dirt && bl != Block::Dirt => Some((5 + rand * 2) * 16 + 3),
 
             //  #
             // #X$
@@ -421,7 +412,7 @@ impl Tile {
                 west: Some(Block::Dirt),
                 east: Some(br),
                 ..
-            } if bb != Block::Dirt && br != Block::Dirt => (5 + rand * 2) * 16 + 2,
+            } if bb != Block::Dirt && br != Block::Dirt => Some((5 + rand * 2) * 16 + 2),
 
             //  $
             // $X$
@@ -432,7 +423,7 @@ impl Tile {
                 west: Some(bl),
                 east: Some(br),
                 ..
-            } if (bt != Block::Dirt && bt != Block::Grass) && bl != Block::Dirt && br != Block::Dirt => 5 * 16 + 8 + rand,
+            } if (bt != Block::Dirt && bt != Block::Grass) && bl != Block::Dirt && br != Block::Dirt => Some(5 * 16 + 8 + rand),
 
             //  #
             // $X$
@@ -443,7 +434,7 @@ impl Tile {
                 west: Some(bl),
                 east: Some(br),
                 ..
-            } if bl != Block::Dirt && br != Block::Dirt => 16 + 13 + rand,
+            } if bl != Block::Dirt && br != Block::Dirt => Some(16 + 13 + rand),
 
             //  
             // $X$
@@ -454,7 +445,7 @@ impl Tile {
                 west: Some(bl),
                 east: Some(br),
                 ..
-            } if bl != Block::Dirt && br != Block::Dirt => 13 + rand,
+            } if bl != Block::Dirt && br != Block::Dirt => Some(13 + rand),
 
             //  #
             //  X
@@ -465,7 +456,7 @@ impl Tile {
                 west: None,
                 east: None,
                 ..
-            } if bb != Block::Dirt => (8 + rand) * 16 + 7,
+            } if bb != Block::Dirt => Some((8 + rand) * 16 + 7),
 
             //  $
             //  X
@@ -476,7 +467,7 @@ impl Tile {
                 west: None,
                 east: None,
                 ..
-            } if (bt != Block::Dirt && bt != Block::Grass) => (5 + rand) * 16 + 7,
+            } if (bt != Block::Dirt && bt != Block::Grass) => Some((5 + rand) * 16 + 7),
 
             // 
             // #X$
@@ -487,7 +478,7 @@ impl Tile {
                 west: Some(Block::Dirt),
                 east: Some(br),
                 ..
-            } if br != Block::Dirt => 14 * 16 + rand,
+            } if br != Block::Dirt => Some(14 * 16 + rand),
 
             // 
             // $X#
@@ -498,7 +489,7 @@ impl Tile {
                 west: Some(bl),
                 east: Some(Block::Dirt),
                 ..
-            } if bl != Block::Dirt => 14 * 16 + 3 + rand,
+            } if bl != Block::Dirt => Some(14 * 16 + 3 + rand),
 
             //  #
             // $X$
@@ -509,7 +500,7 @@ impl Tile {
                 west: Some(bl),
                 east: Some(br),
                 ..
-            } if bl != Block::Dirt && br != Block::Dirt => 10 * 16 + 8 + rand,
+            } if bl != Block::Dirt && br != Block::Dirt => Some(10 * 16 + 8 + rand),
 
             //  #
             // #X$
@@ -520,7 +511,7 @@ impl Tile {
                 west: Some(Block::Dirt),
                 east: Some(br),
                 ..
-            } if br != Block::Dirt => (5 + rand) * 16 + 12,
+            } if br != Block::Dirt => Some((5 + rand) * 16 + 12),
 
             //  $
             // #X$
@@ -531,7 +522,7 @@ impl Tile {
                 west: Some(Block::Dirt),
                 east: Some(br),
                 ..
-            } if bt != Block::Dirt && bb != Block::Dirt && br != Block::Dirt => (7 + rand) * 16 + 9,
+            } if bt != Block::Dirt && bb != Block::Dirt && br != Block::Dirt => Some((7 + rand) * 16 + 9),
 
             //  $
             // $X#
@@ -542,7 +533,7 @@ impl Tile {
                 west: Some(bl),
                 east: Some(Block::Dirt),
                 ..
-            } if bt != Block::Dirt && bb != Block::Dirt && bl != Block::Dirt => (7 + rand) * 16 + 8,
+            } if bt != Block::Dirt && bb != Block::Dirt && bl != Block::Dirt => Some((7 + rand) * 16 + 8),
 
             //  
             // #X$
@@ -553,7 +544,7 @@ impl Tile {
                 west: Some(Block::Dirt),
                 east: Some(br),
                 ..
-            } if bb != Block::Dirt && br != Block::Dirt => 11 * 16 + rand,
+            } if bb != Block::Dirt && br != Block::Dirt => Some(11 * 16 + rand),
 
             //  $
             // #X
@@ -564,7 +555,7 @@ impl Tile {
                 west: Some(Block::Dirt),
                 east: None,
                 ..
-            } if (bt != Block::Dirt && bt != Block::Grass) && bb != Block::Dirt => 3 * 16 + 13 + rand,
+            } if (bt != Block::Dirt && bt != Block::Grass) && bb != Block::Dirt => Some(3 * 16 + 13 + rand),
 
             //  #
             // $X#
@@ -575,7 +566,7 @@ impl Tile {
                 west: Some(bl),
                 east: Some(Block::Dirt),
                 ..
-            } if bl != Block::Dirt => (8 + rand) * 16 + 12,
+            } if bl != Block::Dirt => Some((8 + rand) * 16 + 12),
 
             //  $
             // $X$
@@ -587,7 +578,7 @@ impl Tile {
                 east: Some(br),
                 south_east: Some(Block::Dirt),
                 ..
-            } if (bt != Block::Dirt && bt != Block::Grass) && bb != Block::Dirt && bl != Block::Dirt && br != Block::Dirt => (5 + rand * 2) * 16,
+            } if (bt != Block::Dirt && bt != Block::Grass) && bb != Block::Dirt && bl != Block::Dirt && br != Block::Dirt => Some((5 + rand * 2) * 16),
 
             //  $#
             // $X$
@@ -599,7 +590,7 @@ impl Tile {
                 east: Some(br),
                 north_east: Some(Block::Dirt),
                 ..
-            } if (bt != Block::Dirt && bt != Block::Grass) && bb != Block::Dirt && bl != Block::Dirt && br != Block::Dirt => (6 + rand * 2) * 16,
+            } if (bt != Block::Dirt && bt != Block::Grass) && bb != Block::Dirt && bl != Block::Dirt && br != Block::Dirt => Some((6 + rand * 2) * 16),
 
             //  $
             // $X$
@@ -611,7 +602,7 @@ impl Tile {
                 east: Some(br),
                 south_west: Some(Block::Dirt),
                 ..
-            } if (bt != Block::Dirt && bt != Block::Grass) && bb != Block::Dirt && bl != Block::Dirt && br != Block::Dirt => (5 + rand * 2) * 16 + 1,
+            } if (bt != Block::Dirt && bt != Block::Grass) && bb != Block::Dirt && bl != Block::Dirt && br != Block::Dirt => Some((5 + rand * 2) * 16 + 1),
 
             // #$
             // $X$
@@ -623,7 +614,7 @@ impl Tile {
                 east: Some(br),
                 north_west: Some(Block::Dirt),
                 ..
-            } if (bt != Block::Dirt && bt != Block::Grass) && bb != Block::Dirt && bl != Block::Dirt && br != Block::Dirt => (6 + rand * 2) * 16 + 1,
+            } if (bt != Block::Dirt && bt != Block::Grass) && bb != Block::Dirt && bl != Block::Dirt && br != Block::Dirt => Some((6 + rand * 2) * 16 + 1),
 
             //  $
             // $X#
@@ -634,7 +625,7 @@ impl Tile {
                 west: Some(bl),
                 east: Some(Block::Dirt),
                 ..
-            } if (bt != Block::Dirt && bt != Block::Grass) && bl != Block::Dirt => 12 * 16 + 3 + rand,
+            } if (bt != Block::Dirt && bt != Block::Grass) && bl != Block::Dirt => Some(12 * 16 + 3 + rand),
 
             //  
             // $X#
@@ -645,7 +636,7 @@ impl Tile {
                 west: Some(bl),
                 east: Some(Block::Dirt),
                 ..
-            } if bb != Block::Dirt && bl != Block::Dirt => 11 * 16 + 3 + rand,
+            } if bb != Block::Dirt && bl != Block::Dirt => Some(11 * 16 + 3 + rand),
 
             //  
             // #X$
@@ -656,7 +647,7 @@ impl Tile {
                 west: Some(Block::Dirt),
                 east: Some(br),
                 ..
-            } if bb != Block::Dirt && br != Block::Dirt => 11 * 16 + rand,
+            } if bb != Block::Dirt && br != Block::Dirt => Some(11 * 16 + rand),
 
             //  $
             // #X$
@@ -667,7 +658,7 @@ impl Tile {
                 west: Some(Block::Dirt),
                 east: Some(br),
                 ..
-            } if (bt != Block::Dirt && bt != Block::Grass) && br != Block::Dirt => 12 * 16 + rand,
+            } if (bt != Block::Dirt && bt != Block::Grass) && br != Block::Dirt => Some(12 * 16 + rand),
 
             //  $
             //  X#
@@ -678,7 +669,7 @@ impl Tile {
                 west: None,
                 east: Some(Block::Dirt),
                 ..
-            } if (bt != Block::Dirt && bt != Block::Grass) && bb != Block::Dirt => 2 * 16 + 13 + rand,
+            } if (bt != Block::Dirt && bt != Block::Grass) && bb != Block::Dirt => Some(2 * 16 + 13 + rand),
 
             //  $
             //  X#
@@ -689,21 +680,9 @@ impl Tile {
                 west: Some(Block::Dirt),
                 east: None,
                 ..
-            } if (bt != Block::Dirt && bt != Block::Grass) && bb != Block::Dirt => 3 * 16 + 13 + rand,
+            } if (bt != Block::Dirt && bt != Block::Grass) && bb != Block::Dirt => Some(3 * 16 + 13 + rand),
 
-            _ => Self::get_sprite_index_by_neighbors(
-                Neighbors { 
-                    north: not(neighbors.north, true),
-                    west: not(neighbors.west, false),
-                    south: not(neighbors.south, false),
-                    east: not(neighbors.east, false),
-                    south_west: None,
-                    south_east: None,
-                    north_west: None,
-                    north_east: None
-                },
-                rand
-            )
+            _ => None
         }
     }
 
@@ -905,33 +884,13 @@ pub fn generate(seed: u32) -> CellArray {
     let mut world = Array2::<Cell>::default((WORLD_SIZE_Y, WORLD_SIZE_X));
     world.fill(Cell {
         tile: Some(Tile {
-            tile_type: Block::Stone,
-            neighbors: Neighbors::<Block> {
-                north: None,
-                north_west: None,
-                west: None,
-                south_west: None,
-                south: None,
-                south_east: None,
-                east: None,
-                north_east: None,
-            }
+            block: Block::Stone
         }),
     });
 
     for cell in world.slice_mut(s![.., 0..WORLD_SIZE_X]).iter_mut() {
         cell.wall = Some(Wall { 
-            wall_type: WallType::DirtWall, 
-            neighbors: Neighbors {
-                north: None,
-                north_west: None,
-                west: None,
-                south_west: None,
-                south: None,
-                south_east: None,
-                east: None,
-                north_east: None,
-            } 
+            wall_type: WallType::DirtWall
         });
     }
 
@@ -1004,8 +963,6 @@ pub fn generate(seed: u32) -> CellArray {
 
     remove_extra_walls(&mut world);
 
-    set_tile_neighbors(&mut world);
-
     world
 }
 
@@ -1018,7 +975,7 @@ fn remove_extra_walls(world: &mut CellArray) {
 
             if let Some(cell) = cell {
                 if let Some(tile) = cell.tile {
-                    if tile.tile_type == Block::Grass {
+                    if tile.block == Block::Grass {
                         for cell in world.slice_mut(s![..y + 2, x]).iter_mut() {
                             cell.wall = None;
                         }
@@ -1048,19 +1005,7 @@ fn insert_specks<F: NoiseFn<f64, 2>>(
             ]);
 
             if a > (frequency * 10.).powi(-1) {
-                world[[y, x]].tile = Some(Tile {
-                    tile_type: speck_block,
-                    neighbors: Neighbors {
-                        north: None,
-                        north_west: None,
-                        west: None,
-                        south_west: None,
-                        south: None,
-                        south_east: None,
-                        east: None,
-                        north_east: None,
-                    }
-                });
+                world[[y, x]].tile = Some(Tile { block: speck_block });
             }
         }
     }
@@ -1081,23 +1026,11 @@ fn add_grass(world: &mut CellArray, level: Level) {
             let block = world
                 .get((y, x))
                 .and_then(|cell| cell.tile)
-                .map(|tile| tile.tile_type);
+                .map(|tile| tile.block);
 
             if let Some(Block::Dirt) = block {
                 if prev_block.is_none() {
-                    world[[y, x]].tile = Some(Tile {
-                        tile_type: Block::Grass,
-                        neighbors: Neighbors {
-                            north: None,
-                            north_west: None,
-                            west: None,
-                            south_west: None,
-                            south: None,
-                            south_east: None,
-                            east: None,
-                            north_east: None,
-                        }
-                    });
+                    world[[y, x]].tile = Some(Tile { block: Block::Grass });
                 }
             }
 
@@ -1227,20 +1160,8 @@ fn replace<D: Dimension>(
     replacement: Option<Block>,
 ) {
     for cell in world.iter_mut() {
-        if cell.tile.map(|tile| tile.tile_type) == replace {
-            cell.tile = replacement.map(|block| Tile {
-                tile_type: block,
-                neighbors: Neighbors {
-                    north: None,
-                    north_west: None,
-                    west: None,
-                    south_west: None,
-                    south: None,
-                    south_east: None,
-                    east: None,
-                    north_east: None,
-                },
-            })
+        if cell.tile.map(|tile| tile.block) == replace {
+            cell.tile = replacement.map(|block| Tile { block })
         }
     }
 }
@@ -1277,37 +1198,4 @@ fn insert_dirt_specks_into_stone<F: NoiseFn<f64, 2>>(
         0.1,
         Block::Dirt,
     );
-}
-
-fn set_tile_neighbors(world: &mut CellArray) {
-    for y in 0..WORLD_SIZE_Y as u32 {
-        for x in 0..WORLD_SIZE_X as u32 {
-            let tile_pos = TilePos { x, y };
-
-            if let Some(cell) = world.get(tile_pos.to_2d_array_index()).cloned() {
-                let mut new_tile = cell.tile;
-                let mut new_wall = cell.wall;
-
-                if cell.tile.is_some() {
-                    new_tile = Some(Tile {
-                        neighbors: world.get_tile_neighbors(tile_pos),
-                        ..cell.tile.unwrap()
-                    });
-                }
-
-                if cell.wall.is_some() {
-                    new_wall = Some(Wall {
-                        neighbors: world.get_wall_neighbors(tile_pos),
-                        ..cell.wall.unwrap()
-                    });
-                }
-
-                world[[y as usize, x as usize]] = Cell {
-                    tile: new_tile,
-                    wall: new_wall,
-                    ..default()
-                };
-            }
-        }
-    }
 }
