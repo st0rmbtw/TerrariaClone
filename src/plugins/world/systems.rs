@@ -13,16 +13,16 @@ use bevy_ecs_tilemap::{
         TilePos, TileTexture, TileStorage, TileBundle
     }, 
     prelude::{
-        TilemapType, get_neighboring_pos, TilemapGridSize, TilemapTexture, TilemapTileSize, 
+        get_neighboring_pos, TilemapGridSize, TilemapTexture, TilemapTileSize, 
         TilemapSpacing, TilemapId
     }, 
     TilemapBundle
 };
 use iyes_loopless::state::NextState;
 
-use crate::{util::{self, FRect, URect}, block::Block, world_generator::{Tile, WORLD_SIZE_X, WORLD_SIZE_Y, generate, Wall}, plugins::{inventory::Inventory, world::{CHUNK_SIZE, TILE_SIZE}, assets::{BlockAssets, WallAssets}, camera::MainCamera}, state::GameState};
+use crate::{util::{FRect, URect}, world_generator::{Tile, WORLD_SIZE_X, WORLD_SIZE_Y, generate, Wall}, plugins::{inventory::Inventory, world::{CHUNK_SIZE, TILE_SIZE}, assets::{BlockAssets, WallAssets}, camera::MainCamera}, state::GameState, CellArrayExtensions};
 
-use super::{get_chunk_pos, CHUNK_SIZE_U, MAP_SIZE, TileChunk, UpdateNeighborsEvent, WorldData, BlockPlaceEvent, get_tile_sprite_index, WallChunk, WALL_SIZE, CHUNKMAP_SIZE, Chunk, get_camera_fov, ChunkManager, get_wall_sprite_index, ChunkPos, get_chunk_tile_pos};
+use super::{get_chunk_pos, CHUNK_SIZE_U, MAP_SIZE, TileChunk, UpdateNeighborsEvent, WorldData, BlockPlaceEvent, WallChunk, WALL_SIZE, CHUNKMAP_SIZE, Chunk, get_camera_fov, ChunkManager, ChunkPos, get_chunk_tile_pos, MAP_TYPE};
 
 pub fn spawn_terrain(mut commands: Commands) {
     let current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
@@ -110,10 +110,9 @@ pub fn spawn_tile(
     commands: &mut Commands,
     tile: Tile,
     tile_pos: TilePos,
-    tilemap_entity: Entity
+    tilemap_entity: Entity,
+    index: u32
 ) -> Entity {
-    let index = util::get_tile_start_index(tile.tile_type) + get_tile_sprite_index(tile.neighbors);
-
     commands
         .spawn()
         .insert_bundle(TileBundle {
@@ -122,18 +121,16 @@ pub fn spawn_tile(
             texture: TileTexture(index),
             ..default()
         })
-        .insert(tile.tile_type)
+        .insert(tile.block)
         .id()
 }
 
 pub fn spawn_wall(
     commands: &mut Commands,
-    wall: Wall,
     wall_pos: TilePos,
-    wallmap_entity: Entity
+    wallmap_entity: Entity,
+    index: u32
 ) -> Entity {
-    let index = util::get_wall_start_index(wall.wall_type) + get_wall_sprite_index(wall.neighbors);
-
     commands
         .spawn()
         .insert_bundle(TileBundle {
@@ -219,7 +216,7 @@ pub fn spawn_chunk(
 
     for y in 0..CHUNK_SIZE_U {
         for x in 0..CHUNK_SIZE_U {
-            let tile_pos = TilePos { 
+            let chunk_tile_pos = TilePos { 
                 x, 
                 y: CHUNK_SIZE_U - 1 - y
             };
@@ -229,19 +226,22 @@ pub fn spawn_chunk(
                 y: (chunk_pos.y as f32 * CHUNK_SIZE as f32 + y as f32) as u32
             };
 
-            if let Some(cell) = world_data.get_cell(map_tile_pos) {
+            if let Some(cell) = world_data.tiles.get_cell(map_tile_pos) {
                 if let Some(tile) = cell.tile {
-                    let tile_entity = spawn_tile(commands, tile, tile_pos, tilemap_entity);
+                    let index = Tile::get_sprite_index(world_data.tiles.get_tile_neighbors(map_tile_pos), tile.block);
+
+                    let tile_entity = spawn_tile(commands, tile, chunk_tile_pos, tilemap_entity, index);
 
                     commands.entity(tilemap_entity).add_child(tile_entity);
-                    tile_storage.set(&tile_pos, tile_entity);
+                    tile_storage.set(&chunk_tile_pos, tile_entity);
                 }
 
                 if let Some(wall) = cell.wall {
-                    let wall_entity = spawn_wall(commands, wall, tile_pos, wallmap_entity);
+                    let index = Wall::get_sprite_index(world_data.tiles.get_wall_neighbors(map_tile_pos), wall.wall_type);
+                    let wall_entity = spawn_wall(commands, chunk_tile_pos, wallmap_entity, index);
 
                     commands.entity(wallmap_entity).add_child(wall_entity);
-                    wall_storage.set(&tile_pos, wall_entity);
+                    wall_storage.set(&chunk_tile_pos, wall_entity);
                 }
             }
         }
@@ -325,12 +325,11 @@ pub fn handle_block_place(
     for event in events.iter() {
         let map_tile_pos = TilePos { x: event.tile_pos.x as u32, y: event.tile_pos.y as u32 };
         
-        let neighbors = world_data.get_neighbours(map_tile_pos);
-        let tile = Tile { tile_type: event.block, neighbors };
+        if world_data.tiles.get_tile(map_tile_pos).is_none() {
+            let tile = Tile { block: event.block };
+            let neighbors = world_data.tiles.get_tile_neighbors(map_tile_pos);
 
-        if world_data.get_tile(map_tile_pos).is_none() {
-            let cell = world_data.get_cell_mut(map_tile_pos).unwrap();
-            cell.tile = Some(tile);
+            world_data.tiles.set_tile(map_tile_pos, Some(tile));
 
             let chunk_pos = get_chunk_pos(map_tile_pos);
             let chunk_tile_pos = get_chunk_tile_pos(map_tile_pos);
@@ -338,7 +337,8 @@ pub fn handle_block_place(
             chunks.iter_mut()
                 .filter(|(chunk, _, _)| chunk.pos == chunk_pos)
                 .for_each(|(_, mut tile_storage, tilemap_entity)| {
-                    let tile_entity = spawn_tile(&mut commands, tile, chunk_tile_pos, tilemap_entity);
+                    let index = Tile::get_sprite_index(neighbors, tile.block);
+                    let tile_entity = spawn_tile(&mut commands, tile, chunk_tile_pos, tilemap_entity, index);
 
                     commands.entity(tilemap_entity).add_child(tile_entity);
                     tile_storage.set(&chunk_tile_pos, tile_entity);
@@ -349,44 +349,40 @@ pub fn handle_block_place(
             update_neighbors_ew.send(UpdateNeighborsEvent { 
                 tile_pos: map_tile_pos,
                 chunk_tile_pos,
-                chunk_pos, 
-                tile 
+                chunk_pos
             });
         }
     }
 }
 
 pub fn update_neighbors(
-    mut world_data: ResMut<WorldData>,
+    world_data: Res<WorldData>,
     mut events: EventReader<UpdateNeighborsEvent>,
-    mut tiles: Query<(&mut TileTexture, &Block)>,
+    mut tiles: Query<&mut TileTexture>,
     chunks: Query<(&TileChunk, &TileStorage)>
 ) {
-    let map_type = TilemapType::Square { diagonal_neighbors: false };
-
     for event in events.iter() {
         let tile_pos = event.tile_pos;
-        let neighbor_positions = get_neighboring_pos(&tile_pos, &MAP_SIZE, &map_type);
+        let neighbor_positions = get_neighboring_pos(&tile_pos, &MAP_SIZE, &MAP_TYPE);
 
         for pos in neighbor_positions.into_iter() {
-            let neighbors = world_data.get_neighbours(pos);
+            if let Some(tile) = world_data.tiles.get_tile(pos) {
+                let neighbors = world_data.tiles.get_tile_neighbors(pos);
+                let index = Tile::get_sprite_index(neighbors, tile.block);
 
-            if let Some(mut tile) = world_data.get_tile_mut(pos) {
-                tile.neighbors = tile.neighbors.or(neighbors);
-            }
+                let chunk_pos = get_chunk_pos(pos);
+                let chunk_tile_pos = get_chunk_tile_pos(pos);
 
-            let chunk_pos = get_chunk_pos(pos);
-            let chunk_tile_pos = get_chunk_tile_pos(pos);
-
-            chunks.iter()
-                .filter(|(chunk, _)| chunk.pos == chunk_pos)
-                .for_each(|(_, tile_storage)| {
-                    if let Some(entity) = tile_storage.get(&chunk_tile_pos) {
-                        if let Ok((mut tile_texture, block)) = tiles.get_mut(entity) {
-                            tile_texture.0 = util::get_tile_start_index(*block) + get_tile_sprite_index(neighbors);
+                chunks.iter()
+                    .filter(|(chunk, _)| chunk.pos == chunk_pos)
+                    .for_each(|(_, tile_storage)| {
+                        if let Some(entity) = tile_storage.get(&chunk_tile_pos) {
+                            if let Ok(mut tile_texture) = tiles.get_mut(entity) {
+                                tile_texture.0 = index;   
+                            }
                         }
-                    }
-                });
+                    });
+            }
         }
     }
 }

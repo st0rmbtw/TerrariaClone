@@ -1,8 +1,7 @@
 use bevy::prelude::{Vec2, OrthographicProjection, UVec2};
 use bevy_ecs_tilemap::tiles::TilePos;
-use rand::{thread_rng, Rng};
 
-use crate::{util::FRect, world_generator::Neighbors};
+use crate::util::FRect;
 
 use super::{CHUNK_SIZE_U, ChunkPos};
 
@@ -26,77 +25,129 @@ pub fn get_camera_fov(camera_pos: Vec2, projection: &OrthographicProjection) -> 
     }
 }
 
-pub fn get_tile_sprite_index(slope: Neighbors) -> u32 {
-    let rand: u32 = thread_rng().gen_range(1..3);
+// pub fn get_tile_sprite_index_by_dirt_connections(dirt_connections: DirtConnections) -> u32 {
+//     let rand: u32 = thread_rng().gen_range(1..3);
 
-    match slope {
-        // All
-        Neighbors::ALL => rand + 16,
-        // None
-        Neighbors::NONE => 16 * 3 + rand + 8,
-        // Top
-        Neighbors::TOP => 16 * 3 + rand + 5,
-        // Bottom
-        Neighbors::BOTTOM => rand + 6,
-        // Left
-        Neighbors::LEFT => (rand - 1) * 16 + 12,
-        // Right
-        Neighbors::RIGHT => (rand - 1) * 16 + 9,
-        // Top Bottom
-        Neighbors::TOP_BOTTOM => (rand - 1) * 16 + 5,
-        // Top Left Right
-        Neighbors::TOP_LEFT_RIGHT => 16 * 2 + rand + 1,
-        // Bottom Left Right
-        Neighbors::BOTTOM_LEFT_RIGHT => rand,
-        // Left Right
-        Neighbors::LEFT_RIGHT => 4 * 16 + 5 + rand,
-        // Bottom Left
-        Neighbors::BOTTOM_LEFT => 16 * 3 + 1 + (rand - 1) * 2,
-        // Bottom Right
-        Neighbors::BOTTOM_RIGHT => 16 * 3 + (rand - 1) * 2,
-        // Top Left
-        Neighbors::TOP_LEFT => 16 * 4 + 1 + (rand - 1) * 2,
-        // Top Right
-        Neighbors::TOP_RIGHT => 16 * 4 + (rand - 1) * 2,
-        // Top Bottom Left
-        Neighbors::TOP_BOTTOM_LEFT => (rand - 1) * 16 + 4,
-        // Top Bottom Right
-        Neighbors::TOP_BOTTOM_RIGHT => (rand - 1) * 16,
-    }
-}
-
-pub fn get_wall_sprite_index(slope: Neighbors) -> u32 {
-    let rand: u32 = thread_rng().gen_range(1..3);
-
-    match slope {
-        // All
-        Neighbors::ALL => 13 + rand,
-        // None
-        Neighbors::NONE => 13 * 3 + 8 + rand,
-        // Top
-        Neighbors::TOP => 13 * 2 + rand,
-        // Bottom
-        Neighbors::BOTTOM => 6 + rand,
-        // Top Bottom
-        Neighbors::TOP_BOTTOM => (rand - 1) * 13 + 5,
-        // Bottom Right
-        Neighbors::BOTTOM_RIGHT => 13 * 3 + (rand - 1) * 2,
-        // Bottom Left
-        Neighbors::BOTTOM_LEFT => 13 * 3 + 1 + (rand - 1) * 2,
-        // Top Right
-        Neighbors::TOP_RIGHT => 13 * 4 + (rand - 1) * 2,
-        // Top Left
-        Neighbors::TOP_LEFT => 13 * 4 + 1 + (rand - 1) * 2,
-        // Left Right
-        Neighbors::LEFT_RIGHT => 13 * 4 + 5 + rand,
-        // Bottom Left Right
-        Neighbors::BOTTOM_LEFT_RIGHT => 1 + rand,
-        // Top Bottom Right
-        Neighbors::TOP_BOTTOM_RIGHT => 13 * (rand - 1),
-        // Top Bottom Left
-        Neighbors::TOP_BOTTOM_LEFT => 13 * (rand - 1) + 4,
-        // Top Left Right
-        Neighbors::TOP_LEFT_RIGHT => 13 * 2 + rand,
-        _ => panic!("{:#?}", slope),
-    }
-}
+//     match dirt_connections {
+//         // ALL
+//         DirtConnections {
+//             top: DirtConnection::Connected,
+//             bottom: DirtConnection::Connected,
+//             left: DirtConnection::Connected,
+//             right: DirtConnection::Connected, 
+//         } => 16 * 11 + rand + 5,
+//         // TOP
+//         DirtConnections { 
+//             top: DirtConnection::Connected, 
+//             bottom: DirtConnection::NotConnected(..),
+//             left: DirtConnection::NotConnected(true),
+//             right: DirtConnection::NotConnected(true),
+//         } => 16 * 6 + rand + 7,
+//         // TOP
+//         DirtConnections { 
+//             top: DirtConnection::Connected, 
+//             bottom: DirtConnection::NotConnected(..),
+//             left: DirtConnection::NotConnected(false),
+//             right: DirtConnection::NotConnected(false),
+//         } => (7 + rand -1) * 16 + 6,
+//         // BOTTOM
+//         DirtConnections {
+//             top: DirtConnection::NotConnected(true), 
+//             bottom: DirtConnection::Connected,
+//             left: DirtConnection::NotConnected(true),
+//             right: DirtConnection::NotConnected(true), 
+//         } => 16 * 5 + rand + 7,
+//         DirtConnections {
+//             top: DirtConnection::NotConnected(false), 
+//             bottom: DirtConnection::Connected,
+//             left: DirtConnection::NotConnected(true),
+//             right: DirtConnection::NotConnected(true), 
+//         } => (4 + rand - 1) * 16 + 6,
+//         // LEFT
+//         DirtConnections { 
+//             top: DirtConnection::NotConnected(true), 
+//             bottom: DirtConnection::NotConnected(true),
+//             left: DirtConnection::Connected,
+//             right: DirtConnection::NotConnected(true), 
+//         } => (7 + rand - 1) * 16 + 9,
+//         // RIGHT
+//         DirtConnections { 
+//             top: DirtConnection::NotConnected(true), 
+//             bottom: DirtConnection::NotConnected(true),
+//             left: DirtConnection::NotConnected(true),
+//             right: DirtConnection::Connected, 
+//         } => (7 + rand - 1) * 16 + 8,
+//         // TOP AND BOTTOM
+//         DirtConnections { 
+//             top: DirtConnection::Connected,
+//             bottom: DirtConnection::Connected,
+//             left: DirtConnection::NotConnected(true),
+//             right: DirtConnection::NotConnected(true)
+//          } => (12 + rand - 1) * 16 + 6,
+//         // TOP AND LEFT AND RIGHT
+//         DirtConnections {
+//             top: DirtConnection::Connected,
+//             left: DirtConnection::Connected,
+//             right: DirtConnection::Connected,
+//             bottom: DirtConnection::NotConnected(true)
+//         } => (5 + rand - 1) * 16 + 11,
+//         // BOTTOM AND LEFT AND RIGHT
+//         DirtConnections {
+//             top: DirtConnection::NotConnected(true),
+//             left: DirtConnection::Connected,
+//             right: DirtConnection::Connected,
+//             bottom: DirtConnection::Connected
+//         } => (8 + rand - 1) * 16 + 11,
+//         // LEFT AND RIGHT
+//         DirtConnections {
+//             top: DirtConnection::NotConnected(true),
+//             left: DirtConnection::Connected,
+//             right: DirtConnection::Connected,
+//             bottom: DirtConnection::NotConnected(true)
+//         } => 11 * 16 + 8 + rand,
+//         // BOTTOM AND LEFT
+//         DirtConnections {
+//             top: DirtConnection::NotConnected(true),
+//             left: DirtConnection::Connected,
+//             right: DirtConnection::NotConnected(true),
+//             bottom: DirtConnection::Connected
+//         } => (6 + rand * 2) * 16 + 2,
+//         // BOTTOM AND RIGHT
+//         DirtConnections {
+//             top: DirtConnection::NotConnected(true),
+//             left: DirtConnection::NotConnected(true),
+//             right: DirtConnection::Connected,
+//             bottom: DirtConnection::Connected
+//         } => (6 + rand * 2) * 16 + 3,
+//         // TOP AND LEFT
+//         DirtConnections {
+//             top: DirtConnection::Connected,
+//             bottom: DirtConnection::NotConnected(true),
+//             left: DirtConnection::Connected,
+//             right: DirtConnection::NotConnected(true),
+//         } => (5 + (rand - 1) * 2) * 16 + 2,
+//         // TOP AND RIGHT
+//         DirtConnections {
+//             top: DirtConnection::Connected,
+//             bottom: DirtConnection::NotConnected(true),
+//             left: DirtConnection::NotConnected(true),
+//             right: DirtConnection::Connected,
+//         } => (5 + (rand - 1) * 2) * 16 + 3,
+//         // TOP AND BOTTOM AND LEFT
+//         DirtConnections {
+//             top: DirtConnection::Connected,
+//             bottom: DirtConnection::Connected,
+//             left: DirtConnection::Connected,
+//             right: DirtConnection::NotConnected(true)
+//         } => (5 + rand - 1) * 16 + 12,
+//         // TOP AND BOTTOM AND RIGHT
+//         DirtConnections {
+//             top: DirtConnection::Connected,
+//             bottom: DirtConnection::Connected,
+//             left: DirtConnection::NotConnected(true),
+//             right: DirtConnection::Connected
+//         } => (8 + rand - 1) * 16 + 12,
+//         // _ => panic!("{:#?}", dirt_connections)
+//         _ => 16 * 3 + rand + 8
+//     }
+// }

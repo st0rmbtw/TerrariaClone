@@ -13,7 +13,7 @@ pub use utils::*;
 
 use crate::{world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}, state::GameState};
 use bevy::prelude::{Plugin, App};
-use bevy_ecs_tilemap::prelude::TilemapSize;
+use bevy_ecs_tilemap::prelude::{TilemapSize, TilemapType};
 
 pub const TILE_SIZE: f32 = 16.;
 pub const WALL_SIZE: f32 = 32.;
@@ -26,10 +26,12 @@ const CHUNKMAP_SIZE: TilemapSize = TilemapSize {
     y: CHUNK_SIZE as u32,
 };
 
-const MAP_SIZE: TilemapSize = TilemapSize {
+pub const MAP_SIZE: TilemapSize = TilemapSize {
     x: WORLD_SIZE_X as u32,
     y: WORLD_SIZE_Y as u32
 };
+
+pub const MAP_TYPE: TilemapType = TilemapType::Square { diagonal_neighbors: false };
 
 pub struct WorldPlugin;
 
