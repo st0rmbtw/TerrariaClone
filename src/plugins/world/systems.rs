@@ -10,22 +10,22 @@ use bevy::{
 };
 use bevy_ecs_tilemap::{
     tiles::{
-        TilePos, TileTexture, TileStorage, TileBundle
+        TilePos, TileStorage, TileBundle, TileTextureIndex
     }, 
     prelude::{
-        get_neighboring_pos, TilemapGridSize, TilemapTexture, TilemapTileSize, 
+        TilemapGridSize, TilemapTexture, TilemapTileSize, 
         TilemapSpacing, TilemapId
     }, 
-    TilemapBundle
+    TilemapBundle, helpers::square_grid::neighbors::Neighbors
 };
 use iyes_loopless::state::NextState;
 
 use crate::{util::{FRect, URect}, world_generator::{Tile, WORLD_SIZE_X, WORLD_SIZE_Y, generate, Wall}, plugins::{inventory::Inventory, world::{CHUNK_SIZE, TILE_SIZE}, assets::{BlockAssets, WallAssets}, camera::MainCamera}, state::GameState, CellArrayExtensions};
 
-use super::{get_chunk_pos, CHUNK_SIZE_U, MAP_SIZE, TileChunk, UpdateNeighborsEvent, WorldData, BlockPlaceEvent, WallChunk, WALL_SIZE, CHUNKMAP_SIZE, Chunk, get_camera_fov, ChunkManager, ChunkPos, get_chunk_tile_pos, MAP_TYPE};
+use super::{get_chunk_pos, CHUNK_SIZE_U, MAP_SIZE, TileChunk, UpdateNeighborsEvent, WorldData, BlockPlaceEvent, WallChunk, WALL_SIZE, CHUNKMAP_SIZE, Chunk, get_camera_fov, ChunkManager, ChunkPos, get_chunk_tile_pos};
 
 pub fn spawn_terrain(mut commands: Commands) {
-    let current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+    let _current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
 
     // let seed = current_time.as_millis() as u32;
     let seed = 2404226870;
@@ -46,7 +46,6 @@ pub fn spawn_terrain(mut commands: Commands) {
 
 #[cfg(feature = "debug_grid")]
 pub fn spawn_tile_grid(
-    mut commands: Commands,
     mut lines: ResMut<bevy_prototype_debug_lines::DebugLines>
 ) {
     use bevy::prelude::Color;
@@ -77,7 +76,6 @@ pub fn spawn_tile_grid(
 
 #[cfg(feature = "debug_grid")]
 pub fn spawn_pixel_grid(
-    mut commands: Commands,
     mut lines: ResMut<bevy_prototype_debug_lines::DebugLines>
 ) {
     use bevy::prelude::Color;
@@ -114,11 +112,10 @@ pub fn spawn_tile(
     index: u32
 ) -> Entity {
     commands
-        .spawn()
-        .insert_bundle(TileBundle {
+        .spawn(TileBundle {
             position: tile_pos,
             tilemap_id: TilemapId(tilemap_entity),
-            texture: TileTexture(index),
+            texture_index: TileTextureIndex(index),
             ..default()
         })
         .insert(tile.block)
@@ -132,11 +129,10 @@ pub fn spawn_wall(
     index: u32
 ) -> Entity {
     commands
-        .spawn()
-        .insert_bundle(TileBundle {
+        .spawn(TileBundle {
             position: wall_pos,
             tilemap_id: TilemapId(wallmap_entity),
-            texture: TileTexture(index),
+            texture_index: TileTextureIndex(index),
             ..default()
         })
         .id()
@@ -200,18 +196,17 @@ pub fn spawn_chunk(
     world_data: &WorldData,
     chunk_pos: ChunkPos,
 ) { 
-    let chunk = commands.spawn()
-        .insert(Chunk { pos: chunk_pos })
-        .insert_bundle(SpatialBundle {
-            transform: Transform::from_xyz(chunk_pos.x as f32 * CHUNK_SIZE * TILE_SIZE, -(chunk_pos.y as f32 + 1.) * CHUNK_SIZE * TILE_SIZE + TILE_SIZE, 0.),
-            ..default()
+    let chunk = commands.spawn(SpatialBundle {
+        transform: Transform::from_xyz(chunk_pos.x as f32 * CHUNK_SIZE * TILE_SIZE, -(chunk_pos.y as f32 + 1.) * CHUNK_SIZE * TILE_SIZE + TILE_SIZE, 0.),
+        ..default()
         })
+        .insert(Chunk { pos: chunk_pos })
         .id();
 
-    let tilemap_entity = commands.spawn().id();
+    let tilemap_entity = commands.spawn_empty().id();
     let mut tile_storage = TileStorage::empty(CHUNKMAP_SIZE);
 
-    let wallmap_entity = commands.spawn().id();
+    let wallmap_entity = commands.spawn_empty().id();
     let mut wall_storage = TileStorage::empty(CHUNKMAP_SIZE);
 
     for y in 0..CHUNK_SIZE_U {
@@ -228,7 +223,7 @@ pub fn spawn_chunk(
 
             if let Some(cell) = world_data.tiles.get_cell(map_tile_pos) {
                 if let Some(tile) = cell.tile {
-                    let index = Tile::get_sprite_index(world_data.tiles.get_tile_neighbors(map_tile_pos), tile.block);
+                    let index = Tile::get_sprite_index(&world_data.tiles.get_tile_neighbors(map_tile_pos), tile.block);
 
                     let tile_entity = spawn_tile(commands, tile, chunk_tile_pos, tilemap_entity, index);
 
@@ -250,7 +245,7 @@ pub fn spawn_chunk(
     commands
         .entity(tilemap_entity)
         .insert(TileChunk { pos: chunk_pos })
-        .insert_bundle(TilemapBundle {
+        .insert(TilemapBundle {
             grid_size: TilemapGridSize {
                 x: TILE_SIZE,
                 y: TILE_SIZE,
@@ -273,7 +268,7 @@ pub fn spawn_chunk(
     commands
         .entity(wallmap_entity)
         .insert(WallChunk { pos: chunk_pos })
-        .insert_bundle(TilemapBundle {
+        .insert(TilemapBundle {
             grid_size: TilemapGridSize {
                 x: TILE_SIZE,
                 y: TILE_SIZE,
@@ -337,7 +332,7 @@ pub fn handle_block_place(
             chunks.iter_mut()
                 .filter(|(chunk, _, _)| chunk.pos == chunk_pos)
                 .for_each(|(_, mut tile_storage, tilemap_entity)| {
-                    let index = Tile::get_sprite_index(neighbors, tile.block);
+                    let index = Tile::get_sprite_index(&neighbors, tile.block);
                     let tile_entity = spawn_tile(&mut commands, tile, chunk_tile_pos, tilemap_entity, index);
 
                     commands.entity(tilemap_entity).add_child(tile_entity);
@@ -358,20 +353,21 @@ pub fn handle_block_place(
 pub fn update_neighbors(
     world_data: Res<WorldData>,
     mut events: EventReader<UpdateNeighborsEvent>,
-    mut tiles: Query<&mut TileTexture>,
+    mut tiles: Query<&mut TileTextureIndex>,
     chunks: Query<(&TileChunk, &TileStorage)>
 ) {
     for event in events.iter() {
         let tile_pos = event.tile_pos;
-        let neighbor_positions = get_neighboring_pos(&tile_pos, &MAP_SIZE, &MAP_TYPE);
+        
+        let neighbor_positions = Neighbors::get_square_neighboring_positions(&tile_pos, &MAP_SIZE, false);
 
-        for pos in neighbor_positions.into_iter() {
-            if let Some(tile) = world_data.tiles.get_tile(pos) {
-                let neighbors = world_data.tiles.get_tile_neighbors(pos);
-                let index = Tile::get_sprite_index(neighbors, tile.block);
+        for pos in neighbor_positions.iter() {
+            if let Some(tile) = world_data.tiles.get_tile(*pos) {
+                let neighbors = world_data.tiles.get_tile_neighbors(*pos);
+                let index = Tile::get_sprite_index(&neighbors, tile.block);
 
-                let chunk_pos = get_chunk_pos(pos);
-                let chunk_tile_pos = get_chunk_tile_pos(pos);
+                let chunk_pos = get_chunk_pos(*pos);
+                let chunk_tile_pos = get_chunk_tile_pos(*pos);
 
                 chunks.iter()
                     .filter(|(chunk, _)| chunk.pos == chunk_pos)

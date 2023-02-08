@@ -4,8 +4,7 @@ use bevy::{
         Commands, Camera2dBundle, OrthographicProjection, Transform, Res, Input, KeyCode, Query, 
         With, GlobalTransform
     }, 
-    time::Time, 
-    render::camera::DepthCalculation
+    time::Time
 };
 
 use crate::{parallax::ParallaxCameraComponent, plugins::world::TILE_SIZE, world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}};
@@ -18,11 +17,9 @@ use super::{MainCamera, CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM};
 #[autodefault]
 pub fn setup_camera(mut commands: Commands) {
     commands
-        .spawn()
-        .insert_bundle(Camera2dBundle {
+        .spawn(Camera2dBundle {
             projection: OrthographicProjection { 
-                scale: 0.9, 
-                depth_calculation: DepthCalculation::ZDifference 
+                scale: 0.9
             },
             transform: Transform::from_xyz(0., 0., 500.),
         })

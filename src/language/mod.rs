@@ -1,5 +1,6 @@
 use std::{io::BufReader, fs::File, error::Error};
 
+use bevy::prelude::Resource;
 use serde::Deserialize;
 
 use crate::{items::Pickaxe, block::Block};
@@ -38,7 +39,7 @@ pub struct Items {
     pub stone_wall: String
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, Resource)]
 #[serde(rename_all = "PascalCase")]
 pub struct LanguageContent {
     #[serde(rename = "Title")]
@@ -65,7 +66,9 @@ impl LanguageContent {
 }
 
 pub fn load_language(language: Language) -> Result<LanguageContent, Box<dyn Error>> {
-    let reader = BufReader::new(File::open(format!("./assets/languages/{}", language.file_name()))?);
+    let reader = BufReader::new(
+        File::open(format!("./assets/languages/{}", language.file_name()))?
+    );
     let language_content: LanguageContent = serde_json::from_reader(reader)?;
 
     Ok(language_content)

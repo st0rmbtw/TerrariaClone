@@ -1,9 +1,7 @@
 use std::error::Error;
 
 use bevy::{
-    asset::AssetServerSettings,
     prelude::*,
-    render::texture::ImageSettings,
     window::{PresentMode, WindowMode},
 };
 use bevy_ecs_tilemap::TilemapPlugin;
@@ -30,28 +28,32 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut app = App::new();
 
     app
+        .add_plugins(DefaultPlugins
+            .set(WindowPlugin {
+                window: WindowDescriptor {
+                    title: title.to_owned(),
+                    present_mode: PresentMode::Fifo,
+                    cursor_visible: false,
+                    position: WindowPosition::Centered,
+                    mode: WindowMode::Windowed,
+                    ..default()
+                },
+                ..default()
+            })
+            .set(AssetPlugin {
+                watch_for_changes: true,
+                ..default()
+            })
+            .set(ImagePlugin::default_nearest())
+        )
         .insert_resource(language_content.clone())
         .insert_resource(Msaa { samples: 4 })
-        .insert_resource(WindowDescriptor {
-            title: title.to_owned(),
-            present_mode: PresentMode::Fifo,
-            cursor_visible: false,
-            position: WindowPosition::Centered(MonitorSelection::Current),
-            mode: WindowMode::Windowed,
-            ..default()
-        })
-        .insert_resource(AssetServerSettings {
-            watch_for_changes: true,
-            ..default()
-        })
-        .insert_resource(ImageSettings::default_nearest())
         .insert_resource(ClearColor(Color::rgb(
             110. / 255.,
             151. / 255.,
             244. / 255.,
         )))
         .add_loopless_state(GameState::AssetLoading)
-        .add_plugins(DefaultPlugins)
         .add_plugin(TweeningPlugin)
         .add_plugin(TilemapPlugin)
         .add_plugin(AssetsPlugin)

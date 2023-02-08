@@ -24,136 +24,149 @@ pub fn spawn_player(
     mut effects: ResMut<Assets<EffectAsset>>,
 ) {
     let player = commands
-        .spawn()
-        .insert(Player)
-        .insert_bundle(SpatialBundle {
+        .spawn(SpatialBundle {
             transform: Transform::from_xyz(WORLD_SIZE_X as f32 * 16. / 2., 0., 3.)
         })
+        .insert(Player)
         .insert(Name::new("Player"))
         .insert(MovementState::default())
         .insert(FaceDirection::default())
         .with_children(|cmd| {
             // region: Hair
-            cmd.spawn_bundle(SpriteSheetBundle {
-                sprite: TextureAtlasSprite {
-                    color: Color::rgb(0.55, 0.23, 0.14),
+            cmd.spawn((
+                SpriteSheetBundle {
+                    sprite: TextureAtlasSprite {
+                        color: Color::rgb(0.55, 0.23, 0.14),
+                    },
+                    transform: Transform::from_xyz(0., 0., 0.1),
+                    texture_atlas: player_assets.hair.clone(),
                 },
-                transform: Transform::from_xyz(0., 0., 0.1),
-                texture_atlas: player_assets.hair.clone(),
-            })
+                MovementAnimationBundle::default()
+            ))
             .insert(ChangeFlip)
             .insert(PlayerBodySprite)
-            .insert_bundle(MovementAnimationBundle::default())
             .insert(Name::new("Player hair"));
             // endregion
 
             // region: Head
-            cmd.spawn_bundle(SpriteSheetBundle {
-                sprite: TextureAtlasSprite {
-                    color: Color::rgb(0.92, 0.45, 0.32),
+            cmd.spawn((
+                SpriteSheetBundle {
+                    sprite: TextureAtlasSprite {
+                        color: Color::rgb(0.92, 0.45, 0.32),
+                    },
+                    texture_atlas: player_assets.head.clone(),
+                    transform: Transform::from_xyz(0., 0., 0.003),
                 },
-                texture_atlas: player_assets.head.clone(),
-                transform: Transform::from_xyz(0., 0., 0.003),
-            })
+                MovementAnimationBundle::default()
+            ))
             .insert(ChangeFlip)
             .insert(PlayerBodySprite)
-            .insert_bundle(MovementAnimationBundle::default())
             .insert(Name::new("Player head"));
             // endregion
 
             // region: Eyes
-            cmd.spawn_bundle(SpriteSheetBundle {
-                sprite: TextureAtlasSprite {
-                    color: Color::WHITE,
+            cmd.spawn((
+                SpriteSheetBundle {
+                    sprite: TextureAtlasSprite {
+                        color: Color::WHITE,
+                    },
+                    transform: Transform::from_xyz(0., 0., 0.1),
+                    texture_atlas: player_assets.eyes_1.clone(),
                 },
-                transform: Transform::from_xyz(0., 0., 0.1),
-                texture_atlas: player_assets.eyes_1.clone(),
-            })
+                MovementAnimationBundle {
+                    walking: WalkingAnimationData {
+                        offset: 6,
+                        count: 14,
+                    }
+                }
+            ))
             .insert(ChangeFlip)
             .insert(PlayerBodySprite)
-            .insert_bundle(MovementAnimationBundle {
-                walking: WalkingAnimationData {
-                    offset: 6,
-                    count: 14,
-                }
-            })
             .insert(Name::new("Player left eye"));
 
-            cmd.spawn_bundle(SpriteSheetBundle {
-                sprite: TextureAtlasSprite {
-                    color: Color::rgb(89. / 255., 76. / 255., 64. / 255.),
+            cmd.spawn((
+                SpriteSheetBundle {
+                    sprite: TextureAtlasSprite {
+                        color: Color::rgb(89. / 255., 76. / 255., 64. / 255.),
+                    },
+                    transform: Transform::from_xyz(0., 0., 0.01),
+                    texture_atlas: player_assets.eyes_2.clone(),
                 },
-                transform: Transform::from_xyz(0., 0., 0.01),
-                texture_atlas: player_assets.eyes_2.clone(),
-            })
+                MovementAnimationBundle {
+                    walking: WalkingAnimationData {
+                        offset: 6,
+                        count: 14,
+                    }
+                }
+            ))
             .insert(ChangeFlip)
             .insert(PlayerBodySprite)
-            .insert_bundle(MovementAnimationBundle {
-                walking: WalkingAnimationData {
-                    offset: 6,
-                    count: 14,
-                }
-            })
             .insert(Name::new("Player right eye"));
 
             // endregion
 
             // region: Arms
             // region: Left arm
-            cmd.spawn_bundle(SpriteSheetBundle {
-                sprite: TextureAtlasSprite {
-                    color: Color::rgb(0.58, 0.55, 0.47),
+            cmd.spawn((
+                SpriteSheetBundle {
+                    sprite: TextureAtlasSprite {
+                        color: Color::rgb(0.58, 0.55, 0.47),
+                    },
+                    transform: Transform::from_xyz(0., -8., 0.2),
+                    texture_atlas: player_assets.left_shoulder.clone(),
                 },
-                transform: Transform::from_xyz(0., -8., 0.2),
-                texture_atlas: player_assets.left_shoulder.clone(),
-            })
+                MovementAnimationBundle {
+                    walking: WalkingAnimationData {
+                        offset: 13,
+                        count: 13,
+                    },
+                    flying: FlyingAnimationData(2)
+                }
+            ))
             .insert(ChangeFlip)
             .insert(PlayerBodySprite)
-            .insert_bundle(MovementAnimationBundle {
-                walking: WalkingAnimationData {
-                    offset: 13,
-                    count: 13,
-                },
-                flying: FlyingAnimationData(2)
-            })
             .insert(UseItemAnimationData(2))
             .insert(Name::new("Player left shoulder"));
 
-            cmd.spawn_bundle(SpriteSheetBundle {
-                sprite: TextureAtlasSprite {
-                    color: Color::rgb(0.92, 0.45, 0.32),
+            cmd.spawn((
+                SpriteSheetBundle {
+                    sprite: TextureAtlasSprite {
+                        color: Color::rgb(0.92, 0.45, 0.32),
+                    },
+                    transform: Transform::from_xyz(0., -8., 0.2),
+                    texture_atlas: player_assets.left_hand.clone(),
                 },
-                transform: Transform::from_xyz(0., -8., 0.2),
-                texture_atlas: player_assets.left_hand.clone(),
-            })
+                MovementAnimationBundle {
+                    walking: WalkingAnimationData {
+                        offset: 13,
+                        count: 13,
+                    },
+                    flying: FlyingAnimationData(2)
+                }
+            ))
             .insert(ChangeFlip)
             .insert(PlayerBodySprite)
-            .insert_bundle(MovementAnimationBundle {
-                walking: WalkingAnimationData {
-                    offset: 13,
-                    count: 13,
-                },
-                flying: FlyingAnimationData(2)
-            })
             .insert(UseItemAnimationData(2))
             .insert(Name::new("Player left hand"));
             // endregion
 
             // region: Right arm
-            cmd.spawn_bundle(SpriteSheetBundle {
-                sprite: TextureAtlasSprite {
-                    color: Color::rgb(0.92, 0.45, 0.32),
+            cmd.spawn((
+                SpriteSheetBundle {
+                    sprite: TextureAtlasSprite {
+                        color: Color::rgb(0.92, 0.45, 0.32),
+                    },
+                    transform: Transform::from_xyz(0., -20., 0.001),
+                    texture_atlas: player_assets.right_arm.clone(),
                 },
-                transform: Transform::from_xyz(0., -20., 0.001),
-                texture_atlas: player_assets.right_arm.clone(),
-            })
+                MovementAnimationBundle {
+                    walking: WalkingAnimationData { count: 13 },
+                    idle: IdleAnimationData(14),
+                    flying: FlyingAnimationData(13),
+                }
+            ))
             .insert(ChangeFlip)
             .insert(PlayerBodySprite)
-            .insert_bundle(MovementAnimationBundle {
-                walking: WalkingAnimationData { count: 13 },
-                idle: IdleAnimationData(14),
-                flying: FlyingAnimationData(13),
-            })
             .insert(UseItemAnimationData(15))
             .insert(Name::new("Player right hand"));
             // endregion
@@ -161,43 +174,47 @@ pub fn spawn_player(
             // endregion
 
             // region: Chest
-            cmd.spawn_bundle(SpriteSheetBundle {
-                sprite: TextureAtlasSprite {
-                    index: 0,
-                    color: Color::rgb(0.58, 0.55, 0.47),
+            cmd.spawn((
+                SpriteSheetBundle {
+                    sprite: TextureAtlasSprite {
+                        index: 0,
+                        color: Color::rgb(0.58, 0.55, 0.47),
+                    },
+                    transform: Transform::from_xyz(0., 0., 0.002),
+                    texture_atlas: player_assets.chest.clone(),
                 },
-                transform: Transform::from_xyz(0., 0., 0.002),
-                texture_atlas: player_assets.chest.clone(),
-            })
+                MovementAnimationBundle::default()
+            ))
             .insert(ChangeFlip)
             .insert(PlayerBodySprite)
-            .insert_bundle(MovementAnimationBundle::default())
             .insert(Name::new("Player chest"));
             // endregion
 
             // region: Feet
-            cmd.spawn_bundle(SpriteSheetBundle {
-                sprite: TextureAtlasSprite {
-                    color: Color::rgb(190. / 255., 190. / 255., 156. / 255.),
+            cmd.spawn((
+                SpriteSheetBundle {
+                    sprite: TextureAtlasSprite {
+                        color: Color::rgb(190. / 255., 190. / 255., 156. / 255.),
+                    },
+                    texture_atlas: player_assets.feet.clone(),
+                    transform: Transform::from_xyz(0., 0., 0.15),
+                    ..default()
                 },
-                texture_atlas: player_assets.feet.clone(),
-                transform: Transform::from_xyz(0., 0., 0.15),
-                ..default()
-            })
+                MovementAnimationBundle {
+                    walking: WalkingAnimationData {
+                        offset: 6,
+                        count: 13,
+                    },
+                    flying: FlyingAnimationData(5),
+                }
+            ))
             .insert(ChangeFlip)
             .insert(PlayerBodySprite)
-            .insert_bundle(MovementAnimationBundle {
-                walking: WalkingAnimationData {
-                    offset: 6,
-                    count: 13,
-                },
-                flying: FlyingAnimationData(5),
-            })
             .insert(Name::new("Player feet"));
             // endregion
 
             // region: Used item
-            cmd.spawn_bundle(SpriteBundle {
+            cmd.spawn(SpriteBundle {
                 sprite: Sprite {
                     anchor: Anchor::BottomLeft,
                 },
@@ -213,7 +230,7 @@ pub fn spawn_player(
             // endregion
 
             #[cfg(feature = "debug")] {
-                cmd.spawn_bundle(SpriteBundle {
+                cmd.spawn(SpriteBundle {
                     sprite: Sprite {
                         color: Color::RED,
                         custom_size: Some(Vec2::new(PLAYER_WIDTH, 1.))
@@ -221,7 +238,7 @@ pub fn spawn_player(
                     transform: Transform::from_xyz(0., -PLAYER_HEIGHT / 2., 0.5),
                 });
 
-                cmd.spawn_bundle(SpriteBundle {
+                cmd.spawn(SpriteBundle {
                     sprite: Sprite {
                         color: Color::RED,
                         custom_size: Some(Vec2::new(PLAYER_WIDTH, 1.))
@@ -229,7 +246,7 @@ pub fn spawn_player(
                     transform: Transform::from_xyz(0., PLAYER_HEIGHT / 2., 0.5),
                 });
 
-                cmd.spawn_bundle(SpriteBundle {
+                cmd.spawn(SpriteBundle {
                     sprite: Sprite {
                         color: Color::RED,
                         custom_size: Some(Vec2::new(1., PLAYER_HEIGHT))
@@ -237,7 +254,7 @@ pub fn spawn_player(
                     transform: Transform::from_xyz(-PLAYER_WIDTH / 2., 0., 0.5),
                 });
 
-                cmd.spawn_bundle(SpriteBundle {
+                cmd.spawn(SpriteBundle {
                     sprite: Sprite {
                         color: Color::RED,
                         custom_size: Some(Vec2::new(1., PLAYER_HEIGHT))
@@ -281,7 +298,7 @@ pub fn spawn_player(
     );
 
     let effect_entity = commands
-        .spawn_bundle(ParticleEffectBundle::new(effect).with_spawner(spawner))
+        .spawn(ParticleEffectBundle::new(effect).with_spawner(spawner))
         .insert(Name::new("Particle Spawner"))
         .id();
 
@@ -373,7 +390,7 @@ pub fn collide(
 
     let position = transform.translation.xy().abs();
 
-    let left = ((position.x - PLAYER_WIDTH / 2.) / TILE_SIZE) - 1.;
+    let left = ((position.x - PLAYER_WIDTH / 2.) / TILE_SIZE);
     let right = ((position.x + PLAYER_WIDTH / 2.) / TILE_SIZE) + 2.;
     let mut bottom = ((position.y + PLAYER_HEIGHT / 2.) / TILE_SIZE) + 2.;
     let mut top = ((position.y - PLAYER_HEIGHT / 2.) / TILE_SIZE) - 1.;
@@ -411,7 +428,7 @@ pub fn collide(
                 if (next_position.x + PLAYER_WIDTH / 2.) > (tile_pos.x - TILE_SIZE / 2.) && (next_position.x - PLAYER_WIDTH / 2.) < (tile_pos.x + TILE_SIZE / 2.) && (next_position.y + PLAYER_HEIGHT / 2.) > (tile_pos.y - TILE_SIZE / 2.) && (next_position.y - PLAYER_HEIGHT / 2.) < (tile_pos.y + TILE_SIZE / 2.) {
                     if position.y + PLAYER_HEIGHT / 2. <= tile_pos.y - TILE_SIZE / 2. {
                         #[cfg(debug_assertions)]
-                        println!("Down");
+                        println!("Detected collision: Down");
                         new_collisions.bottom = true;
                         if num9 > tile_pos.y {
                             num7 = x as i32;
@@ -424,9 +441,9 @@ pub fn collide(
                         }
                     } else {
                         
-                        if position.x + PLAYER_WIDTH / 2. <= tile_pos.x - TILE_SIZE / 2. {
+                        if position.x + PLAYER_WIDTH / 2. >= tile_pos.x - TILE_SIZE / 2. {
                             #[cfg(debug_assertions)]
-                            println!("Right");
+                            println!("Detected collision: Right");
                             num5 = x as i32;
                             num6 = y as i32;
                             if num6 != num8 {
@@ -436,9 +453,9 @@ pub fn collide(
                                 result.y = velocity.y;
                             }
                         } else {
-                            if position.x - PLAYER_WIDTH / 2. >= tile_pos.x + TILE_SIZE / 2. {
+                            if position.x - PLAYER_WIDTH / 2. <= tile_pos.x + TILE_SIZE / 2. {
                                 #[cfg(debug_assertions)]
-                                println!("Left");
+                                println!("Detected collision: Left");
                                 num5 = x as i32;
                                 num6 = y as i32;
                                 if num6 != num8 {
@@ -450,7 +467,7 @@ pub fn collide(
                             } else {
                                 if position.y >= tile_pos.y + TILE_SIZE / 2. {
                                     #[cfg(debug_assertions)]
-                                    println!("Up");
+                                    println!("Detected collision: Up");
                                     collisions.top = true;
                                     num7 = x as i32;
                                     num8 = y as i32;
@@ -517,7 +534,7 @@ pub fn spawn_particles(
         effect
             .maybe_spawner()
             .unwrap()
-            .set_active(*movement_state == MovementState::WALKING);
+            .set_active(*movement_state == MovementState::Walking);
     }
 }
 
@@ -529,9 +546,9 @@ pub fn update_movement_state(
     let mut movement_state = query.single_mut();
 
     *movement_state = match velocity.0 {
-        Vec2 { x, y } if x != 0. && y == 0. => MovementState::WALKING,
-        Vec2 { y, .. } if y != 0. || player_controller.jump > 0 => MovementState::FLYING,
-        _ => MovementState::IDLE
+        Vec2 { x, y } if x != 0. && y == 0. => MovementState::Walking,
+        Vec2 { y, .. } if y != 0. || player_controller.jump > 0 => MovementState::Flying,
+        _ => MovementState::Idle
     };
 }
 

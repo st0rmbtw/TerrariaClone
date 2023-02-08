@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Res, Input, KeyCode, ResMut, Visibility, With, Query, Name, TextBundle, Color, Commands, Entity}, time::{Time, Timer}, diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin}, text::{Text, TextSection, TextAlignment, TextStyle}, ui::{Style, UiRect, Val}};
+use bevy::{prelude::{Res, Input, KeyCode, ResMut, Visibility, With, Query, Name, TextBundle, Color, Commands, Entity}, time::{Time, Timer, TimerMode}, diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin}, text::{Text, TextSection, TextAlignment, TextStyle}, ui::{Style, UiRect, Val}};
 
 use crate::plugins::assets::FontAssets;
 
@@ -16,7 +16,7 @@ pub fn spawn_fps_text(commands: &mut Commands, fonts: &FontAssets) -> Entity {
     };
 
     commands
-        .spawn_bundle(TextBundle {
+        .spawn(TextBundle {
             style: Style {
                 margin: UiRect {
                     left: Val::Px(5.),
@@ -33,7 +33,7 @@ pub fn spawn_fps_text(commands: &mut Commands, fonts: &FontAssets) -> Entity {
             visibility: Visibility { is_visible: false },
         })
         .insert(FpsText)
-        .insert(FpsTextTimer(Timer::new(Duration::from_secs(1), true)))
+        .insert(FpsTextTimer(Timer::new(Duration::from_secs(1), TimerMode::Repeating)))
         .insert(Name::new("FPS text"))
         .id()
 }

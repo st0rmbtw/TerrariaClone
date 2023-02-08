@@ -5,7 +5,7 @@ use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveE
 use interpolation::EaseFunction;
 use iyes_loopless::state::NextState;
 
-use crate::{animation::{Tween, TweeningType, Animator, AnimatorState, TweeningDirection}, lens::TextFontSizeLens, parallax::ParallaxCameraComponent, plugins::{camera::MainCamera, assets::FontAssets}, TRANSPARENT, util::RectExtensions, TEXT_COLOR, state::GameState, language::LanguageContent};
+use crate::{animation::{Tween, TweeningType, Animator, AnimatorState, TweeningDirection}, lens::TextFontSizeLens, parallax::ParallaxCameraComponent, plugins::{camera::MainCamera, assets::FontAssets}, TEXT_COLOR, state::GameState, language::LanguageContent};
 
 use super::{Menu, SinglePlayerButton, SettingsButton, ExitButton};
 
@@ -30,7 +30,7 @@ pub fn text_tween() -> Tween<Text> {
 
 pub fn setup_camera(mut commands: Commands) {
     commands
-        .spawn_bundle(Camera2dBundle::default())
+        .spawn(Camera2dBundle::default())
         .insert(ParallaxCameraComponent)
         .insert(MainCamera);
 }
@@ -43,17 +43,16 @@ pub fn menu_button(
     marker: impl Component,
 ) {
     children
-        .spawn_bundle(NodeBundle {
+        .spawn(NodeBundle {
             style: Style {
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
-                margin: UiRect::vertical(25.),
+                margin: UiRect::vertical(Val::Px(25.)),
             },
-            color: TRANSPARENT.into(),
             focus_policy: FocusPolicy::Pass
         })
         .with_children(|c| {
-            c.spawn_bundle(TextBundle {
+            c.spawn(TextBundle {
                 style: Style {
                     position_type: PositionType::Absolute
                 },
@@ -78,7 +77,7 @@ pub fn setup_main_menu(
     };
 
     commands
-        .spawn_bundle(NodeBundle {
+        .spawn(NodeBundle {
             style: Style {
                 size: Size {
                     width: Val::Percent(100.),
@@ -86,10 +85,9 @@ pub fn setup_main_menu(
                 },
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
-                flex_direction: FlexDirection::ColumnReverse,
+                flex_direction: FlexDirection::Column,
                 ..default()
             },
-            color: TRANSPARENT.into(),
             ..default()
         })
         .insert(Menu)

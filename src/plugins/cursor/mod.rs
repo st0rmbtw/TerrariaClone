@@ -7,7 +7,7 @@ pub use resources::*;
 pub use systems::*;
 
 use iyes_loopless::prelude::*;
-use bevy::{prelude::{Plugin, App, CoreStage}, ui::UiColor};
+use bevy::{prelude::{Plugin, App, CoreStage}, ui::BackgroundColor};
 use crate::{state::GameState, animation::{AnimationSystem, component_animator_system}};
 use super::ui::UiVisibility;
 
@@ -49,7 +49,7 @@ impl Plugin for CursorPlugin {
                     .into(),
             )
             .add_system(
-                component_animator_system::<UiColor>
+                component_animator_system::<BackgroundColor>
                     .run_not_in_state(GameState::AssetLoading)
                     .label(AnimationSystem::AnimationUpdate),
             );

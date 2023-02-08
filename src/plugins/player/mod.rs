@@ -11,9 +11,9 @@ pub use utils::*;
 use crate::{state::GameState, labels::PlayerLabel};
 use std::time::Duration;
 use iyes_loopless::prelude::*;
-use bevy::{prelude::{Plugin, App, CoreStage}, time::Timer};
+use bevy::{prelude::{Plugin, App, CoreStage}, time::{Timer, TimerMode}};
 
-pub const PLAYER_WIDTH: f32 = 20. /* 2. * TILE_SIZE */;
+pub const PLAYER_WIDTH: f32 = 22. /* 2. * TILE_SIZE */;
 pub const PLAYER_HEIGHT: f32 = 42. /* 3. * TILE_SIZE */;
 
 const WALKING_ANIMATION_MAX_INDEX: usize = 13;
@@ -39,10 +39,10 @@ impl Plugin for PlayerPlugin {
             .insert_resource(InputAxis::default())
             .insert_resource(MovementAnimationIndex::default())
             .insert_resource(UseItemAnimationIndex::default())
-            .insert_resource(AnimationTimer(Timer::new(Duration::from_millis(80), true)))
+            .insert_resource(AnimationTimer(Timer::new(Duration::from_millis(80), TimerMode::Repeating)))
             .insert_resource(UseItemAnimationTimer(Timer::new(
                 Duration::from_millis(100),
-                true,
+                TimerMode::Repeating
             )))
             .init_resource::<PlayerVelocity>()
             .init_resource::<PlayerController>()

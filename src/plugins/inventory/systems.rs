@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use autodefault::autodefault;
 use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color, MouseButton, EventWriter}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, Size, PositionType, AlignContent, Interaction}, text::{Text, TextStyle, TextAlignment}};
 
-use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets}, cursor::{HoveredInfo, CursorPosition}, world::BlockPlaceEvent}, TRANSPARENT, util::{EntityCommandsExtensions, RectExtensions, get_tile_coords}, language::LanguageContent, items::Item};
+use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets}, cursor::{HoveredInfo, CursorPosition}, world::BlockPlaceEvent}, util::{EntityCommandsExtensions, get_tile_coords}, language::LanguageContent, items::Item};
 
 use super::{Inventory, HOTBAR_LENGTH, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, KEYCODE_TO_DIGIT, CELL_COUNT_IN_ROW, INVENTORY_ROWS_COUNT, HotbarUi};
 
@@ -15,27 +15,26 @@ pub fn spawn_inventory_ui(
     language_content: &LanguageContent
 ) -> Entity {
     commands
-        .spawn_bundle(NodeBundle {
+        .spawn(NodeBundle {
             style: Style {
                 align_items: AlignItems::Center,
                 align_content: AlignContent::Center,
-                flex_direction: FlexDirection::ColumnReverse,
+                flex_direction: FlexDirection::Column,
                 margin: UiRect {
                     left: Val::Px(20.),
                     top: Val::Px(5.),
-                },
+                }
             },
-            color: TRANSPARENT.into(),
         })
         .insert(Name::new("Inventory Container"))
         .with_children(|children| {
             // region: Selected Item Name
 
             children
-                .spawn_bundle(TextBundle {
+                .spawn(TextBundle {
                     style: Style {
                         margin: UiRect {
-                            ..UiRect::horizontal(10.)
+                            ..UiRect::horizontal(Val::Px(10.))
                         },
                         align_self: AlignSelf::Center,
                     },
@@ -57,19 +56,19 @@ pub fn spawn_inventory_ui(
             // region: Hotbar
 
             children
-                .spawn_bundle(NodeBundle {
+                .spawn(NodeBundle {
                     style: Style {
                         align_items: AlignItems::Center,
-                    },
-                    color: TRANSPARENT.into(),
+                        justify_content: JustifyContent::Center,
+                    }
                 })
                 .insert(Name::new("Hotbar"))
                 .with_children(|children| {
                     for i in 0..CELL_COUNT_IN_ROW {
                         spawn_inventory_cell(
                             children,
-                            format!("Hotbar Cell #{}", i),
-                            ui_assets.inventory_back.clone(),
+                            format!("Hotbar Cell #{i}"),
+                            ui_assets.inventory_background.clone(),
                             true,
                             i,
                             &fonts,
@@ -82,25 +81,23 @@ pub fn spawn_inventory_ui(
 
             // region: Inventory
             children
-                .spawn_bundle(NodeBundle {
+                .spawn(NodeBundle {
                     style: Style {
-                        flex_direction: FlexDirection::ColumnReverse,
+                        flex_direction: FlexDirection::Column,
                         align_items: AlignItems::Center,
                         justify_content: JustifyContent::Center,
                     },
                     visibility: Visibility { is_visible: false },
-                    color: TRANSPARENT.into(),
                 })
                 .with_children(|children| {
                     for j in 0..INVENTORY_ROWS_COUNT {
                         children
-                            .spawn_bundle(NodeBundle {
+                            .spawn(NodeBundle {
                                 style: Style {
-                                    margin: UiRect::vertical(2.),
+                                    margin: UiRect::vertical(Val::Px(2.)),
                                     align_items: AlignItems::Center,
                                     justify_content: JustifyContent::Center,
                                 },
-                                color: TRANSPARENT.into(),
                             })
                             .insert(Name::new(format!("Inventory Row #{}", j)))
                             .with_children(|children| {
@@ -111,7 +108,7 @@ pub fn spawn_inventory_ui(
                                     spawn_inventory_cell(
                                         children,
                                         format!("Inventory Cell #{}", index),
-                                        ui_assets.inventory_back.clone(),
+                                        ui_assets.inventory_background.clone(),
                                         false,
                                         index,
                                         &fonts,
@@ -125,6 +122,94 @@ pub fn spawn_inventory_ui(
             // endregion
         })
         .id()
+}
+
+#[autodefault(except(InventoryCell))]
+pub fn spawn_inventory_cell(
+    children: &mut ChildBuilder<'_, '_, '_>,
+    name: impl Into<Cow<'static, str>>,
+    cell_background: Handle<Image>,
+    hotbar_cell: bool,
+    index: usize,
+    fonts: &FontAssets,
+) {
+    let mut background_image = ImageBundle {
+        style: Style {
+            margin: UiRect::horizontal(Val::Px(2.)),
+            size: INVENTORY_CELL_SIZE,
+            align_self: AlignSelf::Center,
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center
+        },
+        image: cell_background.into(),
+    };
+
+    background_image.background_color = (*background_image.background_color.0.set_a(0.8)).into();
+
+    children
+        .spawn(background_image)
+        .with_children(|c| {
+            c.spawn(ImageBundle {
+                focus_policy: FocusPolicy::Pass,
+                style: Style {
+                    flex_direction: FlexDirection::Column,
+                    margin: UiRect::all(Val::Px(8.)),
+                },
+            })
+                .insert(InventoryCellIndex(index))
+                .insert(InventoryCellItemImage::default());
+
+            if hotbar_cell {
+                c.spawn(NodeBundle {
+                    style: Style {
+                        padding: UiRect::all(Val::Px(5.)),
+                        size: Size::new(Val::Percent(100.), Val::Percent(100.)),
+                        position_type: PositionType::Absolute,
+                        flex_direction: FlexDirection::Column,
+                        justify_content: JustifyContent::SpaceBetween,
+                        align_items: AlignItems::FlexStart,
+                        align_content: AlignContent::FlexStart,
+                    },
+                    focus_policy: FocusPolicy::Pass,
+                })
+                    .with_children(|c| {
+                        // Hotbar cell index
+                        c.spawn(TextBundle {
+                            focus_policy: FocusPolicy::Pass,
+                            text: Text::from_section(
+                                ((index + 1) % HOTBAR_LENGTH).to_string(),
+                                TextStyle {
+                                    font: fonts.andy_bold.clone(),
+                                    font_size: 16.,
+                                    color: Color::WHITE,
+                                },
+                            ),
+                        });
+
+                        // Item stack
+                        c.spawn(TextBundle {
+                            style: Style {
+                                align_self: AlignSelf::Center,
+                            },
+                            focus_policy: FocusPolicy::Pass,
+                            text: Text::from_section(
+                                "",
+                                TextStyle {
+                                    font: fonts.andy_regular.clone(),
+                                    font_size: 16.,
+                                    color: Color::WHITE,
+                                },
+                            ),
+                        })
+                            .insert(InventoryCellIndex(index))
+                            .insert(InventoryItemAmount::default());
+                    });
+            }
+        })
+        .insert(Name::new(name))
+        .insert(InventoryCellIndex(index))
+        .insert_if(HotbarCellMarker, || hotbar_cell)
+        .insert(Interaction::default());
 }
 
 pub fn update_inventory_visibility(
@@ -162,100 +247,11 @@ pub fn update_selected_cell_image(
         let selected = cell_index.0 == inventory.selected_slot;
 
         image.0 = if selected {
-            ui_assets.selected_inventory_back.clone()
+            ui_assets.selected_inventory_background.clone()
         } else {
-            ui_assets.inventory_back.clone()
+            ui_assets.inventory_background.clone()
         }
     }
-}
-
-#[autodefault(except(InventoryCell))]
-pub fn spawn_inventory_cell(
-    children: &mut ChildBuilder<'_, '_, '_>,
-    name: impl Into<Cow<'static, str>>,
-    cell_background: Handle<Image>,
-    hotbar_cell: bool,
-    index: usize,
-    fonts: &FontAssets,
-) {
-    let mut background_image = ImageBundle {
-        style: Style {
-            margin: UiRect::horizontal(2.),
-            size: INVENTORY_CELL_SIZE,
-            align_self: AlignSelf::Center,
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center
-        },
-        image: cell_background.into(),
-    };
-
-    background_image.color = (*background_image.color.0.set_a(0.8)).into();
-
-    children
-        .spawn_bundle(background_image)
-        .with_children(|c| {
-            c.spawn_bundle(ImageBundle {
-                focus_policy: FocusPolicy::Pass,
-                style: Style {
-                    flex_direction: FlexDirection::Column,
-                    margin: UiRect::all(Val::Px(8.)),
-                },
-            })
-            .insert(InventoryCellIndex(index))
-            .insert(InventoryCellItemImage::default());
-
-            if hotbar_cell {
-                c.spawn_bundle(NodeBundle {
-                    style: Style {
-                        padding: UiRect::all(Val::Px(5.)),
-                        size: Size::new(Val::Percent(100.), Val::Percent(100.)),
-                        position_type: PositionType::Absolute,
-                        flex_direction: FlexDirection::ColumnReverse,
-                        justify_content: JustifyContent::SpaceBetween,
-                        align_items: AlignItems::FlexStart,
-                        align_content: AlignContent::FlexStart,
-                    },
-                    color: TRANSPARENT.into(),
-                    focus_policy: FocusPolicy::Pass,
-                })
-                .with_children(|c| {
-                    // Hotbar cell index
-                    c.spawn_bundle(TextBundle {
-                        focus_policy: FocusPolicy::Pass,
-                        text: Text::from_section(
-                            ((index + 1) % HOTBAR_LENGTH).to_string(),
-                            TextStyle {
-                                font: fonts.andy_bold.clone(),
-                                font_size: 16.,
-                                color: Color::WHITE,
-                            },
-                        ),
-                    });
-
-                    // Item stack
-                    c.spawn_bundle(TextBundle {
-                        style: Style {
-                            align_self: AlignSelf::Center,
-                        },
-                        focus_policy: FocusPolicy::Pass,
-                        text: Text::from_section(
-                            "",
-                            TextStyle {
-                                font: fonts.andy_regular.clone(),
-                                font_size: 16.,
-                                color: Color::WHITE,
-                            },
-                        ),
-                    })
-                    .insert(InventoryCellIndex(index))
-                    .insert(InventoryItemAmount::default());
-                });
-            }
-        })
-        .insert(Name::new(name))
-        .insert(InventoryCellIndex(index))
-        .insert_if(HotbarCellMarker, || hotbar_cell)
-        .insert(Interaction::default());
 }
 
 pub fn select_item(mut inventory: ResMut<Inventory>, input: Res<Input<KeyCode>>) {
@@ -297,7 +293,7 @@ pub fn update_selected_item_name_alignment(
             AlignSelf::FlexStart
         } else {
             AlignSelf::Center
-        }
+        };
     }
 }
 
@@ -313,8 +309,7 @@ pub fn update_selected_item_name_text(
         text.sections[0].value = if extra_ui_visibility.0 {
             language_content.ui.inventory.clone()
         } else {
-            let name = current_item
-                .0
+            let name = current_item.0
                 .map(|item_stack| item_stack.item);
 
             name

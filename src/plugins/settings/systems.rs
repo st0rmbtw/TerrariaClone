@@ -4,7 +4,7 @@ use autodefault::autodefault;
 use bevy::{prelude::{Query, Visibility, With, EventReader, Button, Name, Color, TextBundle, Entity, Commands, NodeBundle, BuildChildren, Changed}, ui::{Interaction, Style, UiRect, Val, AlignItems, JustifyContent, Size}, text::{TextAlignment, TextStyle, Text}};
 use interpolation::EaseFunction;
 
-use crate::{plugins::{ui::ToggleExtraUiEvent, assets::FontAssets}, animation::{Animator, Tween, TweeningType, TweeningDirection}, TRANSPARENT, lens::TextFontSizeLens, language::LanguageContent};
+use crate::{plugins::{ui::ToggleExtraUiEvent, assets::FontAssets}, animation::{Animator, Tween, TweeningType, TweeningDirection}, lens::TextFontSizeLens, language::LanguageContent};
 
 use super::{SettingsButtonContainer, SettingsButtonText};
 
@@ -25,7 +25,7 @@ pub fn spawn_ingame_settings_button(
     );
 
     commands
-        .spawn_bundle(NodeBundle {
+        .spawn(NodeBundle {
             style: Style {
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
@@ -36,11 +36,10 @@ pub fn spawn_ingame_settings_button(
                 },
             },
             visibility: Visibility { is_visible: false },
-            color: TRANSPARENT.into(),
         })
         .insert(SettingsButtonContainer)
         .with_children(|c| {
-            c.spawn_bundle(TextBundle {
+            c.spawn(TextBundle {
                 style: Style {
                     margin: UiRect::all(Val::Auto),
                     flex_shrink: 0.,

@@ -21,12 +21,12 @@ const INVENTORY_ROWS_COUNT: usize = 5 - 1;
 const INVENTORY_CELL_SIZE_F: f32 = 40.;
 const INVENTORY_CELL_SIZE_BIGGER_F: f32 = INVENTORY_CELL_SIZE_F * 1.3;
 
-const INVENTORY_CELL_SIZE: Size<Val> = Size::<Val> {
+const INVENTORY_CELL_SIZE: Size = Size {
     width: Val::Px(INVENTORY_CELL_SIZE_F),
     height: Val::Px(INVENTORY_CELL_SIZE_F),
 };
 
-const INVENTORY_CELL_SIZE_SELECTED: Size<Val> = Size::<Val> {
+const INVENTORY_CELL_SIZE_SELECTED: Size = Size {
     width: Val::Px(INVENTORY_CELL_SIZE_BIGGER_F),
     height: Val::Px(INVENTORY_CELL_SIZE_BIGGER_F),
 };

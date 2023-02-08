@@ -1,7 +1,9 @@
-#[derive(Clone, Copy, Default)]
+use bevy::prelude::Resource;
+
+#[derive(Resource, Clone, Copy, Default)]
 pub struct ExtraUiVisibility(pub bool);
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Resource, Clone, Copy, PartialEq, Eq)]
 pub struct UiVisibility(pub bool);
 
 impl Default for UiVisibility {

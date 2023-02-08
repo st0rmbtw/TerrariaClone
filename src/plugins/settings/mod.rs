@@ -1,4 +1,4 @@
-use bevy::{prelude::{Plugin, App, ParallelSystemDescriptorCoercion}, text::Text};
+use bevy::{prelude::{Plugin, App, IntoSystemDescriptor}, text::Text};
 use iyes_loopless::prelude::ConditionSet;
 
 use crate::{state::GameState, animation::{component_animator_system, AnimationSystem}};

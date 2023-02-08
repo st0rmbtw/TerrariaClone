@@ -1,5 +1,5 @@
 use bevy::prelude::{Color, Vec2};
-use bevy_ecs_tilemap::{tiles::TilePos, prelude::Neighbors};
+use bevy_ecs_tilemap::{tiles::TilePos, helpers::square_grid::neighbors::{Neighbors, SquareDirection}, prelude::SquarePos};
 use block::Block;
 use plugins::world::MAP_SIZE;
 use wall::Wall as WallType;
@@ -57,10 +57,14 @@ impl To2dArrayIndex for TilePos {
 pub trait CellArrayExtensions {
     fn get_cell(&self, pos: TilePos) -> Option<&Cell>;
     fn get_cell_mut(&mut self, pos: TilePos) -> Option<&mut Cell>;
+
     fn get_tile(&self, pos: TilePos) -> Option<&Tile>;
     fn get_tile_mut(&mut self, pos: TilePos) -> Option<&mut Tile>;
+
     fn get_wall(&self, pos: TilePos) -> Option<&Wall>;
+
     fn tile_exists(&self, pos: TilePos) -> bool;
+
     fn get_tile_neighbors(&self, pos: TilePos) -> Neighbors<Block>;
     fn get_wall_neighbors(&self, pos: TilePos) -> Neighbors<WallType>;
 
@@ -93,44 +97,44 @@ impl CellArrayExtensions for CellArray {
         self.get(pos.to_2d_array_index()).and_then(|cell| cell.tile).is_some()
     }
 
-    fn get_tile_neighbors(&self, tile_pos: TilePos) -> Neighbors<Block> {
+    fn get_tile_neighbors(&self, pos: TilePos) -> Neighbors<Block> {
         Neighbors {
-            west: tile_pos.square_west()
+            west: SquarePos::from(&pos).offset(&SquareDirection::West).as_tile_pos(&MAP_SIZE)
                 .map(|pos| self.get_tile(pos))
                 .flatten()
                 .map(|tile| tile.block),
 
-            east: tile_pos.square_east(&MAP_SIZE)
+            east: SquarePos::from(&pos).offset(&SquareDirection::East).as_tile_pos(&MAP_SIZE)
                 .map(|pos| self.get_tile(pos))
                 .flatten()
                 .map(|tile| tile.block),
 
-            north: tile_pos.square_south()
+            north: SquarePos::from(&pos).offset(&SquareDirection::South).as_tile_pos(&MAP_SIZE)
                 .map(|pos| self.get_tile(pos))
                 .flatten()
                 .map(|tile| tile.block),
 
-            south: tile_pos.square_north(&MAP_SIZE)
+            south: SquarePos::from(&pos).offset(&SquareDirection::North).as_tile_pos(&MAP_SIZE)
                 .map(|pos| self.get_tile(pos))
                 .flatten()
                 .map(|tile| tile.block),
 
-            north_west: tile_pos.square_south_west()
+            north_west: SquarePos::from(&pos).offset(&SquareDirection::NorthWest).as_tile_pos(&MAP_SIZE)
                 .map(|pos| self.get_tile(pos))
                 .flatten()
                 .map(|tile| tile.block),
 
-            south_west: tile_pos.square_north_west(&MAP_SIZE)
+            south_west: SquarePos::from(&pos).offset(&SquareDirection::SouthWest).as_tile_pos(&MAP_SIZE)
                 .map(|pos| self.get_tile(pos))
                 .flatten()
                 .map(|tile| tile.block),
 
-            south_east: tile_pos.square_north_east(&MAP_SIZE)
+            south_east: SquarePos::from(&pos).offset(&SquareDirection::SouthEast).as_tile_pos(&MAP_SIZE)
                 .map(|pos| self.get_tile(pos))
                 .flatten()
                 .map(|tile| tile.block),
             
-            north_east: tile_pos.square_south_east(&MAP_SIZE)
+            north_east: SquarePos::from(&pos).offset(&SquareDirection::NorthEast).as_tile_pos(&MAP_SIZE)
                 .map(|pos| self.get_tile(pos))
                 .flatten()
                 .map(|tile| tile.block),
@@ -140,42 +144,42 @@ impl CellArrayExtensions for CellArray {
 
     fn get_wall_neighbors(&self, pos: TilePos) -> Neighbors<WallType> {
         Neighbors {
-            west: pos.square_west()
+            west: SquarePos::from(&pos).offset(&SquareDirection::West).as_tile_pos(&MAP_SIZE)
                 .map(|pos| self.get_wall(pos))
                 .flatten()
                 .map(|wall| wall.wall_type),
 
-            east: pos.square_east(&MAP_SIZE)
+            east: SquarePos::from(&pos).offset(&SquareDirection::East).as_tile_pos(&MAP_SIZE)
                 .map(|pos| self.get_wall(pos))
                 .flatten()
                 .map(|wall| wall.wall_type),
 
-            north: pos.square_south()
+            north: SquarePos::from(&pos).offset(&SquareDirection::North).as_tile_pos(&MAP_SIZE)
                 .map(|pos| self.get_wall(pos))
                 .flatten()
                 .map(|wall| wall.wall_type),
 
-            south: pos.square_north(&MAP_SIZE)
+            south: SquarePos::from(&pos).offset(&SquareDirection::South).as_tile_pos(&MAP_SIZE)
                 .map(|pos| self.get_wall(pos))
                 .flatten()
                 .map(|wall| wall.wall_type),
 
-            north_west: pos.square_south_west()
+            north_west: SquarePos::from(&pos).offset(&SquareDirection::NorthWest).as_tile_pos(&MAP_SIZE)
                 .map(|pos| self.get_wall(pos))
                 .flatten()
                 .map(|wall| wall.wall_type),
 
-            south_west: pos.square_north_west(&MAP_SIZE)
+            south_west: SquarePos::from(&pos).offset(&SquareDirection::SouthWest).as_tile_pos(&MAP_SIZE)
                 .map(|pos| self.get_wall(pos))
                 .flatten()
                 .map(|wall| wall.wall_type),
 
-            south_east: pos.square_north_east(&MAP_SIZE)
+            south_east: SquarePos::from(&pos).offset(&SquareDirection::SouthEast).as_tile_pos(&MAP_SIZE)
                 .map(|pos| self.get_wall(pos))
                 .flatten()
                 .map(|wall| wall.wall_type),
             
-            north_east: pos.square_south_east(&MAP_SIZE)
+            north_east: SquarePos::from(&pos).offset(&SquareDirection::NorthEast).as_tile_pos(&MAP_SIZE)
                 .map(|pos| self.get_wall(pos))
                 .flatten()
                 .map(|wall| wall.wall_type),
