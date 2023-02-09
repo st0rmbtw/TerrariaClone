@@ -119,22 +119,22 @@ impl CellArrayExtensions for CellArray {
                 .flatten()
                 .map(|tile| tile.block),
 
-            north_west: SquarePos::from(&pos).offset(&SquareDirection::NorthWest).as_tile_pos(&MAP_SIZE)
+            north_west: SquarePos::from(&pos).offset(&SquareDirection::SouthWest).as_tile_pos(&MAP_SIZE)
                 .map(|pos| self.get_tile(pos))
                 .flatten()
                 .map(|tile| tile.block),
 
-            south_west: SquarePos::from(&pos).offset(&SquareDirection::SouthWest).as_tile_pos(&MAP_SIZE)
+            south_west: SquarePos::from(&pos).offset(&SquareDirection::NorthWest).as_tile_pos(&MAP_SIZE)
                 .map(|pos| self.get_tile(pos))
                 .flatten()
                 .map(|tile| tile.block),
 
-            south_east: SquarePos::from(&pos).offset(&SquareDirection::SouthEast).as_tile_pos(&MAP_SIZE)
+            south_east: SquarePos::from(&pos).offset(&SquareDirection::NorthEast).as_tile_pos(&MAP_SIZE)
                 .map(|pos| self.get_tile(pos))
                 .flatten()
                 .map(|tile| tile.block),
             
-            north_east: SquarePos::from(&pos).offset(&SquareDirection::NorthEast).as_tile_pos(&MAP_SIZE)
+            north_east: SquarePos::from(&pos).offset(&SquareDirection::SouthEast).as_tile_pos(&MAP_SIZE)
                 .map(|pos| self.get_tile(pos))
                 .flatten()
                 .map(|tile| tile.block),
@@ -154,32 +154,32 @@ impl CellArrayExtensions for CellArray {
                 .flatten()
                 .map(|wall| wall.wall_type),
 
-            north: SquarePos::from(&pos).offset(&SquareDirection::North).as_tile_pos(&MAP_SIZE)
+            north: SquarePos::from(&pos).offset(&SquareDirection::South).as_tile_pos(&MAP_SIZE)
                 .map(|pos| self.get_wall(pos))
                 .flatten()
                 .map(|wall| wall.wall_type),
 
-            south: SquarePos::from(&pos).offset(&SquareDirection::South).as_tile_pos(&MAP_SIZE)
+            south: SquarePos::from(&pos).offset(&SquareDirection::North).as_tile_pos(&MAP_SIZE)
                 .map(|pos| self.get_wall(pos))
                 .flatten()
                 .map(|wall| wall.wall_type),
 
-            north_west: SquarePos::from(&pos).offset(&SquareDirection::NorthWest).as_tile_pos(&MAP_SIZE)
+            north_west: SquarePos::from(&pos).offset(&SquareDirection::SouthWest).as_tile_pos(&MAP_SIZE)
                 .map(|pos| self.get_wall(pos))
                 .flatten()
                 .map(|wall| wall.wall_type),
 
-            south_west: SquarePos::from(&pos).offset(&SquareDirection::SouthWest).as_tile_pos(&MAP_SIZE)
+            south_west: SquarePos::from(&pos).offset(&SquareDirection::NorthWest).as_tile_pos(&MAP_SIZE)
                 .map(|pos| self.get_wall(pos))
                 .flatten()
                 .map(|wall| wall.wall_type),
 
-            south_east: SquarePos::from(&pos).offset(&SquareDirection::SouthEast).as_tile_pos(&MAP_SIZE)
+            south_east: SquarePos::from(&pos).offset(&SquareDirection::NorthEast).as_tile_pos(&MAP_SIZE)
                 .map(|pos| self.get_wall(pos))
                 .flatten()
                 .map(|wall| wall.wall_type),
             
-            north_east: SquarePos::from(&pos).offset(&SquareDirection::NorthEast).as_tile_pos(&MAP_SIZE)
+            north_east: SquarePos::from(&pos).offset(&SquareDirection::SouthEast).as_tile_pos(&MAP_SIZE)
                 .map(|pos| self.get_wall(pos))
                 .flatten()
                 .map(|wall| wall.wall_type),

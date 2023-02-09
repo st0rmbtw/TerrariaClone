@@ -390,7 +390,7 @@ pub fn collide(
 
     let position = transform.translation.xy().abs();
 
-    let left = ((position.x - PLAYER_WIDTH / 2.) / TILE_SIZE);
+    let left = ((position.x - PLAYER_WIDTH / 2.) / TILE_SIZE) - 1.;
     let right = ((position.x + PLAYER_WIDTH / 2.) / TILE_SIZE) + 2.;
     let mut bottom = ((position.y + PLAYER_HEIGHT / 2.) / TILE_SIZE) + 2.;
     let mut top = ((position.y - PLAYER_HEIGHT / 2.) / TILE_SIZE) - 1.;
@@ -426,9 +426,8 @@ pub fn collide(
                 let tile_pos = Vec2::new(x as f32 * TILE_SIZE, y as f32 * TILE_SIZE);
                 
                 if (next_position.x + PLAYER_WIDTH / 2.) > (tile_pos.x - TILE_SIZE / 2.) && (next_position.x - PLAYER_WIDTH / 2.) < (tile_pos.x + TILE_SIZE / 2.) && (next_position.y + PLAYER_HEIGHT / 2.) > (tile_pos.y - TILE_SIZE / 2.) && (next_position.y - PLAYER_HEIGHT / 2.) < (tile_pos.y + TILE_SIZE / 2.) {
+                    // Bottom
                     if position.y + PLAYER_HEIGHT / 2. <= tile_pos.y - TILE_SIZE / 2. {
-                        #[cfg(debug_assertions)]
-                        println!("Detected collision: Down");
                         new_collisions.bottom = true;
                         if num9 > tile_pos.y {
                             num7 = x as i32;
@@ -440,10 +439,8 @@ pub fn collide(
                             }
                         }
                     } else {
-                        
+                        // Right
                         if position.x + PLAYER_WIDTH / 2. >= tile_pos.x - TILE_SIZE / 2. {
-                            #[cfg(debug_assertions)]
-                            println!("Detected collision: Right");
                             num5 = x as i32;
                             num6 = y as i32;
                             if num6 != num8 {
@@ -453,9 +450,8 @@ pub fn collide(
                                 result.y = velocity.y;
                             }
                         } else {
+                            // Left
                             if position.x - PLAYER_WIDTH / 2. <= tile_pos.x + TILE_SIZE / 2. {
-                                #[cfg(debug_assertions)]
-                                println!("Detected collision: Left");
                                 num5 = x as i32;
                                 num6 = y as i32;
                                 if num6 != num8 {
@@ -465,9 +461,8 @@ pub fn collide(
                                     result.y = velocity.y;
                                 }
                             } else {
+                                // Top
                                 if position.y >= tile_pos.y + TILE_SIZE / 2. {
-                                    #[cfg(debug_assertions)]
-                                    println!("Detected collision: Up");
                                     collisions.top = true;
                                     num7 = x as i32;
                                     num8 = y as i32;

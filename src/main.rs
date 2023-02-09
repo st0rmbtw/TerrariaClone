@@ -47,7 +47,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .set(ImagePlugin::default_nearest())
         )
         .insert_resource(language_content.clone())
-        .insert_resource(Msaa { samples: 4 })
+        .insert_resource(Msaa { samples: 1 })
         .insert_resource(ClearColor(Color::rgb(
             110. / 255.,
             151. / 255.,

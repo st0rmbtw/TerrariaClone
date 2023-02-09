@@ -50,14 +50,6 @@ impl Plugin for PlayerPlugin {
             .insert_resource(UseItemAnimation(false))
             .add_enter_system(GameState::InGame, spawn_player)
             .add_system(update_axis)
-            // Update
-            .add_system(
-                move_player
-                    .run_in_state(GameState::InGame)
-                    .label(PlayerLabel::MovePlayer)
-                    .after(PlayerLabel::Collide)
-            )
-            //
             .add_system_set_to_stage(
                 CoreStage::PostUpdate, 
                 ConditionSet::new()
@@ -116,7 +108,8 @@ impl Plugin for PlayerPlugin {
             );
 
         #[cfg(not(feature = "debug_movement"))] {
-            app.add_system(
+            app
+            .add_system(
                 horizontal_movement
                     .run_in_state(GameState::InGame)
                     .label(PlayerLabel::HorizontalMovement)
@@ -138,6 +131,12 @@ impl Plugin for PlayerPlugin {
                     .run_in_state(GameState::InGame)
                     .label(PlayerLabel::Collide)
                     .after(PlayerLabel::Gravity)
+            )
+            .add_system(
+                move_player
+                    .run_in_state(GameState::InGame)
+                    .label(PlayerLabel::MovePlayer)
+                    .after(PlayerLabel::Collide)
             );
         }
 

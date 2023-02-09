@@ -1,7 +1,6 @@
 use bevy::{utils::HashSet, prelude::Resource};
-use ndarray::Array2;
 
-use crate::world_generator::Cell;
+use crate::world_generator::{CellArray};
 
 use super::ChunkPos;
 
@@ -9,7 +8,7 @@ use super::ChunkPos;
 pub struct WorldData {
     pub width: u16,
     pub height: u16,
-    pub tiles: Array2<Cell>,
+    pub tiles: CellArray,
 }
 
 #[derive(Resource, Default)]
