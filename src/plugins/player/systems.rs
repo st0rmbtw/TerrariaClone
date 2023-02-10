@@ -1,5 +1,5 @@
 use autodefault::autodefault;
-use bevy::{prelude::*, sprite::Anchor, math::Vec3Swizzles};
+use bevy::{prelude::*, sprite::Anchor, math::Vec3Swizzles, diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin}};
 use bevy_ecs_tilemap::tiles::TilePos;
 use bevy_hanabi::prelude::*;
 
@@ -331,187 +331,166 @@ pub fn debug_vertical_movement(
 }
 
 pub fn horizontal_movement(
+    time: Res<Time>,
     axis: Res<InputAxis>,
     mut velocity: ResMut<PlayerVelocity>
 ) {
     if axis.is_moving() {
-        velocity.x += axis.x * ACCELERATION;
-        velocity.x = velocity.x.clamp(-MAX_RUN_SPEED, MAX_RUN_SPEED);
+        let max_speed = MAX_RUN_SPEED * time.delta_seconds();
+
+        velocity.x += axis.x * ACCELERATION * time.delta_seconds();
+        velocity.x = velocity.x.clamp(-max_speed, max_speed);
     } else {
-        velocity.x = move_towards(velocity.x, 0., SLOWDOWN);
-    }
-}
-
-pub fn gravity(
-    mut velocity: ResMut<PlayerVelocity>,
-) {
-    velocity.y -= GRAVITY;
-
-    if velocity.y < -MAX_FALL_SPEED {
-        velocity.y = -MAX_FALL_SPEED;
-    }
+        velocity.x = move_towards(velocity.x, 0., SLOWDOWN * time.delta_seconds());
+    } 
 }
 
 pub fn update_jump(
+    time: Res<Time>,
     input: Res<Input<KeyCode>>,
     collisions: Res<Collisions>,
     mut velocity: ResMut<PlayerVelocity>,
     mut player_controller: ResMut<PlayerController>,
 ) {
-    if input.just_pressed(KeyCode::Space) && collisions.bottom {
+    if input.pressed(KeyCode::Space) && collisions.bottom {
         player_controller.jump = JUMP_HEIGHT;
-        velocity.y = JUMP_SPEED;
+        velocity.y = JUMP_SPEED * time.delta_seconds();
     }
 
-    if input.pressed(KeyCode::Space) {
-        if player_controller.jump > 0 {
-            if velocity.y == 0. {
-                player_controller.jump = 0;
-            } else {
-                velocity.y = JUMP_SPEED;
+    // if input.pressed(KeyCode::Space) {
+    //     if player_controller.jump > 0 {
+    //         if velocity.y == 0. {
+    //             player_controller.jump = 0;
+    //         } else {
+    //             velocity.y = JUMP_SPEED;
 
-                player_controller.jump -= 1;
-            }
-        }
-    } else {
-        player_controller.jump = 0;
-    }
+    //             player_controller.jump -= 1;
+    //         }
+    //     }
+    // } else {
+    //     player_controller.jump = 0;
+    // }
 }
 
-pub fn collide(
+pub fn update(
+    time: Res<Time>,
     mut player_query: Query<&mut Transform, With<Player>>,
     world_data: Res<WorldData>,
     mut velocity: ResMut<PlayerVelocity>,
     mut collisions: ResMut<Collisions>,
-    #[cfg(feature = "debug")]
-    mut lines: ResMut<bevy_prototype_debug_lines::DebugLines>
+    mut controller: ResMut<PlayerController>
 ) {
+    const PLAYER_HALF_WIDTH: f32 = PLAYER_WIDTH / 2.;
+    const PLAYER_HALF_HEIGHT: f32 = PLAYER_HEIGHT / 2.;
+    const MIN: f32 = PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
+    const MAX: f32 = WORLD_SIZE_X as f32 * TILE_SIZE - PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
+
     let mut transform = player_query.single_mut();
 
-    let position = transform.translation.xy().abs();
+    if !collisions.bottom {
+        controller.fall_distance += GRAVITY * time.delta_seconds();
+        velocity.y -= GRAVITY * time.delta_seconds();
 
-    let left = ((position.x - PLAYER_WIDTH / 2.) / TILE_SIZE) - 1.;
-    let right = ((position.x + PLAYER_WIDTH / 2.) / TILE_SIZE) + 2.;
-    let mut bottom = ((position.y + PLAYER_HEIGHT / 2.) / TILE_SIZE) + 2.;
-    let mut top = ((position.y - PLAYER_HEIGHT / 2.) / TILE_SIZE) - 1.;
+        let max_fall_speed = MAX_FALL_SPEED * time.delta_seconds();
 
-    if top < 0. {
-        top = 0.;
+        velocity.y = velocity.y.max(max_fall_speed);
     }
 
-    if bottom > WORLD_SIZE_Y as f32 {
-        bottom = WORLD_SIZE_Y as f32;
-    }
+    let position = transform.translation.xy().abs() + velocity.0;
+
+    let left = ((position.x - PLAYER_HALF_WIDTH) / TILE_SIZE) - 1.;
+    let right = ((position.x + PLAYER_HALF_WIDTH) / TILE_SIZE) + 1.;
+    let mut bottom = ((position.y + PLAYER_HALF_HEIGHT) / TILE_SIZE) + 2.;
+    let mut top = ((position.y - PLAYER_HALF_HEIGHT) / TILE_SIZE) - 1.;
+
+    bottom = bottom.clamp(0., WORLD_SIZE_Y as f32);
+    top = top.max(0.);
 
     let uleft = left as u32;
     let uright = right as u32;
     let utop = top as u32;
     let ubottom = bottom as u32;
 
-    let mut result = velocity.0;
-    let next_position = position - velocity.0;
-
-    let mut num5: i32 = -1;
-    let mut num6: i32 = -1;
-    let mut num7: i32 = -1;
-    let mut num8: i32 = -1;
-
-    let mut num9 = (bottom + 3.) * TILE_SIZE;
-
     let mut new_collisions = Collisions::default();
+
+    // The value of the Y coordinate of a tile on a vertical collision
+    let mut yy = 0u32;
+
+    // The value of the X coordinate of a tile on a horizontal collision
+    let mut xx = 0u32;
+
+    // The value of the Y coordinate of a tile on a horizontal collision
+    let mut yx = 0u32;
+
+    // The value of the X coordinate of a tile on a vertical collision
+    let mut xy = 0u32;
 
     for x in uleft..uright {
         for y in utop..ubottom {
-            if world_data.tiles.tile_exists(TilePos { x, y }) {
+            if world_data.tiles.tile_exists(TilePos::new(x, y)) {
                 let tile_pos = Vec2::new(x as f32 * TILE_SIZE, y as f32 * TILE_SIZE);
-                
-                if (next_position.x + PLAYER_WIDTH / 2.) > (tile_pos.x - TILE_SIZE / 2.) && (next_position.x - PLAYER_WIDTH / 2.) < (tile_pos.x + TILE_SIZE / 2.) && (next_position.y + PLAYER_HEIGHT / 2.) > (tile_pos.y - TILE_SIZE / 2.) && (next_position.y - PLAYER_HEIGHT / 2.) < (tile_pos.y + TILE_SIZE / 2.) {
-                    // Bottom
-                    if position.y + PLAYER_HEIGHT / 2. <= tile_pos.y - TILE_SIZE / 2. {
+
+                // if (next_position.x + PLAYER_HALF_WIDTH) > (tile_pos.x - TILE_SIZE / 2.) && (next_position.x - PLAYER_HALF_WIDTH) < (tile_pos.x + TILE_SIZE / 2.) && (next_position.y + PLAYER_HALF_HEIGHT) > (tile_pos.y - TILE_SIZE / 2.) && (next_position.y - PLAYER_HALF_HEIGHT) < (tile_pos.y + TILE_SIZE / 2.) {
+                    if position.y + PLAYER_HALF_HEIGHT >= tile_pos.y - TILE_SIZE / 2. {
                         new_collisions.bottom = true;
-                        if num9 > tile_pos.y {
-                            num7 = x as i32;
-                            num8 = y as i32;
-                            if num7 != num5 {
-                                let a = (tile_pos.y - TILE_SIZE / 2.) - (position.y + PLAYER_HEIGHT / 2.);
-                                result.y = a - a % (TILE_SIZE / 2.);
-                                num9 = tile_pos.y;
-                            }
+
+                        if controller.fall_distance > 0. {
+                            println!("------------------------------");
+                            println!("Fall distance: {} px, {} tiles", controller.fall_distance.round(), controller.fall_distance_in_tiles());
+                            println!("------------------------------");
                         }
+                        
+                        controller.fall_distance = 0.;
+
+                        velocity.y = 0.;
+                        yy = y;
+                        xy = x;
+
+                        // if xy != xx {
+                            transform.translation.y = -tile_pos.y + TILE_SIZE / 2. + PLAYER_HALF_HEIGHT;
+                        // }
                     } else {
-                        // Right
-                        if position.x + PLAYER_WIDTH / 2. >= tile_pos.x - TILE_SIZE / 2. {
-                            num5 = x as i32;
-                            num6 = y as i32;
-                            if num6 != num8 {
-                                result.x = (tile_pos.x - TILE_SIZE / 2.) - (position.x + PLAYER_WIDTH / 2.);
-                            }
-                            if num7 == num5 {
-                                result.y = velocity.y;
-                            }
-                        } else {
-                            // Left
-                            if position.x - PLAYER_WIDTH / 2. <= tile_pos.x + TILE_SIZE / 2. {
-                                num5 = x as i32;
-                                num6 = y as i32;
-                                if num6 != num8 {
-                                    result.x = (tile_pos.x + TILE_SIZE / 2.) - (position.x - PLAYER_WIDTH / 2.);
-                                }
-                                if num7 == num5 {
-                                    result.y = velocity.y;
-                                }
-                            } else {
-                                // Top
-                                if position.y >= tile_pos.y + TILE_SIZE / 2. {
-                                    collisions.top = true;
-                                    num7 = x as i32;
-                                    num8 = y as i32;
-                                    result.y = (tile_pos.y + TILE_SIZE / 2.) - (position.y - PLAYER_HEIGHT / 2.) + 0.01;
-                                    if num8 == num6 {
-                                        result.x = velocity.x;
-                                    }
-                                }
-                            }
-                        }
+                        // if position.x + PLAYER_HALF_WIDTH >= tile_pos.x - TILE_SIZE / 2. {
+                        //     new_collisions.right = true;
+                        //     velocity.x = 0.;
+                        //     yx = y;
+                        //     xx = x;
+
+                        //     if yy != yx {
+                        //         transform.translation.x = tile_pos.x - TILE_SIZE / 2. - PLAYER_HALF_WIDTH;
+                        //     }
+                        // } else {
+                        //     if position.x - PLAYER_HALF_WIDTH >= tile_pos.x + TILE_SIZE / 2. {
+                        //         new_collisions.left = true;
+                        //         yx = y;
+                        //         xx = x;
+                        //         velocity.x = 0.;
+
+                        //         if yy != yx {
+                        //             transform.translation.x = tile_pos.x + TILE_SIZE / 2. + PLAYER_HALF_WIDTH;
+                        //         }
+                        //     } else {
+                        //         if position.y - PLAYER_HALF_HEIGHT <= tile_pos.y + TILE_SIZE / 2. {
+                        //             new_collisions.top = true;
+                        //             velocity.y = 0.;
+                        //             yy = y;
+                        //             xy = x;
+                        //             transform.translation.y = -tile_pos.y - TILE_SIZE / 2. - PLAYER_HALF_HEIGHT;
+                        //         }
+                        //     }
+                        // }
                     }
-                }
+                // }
             }
         }
     }
 
-    if velocity.y != result.y {
-        velocity.y = 0.;
-        transform.translation.y += result.y;
-    } else {
-        velocity.y = result.y;
-    }
-
-    if velocity.x != result.x {
-        velocity.x = 0.;
-        transform.translation.x += result.x;
-    } else {
-        velocity.x = result.x;
-    }
-
     *collisions = new_collisions;
-    // *velocity = PlayerVelocity(result);
-}
-
-pub fn move_player(
-    velocity: Res<PlayerVelocity>,
-    mut player_query: Query<&mut Transform, With<Player>>,
-    #[cfg(feature = "debug")]
-    mut lines: ResMut<bevy_prototype_debug_lines::DebugLines>
-) {
-    let mut transform = player_query.single_mut();
-
-    const MIN: f32 = PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
-    const MAX: f32 = WORLD_SIZE_X as f32 * TILE_SIZE - PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
 
     let raw = transform.translation.xy() + velocity.0;
 
     transform.translation.x = raw.x.clamp(MIN, MAX);
-    transform.translation.y = raw.y;
+    transform.translation.y = raw.y.clamp(-(WORLD_SIZE_Y as f32) * TILE_SIZE + PLAYER_HALF_HEIGHT, -PLAYER_HALF_HEIGHT);
 }
 
 pub fn spawn_particles(
@@ -528,7 +507,7 @@ pub fn spawn_particles(
 
         effect
             .maybe_spawner()
-            .unwrap()
+            .unwrap()   
             .set_active(*movement_state == MovementState::Walking);
     }
 }
@@ -542,7 +521,7 @@ pub fn update_movement_state(
 
     *movement_state = match velocity.0 {
         Vec2 { x, y } if x != 0. && y == 0. => MovementState::Walking,
-        Vec2 { y, .. } if y != 0. || player_controller.jump > 0 => MovementState::Flying,
+        _ if player_controller.fall_distance_in_tiles() > 1. || player_controller.jump > 0 => MovementState::Flying,
         _ => MovementState::Idle
     };
 }
@@ -572,13 +551,9 @@ pub fn update_movement_animation_timer_duration(
     mut timer: ResMut<AnimationTimer>,
 ) {
     if velocity.x != 0. {
-        let mut time = 100. / velocity.x.abs();
+        let time = 20. / velocity.x.abs();
 
-        if time < 1. {
-            time = 1.;
-        }
-
-        timer.set_duration(Duration::from_millis(time as u64));
+        timer.set_duration(Duration::from_millis(time.max(1.) as u64));
     }
 }
 
@@ -738,6 +713,29 @@ pub fn use_item_animation(
     query.for_each_mut(|(mut sprite, anim_data)| {
         sprite.index = anim_data.0 + index.0;
     });
+}
+
+
+pub fn current_speed(
+    diagnostics: Res<Diagnostics>,
+    velocity: Res<PlayerVelocity>
+) {
+    let diagnostic = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS).unwrap();
+
+    if let Some(fps) = diagnostic.value() {
+        let velocity_x = velocity.x.abs();
+        let velocity_y = velocity.y.abs();
+
+        let factor = (fps * 3600.) / 42240.;
+
+        if velocity_x > 0. {
+            println!("Horizontal speed: {:.1} mph", velocity.x.abs() as f64 * factor);
+        }
+
+        if velocity_y > 0. {
+            println!("Vertical speed: {:.1} mph", velocity.y.abs() as f64 * factor);
+        }
+    }
 }
 
 // TODO: Debug function, remove in feature

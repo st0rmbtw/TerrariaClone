@@ -17,8 +17,6 @@ pub fn spawn_inventory_ui(
     commands
         .spawn(NodeBundle {
             style: Style {
-                align_items: AlignItems::Center,
-                align_content: AlignContent::Center,
                 flex_direction: FlexDirection::Column,
                 margin: UiRect {
                     left: Val::Px(20.),
@@ -156,8 +154,8 @@ pub fn spawn_inventory_cell(
                     margin: UiRect::all(Val::Px(8.)),
                 },
             })
-                .insert(InventoryCellIndex(index))
-                .insert(InventoryCellItemImage::default());
+            .insert(InventoryCellIndex(index))
+            .insert(InventoryCellItemImage::default());
 
             if hotbar_cell {
                 c.spawn(NodeBundle {
@@ -171,39 +169,38 @@ pub fn spawn_inventory_cell(
                         align_content: AlignContent::FlexStart,
                     },
                     focus_policy: FocusPolicy::Pass,
-                })
-                    .with_children(|c| {
-                        // Hotbar cell index
-                        c.spawn(TextBundle {
-                            focus_policy: FocusPolicy::Pass,
-                            text: Text::from_section(
-                                ((index + 1) % HOTBAR_LENGTH).to_string(),
-                                TextStyle {
-                                    font: fonts.andy_bold.clone(),
-                                    font_size: 16.,
-                                    color: Color::WHITE,
-                                },
-                            ),
-                        });
-
-                        // Item stack
-                        c.spawn(TextBundle {
-                            style: Style {
-                                align_self: AlignSelf::Center,
+                }).with_children(|c| {
+                    // Hotbar cell index
+                    c.spawn(TextBundle {
+                        focus_policy: FocusPolicy::Pass,
+                        text: Text::from_section(
+                            ((index + 1) % HOTBAR_LENGTH).to_string(),
+                            TextStyle {
+                                font: fonts.andy_bold.clone(),
+                                font_size: 16.,
+                                color: Color::WHITE,
                             },
-                            focus_policy: FocusPolicy::Pass,
-                            text: Text::from_section(
-                                "",
-                                TextStyle {
-                                    font: fonts.andy_regular.clone(),
-                                    font_size: 16.,
-                                    color: Color::WHITE,
-                                },
-                            ),
-                        })
-                            .insert(InventoryCellIndex(index))
-                            .insert(InventoryItemAmount::default());
+                        ),
                     });
+
+                    // Item stack
+                    c.spawn(TextBundle {
+                        style: Style {
+                            align_self: AlignSelf::Center,
+                        },
+                        focus_policy: FocusPolicy::Pass,
+                        text: Text::from_section(
+                            "",
+                            TextStyle {
+                                font: fonts.andy_regular.clone(),
+                                font_size: 16.,
+                                color: Color::WHITE,
+                            },
+                        ),
+                    })
+                    .insert(InventoryCellIndex(index))
+                    .insert(InventoryItemAmount::default());
+                });
             }
         })
         .insert(Name::new(name))

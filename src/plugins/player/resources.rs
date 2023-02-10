@@ -30,9 +30,15 @@ pub struct PlayerVelocity(pub Velocity);
 
 #[derive(Resource, Clone, Copy, Default)]
 pub struct PlayerController {
-    pub fall_speed: f32,
-    pub apex_point: f32,
-    pub jump: i32
+    pub jump: i32,
+    // The distance of player's fall in pixels
+    pub fall_distance: f32
+}
+
+impl PlayerController {
+    pub fn fall_distance_in_tiles(&self) -> f32 {
+        (self.fall_distance / 16.).round()
+    }
 }
 
 #[derive(Resource, Clone, Copy, Default)]

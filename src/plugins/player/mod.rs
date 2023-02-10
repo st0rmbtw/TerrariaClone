@@ -13,6 +13,8 @@ use std::time::Duration;
 use iyes_loopless::prelude::*;
 use bevy::{prelude::{Plugin, App, CoreStage}, time::{Timer, TimerMode}};
 
+use super::world::TILE_SIZE;
+
 pub const PLAYER_WIDTH: f32 = 22. /* 2. * TILE_SIZE */;
 pub const PLAYER_HEIGHT: f32 = 42. /* 3. * TILE_SIZE */;
 
@@ -23,14 +25,14 @@ const USE_ITEM_ANIMATION_FRAMES_COUNT: usize = 3;
 const MOVEMENT_ANIMATION_LABEL: &str = "movement_animation";
 const USE_ITEM_ANIMATION_LABEL: &str = "use_item_animation";
 
-const GRAVITY: f32 = 0.4;
-const ACCELERATION: f32 = 0.08;
-const SLOWDOWN: f32 = 0.2;
-pub const MAX_RUN_SPEED: f32 = 3.;
+const GRAVITY: f32 = 30. * TILE_SIZE;
+const ACCELERATION: f32 = 0.05 * TILE_SIZE;
+const SLOWDOWN: f32 = 1.5;
+pub const MAX_RUN_SPEED: f32 = 11. * TILE_SIZE;
 
 const JUMP_HEIGHT: i32 = 15;
-const JUMP_SPEED: f32 = 5.01;
-pub const MAX_FALL_SPEED: f32 = 10.;
+const JUMP_SPEED: f32 = 5.01 * TILE_SIZE;
+pub const MAX_FALL_SPEED: f32 = -37.5 * TILE_SIZE;
 
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
@@ -109,36 +111,29 @@ impl Plugin for PlayerPlugin {
 
         #[cfg(not(feature = "debug_movement"))] {
             app
-            .add_system(
+            .add_system_to_stage(
+                CoreStage::Update,
                 horizontal_movement
                     .run_in_state(GameState::InGame)
                     .label(PlayerLabel::HorizontalMovement)
             )
-            .add_system(
+            .add_system_to_stage(
+                CoreStage::Update,
                 update_jump
                     .run_in_state(GameState::InGame)
                     .label(PlayerLabel::Jump)
                     .after(PlayerLabel::HorizontalMovement)
             )
-            .add_system(
-                gravity
-                    .run_in_state(GameState::InGame)
-                    .label(PlayerLabel::Gravity)
-                    .after(PlayerLabel::Jump)
-            )
-            .add_system(
-                collide
-                    .run_in_state(GameState::InGame)
-                    .label(PlayerLabel::Collide)
-                    .after(PlayerLabel::Gravity)
-            )
-            .add_system(
-                move_player
+            .add_system_to_stage(
+                CoreStage::Update,
+                update
                     .run_in_state(GameState::InGame)
                     .label(PlayerLabel::MovePlayer)
-                    .after(PlayerLabel::Collide)
+                    .after(PlayerLabel::Jump)
             );
         }
+
+        // app.add_system(current_speed);
 
         #[cfg(feature = "debug_movement")] {
             app.add_system(
