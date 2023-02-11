@@ -20,13 +20,13 @@ bevy_hanabi = { version = "0.5.3", default-features = false, features = ["2d"] }
 bevy-inspector-egui = "0.17.0"
 bevy_prototype_debug_lines = { version = "0.9.0", optional = true }
 bevy_ecs_tilemap = { version = "0.9.0" }
-serde = { version = "1.0.147", features = ["derive"] }
-serde_json = "1.0.88"
+serde = { version = "1.0.152", features = ["derive"] }
+serde_json = "1.0.93"
 
 [profile.dev]
 opt-level = 0
 incremental=true
-lto = false
+lto = true
 
 [profile.release]
 opt-level = 3

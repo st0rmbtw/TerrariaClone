@@ -1,5 +1,4 @@
-use autodefault::autodefault;
-use bevy::{prelude::*, sprite::Anchor, math::Vec3Swizzles, diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin}};
+use bevy::{prelude::*, math::Vec3Swizzles, diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin}};
 use bevy_ecs_tilemap::tiles::TilePos;
 use bevy_hanabi::prelude::*;
 
@@ -7,7 +6,7 @@ use crate::{
     state::MovementState,
     plugins::{
         world::{WorldData, TILE_SIZE}, 
-        assets::{PlayerAssets, ItemAssets}, 
+        assets::ItemAssets, 
         inventory::SelectedItem,
     }, 
     world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}, 
@@ -16,298 +15,6 @@ use crate::{
 };
 
 use super::*;
-
-#[autodefault(except(GroundSensor, PlayerParticleEffects))]
-pub fn spawn_player(
-    mut commands: Commands,
-    player_assets: Res<PlayerAssets>,
-    mut effects: ResMut<Assets<EffectAsset>>,
-) {
-    let player = commands
-        .spawn(SpatialBundle {
-            transform: Transform::from_xyz(WORLD_SIZE_X as f32 * 16. / 2., 0., 3.)
-        })
-        .insert(Player)
-        .insert(Name::new("Player"))
-        .insert(MovementState::default())
-        .insert(FaceDirection::default())
-        .with_children(|cmd| {
-            // region: Hair
-            cmd.spawn((
-                SpriteSheetBundle {
-                    sprite: TextureAtlasSprite {
-                        color: Color::rgb(0.55, 0.23, 0.14),
-                    },
-                    transform: Transform::from_xyz(0., 0., 0.1),
-                    texture_atlas: player_assets.hair.clone(),
-                },
-                MovementAnimationBundle::default()
-            ))
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert(Name::new("Player hair"));
-            // endregion
-
-            // region: Head
-            cmd.spawn((
-                SpriteSheetBundle {
-                    sprite: TextureAtlasSprite {
-                        color: Color::rgb(0.92, 0.45, 0.32),
-                    },
-                    texture_atlas: player_assets.head.clone(),
-                    transform: Transform::from_xyz(0., 0., 0.003),
-                },
-                MovementAnimationBundle::default()
-            ))
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert(Name::new("Player head"));
-            // endregion
-
-            // region: Eyes
-            cmd.spawn((
-                SpriteSheetBundle {
-                    sprite: TextureAtlasSprite {
-                        color: Color::WHITE,
-                    },
-                    transform: Transform::from_xyz(0., 0., 0.1),
-                    texture_atlas: player_assets.eyes_1.clone(),
-                },
-                MovementAnimationBundle {
-                    walking: WalkingAnimationData {
-                        offset: 6,
-                        count: 14,
-                    }
-                }
-            ))
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert(Name::new("Player left eye"));
-
-            cmd.spawn((
-                SpriteSheetBundle {
-                    sprite: TextureAtlasSprite {
-                        color: Color::rgb(89. / 255., 76. / 255., 64. / 255.),
-                    },
-                    transform: Transform::from_xyz(0., 0., 0.01),
-                    texture_atlas: player_assets.eyes_2.clone(),
-                },
-                MovementAnimationBundle {
-                    walking: WalkingAnimationData {
-                        offset: 6,
-                        count: 14,
-                    }
-                }
-            ))
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert(Name::new("Player right eye"));
-
-            // endregion
-
-            // region: Arms
-            // region: Left arm
-            cmd.spawn((
-                SpriteSheetBundle {
-                    sprite: TextureAtlasSprite {
-                        color: Color::rgb(0.58, 0.55, 0.47),
-                    },
-                    transform: Transform::from_xyz(0., -8., 0.2),
-                    texture_atlas: player_assets.left_shoulder.clone(),
-                },
-                MovementAnimationBundle {
-                    walking: WalkingAnimationData {
-                        offset: 13,
-                        count: 13,
-                    },
-                    flying: FlyingAnimationData(2)
-                }
-            ))
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert(UseItemAnimationData(2))
-            .insert(Name::new("Player left shoulder"));
-
-            cmd.spawn((
-                SpriteSheetBundle {
-                    sprite: TextureAtlasSprite {
-                        color: Color::rgb(0.92, 0.45, 0.32),
-                    },
-                    transform: Transform::from_xyz(0., -8., 0.2),
-                    texture_atlas: player_assets.left_hand.clone(),
-                },
-                MovementAnimationBundle {
-                    walking: WalkingAnimationData {
-                        offset: 13,
-                        count: 13,
-                    },
-                    flying: FlyingAnimationData(2)
-                }
-            ))
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert(UseItemAnimationData(2))
-            .insert(Name::new("Player left hand"));
-            // endregion
-
-            // region: Right arm
-            cmd.spawn((
-                SpriteSheetBundle {
-                    sprite: TextureAtlasSprite {
-                        color: Color::rgb(0.92, 0.45, 0.32),
-                    },
-                    transform: Transform::from_xyz(0., -20., 0.001),
-                    texture_atlas: player_assets.right_arm.clone(),
-                },
-                MovementAnimationBundle {
-                    walking: WalkingAnimationData { count: 13 },
-                    idle: IdleAnimationData(14),
-                    flying: FlyingAnimationData(13),
-                }
-            ))
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert(UseItemAnimationData(15))
-            .insert(Name::new("Player right hand"));
-            // endregion
-
-            // endregion
-
-            // region: Chest
-            cmd.spawn((
-                SpriteSheetBundle {
-                    sprite: TextureAtlasSprite {
-                        index: 0,
-                        color: Color::rgb(0.58, 0.55, 0.47),
-                    },
-                    transform: Transform::from_xyz(0., 0., 0.002),
-                    texture_atlas: player_assets.chest.clone(),
-                },
-                MovementAnimationBundle::default()
-            ))
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert(Name::new("Player chest"));
-            // endregion
-
-            // region: Feet
-            cmd.spawn((
-                SpriteSheetBundle {
-                    sprite: TextureAtlasSprite {
-                        color: Color::rgb(190. / 255., 190. / 255., 156. / 255.),
-                    },
-                    texture_atlas: player_assets.feet.clone(),
-                    transform: Transform::from_xyz(0., 0., 0.15),
-                    ..default()
-                },
-                MovementAnimationBundle {
-                    walking: WalkingAnimationData {
-                        offset: 6,
-                        count: 13,
-                    },
-                    flying: FlyingAnimationData(5),
-                }
-            ))
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert(Name::new("Player feet"));
-            // endregion
-
-            // region: Used item
-            cmd.spawn(SpriteBundle {
-                sprite: Sprite {
-                    anchor: Anchor::BottomLeft,
-                },
-                visibility: Visibility {
-                    is_visible: false
-                },
-                transform: Transform::from_xyz(0., 0., 0.15),
-            })
-            .insert(ChangeFlip)
-            .insert(UsedItem)
-            .insert(Name::new("Using item"));
-
-            // endregion
-
-            #[cfg(feature = "debug")] {
-                cmd.spawn(SpriteBundle {
-                    sprite: Sprite {
-                        color: Color::RED,
-                        custom_size: Some(Vec2::new(PLAYER_WIDTH, 1.))
-                    },
-                    transform: Transform::from_xyz(0., -PLAYER_HEIGHT / 2., 0.5),
-                });
-
-                cmd.spawn(SpriteBundle {
-                    sprite: Sprite {
-                        color: Color::RED,
-                        custom_size: Some(Vec2::new(PLAYER_WIDTH, 1.))
-                    },
-                    transform: Transform::from_xyz(0., PLAYER_HEIGHT / 2., 0.5),
-                });
-
-                cmd.spawn(SpriteBundle {
-                    sprite: Sprite {
-                        color: Color::RED,
-                        custom_size: Some(Vec2::new(1., PLAYER_HEIGHT))
-                    },
-                    transform: Transform::from_xyz(-PLAYER_WIDTH / 2., 0., 0.5),
-                });
-
-                cmd.spawn(SpriteBundle {
-                    sprite: Sprite {
-                        color: Color::RED,
-                        custom_size: Some(Vec2::new(1., PLAYER_HEIGHT))
-                    },
-                    transform: Transform::from_xyz(PLAYER_WIDTH / 2., 0., 0.5),
-                });
-            }
-        })
-        .id();
-
-    let mut gradient = Gradient::new();
-    gradient.add_key(0.0, Vec4::new(114. / 255., 81. / 255., 56. / 255., 1.));
-
-    let spawner = Spawner::rate(20.0.into());
-
-    // Create the effect asset
-    let effect = effects.add(
-        EffectAsset {
-            name: "MyEffect".to_string(),
-            // Maximum number of particles alive at a time
-            capacity: 30,
-            spawner,
-        }
-        .init(PositionCone3dModifier {
-            base_radius: 0.5,
-            top_radius: 0.,
-            height: 1.,
-            dimension: ShapeDimension::Volume,
-            speed: 10.0.into(),
-        })
-        .update(AccelModifier {
-            accel: Vec3::new(0., 0., 0.),
-        })
-        // Render the particles with a color gradient over their
-        // lifetime.
-        .render(SizeOverLifetimeModifier {
-            gradient: Gradient::constant(Vec2::splat(3.)),
-        })
-        .init(ParticleLifetimeModifier { lifetime: 0.1 })
-        .render(ColorOverLifetimeModifier { gradient }),
-    );
-
-    let effect_entity = commands
-        .spawn(ParticleEffectBundle::new(effect).with_spawner(spawner))
-        .insert(Name::new("Particle Spawner"))
-        .id();
-
-    commands.entity(player).add_child(effect_entity);
-
-    commands.entity(player).insert(PlayerParticleEffects {
-        walking: effect_entity,
-    });
-}
 
 #[cfg(feature = "debug_movement")]
 pub fn debug_horizontal_movement(
@@ -357,19 +64,19 @@ pub fn update_jump(
         velocity.y = JUMP_SPEED * time.delta_seconds();
     }
 
-    // if input.pressed(KeyCode::Space) {
-    //     if player_controller.jump > 0 {
-    //         if velocity.y == 0. {
-    //             player_controller.jump = 0;
-    //         } else {
-    //             velocity.y = JUMP_SPEED;
+    if input.pressed(KeyCode::Space) {
+        if player_controller.jump > 0 {
+            if velocity.y == 0. {
+                player_controller.jump = 0;
+            } else {
+                velocity.y = JUMP_SPEED * time.delta_seconds();
 
-    //             player_controller.jump -= 1;
-    //         }
-    //     }
-    // } else {
-    //     player_controller.jump = 0;
-    // }
+                player_controller.jump -= 1;
+            }
+        }
+    } else {
+        player_controller.jump = 0;
+    }
 }
 
 pub fn update(
@@ -396,11 +103,12 @@ pub fn update(
         velocity.y = velocity.y.max(max_fall_speed);
     }
 
-    let position = transform.translation.xy().abs() + velocity.0;
+    let position = (transform.translation.xy()).abs();
+    let next_position = (transform.translation.xy() + velocity.0).abs();
 
     let left = ((position.x - PLAYER_HALF_WIDTH) / TILE_SIZE) - 1.;
-    let right = ((position.x + PLAYER_HALF_WIDTH) / TILE_SIZE) + 1.;
-    let mut bottom = ((position.y + PLAYER_HALF_HEIGHT) / TILE_SIZE) + 2.;
+    let right = ((position.x + PLAYER_HALF_WIDTH) / TILE_SIZE) + 2.;
+    let mut bottom = ((position.y + PLAYER_HALF_HEIGHT) / TILE_SIZE) + 3.;
     let mut top = ((position.y - PLAYER_HALF_HEIGHT) / TILE_SIZE) - 1.;
 
     bottom = bottom.clamp(0., WORLD_SIZE_Y as f32);
@@ -413,28 +121,25 @@ pub fn update(
 
     let mut new_collisions = Collisions::default();
 
-    // The value of the Y coordinate of a tile on a vertical collision
-    let mut yy = 0u32;
+    let mut num5: i32 = -1;
+    let mut num6: i32 = -1;
+    let mut num7: i32 = -1;
+    let mut num8: i32 = -1;
 
-    // The value of the X coordinate of a tile on a horizontal collision
-    let mut xx = 0u32;
-
-    // The value of the Y coordinate of a tile on a horizontal collision
-    let mut yx = 0u32;
-
-    // The value of the X coordinate of a tile on a vertical collision
-    let mut xy = 0u32;
+    let mut num9 = (bottom + 3.) * TILE_SIZE;
 
     for x in uleft..uright {
         for y in utop..ubottom {
             if world_data.tiles.tile_exists(TilePos::new(x, y)) {
                 let tile_pos = Vec2::new(x as f32 * TILE_SIZE, y as f32 * TILE_SIZE);
 
-                // if (next_position.x + PLAYER_HALF_WIDTH) > (tile_pos.x - TILE_SIZE / 2.) && (next_position.x - PLAYER_HALF_WIDTH) < (tile_pos.x + TILE_SIZE / 2.) && (next_position.y + PLAYER_HALF_HEIGHT) > (tile_pos.y - TILE_SIZE / 2.) && (next_position.y - PLAYER_HALF_HEIGHT) < (tile_pos.y + TILE_SIZE / 2.) {
-                    if position.y + PLAYER_HALF_HEIGHT >= tile_pos.y - TILE_SIZE / 2. {
+                if (next_position.x + PLAYER_WIDTH / 2.) > (tile_pos.x - TILE_SIZE / 2.) && (next_position.x - PLAYER_WIDTH / 2.) < (tile_pos.x + TILE_SIZE / 2.) && (next_position.y + PLAYER_HEIGHT / 2.) > (tile_pos.y - TILE_SIZE / 2.) && (next_position.y - PLAYER_HEIGHT / 2.) < (tile_pos.y + TILE_SIZE / 2.) {
+                    if position.y + PLAYER_HEIGHT / 2. <= tile_pos.y - TILE_SIZE / 2. {
                         new_collisions.bottom = true;
 
-                        if controller.fall_distance > 0. {
+                        velocity.y = 0.;
+
+                        if controller.fall_distance_in_tiles() > 0. {
                             println!("------------------------------");
                             println!("Fall distance: {} px, {} tiles", controller.fall_distance.round(), controller.fall_distance_in_tiles());
                             println!("------------------------------");
@@ -442,45 +147,87 @@ pub fn update(
                         
                         controller.fall_distance = 0.;
 
-                        velocity.y = 0.;
-                        yy = y;
-                        xy = x;
-
-                        // if xy != xx {
-                            transform.translation.y = -tile_pos.y + TILE_SIZE / 2. + PLAYER_HALF_HEIGHT;
-                        // }
+                        if num9 > tile_pos.y {
+                            num7 = x as i32;
+                            num8 = y as i32;
+                            if num7 != num5 {
+                                velocity.y = ((tile_pos.y - TILE_SIZE / 2.) - (position.y + PLAYER_HEIGHT / 2.)) * time.delta_seconds();
+                                num9 = tile_pos.y;
+                            }
+                        }
                     } else {
-                        // if position.x + PLAYER_HALF_WIDTH >= tile_pos.x - TILE_SIZE / 2. {
-                        //     new_collisions.right = true;
-                        //     velocity.x = 0.;
-                        //     yx = y;
-                        //     xx = x;
-
-                        //     if yy != yx {
-                        //         transform.translation.x = tile_pos.x - TILE_SIZE / 2. - PLAYER_HALF_WIDTH;
-                        //     }
-                        // } else {
-                        //     if position.x - PLAYER_HALF_WIDTH >= tile_pos.x + TILE_SIZE / 2. {
-                        //         new_collisions.left = true;
-                        //         yx = y;
-                        //         xx = x;
-                        //         velocity.x = 0.;
-
-                        //         if yy != yx {
-                        //             transform.translation.x = tile_pos.x + TILE_SIZE / 2. + PLAYER_HALF_WIDTH;
-                        //         }
-                        //     } else {
-                        //         if position.y - PLAYER_HALF_HEIGHT <= tile_pos.y + TILE_SIZE / 2. {
-                        //             new_collisions.top = true;
-                        //             velocity.y = 0.;
-                        //             yy = y;
-                        //             xy = x;
-                        //             transform.translation.y = -tile_pos.y - TILE_SIZE / 2. - PLAYER_HALF_HEIGHT;
-                        //         }
-                        //     }
-                        // }
+                        if position.x + PLAYER_WIDTH / 2. <= tile_pos.x - TILE_SIZE / 2. {
+                            num5 = x as i32;
+                            num6 = y as i32;
+                            if num6 != num8 {
+                                velocity.x = ((tile_pos.x - TILE_SIZE / 2.) - (position.x + PLAYER_WIDTH / 2.)) * time.delta_seconds();
+                            }
+                            if num7 == num5 {
+                                velocity.y = velocity.y;
+                            }
+                        } else {
+                            if position.x - PLAYER_WIDTH / 2. >= tile_pos.x + TILE_SIZE / 2. {
+                                num5 = x as i32;
+                                num6 = y as i32;
+                                if num6 != num8 {
+                                    velocity.x = ((tile_pos.x + TILE_SIZE / 2.) - (position.x - PLAYER_WIDTH / 2.)) * time.delta_seconds();
+                                }
+                                if num7 == num5 {
+                                    velocity.y = velocity.y;
+                                }
+                            } else {
+                                if position.y >= tile_pos.y + TILE_SIZE / 2. {
+                                    collisions.top = true;
+                                    num7 = x as i32;
+                                    num8 = y as i32;
+                                    velocity.y = ((tile_pos.y + TILE_SIZE / 2.) - (position.y - PLAYER_HEIGHT / 2.) + 0.01) * time.delta_seconds();
+                                    if num8 == num6 {
+                                        velocity.x = velocity.x;
+                                    }
+                                }
+                            }
+                        }
                     }
-                // }
+
+            //     if (next_position.x + PLAYER_HALF_WIDTH) > (tile_pos.x - TILE_SIZE / 2.) && (next_position.x - PLAYER_HALF_WIDTH) < (tile_pos.x + TILE_SIZE / 2.) && (next_position.y + PLAYER_HALF_HEIGHT) > (tile_pos.y - TILE_SIZE / 2.) && (next_position.y - PLAYER_HALF_HEIGHT) < (tile_pos.y + TILE_SIZE / 2.) {
+            //         if position.y + PLAYER_HALF_HEIGHT >= tile_pos.y - TILE_SIZE / 2. {
+            //             new_collisions.bottom = true;
+
+            //             if controller.fall_distance_in_tiles() > 0. {
+            //                 println!("------------------------------");
+            //                 println!("Fall distance: {} px, {} tiles", controller.fall_distance.round(), controller.fall_distance_in_tiles());
+            //                 println!("------------------------------");
+            //             }
+                        
+            //             controller.fall_distance = 0.;
+
+            //             if velocity.y < 0. {
+            //                 velocity.y = 0.;
+            //             }                            
+                            
+            //             transform.translation.y = -tile_pos.y + TILE_SIZE / 2. + PLAYER_HALF_HEIGHT;
+            //         } else {
+            //             if position.x + PLAYER_HALF_WIDTH >= tile_pos.x - TILE_SIZE / 2. {
+            //                 new_collisions.right = true;
+                            
+            //                 velocity.x = 0.;
+            //                 transform.translation.x = tile_pos.x - TILE_SIZE / 2. + PLAYER_HALF_WIDTH;
+            //             } else {
+            //                 if position.x - PLAYER_HALF_WIDTH <= tile_pos.x + TILE_SIZE / 2. {
+            //                     new_collisions.left = true;
+                                
+            //                     velocity.x = 0.;
+            //                     transform.translation.x = tile_pos.x + TILE_SIZE / 2. + PLAYER_HALF_WIDTH;
+            //                 } else {
+            //                     if position.y - PLAYER_HALF_HEIGHT <= tile_pos.y + TILE_SIZE / 2. {
+            //                         new_collisions.top = true;
+            //                         velocity.y = 0.;
+            //                         transform.translation.y = -tile_pos.y - TILE_SIZE / 2. - PLAYER_HALF_HEIGHT;
+            //                     }
+            //                 }
+            //             }
+            //         } 
+                }
             }
         }
     }
