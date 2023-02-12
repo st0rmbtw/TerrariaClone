@@ -1,7 +1,7 @@
 use bevy::prelude::{Color, Vec2};
 use bevy_ecs_tilemap::{tiles::TilePos, helpers::square_grid::neighbors::{Neighbors, SquareDirection}, prelude::SquarePos};
 use block::Block;
-use plugins::world::MAP_SIZE;
+use plugins::{world::MAP_SIZE, player::Collisions};
 use wall::Wall as WallType;
 use world_generator::{Tile, Cell, CellArray, Wall};
 
@@ -29,6 +29,130 @@ pub type Velocity = Vec2;
 pub struct Bounds {
     pub min: Vec2,
     pub max: Vec2
+}
+
+#[derive(Clone, Copy)]
+pub struct Rect {
+    // Center x
+    cx: f32,
+    // Center y
+    cy: f32,
+    // X velocity
+    vx: f32,
+    // Y velocity
+    vy: f32,
+    width: f32,
+    height: f32,
+}
+
+impl Rect {
+    pub fn new(cx: f32, cy: f32, vx: f32, vy: f32, width: f32, height: f32) -> Self {
+        Self { cx, cy, vx, vy, width, height }
+    }
+
+    fn is_colliding(&self, other: Rect) -> bool {
+        let self_x = self.cx - self.width / 2.;
+        let self_y = self.cy - self.height / 2.;
+
+        let other_x = other.cx - other.width / 2.;
+        let other_y = other.cy - other.height / 2.;
+
+        let left = other_x - (self_x + self.width);
+        let top = (other_y + other.height) - self_y;
+        let right = (other_x + other.width) - self_x;
+        let bottom = other_y - (self_y + self.height);
+
+        return !(left > 0. || right < 0. || top < 0. || bottom > 0.);
+    }
+
+    fn get_swept_broadphase_rect(&self) -> Rect {
+        let cx = if self.vx > 0. { self.cx } else { self.cx + self.vx };
+        let cy = if self.vy > 0. { self.cy } else { self.cy + self.vy };
+        let w = self.width + self.vx.abs();
+        let h = self.height + self.vy.abs();
+
+        return Rect::new(cx, cy, 0., 0., w, h);
+    }
+
+    pub fn swept_aabb(&self, other: Rect) -> (f32, Collisions) {
+        let mut collisions = Collisions::default();
+        let rect = self.get_swept_broadphase_rect();
+
+        if !rect.is_colliding(other) {
+            return (1., collisions);
+        }
+
+        let self_x = self.cx - self.width / 2.;
+        let self_y = self.cy - self.height / 2.;
+
+        let other_x = other.cx - other.width / 2.;
+        let other_y = other.cy - other.height / 2.;
+
+        let dx_entry: f32;
+        let dx_exit: f32;
+        let tx_entry: f32;
+        let tx_exit: f32;
+
+        let dy_entry: f32;
+        let dy_exit: f32;
+        let ty_entry: f32;
+        let ty_exit: f32;
+
+        if other.vx > 0. {
+            dx_entry = other_x - (self_x + self.width);
+            dx_exit = (other_x + other.width) - self_x;
+        } else {
+            dx_entry = (other_x + other.width) - self_x;
+            dx_exit = other_x - (self_x + self.width);
+        }
+
+        if other.vy > 0. {
+            dy_entry = other_y - (self_y + self.height);
+            dy_exit = (other_y + other.height) - self_y;
+        } else {
+            dy_entry = (other_y + other.height) - self_y;
+            dy_exit = other_y - (self_y + self.height);
+        }
+
+        if self.vx == 0. {
+            tx_entry = -f32::INFINITY;
+            tx_exit = f32::INFINITY;
+        } else {
+            tx_entry = dx_entry / self.vx;
+            tx_exit = dx_exit / self.vx;
+        }
+
+        if self.vy == 0. {
+            ty_entry = -f32::INFINITY;
+            ty_exit = f32::INFINITY;
+        } else {
+            ty_entry = dy_entry / self.vy;
+            ty_exit = dy_exit / self.vy;
+        }
+
+        let entry_time = tx_entry.max(ty_entry);
+        let exit_time = tx_exit.min(ty_exit);
+
+        if entry_time > exit_time || (tx_entry < 0. && ty_entry < 0.) || tx_entry > 1. || ty_entry > 1. {
+            return (1., collisions);
+        }
+
+        if tx_entry > ty_entry {
+            if dx_entry > 0. {
+                collisions.right = true;
+            } else {
+                collisions.left = true;
+            }
+        } else {
+            if dy_entry > 0. {
+                collisions.top = true;
+            } else {
+                collisions.bottom = true;
+            }
+        }
+
+        return (entry_time, collisions);
+    }
 }
 
 pub mod labels {

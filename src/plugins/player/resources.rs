@@ -41,7 +41,7 @@ impl PlayerController {
     }
 }
 
-#[derive(Resource, Clone, Copy, Default)]
+#[derive(Debug, Resource, Clone, Copy, Default)]
 pub struct Collisions {
     pub top: bool,
     pub bottom: bool,

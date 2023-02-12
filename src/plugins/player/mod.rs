@@ -33,7 +33,7 @@ const SLOWDOWN: f32 = 1.5;
 pub const MAX_RUN_SPEED: f32 = 11. * TILE_SIZE;
 
 const JUMP_HEIGHT: i32 = 15;
-const JUMP_SPEED: f32 = 25.05 * TILE_SIZE;
+const JUMP_SPEED: f32 = 5.01 * TILE_SIZE;
 pub const MAX_FALL_SPEED: f32 = -37.5 * TILE_SIZE;
 
 pub struct PlayerPlugin;

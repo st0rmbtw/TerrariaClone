@@ -7,7 +7,7 @@ authors = ["st0rmbtw"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = { version = "0.9.1" }
+bevy = { version = "0.9.1", features = ["dynamic"] }
 bevy_asset_loader = { version = "0.14.1", features = ["2d", "stageless"] }
 lazy_static = "1.4.0"
 rand = "0.8.5"
@@ -25,13 +25,10 @@ serde_json = "1.0.93"
 
 [profile.dev]
 opt-level = 0
-incremental=true
-lto = true
+incremental=false
 
 [profile.release]
 opt-level = 3
-incremental=true
-lto = true
 
 [profile.dev.package."*"]
 opt-level = 3

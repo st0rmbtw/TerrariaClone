@@ -61,7 +61,7 @@ pub fn update_jump(
 ) {
     if input.pressed(KeyCode::Space) && collisions.bottom {
         player_controller.jump = JUMP_HEIGHT;
-        velocity.y = JUMP_SPEED * time.delta_seconds();
+        velocity.y = JUMP_SPEED;
     }
 
     if input.pressed(KeyCode::Space) {
@@ -69,7 +69,7 @@ pub fn update_jump(
             if velocity.y == 0. {
                 player_controller.jump = 0;
             } else {
-                velocity.y = JUMP_SPEED * time.delta_seconds();
+                velocity.y = JUMP_SPEED;
 
                 player_controller.jump -= 1;
             }
@@ -104,7 +104,10 @@ pub fn update(
     }
 
     let position = (transform.translation.xy()).abs();
-    let next_position = (transform.translation.xy() + velocity.0).abs();
+
+    let player_rect = crate::Rect::new(
+        transform.translation.x, transform.translation.y, velocity.x, velocity.y, PLAYER_WIDTH, PLAYER_HEIGHT
+    );
 
     let left = ((position.x - PLAYER_HALF_WIDTH) / TILE_SIZE) - 1.;
     let right = ((position.x + PLAYER_HALF_WIDTH) / TILE_SIZE) + 2.;
@@ -121,116 +124,88 @@ pub fn update(
 
     let mut new_collisions = Collisions::default();
 
-    let mut num5: i32 = -1;
-    let mut num6: i32 = -1;
-    let mut num7: i32 = -1;
-    let mut num8: i32 = -1;
-
-    let mut num9 = (bottom + 3.) * TILE_SIZE;
-
     for x in uleft..uright {
         for y in utop..ubottom {
             if world_data.tiles.tile_exists(TilePos::new(x, y)) {
                 let tile_pos = Vec2::new(x as f32 * TILE_SIZE, y as f32 * TILE_SIZE);
 
-                if (next_position.x + PLAYER_WIDTH / 2.) > (tile_pos.x - TILE_SIZE / 2.) && (next_position.x - PLAYER_WIDTH / 2.) < (tile_pos.x + TILE_SIZE / 2.) && (next_position.y + PLAYER_HEIGHT / 2.) > (tile_pos.y - TILE_SIZE / 2.) && (next_position.y - PLAYER_HEIGHT / 2.) < (tile_pos.y + TILE_SIZE / 2.) {
-                    if position.y + PLAYER_HEIGHT / 2. <= tile_pos.y - TILE_SIZE / 2. {
-                        new_collisions.bottom = true;
+                let tile_rect = crate::Rect::new(tile_pos.x, -tile_pos.y, 0., 0., TILE_SIZE, TILE_SIZE);
 
-                        velocity.y = 0.;
+                let (a, cols) = player_rect.swept_aabb(tile_rect);
 
-                        if controller.fall_distance_in_tiles() > 0. {
-                            println!("------------------------------");
-                            println!("Fall distance: {} px, {} tiles", controller.fall_distance.round(), controller.fall_distance_in_tiles());
-                            println!("------------------------------");
-                        }
-                        
-                        controller.fall_distance = 0.;
+                println!("{}", cols.bottom);
+                
+                new_collisions = cols;
 
-                        if num9 > tile_pos.y {
-                            num7 = x as i32;
-                            num8 = y as i32;
-                            if num7 != num5 {
-                                velocity.y = ((tile_pos.y - TILE_SIZE / 2.) - (position.y + PLAYER_HEIGHT / 2.)) * time.delta_seconds();
-                                num9 = tile_pos.y;
-                            }
-                        }
-                    } else {
-                        if position.x + PLAYER_WIDTH / 2. <= tile_pos.x - TILE_SIZE / 2. {
-                            num5 = x as i32;
-                            num6 = y as i32;
-                            if num6 != num8 {
-                                velocity.x = ((tile_pos.x - TILE_SIZE / 2.) - (position.x + PLAYER_WIDTH / 2.)) * time.delta_seconds();
-                            }
-                            if num7 == num5 {
-                                velocity.y = velocity.y;
-                            }
-                        } else {
-                            if position.x - PLAYER_WIDTH / 2. >= tile_pos.x + TILE_SIZE / 2. {
-                                num5 = x as i32;
-                                num6 = y as i32;
-                                if num6 != num8 {
-                                    velocity.x = ((tile_pos.x + TILE_SIZE / 2.) - (position.x - PLAYER_WIDTH / 2.)) * time.delta_seconds();
-                                }
-                                if num7 == num5 {
-                                    velocity.y = velocity.y;
-                                }
-                            } else {
-                                if position.y >= tile_pos.y + TILE_SIZE / 2. {
-                                    collisions.top = true;
-                                    num7 = x as i32;
-                                    num8 = y as i32;
-                                    velocity.y = ((tile_pos.y + TILE_SIZE / 2.) - (position.y - PLAYER_HEIGHT / 2.) + 0.01) * time.delta_seconds();
-                                    if num8 == num6 {
-                                        velocity.x = velocity.x;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-            //     if (next_position.x + PLAYER_HALF_WIDTH) > (tile_pos.x - TILE_SIZE / 2.) && (next_position.x - PLAYER_HALF_WIDTH) < (tile_pos.x + TILE_SIZE / 2.) && (next_position.y + PLAYER_HALF_HEIGHT) > (tile_pos.y - TILE_SIZE / 2.) && (next_position.y - PLAYER_HALF_HEIGHT) < (tile_pos.y + TILE_SIZE / 2.) {
-            //         if position.y + PLAYER_HALF_HEIGHT >= tile_pos.y - TILE_SIZE / 2. {
-            //             new_collisions.bottom = true;
-
-            //             if controller.fall_distance_in_tiles() > 0. {
-            //                 println!("------------------------------");
-            //                 println!("Fall distance: {} px, {} tiles", controller.fall_distance.round(), controller.fall_distance_in_tiles());
-            //                 println!("------------------------------");
-            //             }
-                        
-            //             controller.fall_distance = 0.;
-
-            //             if velocity.y < 0. {
-            //                 velocity.y = 0.;
-            //             }                            
-                            
-            //             transform.translation.y = -tile_pos.y + TILE_SIZE / 2. + PLAYER_HALF_HEIGHT;
-            //         } else {
-            //             if position.x + PLAYER_HALF_WIDTH >= tile_pos.x - TILE_SIZE / 2. {
-            //                 new_collisions.right = true;
-                            
-            //                 velocity.x = 0.;
-            //                 transform.translation.x = tile_pos.x - TILE_SIZE / 2. + PLAYER_HALF_WIDTH;
-            //             } else {
-            //                 if position.x - PLAYER_HALF_WIDTH <= tile_pos.x + TILE_SIZE / 2. {
-            //                     new_collisions.left = true;
-                                
-            //                     velocity.x = 0.;
-            //                     transform.translation.x = tile_pos.x + TILE_SIZE / 2. + PLAYER_HALF_WIDTH;
-            //                 } else {
-            //                     if position.y - PLAYER_HALF_HEIGHT <= tile_pos.y + TILE_SIZE / 2. {
-            //                         new_collisions.top = true;
-            //                         velocity.y = 0.;
-            //                         transform.translation.y = -tile_pos.y - TILE_SIZE / 2. - PLAYER_HALF_HEIGHT;
-            //                     }
-            //                 }
-            //             }
-            //         } 
+                if cols.y() {
+                    velocity.y = velocity.y * a;
                 }
+
+                if cols.x() {
+                    velocity.x = velocity.x * a;
+                }
+
+                // if (next_position.x + PLAYER_WIDTH / 2.) > (tile_pos.x - TILE_SIZE / 2.) && (next_position.x - PLAYER_WIDTH / 2.) < (tile_pos.x + TILE_SIZE / 2.) && (next_position.y + PLAYER_HEIGHT / 2.) > (tile_pos.y - TILE_SIZE / 2.) && (next_position.y - PLAYER_HEIGHT / 2.) < (tile_pos.y + TILE_SIZE / 2.) {
+                //     if position.y + PLAYER_HEIGHT / 2. <= tile_pos.y - TILE_SIZE / 2. {
+                //         new_collisions.bottom = true;
+
+                //         velocity.y = 0.;
+
+                //         if controller.fall_distance_in_tiles() > 0. {
+                //             println!("------------------------------");
+                //             println!("Fall distance: {} px, {} tiles", controller.fall_distance.round(), controller.fall_distance_in_tiles());
+                //             println!("------------------------------");
+                //         }
+                        
+                //         controller.fall_distance = 0.;
+
+                //         if num9 > tile_pos.y {
+                //             num7 = x as i32;
+                //             num8 = y as i32;
+                //             if num7 != num5 {
+                //                 velocity.y = ((tile_pos.y - TILE_SIZE / 2.) - (position.y + PLAYER_HEIGHT / 2.)) * time.delta_seconds();
+                //                 num9 = tile_pos.y;
+                //             }
+                //         }
+                //     } else {
+                //         if position.x + PLAYER_WIDTH / 2. <= tile_pos.x - TILE_SIZE / 2. {
+                //             num5 = x as i32;
+                //             num6 = y as i32;
+                //             if num6 != num8 {
+                //                 velocity.x = ((tile_pos.x - TILE_SIZE / 2.) - (position.x + PLAYER_WIDTH / 2.)) * time.delta_seconds();
+                //             }
+                //             if num7 == num5 {
+                //                 velocity.y = velocity.y;
+                //             }
+                //         } else {
+                //             if position.x - PLAYER_WIDTH / 2. >= tile_pos.x + TILE_SIZE / 2. {
+                //                 num5 = x as i32;
+                //                 num6 = y as i32;
+                //                 if num6 != num8 {
+                //                     velocity.x = ((tile_pos.x + TILE_SIZE / 2.) - (position.x - PLAYER_WIDTH / 2.)) * time.delta_seconds();
+                //                 }
+                //                 if num7 == num5 {
+                //                     velocity.y = velocity.y;
+                //                 }
+                //             } else {
+                //                 if position.y >= tile_pos.y + TILE_SIZE / 2. {
+                //                     collisions.top = true;
+                //                     num7 = x as i32;
+                //                     num8 = y as i32;
+                //                     velocity.y = ((tile_pos.y + TILE_SIZE / 2.) - (position.y - PLAYER_HEIGHT / 2.) + 0.01) * time.delta_seconds();
+                //                     if num8 == num6 {
+                //                         velocity.x = velocity.x;
+                //                     }
+                //                 }
+                //             }
+                //         }
+                //     }
+                // }
             }
         }
     }
+
+    // println!("{}", new_collisions.bottom);
 
     *collisions = new_collisions;
 
@@ -298,7 +273,7 @@ pub fn update_movement_animation_timer_duration(
     mut timer: ResMut<AnimationTimer>,
 ) {
     if velocity.x != 0. {
-        let time = 20. / velocity.x.abs();
+        let time = 50. / velocity.x.abs();
 
         timer.set_duration(Duration::from_millis(time.max(1.) as u64));
     }

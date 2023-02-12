@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use autodefault::autodefault;
-use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color, MouseButton, EventWriter}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, Size, PositionType, AlignContent, Interaction}, text::{Text, TextStyle, TextAlignment}};
+use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color, MouseButton, EventWriter}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, Size, PositionType, AlignContent, Interaction, BackgroundColor, ZIndex}, text::{Text, TextStyle, TextAlignment}};
 
 use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets}, cursor::{HoveredInfo, CursorPosition}, world::BlockPlaceEvent}, util::{EntityCommandsExtensions, get_tile_coords}, language::LanguageContent, items::Item};
 
@@ -100,7 +100,6 @@ pub fn spawn_inventory_ui(
                             .insert(Name::new(format!("Inventory Row #{}", j)))
                             .with_children(|children| {
                                 for i in 0..CELL_COUNT_IN_ROW {
-                                    // +CELL_COUNT_IN_ROW because hotbar takes first CELL_COUNT_IN_ROW cells
                                     let index = ((j * CELL_COUNT_IN_ROW) + i) + CELL_COUNT_IN_ROW;
 
                                     spawn_inventory_cell(
@@ -131,28 +130,25 @@ pub fn spawn_inventory_cell(
     index: usize,
     fonts: &FontAssets,
 ) {
-    let mut background_image = ImageBundle {
-        style: Style {
-            margin: UiRect::horizontal(Val::Px(2.)),
-            size: INVENTORY_CELL_SIZE,
-            align_self: AlignSelf::Center,
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center
-        },
-        image: cell_background.into(),
-    };
-
-    background_image.background_color = (*background_image.background_color.0.set_a(0.8)).into();
-
     children
-        .spawn(background_image)
+        .spawn(ImageBundle {
+            style: Style {
+                margin: UiRect::horizontal(Val::Px(2.)),
+                size: INVENTORY_CELL_SIZE,
+                align_self: AlignSelf::Center,
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+            },
+            image: cell_background.into(),
+            background_color: BackgroundColor(Color::rgba(1., 1., 1., 0.8))
+        })
         .with_children(|c| {
             c.spawn(ImageBundle {
                 focus_policy: FocusPolicy::Pass,
                 style: Style {
-                    flex_direction: FlexDirection::Column,
                     margin: UiRect::all(Val::Px(8.)),
                 },
+                z_index: ZIndex::Global(2)
             })
             .insert(InventoryCellIndex(index))
             .insert(InventoryCellItemImage::default());
@@ -169,9 +165,13 @@ pub fn spawn_inventory_cell(
                         align_content: AlignContent::FlexStart,
                     },
                     focus_policy: FocusPolicy::Pass,
+                    z_index: ZIndex::Global(3)
                 }).with_children(|c| {
                     // Hotbar cell index
                     c.spawn(TextBundle {
+                        style: Style {
+                            align_self: AlignSelf::FlexEnd,
+                        },
                         focus_policy: FocusPolicy::Pass,
                         text: Text::from_section(
                             ((index + 1) % HOTBAR_LENGTH).to_string(),
@@ -181,6 +181,7 @@ pub fn spawn_inventory_cell(
                                 color: Color::WHITE,
                             },
                         ),
+                        z_index: ZIndex::Global(4)
                     });
 
                     // Item stack
@@ -197,6 +198,7 @@ pub fn spawn_inventory_cell(
                                 color: Color::WHITE,
                             },
                         ),
+                        z_index: ZIndex::Global(4)
                     })
                     .insert(InventoryCellIndex(index))
                     .insert(InventoryItemAmount::default());
