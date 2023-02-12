@@ -104,10 +104,7 @@ pub fn update(
     }
 
     let position = (transform.translation.xy()).abs();
-
-    let player_rect = crate::Rect::new(
-        transform.translation.x, transform.translation.y, velocity.x, velocity.y, PLAYER_WIDTH, PLAYER_HEIGHT
-    );
+    let next_position = (transform.translation.xy() + velocity.0).abs();
 
     let left = ((position.x - PLAYER_HALF_WIDTH) / TILE_SIZE) - 1.;
     let right = ((position.x + PLAYER_HALF_WIDTH) / TILE_SIZE) + 2.;
@@ -124,88 +121,77 @@ pub fn update(
 
     let mut new_collisions = Collisions::default();
 
+    let mut yx: i32 = -1;
+    let mut yy: i32 = -1;
+    let mut xx: i32 = -1;
+    let mut xy: i32 = -1;
+
+    let mut a = (bottom + 3.) * TILE_SIZE;
+
     for x in uleft..uright {
         for y in utop..ubottom {
             if world_data.tiles.tile_exists(TilePos::new(x, y)) {
                 let tile_pos = Vec2::new(x as f32 * TILE_SIZE, y as f32 * TILE_SIZE);
 
-                let tile_rect = crate::Rect::new(tile_pos.x, -tile_pos.y, 0., 0., TILE_SIZE, TILE_SIZE);
+                if (next_position.x + PLAYER_WIDTH / 2.) > (tile_pos.x - TILE_SIZE / 2.) && (next_position.x - PLAYER_WIDTH / 2.) < (tile_pos.x + TILE_SIZE / 2.) && (next_position.y + PLAYER_HEIGHT / 2.) > (tile_pos.y - TILE_SIZE / 2.) && (next_position.y - PLAYER_HEIGHT / 2.) < (tile_pos.y + TILE_SIZE / 2.) {
+                    if position.y + PLAYER_HEIGHT / 2. <= tile_pos.y - TILE_SIZE / 2. {
+                        new_collisions.bottom = true;
 
-                let (a, cols) = player_rect.swept_aabb(tile_rect);
+                        velocity.y = 0.;
 
-                println!("{}", cols.bottom);
-                
-                new_collisions = cols;
-
-                if cols.y() {
-                    velocity.y = velocity.y * a;
-                }
-
-                if cols.x() {
-                    velocity.x = velocity.x * a;
-                }
-
-                // if (next_position.x + PLAYER_WIDTH / 2.) > (tile_pos.x - TILE_SIZE / 2.) && (next_position.x - PLAYER_WIDTH / 2.) < (tile_pos.x + TILE_SIZE / 2.) && (next_position.y + PLAYER_HEIGHT / 2.) > (tile_pos.y - TILE_SIZE / 2.) && (next_position.y - PLAYER_HEIGHT / 2.) < (tile_pos.y + TILE_SIZE / 2.) {
-                //     if position.y + PLAYER_HEIGHT / 2. <= tile_pos.y - TILE_SIZE / 2. {
-                //         new_collisions.bottom = true;
-
-                //         velocity.y = 0.;
-
-                //         if controller.fall_distance_in_tiles() > 0. {
-                //             println!("------------------------------");
-                //             println!("Fall distance: {} px, {} tiles", controller.fall_distance.round(), controller.fall_distance_in_tiles());
-                //             println!("------------------------------");
-                //         }
+                        if controller.fall_distance_in_tiles() > 0. {
+                            println!("------------------------------");
+                            println!("Fall distance: {} px, {} tiles", controller.fall_distance.round(), controller.fall_distance_in_tiles());
+                            println!("------------------------------");
+                        }
                         
-                //         controller.fall_distance = 0.;
+                        controller.fall_distance = 0.;
 
-                //         if num9 > tile_pos.y {
-                //             num7 = x as i32;
-                //             num8 = y as i32;
-                //             if num7 != num5 {
-                //                 velocity.y = ((tile_pos.y - TILE_SIZE / 2.) - (position.y + PLAYER_HEIGHT / 2.)) * time.delta_seconds();
-                //                 num9 = tile_pos.y;
-                //             }
-                //         }
-                //     } else {
-                //         if position.x + PLAYER_WIDTH / 2. <= tile_pos.x - TILE_SIZE / 2. {
-                //             num5 = x as i32;
-                //             num6 = y as i32;
-                //             if num6 != num8 {
-                //                 velocity.x = ((tile_pos.x - TILE_SIZE / 2.) - (position.x + PLAYER_WIDTH / 2.)) * time.delta_seconds();
-                //             }
-                //             if num7 == num5 {
-                //                 velocity.y = velocity.y;
-                //             }
-                //         } else {
-                //             if position.x - PLAYER_WIDTH / 2. >= tile_pos.x + TILE_SIZE / 2. {
-                //                 num5 = x as i32;
-                //                 num6 = y as i32;
-                //                 if num6 != num8 {
-                //                     velocity.x = ((tile_pos.x + TILE_SIZE / 2.) - (position.x - PLAYER_WIDTH / 2.)) * time.delta_seconds();
-                //                 }
-                //                 if num7 == num5 {
-                //                     velocity.y = velocity.y;
-                //                 }
-                //             } else {
-                //                 if position.y >= tile_pos.y + TILE_SIZE / 2. {
-                //                     collisions.top = true;
-                //                     num7 = x as i32;
-                //                     num8 = y as i32;
-                //                     velocity.y = ((tile_pos.y + TILE_SIZE / 2.) - (position.y - PLAYER_HEIGHT / 2.) + 0.01) * time.delta_seconds();
-                //                     if num8 == num6 {
-                //                         velocity.x = velocity.x;
-                //                     }
-                //                 }
-                //             }
-                //         }
-                //     }
-                // }
+                        if a > tile_pos.y {
+                            yx = x as i32;
+                            yy = y as i32;
+                            if yx != xx {
+                                velocity.y = ((tile_pos.y - TILE_SIZE / 2.) - (position.y + PLAYER_HEIGHT / 2.)) * time.delta_seconds();
+                                a = tile_pos.y;
+                            }
+                        }
+                    } else {    
+                        if position.x + PLAYER_WIDTH / 2. <= tile_pos.x - TILE_SIZE / 2. {
+                            xx = x as i32;
+                            xy = y as i32;
+                            if xy != yy {
+                                velocity.x = ((tile_pos.x - TILE_SIZE / 2.) - (position.x + PLAYER_WIDTH / 2.)) * time.delta_seconds();
+                            }
+                            if yx == xx {
+                                velocity.y = velocity.y;
+                            }
+                        } else {
+                            if position.x - PLAYER_WIDTH / 2. >= tile_pos.x + TILE_SIZE / 2. {
+                                xx = x as i32;
+                                xy = y as i32;
+                                if xy != yy {
+                                    velocity.x = ((tile_pos.x + TILE_SIZE / 2.) - (position.x - PLAYER_WIDTH / 2.)) * time.delta_seconds();
+                                }
+                                if yx == xx {
+                                    velocity.y = velocity.y;
+                                }
+                            } else {
+                                if position.y >= tile_pos.y + TILE_SIZE / 2. {
+                                    collisions.top = true;
+                                    yx = x as i32;
+                                    yy = y as i32;
+                                    velocity.y = ((tile_pos.y + TILE_SIZE / 2.) - (position.y - PLAYER_HEIGHT / 2.) + 0.01) * time.delta_seconds();
+                                    if xx == xy {
+                                        velocity.x = velocity.x;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
-
-    // println!("{}", new_collisions.bottom);
 
     *collisions = new_collisions;
 
