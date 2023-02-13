@@ -61,7 +61,7 @@ pub fn update_jump(
 ) {
     if input.pressed(KeyCode::Space) && collisions.bottom {
         player_controller.jump = JUMP_HEIGHT;
-        velocity.y = JUMP_SPEED;
+        velocity.y = JUMP_SPEED * time.delta_seconds();
     }
 
     if input.pressed(KeyCode::Space) {
@@ -69,7 +69,7 @@ pub fn update_jump(
             if velocity.y == 0. {
                 player_controller.jump = 0;
             } else {
-                velocity.y = JUMP_SPEED;
+                velocity.y = JUMP_SPEED * time.delta_seconds();
 
                 player_controller.jump -= 1;
             }
@@ -94,15 +94,18 @@ pub fn update(
 
     let mut transform = player_query.single_mut();
 
+    // -------- Gravity --------
     if !collisions.bottom {
-        controller.fall_distance += GRAVITY * time.delta_seconds();
-        velocity.y -= GRAVITY * time.delta_seconds();
-
+        let gravity = GRAVITY * time.delta_seconds();
         let max_fall_speed = MAX_FALL_SPEED * time.delta_seconds();
+
+        controller.fall_distance += gravity;
+        velocity.y -= gravity;
 
         velocity.y = velocity.y.max(max_fall_speed);
     }
 
+    // ------- Collisions -------
     let position = (transform.translation.xy()).abs();
     let next_position = (transform.translation.xy() + velocity.0).abs();
 
@@ -140,9 +143,11 @@ pub fn update(
                         velocity.y = 0.;
 
                         if controller.fall_distance_in_tiles() > 0. {
-                            println!("------------------------------");
-                            println!("Fall distance: {} px, {} tiles", controller.fall_distance.round(), controller.fall_distance_in_tiles());
-                            println!("------------------------------");
+                            info!(
+                                target: "fall_distance",
+                                fall_distance = controller.fall_distance.round(),
+                                fall_distance_in_tiles = controller.fall_distance_in_tiles()
+                            );
                         }
                         
                         controller.fall_distance = 0.;
@@ -195,6 +200,7 @@ pub fn update(
 
     *collisions = new_collisions;
 
+    // -------- Move player --------
     let raw = transform.translation.xy() + velocity.0;
 
     transform.translation.x = raw.x.clamp(MIN, MAX);
@@ -228,8 +234,8 @@ pub fn update_movement_state(
     let mut movement_state = query.single_mut();
 
     *movement_state = match velocity.0 {
-        Vec2 { x, y } if x != 0. && y == 0. => MovementState::Walking,
         _ if player_controller.fall_distance_in_tiles() > 1. || player_controller.jump > 0 => MovementState::Flying,
+        Vec2 { x, .. } if x != 0. => MovementState::Walking,
         _ => MovementState::Idle
     };
 }
@@ -259,7 +265,7 @@ pub fn update_movement_animation_timer_duration(
     mut timer: ResMut<AnimationTimer>,
 ) {
     if velocity.x != 0. {
-        let time = 50. / velocity.x.abs();
+        let time = 20. / velocity.x.abs();
 
         timer.set_duration(Duration::from_millis(time.max(1.) as u64));
     }
@@ -323,8 +329,9 @@ pub fn set_using_item_visibility(
     anim: Res<UseItemAnimation>,
     mut using_item_query: Query<&mut Visibility, With<UsedItem>>,
 ) {
-    let mut visibility = using_item_query.single_mut();
-    visibility.is_visible = anim.0;
+    if let Ok(mut visibility) = using_item_query.get_single_mut() {
+        visibility.is_visible = anim.0;
+    }
 }
 
 pub fn set_using_item_image(
@@ -431,17 +438,22 @@ pub fn current_speed(
     let diagnostic = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS).unwrap();
 
     if let Some(fps) = diagnostic.value() {
-        let velocity_x = velocity.x.abs();
-        let velocity_y = velocity.y.abs();
-
         let factor = (fps * 3600.) / 42240.;
+        let velocity_x = velocity.x.abs() as f64 * factor;
+        let velocity_y = velocity.y.abs() as f64 * factor;
 
         if velocity_x > 0. {
-            println!("Horizontal speed: {:.1} mph", velocity.x.abs() as f64 * factor);
+            info!(
+                target: "speed",
+                horizontal = velocity_x,
+            );
         }
 
         if velocity_y > 0. {
-            println!("Vertical speed: {:.1} mph", velocity.y.abs() as f64 * factor);
+            info!(
+                target: "speed",
+                vertical = velocity_y,
+            );
         }
     }
 }

@@ -32,8 +32,8 @@ const ACCELERATION: f32 = 0.05 * TILE_SIZE;
 const SLOWDOWN: f32 = 1.5;
 pub const MAX_RUN_SPEED: f32 = 11. * TILE_SIZE;
 
-const JUMP_HEIGHT: i32 = 75;
-const JUMP_SPEED: f32 = 5.01 * TILE_SIZE;
+const JUMP_HEIGHT: i32 = 15;
+const JUMP_SPEED: f32 = 17.2875 * TILE_SIZE;
 pub const MAX_FALL_SPEED: f32 = -37.5 * TILE_SIZE;
 
 pub struct PlayerPlugin;
@@ -85,31 +85,17 @@ impl Plugin for PlayerPlugin {
                     .run_in_state(GameState::InGame)
                     .label(USE_ITEM_ANIMATION_LABEL)
                     .after(MOVEMENT_ANIMATION_LABEL)
-                    .with_system(set_using_item_visibility)
-                    .with_system(
-                        set_using_item_image
-                            .run_if_resource_equals::<UseItemAnimation>(UseItemAnimation(true)),
-                    )
-                    .with_system(
-                        set_using_item_position
-                            .run_if_resource_equals::<UseItemAnimation>(UseItemAnimation(true)),
-                    )
-                    .with_system(
-                        set_using_item_rotation
-                            .run_if_resource_equals::<UseItemAnimation>(UseItemAnimation(true)),
-                    )
-                    .with_system(
-                        update_use_item_animation_index
-                            .run_if_resource_equals::<UseItemAnimation>(UseItemAnimation(true)),
-                    )
+                    .run_if_resource_equals::<UseItemAnimation>(UseItemAnimation(true))
+                    .with_system(set_using_item_image)
+                    .with_system(set_using_item_position)
+                    .with_system(set_using_item_rotation)
+                    .with_system(update_use_item_animation_index)
                     .with_system(set_using_item_rotation_on_player_direction_change)
-                    .with_system(
-                        use_item_animation
-                            .run_if_resource_equals::<UseItemAnimation>(UseItemAnimation(true)),
-                    )
-                    .with_system(player_using_item)
+                    .with_system(use_item_animation)
                     .into(),
-            );
+            )
+            .add_system(player_using_item)
+            .add_system(set_using_item_visibility);
 
         #[cfg(not(feature = "debug_movement"))] {
             app
@@ -124,7 +110,6 @@ impl Plugin for PlayerPlugin {
                 update_jump
                     .run_in_state(GameState::InGame)
                     .label(PlayerLabel::Jump)
-                    .after(PlayerLabel::HorizontalMovement)
             )
             .add_system_to_stage(
                 CoreStage::Update,
@@ -135,7 +120,7 @@ impl Plugin for PlayerPlugin {
             );
         }
 
-        // app.add_system(current_speed);
+        app.add_system(current_speed);
 
         #[cfg(feature = "debug_movement")] {
             app.add_system(

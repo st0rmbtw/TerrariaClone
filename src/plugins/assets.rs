@@ -289,7 +289,7 @@ fn setup(
         let atlas = texture_atlasses.get(&handle).unwrap();
         let mut image = images.get_mut(&atlas.texture).unwrap();
 
-        image.sampler_descriptor = ImageSampler::linear();
+        image.sampler_descriptor = ImageSampler::nearest();
     }
 
     let mut handles = ui_assets.handles();

@@ -39,7 +39,7 @@ impl FaceDirection {
     }
 }
 
-#[derive(Resource, Component, PartialEq)]
+#[derive(Resource, Component, PartialEq, Clone, Copy)]
 pub struct UseItemAnimation(pub bool);
 
 #[derive(Component)]
