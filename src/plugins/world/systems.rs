@@ -22,7 +22,7 @@ use iyes_loopless::state::NextState;
 
 use crate::{util::{FRect, URect}, world_generator::{Tile, WORLD_SIZE_X, WORLD_SIZE_Y, generate, Wall}, plugins::{inventory::Inventory, world::{CHUNK_SIZE, TILE_SIZE}, assets::{BlockAssets, WallAssets}, camera::MainCamera}, state::GameState, CellArrayExtensions};
 
-use super::{get_chunk_pos, CHUNK_SIZE_U, MAP_SIZE, TileChunk, UpdateNeighborsEvent, WorldData, BlockPlaceEvent, WallChunk, WALL_SIZE, CHUNKMAP_SIZE, Chunk, get_camera_fov, ChunkManager, ChunkPos, get_chunk_tile_pos};
+use super::{get_chunk_pos, CHUNK_SIZE_U, MAP_SIZE, TileChunk, UpdateNeighborsEvent, WorldData, BlockEvent, WallChunk, WALL_SIZE, CHUNKMAP_SIZE, Chunk, get_camera_fov, ChunkManager, ChunkPos, get_chunk_tile_pos};
 
 pub fn spawn_terrain(mut commands: Commands) {
     let _current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
@@ -309,43 +309,68 @@ pub fn get_chunk_position_by_camera_fov(camera_fov: FRect) -> URect {
     rect
 }
 
-pub fn handle_block_place(
+pub fn handle_block_event(
     mut commands: Commands,
     mut world_data: ResMut<WorldData>,
-    mut events: EventReader<BlockPlaceEvent>,
+    mut events: EventReader<BlockEvent>,
     mut update_neighbors_ew: EventWriter<UpdateNeighborsEvent>,
     mut inventory: ResMut<Inventory>,
     mut chunks: Query<(&TileChunk, &mut TileStorage, Entity)>
 ) {
     for event in events.iter() {
-        let map_tile_pos = TilePos { x: event.tile_pos.x as u32, y: event.tile_pos.y as u32 };
+        match event {
+            BlockEvent::Place { tile_pos, block, inventory_item_index } => {
+                let map_tile_pos = TilePos { x: tile_pos.x as u32, y: tile_pos.y as u32 };
         
-        if world_data.tiles.get_tile(map_tile_pos).is_none() {
-            let tile = Tile { block: event.block };
-            let neighbors = world_data.tiles.get_tile_neighbors(map_tile_pos);
+                if world_data.tiles.get_tile(map_tile_pos).is_none() {
+                    let tile = Tile { block: *block };
+                    let neighbors = world_data.tiles.get_tile_neighbors(map_tile_pos);
 
-            world_data.tiles.set_tile(map_tile_pos, Some(tile));
+                    world_data.tiles.set_tile(map_tile_pos, Some(tile));
 
-            let chunk_pos = get_chunk_pos(map_tile_pos);
-            let chunk_tile_pos = get_chunk_tile_pos(map_tile_pos);
+                    let chunk_pos = get_chunk_pos(map_tile_pos);
+                    let chunk_tile_pos = get_chunk_tile_pos(map_tile_pos);
 
-            chunks.iter_mut()
-                .filter(|(chunk, _, _)| chunk.pos == chunk_pos)
-                .for_each(|(_, mut tile_storage, tilemap_entity)| {
-                    let index = Tile::get_sprite_index(&neighbors, tile.block);
-                    let tile_entity = spawn_tile(&mut commands, tile, chunk_tile_pos, tilemap_entity, index);
+                    if let Some((_, mut tile_storage, tilemap_entity)) = chunks.iter_mut().find(|(chunk, _, _)| chunk.pos == chunk_pos) {
+                        let index = Tile::get_sprite_index(&neighbors, tile.block);
+                        let tile_entity = spawn_tile(&mut commands, tile, chunk_tile_pos, tilemap_entity, index);
 
-                    commands.entity(tilemap_entity).add_child(tile_entity);
-                    tile_storage.set(&chunk_tile_pos, tile_entity);
-                });
+                        commands.entity(tilemap_entity).add_child(tile_entity);
+                        tile_storage.set(&chunk_tile_pos, tile_entity);
+                    }
 
-            inventory.consume_item(event.inventory_item_index);
+                    inventory.consume_item(*inventory_item_index);
 
-            update_neighbors_ew.send(UpdateNeighborsEvent { 
-                tile_pos: map_tile_pos,
-                chunk_tile_pos,
-                chunk_pos
-            });
+                    update_neighbors_ew.send(UpdateNeighborsEvent { 
+                        tile_pos: map_tile_pos,
+                        chunk_tile_pos,
+                        chunk_pos
+                    });
+                }
+            },
+            BlockEvent::Break { tile_pos } => {
+                let map_tile_pos = TilePos { x: tile_pos.x as u32, y: tile_pos.y as u32 };
+
+                if world_data.tiles.get_tile(map_tile_pos).is_some() {
+                    world_data.tiles.set_tile(map_tile_pos, None);
+
+                    let chunk_pos = get_chunk_pos(map_tile_pos);
+                    let chunk_tile_pos = get_chunk_tile_pos(map_tile_pos);
+
+                    if let Some((_, mut tile_storage, _)) = chunks.iter_mut().find(|(chunk, _, _)| chunk.pos == chunk_pos) {
+                        if let Some(tile_entity) = tile_storage.get(&chunk_tile_pos) {
+                            commands.entity(tile_entity).despawn_recursive();
+                            tile_storage.remove(&chunk_tile_pos);
+                        }
+                    }
+
+                    update_neighbors_ew.send(UpdateNeighborsEvent { 
+                        tile_pos: map_tile_pos,
+                        chunk_tile_pos,
+                        chunk_pos
+                    });
+                }
+            },
         }
     }
 }
@@ -369,15 +394,13 @@ pub fn update_neighbors(
                 let chunk_pos = get_chunk_pos(*pos);
                 let chunk_tile_pos = get_chunk_tile_pos(*pos);
 
-                chunks.iter()
-                    .filter(|(chunk, _)| chunk.pos == chunk_pos)
-                    .for_each(|(_, tile_storage)| {
-                        if let Some(entity) = tile_storage.get(&chunk_tile_pos) {
-                            if let Ok(mut tile_texture) = tiles.get_mut(entity) {
-                                tile_texture.0 = index;   
-                            }
+                if let Some((_, tile_storage)) = chunks.iter().find(|(chunk, _)| chunk.pos == chunk_pos) {
+                    if let Some(entity) = tile_storage.get(&chunk_tile_pos) {
+                        if let Ok(mut tile_texture) = tiles.get_mut(entity) {
+                            tile_texture.0 = index;   
                         }
-                    });
+                    }
+                }
             }
         }
     }

@@ -37,7 +37,7 @@ impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app
             .init_resource::<ChunkManager>()
-            .add_event::<BlockPlaceEvent>()
+            .add_event::<BlockEvent>()
             .add_event::<UpdateNeighborsEvent>()
             .add_enter_system(GameState::WorldLoading, spawn_terrain)
             .add_system_set(
@@ -45,7 +45,7 @@ impl Plugin for WorldPlugin {
                     .run_in_state(GameState::InGame)
                     .with_system(spawn_chunks)
                     .with_system(despawn_chunks)
-                    .with_system(handle_block_place)
+                    .with_system(handle_block_event)
                     .with_system(update_neighbors)
                     .into(),
             );
