@@ -1,7 +1,7 @@
 use autodefault::autodefault;
 use bevy::{prelude::{Commands, Res, NodeBundle, Name, Input, BuildChildren, EventWriter, ResMut, KeyCode, Query, Visibility, With}, ui::{Style, Size, FlexDirection, Val, JustifyContent, AlignItems, UiRect}};
 
-use crate::{plugins::{assets::{FontAssets, UiAssets}, fps::spawn_fps_text, inventory::spawn_inventory_ui, settings::spawn_ingame_settings_button}, TRANSPARENT, util::RectExtensions, language::LanguageContent};
+use crate::{plugins::{assets::{FontAssets, UiAssets}, fps::spawn_fps_text, inventory::spawn_inventory_ui, settings::spawn_ingame_settings_button}, language::LanguageContent};
 
 use super::{MainUiContainer, ToggleExtraUiEvent, ExtraUiVisibility, UiVisibility};
 
@@ -13,15 +13,14 @@ pub fn spawn_ui_container(
     language_content: Res<LanguageContent>
 ) {
     let main_id = commands
-        .spawn_bundle(NodeBundle {
+        .spawn(NodeBundle {
             style: Style {
                 size: Size {
                     width: Val::Percent(100.),
                     height: Val::Percent(100.),
                 },
                 flex_direction: FlexDirection::Row,
-            },
-            color: TRANSPARENT.into(),
+            }
         })
         .insert(MainUiContainer)
         .insert(Name::new("Main UI Container"))
@@ -29,38 +28,36 @@ pub fn spawn_ui_container(
 
     // Left container
     let left_id = commands
-        .spawn_bundle(NodeBundle {
+        .spawn(NodeBundle {
             style: Style {
                 size: Size {
                     width: Val::Percent(100.),
                     height: Val::Percent(100.),
                 },
-                flex_direction: FlexDirection::ColumnReverse,
+                flex_direction: FlexDirection::Column,
                 justify_content: JustifyContent::SpaceBetween,
                 align_items: AlignItems::FlexStart,
             },
-            color: TRANSPARENT.into(),
         })
         .insert(Name::new("Left UI Container"))
         .id();
 
     // Right container
     let right_id = commands
-        .spawn_bundle(NodeBundle {
+        .spawn(NodeBundle {
             style: Style {
                 size: Size {
                     width: Val::Percent(100.),
                     height: Val::Percent(100.),
                 },
-                flex_direction: FlexDirection::ColumnReverse,
+                flex_direction: FlexDirection::Column,
                 justify_content: JustifyContent::SpaceBetween,
                 align_items: AlignItems::FlexEnd,
                 padding: UiRect {
                     right: Val::Px(20.),
-                    ..UiRect::vertical(5.)
+                    ..UiRect::vertical(Val::Px(5.))
                 },
-            },
-            color: TRANSPARENT.into(),
+            }
         })
         .insert(Name::new("Right UI Container"))
         .id();
@@ -71,14 +68,13 @@ pub fn spawn_ui_container(
 
     // TODO: Make a health bar in feature, stub now
     let health_bar = commands
-        .spawn_bundle(NodeBundle {
+        .spawn(NodeBundle {
             style: Style {
                 size: Size {
                     width: Val::Px(10.),
                     height: Val::Px(2.),
                 },
-            },
-            color: TRANSPARENT.into(),
+            }
         })
         .insert(Name::new("Stub"))
         .id();

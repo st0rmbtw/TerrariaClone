@@ -1,4 +1,5 @@
 use bevy::ecs::world::Mut;
+use bevy::prelude::Resource;
 use bevy::{
     asset::HandleUntyped,
     math::Vec2,
@@ -35,7 +36,7 @@ impl Plugin for AssetsPlugin {
 
 handles! {
     Handle<Image>,
-    #[derive(AssetCollection)]
+    #[derive(Resource, AssetCollection)]
     pub struct BlockAssets {
         #[asset(path = "sprites/tiles/Tiles_0.png")]
         pub dirt: Handle<Image>,
@@ -53,7 +54,7 @@ handles! {
 
 handles! {
     Handle<Image>,
-    #[derive(AssetCollection)]
+    #[derive(Resource, AssetCollection)]
     pub struct UiAssets {
         #[asset(path = "sprites/ui/InnerPanelBackground.png")]
         pub iner_panel_background: Handle<Image>,
@@ -62,17 +63,17 @@ handles! {
         pub player_background: Handle<Image>,
 
         #[asset(path = "sprites/Inventory_Back.png")]
-        pub inventory_back: Handle<Image>,
+        pub inventory_background: Handle<Image>,
 
         #[asset(path = "sprites/Inventory_Back14.png")]
-        pub selected_inventory_back: Handle<Image>,
+        pub selected_inventory_background: Handle<Image>,
 
         #[asset(path = "sprites/ui/Radial.png")]
         pub radial: Handle<Image>,
     }
 }
 
-#[derive(AssetCollection)]
+#[derive(Resource, AssetCollection)]
 pub struct PlayerAssets {
     #[asset(texture_atlas(
         tile_size_x = 40.,
@@ -174,7 +175,7 @@ pub struct PlayerAssets {
     pub eyes_2: Handle<TextureAtlas>,
 }
 
-#[derive(AssetCollection)]
+#[derive(Resource, AssetCollection)]
 pub struct FontAssets {
     #[asset(path = "fonts/andy_bold.ttf")]
     pub andy_bold: Handle<Font>,
@@ -183,7 +184,7 @@ pub struct FontAssets {
     pub andy_regular: Handle<Font>,
 }
 
-#[derive(AssetCollection)]
+#[derive(Resource, AssetCollection)]
 pub struct ItemAssets {
     #[asset(path = "sprites/items/Item_0.png")]
     no_item: Handle<Image>,
@@ -200,7 +201,7 @@ pub struct ItemAssets {
 
 handles! {
     Handle<Image>,
-    #[derive(AssetCollection)]
+    #[derive(Resource, AssetCollection)]
     pub struct CursorAssets {
         #[asset(path = "sprites/ui/Cursor_0.png")]
         pub cursor: Handle<Image>,
@@ -212,7 +213,7 @@ handles! {
 
 handles! {
     Handle<TextureAtlas>,
-    #[derive(AssetCollection)]
+    #[derive(Resource, AssetCollection)]
     pub struct BackgroundAssets {
         #[asset(texture_atlas(tile_size_x = 48., tile_size_y = 1400., columns = 1, rows = 1))]
         #[asset(path = "sprites/backgrounds/Background_0.png")]
@@ -243,7 +244,7 @@ handles! {
 
 handles! {
     Handle<Image>,
-    #[derive(AssetCollection)]
+    #[derive(Resource, AssetCollection)]
     pub struct WallAssets {
         #[asset(path = "sprites/walls/Wall_2.png")]
         pub wall_2: Handle<Image>,
@@ -288,7 +289,7 @@ fn setup(
         let atlas = texture_atlasses.get(&handle).unwrap();
         let mut image = images.get_mut(&atlas.texture).unwrap();
 
-        image.sampler_descriptor = ImageSampler::linear();
+        image.sampler_descriptor = ImageSampler::nearest();
     }
 
     let mut handles = ui_assets.handles();

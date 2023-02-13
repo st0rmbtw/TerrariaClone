@@ -1,12 +1,12 @@
-use bevy::prelude::{Component, Entity, Bundle};
-use bevy_inspector_egui::Inspectable;
+use bevy::prelude::{Component, Entity, Bundle, Resource};
+use bevy_inspector_egui::InspectorOptions;
 
 use super::{InputAxis, WALKING_ANIMATION_MAX_INDEX};
 
 #[derive(Component)]
 pub struct Player;
 
-#[derive(Default, PartialEq, Eq, Inspectable, Clone, Copy, Component)]
+#[derive(Default, PartialEq, Eq, Clone, Copy, Component, InspectorOptions)]
 pub enum FaceDirection {
     LEFT,
     #[default]
@@ -39,7 +39,7 @@ impl FaceDirection {
     }
 }
 
-#[derive(Component, PartialEq)]
+#[derive(Resource, Component, PartialEq, Clone, Copy)]
 pub struct UseItemAnimation(pub bool);
 
 #[derive(Component)]

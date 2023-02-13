@@ -2,8 +2,8 @@ use std::ops::Mul;
 
 use bevy::{
     ecs::system::EntityCommands,
-    prelude::{default, Button, Changed, Component, Query, With, Vec2},
-    ui::{Interaction, UiRect, Val},
+    prelude::{Button, Changed, Component, Query, With, Vec2},
+    ui::Interaction,
 };
 
 use crate::{plugins::world::TILE_SIZE, block::Block, wall::Wall};
@@ -15,37 +15,6 @@ pub trait Lerp<T> {
 impl Lerp<f32> for f32 {
     fn lerp(self, other: f32, t: f32) -> f32 {
         self * (1. - t) + other * t
-    }
-}
-
-pub trait RectExtensions {
-    fn horizontal(value: f32) -> Self;
-    fn vertical(value: f32) -> Self;
-    fn top(value: f32) -> Self;
-}
-
-impl RectExtensions for UiRect<Val> {
-    fn horizontal(value: f32) -> Self {
-        Self {
-            left: Val::Px(value),
-            right: Val::Px(value),
-            ..default()
-        }
-    }
-
-    fn vertical(value: f32) -> Self {
-        Self {
-            top: Val::Px(value),
-            bottom: Val::Px(value),
-            ..default()
-        }
-    }
-
-    fn top(value: f32) -> Self {
-        Self {
-            top: Val::Px(value),
-            ..default()
-        }
     }
 }
 

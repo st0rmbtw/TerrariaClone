@@ -1,9 +1,16 @@
+use bevy::prelude::{Resource, Deref, DerefMut};
+
 use crate::items::ItemStack;
 
+#[derive(Resource)]
 pub struct Inventory {
     pub(super) items: [Option<ItemStack>; 50],
     pub selected_slot: usize,
 }
+
+#[derive(Resource, Default, Deref, DerefMut)]
+pub struct SelectedItem(pub Option<ItemStack>);
+
 
 impl Default for Inventory {
     fn default() -> Self {

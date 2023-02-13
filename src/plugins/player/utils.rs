@@ -19,7 +19,7 @@ pub fn is_walking(
     player_query: Query<&MovementState, With<Player>>,
 ) -> bool {
     if let Ok(state) = player_query.get_single() {
-        if *state == MovementState::WALKING {
+        if *state == MovementState::Walking {
             return true;
         }
     }
@@ -31,7 +31,7 @@ pub fn is_idle(
     player_query: Query<&MovementState, With<Player>>,
 ) -> bool {
     if let Ok(state) = player_query.get_single() {
-        if *state == MovementState::IDLE {
+        if *state == MovementState::Idle {
             return true;
         }
     }
@@ -43,7 +43,7 @@ pub fn is_flying(
     player_query: Query<&MovementState, With<Player>>,
 ) -> bool {
     if let Ok(state) = player_query.get_single() {
-        if *state == MovementState::FLYING {
+        if *state == MovementState::Flying {
             return true;
         }
     }

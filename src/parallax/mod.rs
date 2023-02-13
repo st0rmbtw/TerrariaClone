@@ -25,12 +25,13 @@ impl Plugin for ParallaxPlugin {
     }
 }
 
+#[derive(Resource)]
 pub struct ParallaxMoveSpeed {
     pub speed: f32,
 }
 
 /// Resource for managing parallax
-#[derive(Debug)]
+#[derive(Resource, Debug)]
 pub struct ParallaxResource {
     /// Data to describe each layer of parallax
     pub layer_data: Vec<LayerData>,
@@ -93,10 +94,10 @@ impl ParallaxResource {
             let mut texture_count = 3.0;
 
             // Spawn parallax layer entity
-            let mut entity_commands = commands.spawn();
+            let mut entity_commands = commands.spawn_empty();
             entity_commands
                 .insert(Name::new(format!("Parallax Layer ({})", i)))
-                .insert_bundle(SpatialBundle {
+                .insert(SpatialBundle {
                     transform: Transform {
                         translation: Vec3::new(layer.position.x, layer.position.y, layer.z),
                         scale: Vec3::new(layer.scale, layer.scale, 1.0),
@@ -107,7 +108,7 @@ impl ParallaxResource {
                 .with_children(|parent| {
                     // Spawn center texture
                     parent
-                        .spawn_bundle(spritesheet_bundle.clone())
+                        .spawn(spritesheet_bundle.clone())
                         .insert(LayerTextureComponent {
                             width: texture.size.x,
                         });
@@ -119,14 +120,14 @@ impl ParallaxResource {
                     adjusted_spritesheet_bundle.transform.translation.x += texture.size.x;
                     max_x += texture.size.x * layer.scale;
                     parent
-                        .spawn_bundle(adjusted_spritesheet_bundle.clone())
+                        .spawn(adjusted_spritesheet_bundle.clone())
                         .insert(LayerTextureComponent {
                             width: texture.size.x,
                         });
 
                     // Spawn left texture
                     parent
-                        .spawn_bundle({
+                        .spawn({
                             let mut bundle = adjusted_spritesheet_bundle.clone();
                             bundle.transform.translation.x *= -1.0;
                             bundle
@@ -140,13 +141,13 @@ impl ParallaxResource {
                         adjusted_spritesheet_bundle.transform.translation.x += texture.size.x;
                         max_x += texture.size.x * layer.scale;
                         parent
-                            .spawn_bundle(adjusted_spritesheet_bundle.clone())
+                            .spawn(adjusted_spritesheet_bundle.clone())
                             .insert(LayerTextureComponent {
                                 width: texture.size.x,
                             });
 
                         parent
-                            .spawn_bundle({
+                            .spawn({
                                 let mut bundle = adjusted_spritesheet_bundle.clone();
                                 bundle.transform.translation.x *= -1.0;
                                 bundle

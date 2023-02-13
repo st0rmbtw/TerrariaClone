@@ -8,7 +8,7 @@ pub enum Block {
 }
 
 impl Block {
-    pub fn merge_with_dirt(&self) -> bool {
+    pub fn dirt_mergable(&self) -> bool {
         match self {
             Block::Grass => false,
             Block::Dirt => false,

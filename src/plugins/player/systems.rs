@@ -1,5 +1,4 @@
-use autodefault::autodefault;
-use bevy::{prelude::*, sprite::Anchor, math::Vec3Swizzles};
+use bevy::{prelude::*, math::Vec3Swizzles, diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin}};
 use bevy_ecs_tilemap::tiles::TilePos;
 use bevy_hanabi::prelude::*;
 
@@ -7,7 +6,7 @@ use crate::{
     state::MovementState,
     plugins::{
         world::{WorldData, TILE_SIZE}, 
-        assets::{PlayerAssets, ItemAssets}, 
+        assets::ItemAssets, 
         inventory::SelectedItem,
     }, 
     world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}, 
@@ -16,281 +15,6 @@ use crate::{
 };
 
 use super::*;
-
-#[autodefault(except(GroundSensor, PlayerParticleEffects))]
-pub fn spawn_player(
-    mut commands: Commands,
-    player_assets: Res<PlayerAssets>,
-    mut effects: ResMut<Assets<EffectAsset>>,
-) {
-    let player = commands
-        .spawn()
-        .insert(Player)
-        .insert_bundle(SpatialBundle {
-            transform: Transform::from_xyz(WORLD_SIZE_X as f32 * 16. / 2., 0., 3.)
-        })
-        .insert(Name::new("Player"))
-        .insert(MovementState::default())
-        .insert(FaceDirection::default())
-        .with_children(|cmd| {
-            // region: Hair
-            cmd.spawn_bundle(SpriteSheetBundle {
-                sprite: TextureAtlasSprite {
-                    color: Color::rgb(0.55, 0.23, 0.14),
-                },
-                transform: Transform::from_xyz(0., 0., 0.1),
-                texture_atlas: player_assets.hair.clone(),
-            })
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert_bundle(MovementAnimationBundle::default())
-            .insert(Name::new("Player hair"));
-            // endregion
-
-            // region: Head
-            cmd.spawn_bundle(SpriteSheetBundle {
-                sprite: TextureAtlasSprite {
-                    color: Color::rgb(0.92, 0.45, 0.32),
-                },
-                texture_atlas: player_assets.head.clone(),
-                transform: Transform::from_xyz(0., 0., 0.003),
-            })
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert_bundle(MovementAnimationBundle::default())
-            .insert(Name::new("Player head"));
-            // endregion
-
-            // region: Eyes
-            cmd.spawn_bundle(SpriteSheetBundle {
-                sprite: TextureAtlasSprite {
-                    color: Color::WHITE,
-                },
-                transform: Transform::from_xyz(0., 0., 0.1),
-                texture_atlas: player_assets.eyes_1.clone(),
-            })
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert_bundle(MovementAnimationBundle {
-                walking: WalkingAnimationData {
-                    offset: 6,
-                    count: 14,
-                }
-            })
-            .insert(Name::new("Player left eye"));
-
-            cmd.spawn_bundle(SpriteSheetBundle {
-                sprite: TextureAtlasSprite {
-                    color: Color::rgb(89. / 255., 76. / 255., 64. / 255.),
-                },
-                transform: Transform::from_xyz(0., 0., 0.01),
-                texture_atlas: player_assets.eyes_2.clone(),
-            })
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert_bundle(MovementAnimationBundle {
-                walking: WalkingAnimationData {
-                    offset: 6,
-                    count: 14,
-                }
-            })
-            .insert(Name::new("Player right eye"));
-
-            // endregion
-
-            // region: Arms
-            // region: Left arm
-            cmd.spawn_bundle(SpriteSheetBundle {
-                sprite: TextureAtlasSprite {
-                    color: Color::rgb(0.58, 0.55, 0.47),
-                },
-                transform: Transform::from_xyz(0., -8., 0.2),
-                texture_atlas: player_assets.left_shoulder.clone(),
-            })
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert_bundle(MovementAnimationBundle {
-                walking: WalkingAnimationData {
-                    offset: 13,
-                    count: 13,
-                },
-                flying: FlyingAnimationData(2)
-            })
-            .insert(UseItemAnimationData(2))
-            .insert(Name::new("Player left shoulder"));
-
-            cmd.spawn_bundle(SpriteSheetBundle {
-                sprite: TextureAtlasSprite {
-                    color: Color::rgb(0.92, 0.45, 0.32),
-                },
-                transform: Transform::from_xyz(0., -8., 0.2),
-                texture_atlas: player_assets.left_hand.clone(),
-            })
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert_bundle(MovementAnimationBundle {
-                walking: WalkingAnimationData {
-                    offset: 13,
-                    count: 13,
-                },
-                flying: FlyingAnimationData(2)
-            })
-            .insert(UseItemAnimationData(2))
-            .insert(Name::new("Player left hand"));
-            // endregion
-
-            // region: Right arm
-            cmd.spawn_bundle(SpriteSheetBundle {
-                sprite: TextureAtlasSprite {
-                    color: Color::rgb(0.92, 0.45, 0.32),
-                },
-                transform: Transform::from_xyz(0., -20., 0.001),
-                texture_atlas: player_assets.right_arm.clone(),
-            })
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert_bundle(MovementAnimationBundle {
-                walking: WalkingAnimationData { count: 13 },
-                idle: IdleAnimationData(14),
-                flying: FlyingAnimationData(13),
-            })
-            .insert(UseItemAnimationData(15))
-            .insert(Name::new("Player right hand"));
-            // endregion
-
-            // endregion
-
-            // region: Chest
-            cmd.spawn_bundle(SpriteSheetBundle {
-                sprite: TextureAtlasSprite {
-                    index: 0,
-                    color: Color::rgb(0.58, 0.55, 0.47),
-                },
-                transform: Transform::from_xyz(0., 0., 0.002),
-                texture_atlas: player_assets.chest.clone(),
-            })
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert_bundle(MovementAnimationBundle::default())
-            .insert(Name::new("Player chest"));
-            // endregion
-
-            // region: Feet
-            cmd.spawn_bundle(SpriteSheetBundle {
-                sprite: TextureAtlasSprite {
-                    color: Color::rgb(190. / 255., 190. / 255., 156. / 255.),
-                },
-                texture_atlas: player_assets.feet.clone(),
-                transform: Transform::from_xyz(0., 0., 0.15),
-                ..default()
-            })
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert_bundle(MovementAnimationBundle {
-                walking: WalkingAnimationData {
-                    offset: 6,
-                    count: 13,
-                },
-                flying: FlyingAnimationData(5),
-            })
-            .insert(Name::new("Player feet"));
-            // endregion
-
-            // region: Used item
-            cmd.spawn_bundle(SpriteBundle {
-                sprite: Sprite {
-                    anchor: Anchor::BottomLeft,
-                },
-                visibility: Visibility {
-                    is_visible: false
-                },
-                transform: Transform::from_xyz(0., 0., 0.15),
-            })
-            .insert(ChangeFlip)
-            .insert(UsedItem)
-            .insert(Name::new("Using item"));
-
-            // endregion
-
-            #[cfg(feature = "debug")] {
-                cmd.spawn_bundle(SpriteBundle {
-                    sprite: Sprite {
-                        color: Color::RED,
-                        custom_size: Some(Vec2::new(PLAYER_WIDTH, 1.))
-                    },
-                    transform: Transform::from_xyz(0., -PLAYER_HEIGHT / 2., 0.5),
-                });
-
-                cmd.spawn_bundle(SpriteBundle {
-                    sprite: Sprite {
-                        color: Color::RED,
-                        custom_size: Some(Vec2::new(PLAYER_WIDTH, 1.))
-                    },
-                    transform: Transform::from_xyz(0., PLAYER_HEIGHT / 2., 0.5),
-                });
-
-                cmd.spawn_bundle(SpriteBundle {
-                    sprite: Sprite {
-                        color: Color::RED,
-                        custom_size: Some(Vec2::new(1., PLAYER_HEIGHT))
-                    },
-                    transform: Transform::from_xyz(-PLAYER_WIDTH / 2., 0., 0.5),
-                });
-
-                cmd.spawn_bundle(SpriteBundle {
-                    sprite: Sprite {
-                        color: Color::RED,
-                        custom_size: Some(Vec2::new(1., PLAYER_HEIGHT))
-                    },
-                    transform: Transform::from_xyz(PLAYER_WIDTH / 2., 0., 0.5),
-                });
-            }
-        })
-        .id();
-
-    let mut gradient = Gradient::new();
-    gradient.add_key(0.0, Vec4::new(114. / 255., 81. / 255., 56. / 255., 1.));
-
-    let spawner = Spawner::rate(20.0.into());
-
-    // Create the effect asset
-    let effect = effects.add(
-        EffectAsset {
-            name: "MyEffect".to_string(),
-            // Maximum number of particles alive at a time
-            capacity: 30,
-            spawner,
-        }
-        .init(PositionCone3dModifier {
-            base_radius: 0.5,
-            top_radius: 0.,
-            height: 1.,
-            dimension: ShapeDimension::Volume,
-            speed: 10.0.into(),
-        })
-        .update(AccelModifier {
-            accel: Vec3::new(0., 0., 0.),
-        })
-        // Render the particles with a color gradient over their
-        // lifetime.
-        .render(SizeOverLifetimeModifier {
-            gradient: Gradient::constant(Vec2::splat(3.)),
-        })
-        .init(ParticleLifetimeModifier { lifetime: 0.1 })
-        .render(ColorOverLifetimeModifier { gradient }),
-    );
-
-    let effect_entity = commands
-        .spawn_bundle(ParticleEffectBundle::new(effect).with_spawner(spawner))
-        .insert(Name::new("Particle Spawner"))
-        .id();
-
-    commands.entity(player).add_child(effect_entity);
-
-    commands.entity(player).insert(PlayerParticleEffects {
-        walking: effect_entity,
-    });
-}
 
 #[cfg(feature = "debug_movement")]
 pub fn debug_horizontal_movement(
@@ -314,36 +38,30 @@ pub fn debug_vertical_movement(
 }
 
 pub fn horizontal_movement(
+    time: Res<Time>,
     axis: Res<InputAxis>,
     mut velocity: ResMut<PlayerVelocity>
 ) {
     if axis.is_moving() {
-        velocity.x += axis.x * ACCELERATION;
-        velocity.x = velocity.x.clamp(-MAX_RUN_SPEED, MAX_RUN_SPEED);
+        let max_speed = MAX_RUN_SPEED * time.delta_seconds();
+
+        velocity.x += axis.x * ACCELERATION * time.delta_seconds();
+        velocity.x = velocity.x.clamp(-max_speed, max_speed);
     } else {
-        velocity.x = move_towards(velocity.x, 0., SLOWDOWN);
-    }
-}
-
-pub fn gravity(
-    mut velocity: ResMut<PlayerVelocity>,
-) {
-    velocity.y -= GRAVITY;
-
-    if velocity.y < -MAX_FALL_SPEED {
-        velocity.y = -MAX_FALL_SPEED;
-    }
+        velocity.x = move_towards(velocity.x, 0., SLOWDOWN * time.delta_seconds());
+    } 
 }
 
 pub fn update_jump(
+    time: Res<Time>,
     input: Res<Input<KeyCode>>,
     collisions: Res<Collisions>,
     mut velocity: ResMut<PlayerVelocity>,
     mut player_controller: ResMut<PlayerController>,
 ) {
-    if input.just_pressed(KeyCode::Space) && collisions.bottom {
+    if input.pressed(KeyCode::Space) && collisions.bottom {
         player_controller.jump = JUMP_HEIGHT;
-        velocity.y = JUMP_SPEED;
+        velocity.y = JUMP_SPEED * time.delta_seconds();
     }
 
     if input.pressed(KeyCode::Space) {
@@ -351,7 +69,7 @@ pub fn update_jump(
             if velocity.y == 0. {
                 player_controller.jump = 0;
             } else {
-                velocity.y = JUMP_SPEED;
+                velocity.y = JUMP_SPEED * time.delta_seconds();
 
                 player_controller.jump -= 1;
             }
@@ -361,102 +79,115 @@ pub fn update_jump(
     }
 }
 
-pub fn collide(
+pub fn update(
+    time: Res<Time>,
     mut player_query: Query<&mut Transform, With<Player>>,
     world_data: Res<WorldData>,
     mut velocity: ResMut<PlayerVelocity>,
     mut collisions: ResMut<Collisions>,
-    #[cfg(feature = "debug")]
-    mut lines: ResMut<bevy_prototype_debug_lines::DebugLines>
+    mut controller: ResMut<PlayerController>
 ) {
+    const PLAYER_HALF_WIDTH: f32 = PLAYER_WIDTH / 2.;
+    const PLAYER_HALF_HEIGHT: f32 = PLAYER_HEIGHT / 2.;
+    const MIN: f32 = PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
+    const MAX: f32 = WORLD_SIZE_X as f32 * TILE_SIZE - PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
+
     let mut transform = player_query.single_mut();
 
-    let position = transform.translation.xy().abs();
+    // -------- Gravity --------
+    if !collisions.bottom {
+        let gravity = GRAVITY * time.delta_seconds();
+        let max_fall_speed = MAX_FALL_SPEED * time.delta_seconds();
 
-    let left = ((position.x - PLAYER_WIDTH / 2.) / TILE_SIZE) - 1.;
-    let right = ((position.x + PLAYER_WIDTH / 2.) / TILE_SIZE) + 2.;
-    let mut bottom = ((position.y + PLAYER_HEIGHT / 2.) / TILE_SIZE) + 2.;
-    let mut top = ((position.y - PLAYER_HEIGHT / 2.) / TILE_SIZE) - 1.;
+        controller.fall_distance += gravity;
+        velocity.y -= gravity;
 
-    if top < 0. {
-        top = 0.;
+        velocity.y = velocity.y.max(max_fall_speed);
     }
 
-    if bottom > WORLD_SIZE_Y as f32 {
-        bottom = WORLD_SIZE_Y as f32;
-    }
+    // ------- Collisions -------
+    let position = (transform.translation.xy()).abs();
+    let next_position = (transform.translation.xy() + velocity.0).abs();
+
+    let left = ((position.x - PLAYER_HALF_WIDTH) / TILE_SIZE) - 1.;
+    let right = ((position.x + PLAYER_HALF_WIDTH) / TILE_SIZE) + 2.;
+    let mut bottom = ((position.y + PLAYER_HALF_HEIGHT) / TILE_SIZE) + 3.;
+    let mut top = ((position.y - PLAYER_HALF_HEIGHT) / TILE_SIZE) - 1.;
+
+    bottom = bottom.clamp(0., WORLD_SIZE_Y as f32);
+    top = top.max(0.);
 
     let uleft = left as u32;
     let uright = right as u32;
     let utop = top as u32;
     let ubottom = bottom as u32;
 
-    let mut result = velocity.0;
-    let next_position = position - velocity.0;
-
-    let mut num5: i32 = -1;
-    let mut num6: i32 = -1;
-    let mut num7: i32 = -1;
-    let mut num8: i32 = -1;
-
-    let mut num9 = (bottom + 3.) * TILE_SIZE;
-
     let mut new_collisions = Collisions::default();
+
+    let mut yx: i32 = -1;
+    let mut yy: i32 = -1;
+    let mut xx: i32 = -1;
+    let mut xy: i32 = -1;
+
+    let mut a = (bottom + 3.) * TILE_SIZE;
 
     for x in uleft..uright {
         for y in utop..ubottom {
-            if world_data.tiles.tile_exists(TilePos { x, y }) {
+            if world_data.tiles.tile_exists(TilePos::new(x, y)) {
                 let tile_pos = Vec2::new(x as f32 * TILE_SIZE, y as f32 * TILE_SIZE);
-                
+
                 if (next_position.x + PLAYER_WIDTH / 2.) > (tile_pos.x - TILE_SIZE / 2.) && (next_position.x - PLAYER_WIDTH / 2.) < (tile_pos.x + TILE_SIZE / 2.) && (next_position.y + PLAYER_HEIGHT / 2.) > (tile_pos.y - TILE_SIZE / 2.) && (next_position.y - PLAYER_HEIGHT / 2.) < (tile_pos.y + TILE_SIZE / 2.) {
                     if position.y + PLAYER_HEIGHT / 2. <= tile_pos.y - TILE_SIZE / 2. {
-                        #[cfg(debug_assertions)]
-                        println!("Down");
                         new_collisions.bottom = true;
-                        if num9 > tile_pos.y {
-                            num7 = x as i32;
-                            num8 = y as i32;
-                            if num7 != num5 {
-                                let a = (tile_pos.y - TILE_SIZE / 2.) - (position.y + PLAYER_HEIGHT / 2.);
-                                result.y = a - a % (TILE_SIZE / 2.);
-                                num9 = tile_pos.y;
+
+                        velocity.y = 0.;
+
+                        if controller.fall_distance_in_tiles() > 0. {
+                            info!(
+                                target: "fall_distance",
+                                fall_distance = controller.fall_distance.round(),
+                                fall_distance_in_tiles = controller.fall_distance_in_tiles()
+                            );
+                        }
+                        
+                        controller.fall_distance = 0.;
+
+                        if a > tile_pos.y {
+                            yx = x as i32;
+                            yy = y as i32;
+                            if yx != xx {
+                                velocity.y = ((tile_pos.y - TILE_SIZE / 2.) - (position.y + PLAYER_HEIGHT / 2.)) * time.delta_seconds();
+                                a = tile_pos.y;
                             }
                         }
-                    } else {
-                        
+                    } else {    
                         if position.x + PLAYER_WIDTH / 2. <= tile_pos.x - TILE_SIZE / 2. {
-                            #[cfg(debug_assertions)]
-                            println!("Right");
-                            num5 = x as i32;
-                            num6 = y as i32;
-                            if num6 != num8 {
-                                result.x = (tile_pos.x - TILE_SIZE / 2.) - (position.x + PLAYER_WIDTH / 2.);
+                            xx = x as i32;
+                            xy = y as i32;
+                            if xy != yy {
+                                velocity.x = ((tile_pos.x - TILE_SIZE / 2.) - (position.x + PLAYER_WIDTH / 2.)) * time.delta_seconds();
                             }
-                            if num7 == num5 {
-                                result.y = velocity.y;
+                            if yx == xx {
+                                velocity.y = velocity.y;
                             }
                         } else {
                             if position.x - PLAYER_WIDTH / 2. >= tile_pos.x + TILE_SIZE / 2. {
-                                #[cfg(debug_assertions)]
-                                println!("Left");
-                                num5 = x as i32;
-                                num6 = y as i32;
-                                if num6 != num8 {
-                                    result.x = (tile_pos.x + TILE_SIZE / 2.) - (position.x - PLAYER_WIDTH / 2.);
+                                xx = x as i32;
+                                xy = y as i32;
+                                if xy != yy {
+                                    velocity.x = ((tile_pos.x + TILE_SIZE / 2.) - (position.x - PLAYER_WIDTH / 2.)) * time.delta_seconds();
                                 }
-                                if num7 == num5 {
-                                    result.y = velocity.y;
+                                if yx == xx {
+                                    velocity.y = velocity.y;
                                 }
                             } else {
                                 if position.y >= tile_pos.y + TILE_SIZE / 2. {
-                                    #[cfg(debug_assertions)]
-                                    println!("Up");
                                     collisions.top = true;
-                                    num7 = x as i32;
-                                    num8 = y as i32;
-                                    result.y = (tile_pos.y + TILE_SIZE / 2.) - (position.y - PLAYER_HEIGHT / 2.) + 0.01;
-                                    if num8 == num6 {
-                                        result.x = velocity.x;
+                                    yx = x as i32;
+                                    yy = y as i32;
+                                    velocity.y = ((tile_pos.y + TILE_SIZE / 2.) - (position.y - PLAYER_HEIGHT / 2.) + 0.01) * time.delta_seconds();
+                                    if xx == xy {
+                                        velocity.x = velocity.x;
                                     }
                                 }
                             }
@@ -467,39 +198,13 @@ pub fn collide(
         }
     }
 
-    if velocity.y != result.y {
-        velocity.y = 0.;
-        transform.translation.y += result.y;
-    } else {
-        velocity.y = result.y;
-    }
-
-    if velocity.x != result.x {
-        velocity.x = 0.;
-        transform.translation.x += result.x;
-    } else {
-        velocity.x = result.x;
-    }
-
     *collisions = new_collisions;
-    // *velocity = PlayerVelocity(result);
-}
 
-pub fn move_player(
-    velocity: Res<PlayerVelocity>,
-    mut player_query: Query<&mut Transform, With<Player>>,
-    #[cfg(feature = "debug")]
-    mut lines: ResMut<bevy_prototype_debug_lines::DebugLines>
-) {
-    let mut transform = player_query.single_mut();
-
-    const MIN: f32 = PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
-    const MAX: f32 = WORLD_SIZE_X as f32 * TILE_SIZE - PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
-
+    // -------- Move player --------
     let raw = transform.translation.xy() + velocity.0;
 
     transform.translation.x = raw.x.clamp(MIN, MAX);
-    transform.translation.y = raw.y;
+    transform.translation.y = raw.y.clamp(-(WORLD_SIZE_Y as f32) * TILE_SIZE + PLAYER_HALF_HEIGHT, -PLAYER_HALF_HEIGHT);
 }
 
 pub fn spawn_particles(
@@ -516,8 +221,8 @@ pub fn spawn_particles(
 
         effect
             .maybe_spawner()
-            .unwrap()
-            .set_active(*movement_state == MovementState::WALKING);
+            .unwrap()   
+            .set_active(*movement_state == MovementState::Walking);
     }
 }
 
@@ -529,9 +234,9 @@ pub fn update_movement_state(
     let mut movement_state = query.single_mut();
 
     *movement_state = match velocity.0 {
-        Vec2 { x, y } if x != 0. && y == 0. => MovementState::WALKING,
-        Vec2 { y, .. } if y != 0. || player_controller.jump > 0 => MovementState::FLYING,
-        _ => MovementState::IDLE
+        _ if player_controller.fall_distance_in_tiles() > 1. || player_controller.jump > 0 => MovementState::Flying,
+        Vec2 { x, .. } if x != 0. => MovementState::Walking,
+        _ => MovementState::Idle
     };
 }
 
@@ -560,13 +265,9 @@ pub fn update_movement_animation_timer_duration(
     mut timer: ResMut<AnimationTimer>,
 ) {
     if velocity.x != 0. {
-        let mut time = 100. / velocity.x.abs();
+        let time = 20. / velocity.x.abs();
 
-        if time < 1. {
-            time = 1.;
-        }
-
-        timer.set_duration(Duration::from_millis(time as u64));
+        timer.set_duration(Duration::from_millis(time.max(1.) as u64));
     }
 }
 
@@ -628,8 +329,9 @@ pub fn set_using_item_visibility(
     anim: Res<UseItemAnimation>,
     mut using_item_query: Query<&mut Visibility, With<UsedItem>>,
 ) {
-    let mut visibility = using_item_query.single_mut();
-    visibility.is_visible = anim.0;
+    if let Ok(mut visibility) = using_item_query.get_single_mut() {
+        visibility.is_visible = anim.0;
+    }
 }
 
 pub fn set_using_item_image(
@@ -726,6 +428,34 @@ pub fn use_item_animation(
     query.for_each_mut(|(mut sprite, anim_data)| {
         sprite.index = anim_data.0 + index.0;
     });
+}
+
+
+pub fn current_speed(
+    diagnostics: Res<Diagnostics>,
+    velocity: Res<PlayerVelocity>
+) {
+    let diagnostic = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS).unwrap();
+
+    if let Some(fps) = diagnostic.value() {
+        let factor = (fps * 3600.) / 42240.;
+        let velocity_x = velocity.x.abs() as f64 * factor;
+        let velocity_y = velocity.y.abs() as f64 * factor;
+
+        if velocity_x > 0. {
+            info!(
+                target: "speed",
+                horizontal = velocity_x,
+            );
+        }
+
+        if velocity_y > 0. {
+            info!(
+                target: "speed",
+                vertical = velocity_y,
+            );
+        }
+    }
 }
 
 // TODO: Debug function, remove in feature

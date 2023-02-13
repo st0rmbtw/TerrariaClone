@@ -25,8 +25,7 @@ use crate::{
         world::TILE_SIZE
     }, 
     animation::{Tween, TweeningType, TransformScaleLens, Animator}, 
-    lens::UiColorLens, 
-    TRANSPARENT, 
+    lens::BackgroundColorLens,
     util::Lerp,
 };
 
@@ -35,7 +34,7 @@ use crate::plugins::player::{PlayerVelocity, MAX_RUN_SPEED, MAX_FALL_SPEED};
 
 use super::{HoveredInfoMarker, CursorContainer, CursorForeground, CursorBackground, TileGrid, MAX_TILE_GRID_OPACITY, CursorPosition, HoveredInfo, MIN_TILE_GRID_OPACITY};
 
-#[autodefault(except(TransformScaleLens, UiColorLens))]
+#[autodefault(except(TransformScaleLens, BackgroundColorLens))]
 pub fn setup(mut commands: Commands, cursor_assets: Res<CursorAssets>, fonts: Res<FontAssets>) {
     let animate_scale = Tween::new(
         EaseFunction::QuadraticInOut,
@@ -51,14 +50,14 @@ pub fn setup(mut commands: Commands, cursor_assets: Res<CursorAssets>, fonts: Re
         EaseFunction::QuadraticInOut,
         TweeningType::PingPong,
         Duration::from_millis(500),
-        UiColorLens {
+        BackgroundColorLens {
             start: Color::PINK * 0.7,
             end: Color::PINK,
         },
     );
 
     commands
-        .spawn_bundle(NodeBundle {
+        .spawn(NodeBundle {
             style: Style {
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
@@ -66,13 +65,12 @@ pub fn setup(mut commands: Commands, cursor_assets: Res<CursorAssets>, fonts: Re
                 ..default()
             },
             focus_policy: FocusPolicy::Pass,
-            color: TRANSPARENT.into(),
             ..default()
         })
         .with_children(|c| {
             // region: Cursor
 
-            c.spawn_bundle(ImageBundle {
+            c.spawn(ImageBundle {
                 style: Style {
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
@@ -81,11 +79,11 @@ pub fn setup(mut commands: Commands, cursor_assets: Res<CursorAssets>, fonts: Re
                 },
                 focus_policy: FocusPolicy::Pass,
                 image: cursor_assets.cursor_background.clone().into(),
-                color: Color::rgb(0.7, 0.7, 0.7).into(),
+                background_color: Color::rgb(0.7, 0.7, 0.7).into(),
             })
             .insert(CursorBackground)
             .with_children(|c| {
-                c.spawn_bundle(ImageBundle {
+                c.spawn(ImageBundle {
                     style: Style {
                         justify_content: JustifyContent::Center,
                         align_items: AlignItems::Center,
@@ -94,7 +92,7 @@ pub fn setup(mut commands: Commands, cursor_assets: Res<CursorAssets>, fonts: Re
                     },
                     focus_policy: FocusPolicy::Pass,
                     image: cursor_assets.cursor.clone().into(),
-                    color: Color::PINK.into(),
+                    background_color: Color::PINK.into(),
                 })
                 .insert(CursorForeground)
                 .insert(Animator::new(animate_color));
@@ -107,7 +105,7 @@ pub fn setup(mut commands: Commands, cursor_assets: Res<CursorAssets>, fonts: Re
         .insert(Animator::new(animate_scale));
 
     commands
-        .spawn_bundle(TextBundle {
+        .spawn(TextBundle {
             style: Style {
                 position_type: PositionType::Absolute,
             },
@@ -126,7 +124,7 @@ pub fn setup(mut commands: Commands, cursor_assets: Res<CursorAssets>, fonts: Re
 #[autodefault]
 pub fn spawn_tile_grid(mut commands: Commands, ui_assets: Res<UiAssets>) {
     commands
-        .spawn_bundle(SpriteBundle {
+        .spawn(SpriteBundle {
             sprite: Sprite {
                 color: Color::rgba(1., 1., 1., MAX_TILE_GRID_OPACITY),
             },
