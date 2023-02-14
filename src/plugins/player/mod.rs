@@ -8,14 +8,15 @@ pub use resources::*;
 pub use systems::*;
 pub use utils::*;
 
-use crate::{state::{GameState, MovementState}, labels::PlayerLabel, world_generator::WORLD_SIZE_X};
+use crate::{state::GameState, world_generator::WORLD_SIZE_X, labels::PlayerLabel};
 use std::time::Duration;
 use iyes_loopless::prelude::*;
 use bevy_hanabi::prelude::*;
 use bevy::{prelude::*, time::{Timer, TimerMode}, sprite::Anchor};
 use autodefault::autodefault;
+use leafwing_input_manager::prelude::InputManagerPlugin;
 
-use super::{world::TILE_SIZE, assets::PlayerAssets};
+use super::assets::PlayerAssets;
 
 pub const PLAYER_WIDTH: f32 = 22. /* 2. * TILE_SIZE */;
 pub const PLAYER_HEIGHT: f32 = 42.5 /* 3. * TILE_SIZE */;
@@ -27,33 +28,35 @@ const USE_ITEM_ANIMATION_FRAMES_COUNT: usize = 3;
 const MOVEMENT_ANIMATION_LABEL: &str = "movement_animation";
 const USE_ITEM_ANIMATION_LABEL: &str = "use_item_animation";
 
-const GRAVITY: f32 = 30. * TILE_SIZE;
-const ACCELERATION: f32 = 0.05 * TILE_SIZE;
-const SLOWDOWN: f32 = 1.5;
-pub const MAX_RUN_SPEED: f32 = 11. * TILE_SIZE;
+const GRAVITY: f32 = 0.4;
+const ACCELERATION: f32 = 0.08;
+const SLOWDOWN: f32 = 0.2;
+pub const MAX_RUN_SPEED: f32 = 3.;
 
 const JUMP_HEIGHT: i32 = 15;
-const JUMP_SPEED: f32 = 17.2875 * TILE_SIZE;
-pub const MAX_FALL_SPEED: f32 = -37.5 * TILE_SIZE;
+const JUMP_SPEED: f32 = 5.01;
+pub const MAX_FALL_SPEED: f32 = -10.;
 
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app
+            .add_plugin(InputManagerPlugin::<PlayerAction>::default())
             .insert_resource(InputAxis::default())
             .insert_resource(MovementAnimationIndex::default())
             .insert_resource(UseItemAnimationIndex::default())
             .insert_resource(AnimationTimer(Timer::new(Duration::from_millis(80), TimerMode::Repeating)))
+            .insert_resource(UseItemAnimation(false))
             .insert_resource(UseItemAnimationTimer(Timer::new(
                 Duration::from_millis(100),
                 TimerMode::Repeating
             )))
             .init_resource::<PlayerVelocity>()
-            .init_resource::<PlayerController>()
+            .init_resource::<PlayerData>()
             .init_resource::<Collisions>()
-            .insert_resource(UseItemAnimation(false))
+
             .add_enter_system(GameState::InGame, spawn_player)
-            .add_system(update_axis)
+
             .add_system_set_to_stage(
                 CoreStage::PostUpdate, 
                 ConditionSet::new()
@@ -94,28 +97,40 @@ impl Plugin for PlayerPlugin {
                     .with_system(use_item_animation)
                     .into(),
             )
-            .add_system(player_using_item)
-            .add_system(set_using_item_visibility);
+            
+            .add_system_set(
+                ConditionSet::new()
+                    .run_in_state(GameState::InGame)
+                    .with_system(update_axis)
+                    .with_system(player_using_item)
+                    .with_system(set_using_item_visibility)
+                    .into()
+            )
+            .add_fixed_timestep(Duration::from_secs_f32(1. / 60.), "fixed_update");
 
         #[cfg(not(feature = "debug_movement"))] {
             app
-            .add_system_to_stage(
-                CoreStage::Update,
+            .add_fixed_timestep_system(
+                "fixed_update",
+                0,
                 horizontal_movement
                     .run_in_state(GameState::InGame)
                     .label(PlayerLabel::HorizontalMovement)
             )
-            .add_system_to_stage(
-                CoreStage::Update,
+            .add_fixed_timestep_system(
+                "fixed_update",
+                0,
                 update_jump
                     .run_in_state(GameState::InGame)
                     .label(PlayerLabel::Jump)
+                    .after(PlayerLabel::HorizontalMovement)
             )
-            .add_system_to_stage(
-                CoreStage::Update,
+            .add_fixed_timestep_system(
+                "fixed_update",
+                0,
                 update
                     .run_in_state(GameState::InGame)
-                    .label(PlayerLabel::MovePlayer)
+                    .label(PlayerLabel::Update)
                     .after(PlayerLabel::Jump)
             );
         }
@@ -123,15 +138,20 @@ impl Plugin for PlayerPlugin {
         app.add_system(current_speed);
 
         #[cfg(feature = "debug_movement")] {
-            app.add_system(
+            app
+            .add_fixed_timestep_system_set(
+                "fixed_update",
+                0,
                 debug_horizontal_movement
                     .run_in_state(GameState::InGame)
                     .label(PlayerLabel::HorizontalMovement)
             )
-            .add_system(
-                debug_vertical_movement
+            .add_fixed_timestep_system_set(
+                "fixed_update",
+                0,
+                debug_horizontal_movement
                     .run_in_state(GameState::InGame)
-                    .label(PlayerLabel::Collide)
+                    .label(PlayerLabel::Update)
                     .after(PlayerLabel::HorizontalMovement)
             );
         }
@@ -145,48 +165,45 @@ pub fn spawn_player(
     mut effects: ResMut<Assets<EffectAsset>>,
 ) {
     let player = commands
-        .spawn(SpatialBundle {
-            transform: Transform::from_xyz(WORLD_SIZE_X as f32 * 16. / 2., 0., 3.)
-        })
-        .insert(Player)
-        .insert(Name::new("Player"))
-        .insert(MovementState::default())
-        .insert(FaceDirection::default())
+        .spawn(PlayerBundle::new(Transform::from_xyz(WORLD_SIZE_X as f32 * 16. / 2., 0., 3.)))
         .with_children(|cmd| {
             // region: Hair
             cmd.spawn((
+                ChangeFlip,
+                PlayerBodySprite,
+                Name::new("Player hair"),
+                MovementAnimationBundle::default(),
                 SpriteSheetBundle {
                     sprite: TextureAtlasSprite {
                         color: Color::rgb(0.55, 0.23, 0.14),
                     },
                     transform: Transform::from_xyz(0., 0., 0.1),
                     texture_atlas: player_assets.hair.clone(),
-                },
-                MovementAnimationBundle::default()
-            ))
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert(Name::new("Player hair"));
+                }
+            ));
             // endregion
 
             // region: Head
             cmd.spawn((
+                ChangeFlip,
+                PlayerBodySprite,
+                Name::new("Player head"),
+                MovementAnimationBundle::default(),
                 SpriteSheetBundle {
                     sprite: TextureAtlasSprite {
                         color: Color::rgb(0.92, 0.45, 0.32),
                     },
                     texture_atlas: player_assets.head.clone(),
                     transform: Transform::from_xyz(0., 0., 0.003),
-                },
-                MovementAnimationBundle::default()
-            ))
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert(Name::new("Player head"));
+                }
+            ));
             // endregion
 
             // region: Eyes
             cmd.spawn((
+                ChangeFlip,
+                PlayerBodySprite,
+                Name::new("Player left eye"),
                 SpriteSheetBundle {
                     sprite: TextureAtlasSprite {
                         color: Color::WHITE,
@@ -200,12 +217,12 @@ pub fn spawn_player(
                         count: 14,
                     }
                 }
-            ))
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert(Name::new("Player left eye"));
+            ));
 
             cmd.spawn((
+                ChangeFlip,
+                PlayerBodySprite,
+                Name::new("Player right eye"),
                 SpriteSheetBundle {
                     sprite: TextureAtlasSprite {
                         color: Color::rgb(89. / 255., 76. / 255., 64. / 255.),
@@ -219,16 +236,17 @@ pub fn spawn_player(
                         count: 14,
                     }
                 }
-            ))
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert(Name::new("Player right eye"));
+            ));
 
             // endregion
 
             // region: Arms
             // region: Left arm
             cmd.spawn((
+                ChangeFlip,
+                PlayerBodySprite,
+                Name::new("Player left shoulder"),
+                UseItemAnimationData(2),
                 SpriteSheetBundle {
                     sprite: TextureAtlasSprite {
                         color: Color::rgb(0.58, 0.55, 0.47),
@@ -243,13 +261,13 @@ pub fn spawn_player(
                     },
                     flying: FlyingAnimationData(2)
                 }
-            ))
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert(UseItemAnimationData(2))
-            .insert(Name::new("Player left shoulder"));
+            ));
 
             cmd.spawn((
+                ChangeFlip,
+                PlayerBodySprite,
+                Name::new("Player left hand"),
+                UseItemAnimationData(2),
                 SpriteSheetBundle {
                     sprite: TextureAtlasSprite {
                         color: Color::rgb(0.92, 0.45, 0.32),
@@ -264,15 +282,15 @@ pub fn spawn_player(
                     },
                     flying: FlyingAnimationData(2)
                 }
-            ))
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert(UseItemAnimationData(2))
-            .insert(Name::new("Player left hand"));
+            ));
             // endregion
 
             // region: Right arm
             cmd.spawn((
+                ChangeFlip,
+                PlayerBodySprite,
+                Name::new("Player right hand"),
+                UseItemAnimationData(15),
                 SpriteSheetBundle {
                     sprite: TextureAtlasSprite {
                         color: Color::rgb(0.92, 0.45, 0.32),
@@ -285,17 +303,17 @@ pub fn spawn_player(
                     idle: IdleAnimationData(14),
                     flying: FlyingAnimationData(13),
                 }
-            ))
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert(UseItemAnimationData(15))
-            .insert(Name::new("Player right hand"));
+            ));
             // endregion
 
             // endregion
 
             // region: Chest
             cmd.spawn((
+                ChangeFlip,
+                PlayerBodySprite,
+                Name::new("Player chest"),
+                MovementAnimationBundle::default(),
                 SpriteSheetBundle {
                     sprite: TextureAtlasSprite {
                         index: 0,
@@ -304,15 +322,14 @@ pub fn spawn_player(
                     transform: Transform::from_xyz(0., 0., 0.002),
                     texture_atlas: player_assets.chest.clone(),
                 },
-                MovementAnimationBundle::default()
-            ))
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert(Name::new("Player chest"));
+            ));
             // endregion
 
             // region: Feet
             cmd.spawn((
+                ChangeFlip,
+                PlayerBodySprite,
+                Name::new("Player feet"),
                 SpriteSheetBundle {
                     sprite: TextureAtlasSprite {
                         color: Color::rgb(190. / 255., 190. / 255., 156. / 255.),
@@ -328,25 +345,24 @@ pub fn spawn_player(
                     },
                     flying: FlyingAnimationData(5),
                 }
-            ))
-            .insert(ChangeFlip)
-            .insert(PlayerBodySprite)
-            .insert(Name::new("Player feet"));
+            ));
             // endregion
 
             // region: Used item
-            cmd.spawn(SpriteBundle {
-                sprite: Sprite {
-                    anchor: Anchor::BottomLeft,
-                },
-                visibility: Visibility {
-                    is_visible: false
-                },
-                transform: Transform::from_xyz(0., 0., 0.15),
-            })
-            .insert(ChangeFlip)
-            .insert(UsedItem)
-            .insert(Name::new("Using item"));
+            cmd.spawn((
+                ChangeFlip,
+                PlayerBodySprite,
+                Name::new("Using item"),
+                SpriteBundle {
+                    sprite: Sprite {
+                        anchor: Anchor::BottomLeft,
+                    },
+                    visibility: Visibility {
+                        is_visible: false
+                    },
+                    transform: Transform::from_xyz(0., 0., 0.15),
+                }
+            ));
 
             // endregion
 

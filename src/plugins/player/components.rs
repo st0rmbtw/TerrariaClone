@@ -1,9 +1,12 @@
-use bevy::prelude::{Component, Entity, Bundle, Resource};
+use bevy::{prelude::{Component, Entity, Bundle, Resource, Name, SpatialBundle, KeyCode, MouseButton, Transform}, utils::default};
 use bevy_inspector_egui::InspectorOptions;
+use leafwing_input_manager::{InputManagerBundle, prelude::{ActionState, InputMap}};
 
-use super::{InputAxis, WALKING_ANIMATION_MAX_INDEX};
+use crate::state::MovementState;
 
-#[derive(Component)]
+use super::{InputAxis, WALKING_ANIMATION_MAX_INDEX, PlayerAction};
+
+#[derive(Component, Default)]
 pub struct Player;
 
 #[derive(Default, PartialEq, Eq, Clone, Copy, Component, InspectorOptions)]
@@ -98,4 +101,38 @@ pub struct MovementAnimationBundle {
     pub walking: WalkingAnimationData,
     pub idle: IdleAnimationData,
     pub flying: FlyingAnimationData
+}
+
+#[derive(Bundle, Default)]
+pub struct PlayerBundle {
+    player: Player,
+    name: Name,
+    movement_state: MovementState,
+    face_direction: FaceDirection,
+    #[bundle]
+    input_manager: InputManagerBundle<PlayerAction>,
+    #[bundle]
+    spatial: SpatialBundle
+}
+
+impl PlayerBundle {
+    pub fn new(transform: Transform) -> Self {
+        Self {
+            name: Name::new("Player"),
+            input_manager: InputManagerBundle::<PlayerAction> {
+                action_state: ActionState::default(),
+                input_map: InputMap::default()
+                    .insert(KeyCode::A, PlayerAction::RunLeft)
+                    .insert(KeyCode::D, PlayerAction::RunRight)
+                    .insert(KeyCode::Space, PlayerAction::Jump)
+                    .insert(MouseButton::Left, PlayerAction::UseItem)
+                    .build()
+            },
+            spatial: SpatialBundle {
+                transform,
+                ..default()
+            },
+            ..default()
+        }
+    }
 }

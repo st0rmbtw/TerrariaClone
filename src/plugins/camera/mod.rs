@@ -1,5 +1,6 @@
 use bevy::prelude::{Plugin, App};
-use iyes_loopless::prelude::{ConditionSet, AppLooplessStateExt};
+use iyes_loopless::prelude::{AppLooplessStateExt, IntoConditionalSystem};
+use leafwing_input_manager::prelude::InputManagerPlugin;
 
 use crate::{state::GameState, labels::PlayerLabel};
 
@@ -18,19 +19,13 @@ pub struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app
+            .add_plugin(InputManagerPlugin::<MouseAction>::default())
             .add_enter_system(GameState::InGame, setup_camera)
-            .add_system_set(
-                ConditionSet::new()
+            .add_system(zoom.run_in_state(GameState::InGame))
+            .add_system(
+                move_camera
                     .run_in_state(GameState::InGame)
-                    .with_system(zoom)
-                    .into()
-            )
-            .add_system_set(
-                ConditionSet::new()
-                    .run_in_state(GameState::InGame)
-                    .after(PlayerLabel::MovePlayer)
-                    .with_system(move_camera)
-                    .into(),
+                    .after(PlayerLabel::Update)
             );
     }
 }

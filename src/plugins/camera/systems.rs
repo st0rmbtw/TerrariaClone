@@ -1,45 +1,54 @@
 use autodefault::autodefault;
 use bevy::{
     prelude::{
-        Commands, Camera2dBundle, OrthographicProjection, Transform, Res, Input, KeyCode, Query, 
+        Commands, Camera2dBundle, OrthographicProjection, Transform, Res, KeyCode, Query, 
         With, GlobalTransform
     }, 
     time::Time
 };
+use leafwing_input_manager::{InputManagerBundle, prelude::{ActionState, InputMap}};
 
 use crate::{parallax::ParallaxCameraComponent, plugins::world::TILE_SIZE, world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}};
 
 #[cfg(not(feature = "free_camera"))]
 use crate::plugins::player::Player;
 
-use super::{MainCamera, CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM};
+use super::{MainCamera, CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, MouseAction};
 
 #[autodefault]
 pub fn setup_camera(mut commands: Commands) {
     commands
-        .spawn(Camera2dBundle {
-            projection: OrthographicProjection { 
-                scale: 0.9
+        .spawn((
+            MainCamera,
+            ParallaxCameraComponent,
+            Camera2dBundle {
+                projection: OrthographicProjection { 
+                    scale: 0.9
+                },
+                transform: Transform::from_xyz(0., 0., 500.),
             },
-            transform: Transform::from_xyz(0., 0., 500.),
-        })
-        .insert(ParallaxCameraComponent)
-        .insert(MainCamera);
+            InputManagerBundle::<MouseAction> {
+                action_state: ActionState::default(),
+                input_map: InputMap::new([
+                    (KeyCode::Equals, MouseAction::ZoomIn),
+                    (KeyCode::Minus, MouseAction::ZoomOut),
+                ])
+            }   
+        ));
 }
 
 pub fn zoom(
     time: Res<Time>,
-    input: Res<Input<KeyCode>>,
-    mut camera_query: Query<&mut OrthographicProjection, With<MainCamera>>,
+    mut camera_query: Query<(&mut OrthographicProjection, &ActionState<MouseAction>), With<MainCamera>>,
 ) {
-    if let Ok(mut projection) = camera_query.get_single_mut() {
-        if input.pressed(KeyCode::Equals) {
+    if let Ok((mut projection, input)) = camera_query.get_single_mut() {
+        if input.pressed(MouseAction::ZoomIn) {
             let scale = projection.scale - (CAMERA_ZOOM_STEP * time.delta_seconds());
 
             projection.scale = scale.max(MIN_CAMERA_ZOOM);
         }
 
-        if input.pressed(KeyCode::Minus) {
+        if input.pressed(MouseAction::ZoomOut) {
             let scale = projection.scale + (CAMERA_ZOOM_STEP * time.delta_seconds());
 
             projection.scale = scale.min(MAX_CAMERA_ZOOM);

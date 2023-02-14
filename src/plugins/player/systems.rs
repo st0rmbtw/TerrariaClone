@@ -1,6 +1,7 @@
-use bevy::{prelude::*, math::Vec3Swizzles, diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin}};
+use bevy::{prelude::*, math::Vec3Swizzles};
 use bevy_ecs_tilemap::tiles::TilePos;
 use bevy_hanabi::prelude::*;
+use leafwing_input_manager::prelude::ActionState;
 
 use crate::{
     state::MovementState,
@@ -38,44 +39,42 @@ pub fn debug_vertical_movement(
 }
 
 pub fn horizontal_movement(
-    time: Res<Time>,
     axis: Res<InputAxis>,
     mut velocity: ResMut<PlayerVelocity>
 ) {
     if axis.is_moving() {
-        let max_speed = MAX_RUN_SPEED * time.delta_seconds();
-
-        velocity.x += axis.x * ACCELERATION * time.delta_seconds();
-        velocity.x = velocity.x.clamp(-max_speed, max_speed);
+        velocity.x += axis.x * ACCELERATION;
+        velocity.x = velocity.x.clamp(-MAX_RUN_SPEED, MAX_RUN_SPEED);
     } else {
-        velocity.x = move_towards(velocity.x, 0., SLOWDOWN * time.delta_seconds());
+        velocity.x = move_towards(velocity.x, 0., SLOWDOWN);
     } 
 }
 
 pub fn update_jump(
-    time: Res<Time>,
-    input: Res<Input<KeyCode>>,
+    query: Query<&ActionState<PlayerAction>, With<Player>>,
     collisions: Res<Collisions>,
     mut velocity: ResMut<PlayerVelocity>,
-    mut player_controller: ResMut<PlayerController>,
+    mut player_data: ResMut<PlayerData>,
 ) {
-    if input.pressed(KeyCode::Space) && collisions.bottom {
-        player_controller.jump = JUMP_HEIGHT;
-        velocity.y = JUMP_SPEED * time.delta_seconds();
+    let input = query.single();
+
+    if input.just_pressed(PlayerAction::Jump) && collisions.bottom {
+        player_data.jump = JUMP_HEIGHT;
+        velocity.y = JUMP_SPEED;
     }
 
-    if input.pressed(KeyCode::Space) {
-        if player_controller.jump > 0 {
+    if input.pressed(PlayerAction::Jump) {
+        if player_data.jump > 0 {
             if velocity.y == 0. {
-                player_controller.jump = 0;
+                player_data.jump = 0;
             } else {
-                velocity.y = JUMP_SPEED * time.delta_seconds();
+                velocity.y = JUMP_SPEED;
 
-                player_controller.jump -= 1;
+                player_data.jump -= 1;
             }
         }
     } else {
-        player_controller.jump = 0;
+        player_data.jump = 0;
     }
 }
 
@@ -85,7 +84,7 @@ pub fn update(
     world_data: Res<WorldData>,
     mut velocity: ResMut<PlayerVelocity>,
     mut collisions: ResMut<Collisions>,
-    mut controller: ResMut<PlayerController>
+    mut player_data: ResMut<PlayerData>
 ) {
     const PLAYER_HALF_WIDTH: f32 = PLAYER_WIDTH / 2.;
     const PLAYER_HALF_HEIGHT: f32 = PLAYER_HEIGHT / 2.;
@@ -96,13 +95,10 @@ pub fn update(
 
     // -------- Gravity --------
     if !collisions.bottom {
-        let gravity = GRAVITY * time.delta_seconds();
-        let max_fall_speed = MAX_FALL_SPEED * time.delta_seconds();
+        player_data.fall_distance += GRAVITY;
+        velocity.y -= GRAVITY;
 
-        controller.fall_distance += gravity;
-        velocity.y -= gravity;
-
-        velocity.y = velocity.y.max(max_fall_speed);
+        velocity.y = velocity.y.max(MAX_FALL_SPEED);
     }
 
     // ------- Collisions -------
@@ -142,15 +138,14 @@ pub fn update(
 
                         velocity.y = 0.;
 
-                        if controller.fall_distance_in_tiles() > 0. {
+                        if player_data.fall_distance.round() > 0. {
                             info!(
                                 target: "fall_distance",
-                                fall_distance = controller.fall_distance.round(),
-                                fall_distance_in_tiles = controller.fall_distance_in_tiles()
+                                fall_distance = player_data.fall_distance.round()
                             );
                         }
                         
-                        controller.fall_distance = 0.;
+                        player_data.fall_distance = 0.;
 
                         if a > tile_pos.y {
                             yx = x as i32;
@@ -227,14 +222,14 @@ pub fn spawn_particles(
 }
 
 pub fn update_movement_state(
-    player_controller: Res<PlayerController>,
+    player_data: Res<PlayerData>,
     velocity: Res<PlayerVelocity>,
     mut query: Query<&mut MovementState, With<Player>>,
 ) {
     let mut movement_state = query.single_mut();
 
     *movement_state = match velocity.0 {
-        _ if player_controller.fall_distance_in_tiles() > 1. || player_controller.jump > 0 => MovementState::Flying,
+        _ if player_data.fall_distance.round() > 1. || player_data.jump > 0 => MovementState::Flying,
         Vec2 { x, .. } if x != 0. => MovementState::Walking,
         _ => MovementState::Idle
     };
@@ -251,9 +246,11 @@ pub fn update_face_direction(axis: Res<InputAxis>, mut query: Query<&mut FaceDir
     }
 }
 
-pub fn update_axis(input: Res<Input<KeyCode>>, mut axis: ResMut<InputAxis>) {
-    let left = input.pressed(KeyCode::A);
-    let right = input.pressed(KeyCode::D);
+pub fn update_axis(query: Query<&ActionState<PlayerAction>, With<Player>>, mut axis: ResMut<InputAxis>) {
+    let input = query.single();
+
+    let left = input.pressed(PlayerAction::RunLeft);
+    let right = input.pressed(PlayerAction::RunRight);
 
     let x = -(left as i8) + right as i8;
 
@@ -265,7 +262,7 @@ pub fn update_movement_animation_timer_duration(
     mut timer: ResMut<AnimationTimer>,
 ) {
     if velocity.x != 0. {
-        let time = 20. / velocity.x.abs();
+        let time = 100. / velocity.x.abs();
 
         timer.set_duration(Duration::from_millis(time.max(1.) as u64));
     }
@@ -314,11 +311,13 @@ pub fn walking_animation(
 }
 
 pub fn player_using_item(
-    input: Res<Input<MouseButton>>,
+    query: Query<&ActionState<PlayerAction>, With<Player>>,
     selected_item: Res<SelectedItem>,
     mut anim: ResMut<UseItemAnimation>,
 ) {
-    let using_item = input.pressed(MouseButton::Left) && selected_item.is_some();
+    let input = query.single();
+
+    let using_item = input.pressed(PlayerAction::UseItem) && selected_item.is_some();
 
     if using_item {
         anim.0 = true;
@@ -432,29 +431,24 @@ pub fn use_item_animation(
 
 
 pub fn current_speed(
-    diagnostics: Res<Diagnostics>,
     velocity: Res<PlayerVelocity>
 ) {
-    let diagnostic = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS).unwrap();
+    let factor = (60. * 3600.) / 42240.;
+    let velocity_x = velocity.x.abs() as f64 * factor;
+    let velocity_y = velocity.y.abs() as f64 * factor;
 
-    if let Some(fps) = diagnostic.value() {
-        let factor = (fps * 3600.) / 42240.;
-        let velocity_x = velocity.x.abs() as f64 * factor;
-        let velocity_y = velocity.y.abs() as f64 * factor;
+    if velocity_x > 0. {
+        info!(
+            target: "speed",
+            horizontal = velocity_x,
+        );
+    }
 
-        if velocity_x > 0. {
-            info!(
-                target: "speed",
-                horizontal = velocity_x,
-            );
-        }
-
-        if velocity_y > 0. {
-            info!(
-                target: "speed",
-                vertical = velocity_y,
-            );
-        }
+    if velocity_y > 0. {
+        info!(
+            target: "speed",
+            vertical = velocity_y,
+        );
     }
 }
 
