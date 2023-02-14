@@ -5,7 +5,7 @@ use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveE
 use interpolation::EaseFunction;
 use iyes_loopless::state::NextState;
 
-use crate::{animation::{Tween, Animator, AnimatorState, TweeningDirection, RepeatStrategy, Tweenable, EaseMethod, RepeatCount}, lens::{TextFontSizeLens, TransformLens}, parallax::ParallaxCameraComponent, plugins::{camera::MainCamera, assets::{FontAssets, UiAssets}}, TEXT_COLOR, state::GameState, language::LanguageContent};
+use crate::{animation::{Tween, Animator, AnimatorState, TweeningDirection, RepeatStrategy, Tweenable, EaseMethod, RepeatCount}, lens::{TextFontSizeLens, TransformLens}, parallax::ParallaxCameraComponent, plugins::{camera::MainCamera, assets::{FontAssets, UiAssets}, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor}}, TEXT_COLOR, state::GameState, language::LanguageContent};
 
 use super::{Menu, SinglePlayerButton, SettingsButton, ExitButton};
 
@@ -16,14 +16,14 @@ pub fn despawn_with<C: Component>(query: Query<Entity, With<C>>, mut commands: C
 }
 
 #[inline(always)]
-pub fn text_tween() -> Tween<Text> {
+pub fn text_tween(initial_font_size: f32) -> Tween<Text> {
     Tween::new(
         EaseMethod::Linear,
         RepeatStrategy::MirroredRepeat,
         Duration::from_millis(200),
         TextFontSizeLens {
-            start: 48.,
-            end: 52.,
+            start: initial_font_size,
+            end: initial_font_size * 1.1,
         },
     )
 }
@@ -37,12 +37,12 @@ pub fn setup_camera(mut commands: Commands) {
 
 #[autodefault]
 pub fn menu_button(
-    children: &mut ChildBuilder,
+    builder: &mut ChildBuilder,
     text_style: TextStyle,
     button_name: String,
     marker: impl Component,
 ) {
-    children
+    builder
         .spawn(NodeBundle {
             style: Style {
                 justify_content: JustifyContent::Center,
@@ -51,8 +51,8 @@ pub fn menu_button(
             },
             focus_policy: FocusPolicy::Pass
         })
-        .with_children(|c| {
-            c.spawn(TextBundle {
+        .with_children(|b| {
+            b.spawn(TextBundle {
                 style: Style {
                     position_type: PositionType::Absolute
                 },
@@ -60,7 +60,7 @@ pub fn menu_button(
             })
             .insert(Button)
             .insert(Interaction::default())
-            .insert(Animator::new(text_tween()).with_state(AnimatorState::Paused))
+            .insert(Animator::new(text_tween(text_style.font_size)).with_state(AnimatorState::Paused))
             .insert(marker);
         });
 }
@@ -188,10 +188,29 @@ pub fn update_buttons(
     }
 }
 
-pub fn single_player_btn(mut commands: Commands) {
+pub fn single_player_clicked(mut commands: Commands) {
     commands.insert_resource(NextState(GameState::WorldLoading));
 }
 
-pub fn exit_btn(mut ev: EventWriter<AppExit>) {
+pub fn settings_clicked(mut commands: Commands) {
+    commands.insert_resource(NextState(GameState::Settings));
+}
+
+pub fn exit_clicked(
+    mut ev: EventWriter<AppExit>,
+    fullscreen: Res<FullScreen>,
+    show_tile_grid: Res<ShowTileGrid>,
+    vsync: Res<VSync>,
+    resolution: Res<Resolution>,
+    cursor_color: Res<CursorColor>,
+) {
     ev.send(AppExit);
+
+    crate::plugins::settings::save_settings(Settings {
+        full_screen: fullscreen.0,
+        show_tile_grid: show_tile_grid.0,
+        vsync: vsync.0,
+        resolution: *resolution,
+        cursor_color: cursor_color.0
+    });
 }

@@ -2,10 +2,7 @@
 
 use std::error::Error;
 
-use bevy::{
-    prelude::*,
-    window::{PresentMode, WindowMode},
-};
+use bevy::prelude::*;
 use bevy_ecs_tilemap::TilemapPlugin;
 use bevy_hanabi::HanabiPlugin;
 use game::{
@@ -14,8 +11,8 @@ use game::{
     state::GameState, 
     plugins::{
         assets::AssetsPlugin, cursor::CursorPlugin, camera::CameraPlugin, background::BackgroundPlugin, 
-        ui::PlayerUiPlugin, settings::SettingsPlugin, menu::MenuPlugin, world::WorldPlugin, 
-        inventory::PlayerInventoryPlugin, fps::FpsPlugin
+        ui::PlayerUiPlugin, settings::{SettingsPlugin, Resolution, VSync, FullScreen}, menu::MenuPlugin, world::WorldPlugin, 
+        inventory::PlayerInventoryPlugin, fps::FpsPlugin, settings_menu::{SettingsMenuState, SettingsMenuPlugin}
     }, 
     language::{load_language, Language},
 };
@@ -29,15 +26,23 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut app = App::new();
 
+    app.add_plugin(SettingsPlugin);
+
+    let resolution = app.world.resource::<Resolution>();
+    let vsync = app.world.resource::<VSync>();
+    let fullscreen = app.world.resource::<FullScreen>();
+
     app
         .add_plugins(DefaultPlugins
             .set(WindowPlugin {
                 window: WindowDescriptor {
+                    width: resolution.width,
+                    height: resolution.height,
                     title: title.to_owned(),
-                    present_mode: PresentMode::Immediate,
+                    present_mode: vsync.as_present_mode(),
                     cursor_visible: false,
                     position: WindowPosition::Centered,
-                    mode: WindowMode::Windowed,
+                    mode: fullscreen.as_window_mode(),
                     ..default()
                 },
                 ..default()
@@ -56,16 +61,17 @@ fn main() -> Result<(), Box<dyn Error>> {
             244. / 255.,
         )))
         .add_loopless_state(GameState::AssetLoading)
+        .add_loopless_state(SettingsMenuState::None)
         .add_plugin(TweeningPlugin)
         .add_plugin(TilemapPlugin)
         .add_plugin(AssetsPlugin)
         .add_plugin(CursorPlugin)
+        .add_plugin(SettingsMenuPlugin)
         .add_plugin(CameraPlugin)
         .add_plugin(ParallaxPlugin { initial_speed: 0.2 })
         .add_plugin(HanabiPlugin)
         .add_plugin(BackgroundPlugin)
         .add_plugin(PlayerUiPlugin)
-        .add_plugin(SettingsPlugin)
         .add_plugin(MenuPlugin)
         .add_plugin(WorldPlugin)
         .add_plugin(PlayerInventoryPlugin)

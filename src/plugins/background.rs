@@ -16,8 +16,9 @@ pub struct BackgroundPlugin;
 
 impl Plugin for BackgroundPlugin {
     fn build(&self, app: &mut App) {
-        app.add_enter_system(GameState::MainMenu, setup_main_menu_background)
-            .add_exit_system(GameState::MainMenu, despawn_background)
+        app
+            .add_enter_system(GameState::MainMenu, setup_main_menu_background)
+            .add_enter_system(GameState::InGame, despawn_background)
             .add_enter_system(GameState::InGame, setup_game_background)
             .add_exit_system(GameState::InGame, despawn_background)
             .add_enter_system(GameState::MainMenu, spawn_stars)

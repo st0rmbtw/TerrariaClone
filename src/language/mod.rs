@@ -26,7 +26,14 @@ pub struct UI {
     pub inventory: String,
     pub settings: String,
     pub single_player: String,
-    pub exit: String
+    pub interface: String,
+    pub video: String,
+    pub tile_grid: String,
+    pub cursor: String,
+    pub exit: String,
+    pub on: String,
+    pub off: String,
+    pub back: String
 }
 
 #[derive(Debug, Deserialize, Clone)]
