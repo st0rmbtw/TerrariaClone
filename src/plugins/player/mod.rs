@@ -353,6 +353,7 @@ pub fn spawn_player(
                 ChangeFlip,
                 PlayerBodySprite,
                 Name::new("Using item"),
+                UsedItem,
                 SpriteBundle {
                     sprite: Sprite {
                         anchor: Anchor::BottomLeft,
