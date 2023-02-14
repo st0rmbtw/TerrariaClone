@@ -1,4 +1,5 @@
 use bevy::{prelude::{Deref, DerefMut, Resource}, time::Timer};
+use leafwing_input_manager::Actionlike;
 
 use crate::Velocity;
 
@@ -29,16 +30,18 @@ pub struct UseItemAnimationIndex(pub usize);
 pub struct PlayerVelocity(pub Velocity);
 
 #[derive(Resource, Clone, Copy, Default)]
-pub struct PlayerController {
+pub struct PlayerData {
     pub jump: i32,
-    // The distance of player's fall in pixels
+    // The distance of player's fall in tiles
     pub fall_distance: f32
 }
 
-impl PlayerController {
-    pub fn fall_distance_in_tiles(&self) -> f32 {
-        (self.fall_distance / 16.).round()
-    }
+#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug)]
+pub enum PlayerAction {
+    RunLeft,
+    RunRight,
+    Jump,
+    UseItem,
 }
 
 #[derive(Debug, Resource, Clone, Copy, Default)]

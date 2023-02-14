@@ -162,9 +162,7 @@ pub mod labels {
     pub enum PlayerLabel {
         HorizontalMovement,
         Jump,
-        Gravity,
-        Collide,
-        MovePlayer,
+        Update
     }
 }
 
