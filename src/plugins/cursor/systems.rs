@@ -22,7 +22,7 @@ use crate::{
         assets::{FontAssets, CursorAssets, UiAssets}, 
         camera::MainCamera, 
         ui::UiVisibility, 
-        world::TILE_SIZE
+        world::TILE_SIZE, settings::{ShowTileGrid, CursorColor}
     }, 
     animation::{Tween, TweeningType, TransformScaleLens, Animator}, 
     lens::BackgroundColorLens,
@@ -35,7 +35,12 @@ use crate::plugins::player::{PlayerVelocity, MAX_RUN_SPEED, MAX_FALL_SPEED};
 use super::{HoveredInfoMarker, CursorContainer, CursorForeground, CursorBackground, TileGrid, MAX_TILE_GRID_OPACITY, CursorPosition, HoveredInfo, MIN_TILE_GRID_OPACITY};
 
 #[autodefault(except(TransformScaleLens, BackgroundColorLens))]
-pub fn setup(mut commands: Commands, cursor_assets: Res<CursorAssets>, fonts: Res<FontAssets>) {
+pub fn setup(
+    mut commands: Commands, 
+    cursor_assets: Res<CursorAssets>, 
+    fonts: Res<FontAssets>,
+    cursor_color: Res<CursorColor>
+) {
     let animate_scale = Tween::new(
         EaseFunction::QuadraticInOut,
         TweeningType::PingPong,
@@ -96,7 +101,7 @@ pub fn setup(mut commands: Commands, cursor_assets: Res<CursorAssets>, fonts: Re
                     },
                     focus_policy: FocusPolicy::Pass,
                     image: cursor_assets.cursor.clone().into(),
-                    background_color: Color::PINK.into(),
+                    background_color: cursor_color.0.into(),
                 })
                 .insert(CursorForeground)
                 .insert(Animator::new(animate_color));
@@ -125,7 +130,10 @@ pub fn setup(mut commands: Commands, cursor_assets: Res<CursorAssets>, fonts: Re
 }
 
 #[autodefault]
-pub fn spawn_tile_grid(mut commands: Commands, ui_assets: Res<UiAssets>) {
+pub fn spawn_tile_grid(
+    mut commands: Commands, 
+    ui_assets: Res<UiAssets>
+) {
     commands
         .spawn(SpriteBundle {
             sprite: Sprite {
@@ -133,6 +141,7 @@ pub fn spawn_tile_grid(mut commands: Commands, ui_assets: Res<UiAssets>) {
             },
             texture: ui_assets.radial.clone().into(),
             transform: Transform::from_xyz(0., 0., 5.),
+            visibility: Visibility::INVISIBLE
         })
         .insert(TileGrid);
 }
@@ -228,4 +237,13 @@ pub fn update_tile_grid_opacity(
     };
 
     sprite.color = *sprite.color.set_a(opacity.clamp(0., MAX_TILE_GRID_OPACITY));
+}
+
+pub fn update_tile_grid_visibility(
+    mut tile_grid: Query<&mut Visibility, With<TileGrid>>,
+    show_tile_grid: Res<ShowTileGrid>
+) {
+    let mut visibility = tile_grid.single_mut();
+
+    visibility.is_visible = show_tile_grid.0;
 }

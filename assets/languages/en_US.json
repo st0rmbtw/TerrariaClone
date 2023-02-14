@@ -68,6 +68,13 @@
 		"Items": "Items",
 		"Settings": "Settings",
 		"SinglePlayer": "Single Player",
-		"Exit": "Exit"
+		"Interface": "Interface",
+		"Video": "Video",
+		"Cursor": "Cursor",
+		"TileGrid": "Tile Grid",
+		"Exit": "Exit",
+		"On": "On",
+		"Off": "Off",
+		"Back": "Back"
 	}
 }

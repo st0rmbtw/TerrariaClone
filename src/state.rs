@@ -8,6 +8,7 @@ pub enum GameState {
     WorldLoading,
     InGame,
     Paused,
+    Settings
 }
 
 #[derive(Default, Clone, Copy, PartialEq, Eq, Component, InspectorOptions)]

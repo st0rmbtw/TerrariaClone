@@ -10,6 +10,7 @@ pub mod settings;
 pub mod camera;
 pub mod ui;
 pub mod world;
+pub mod settings_menu;
 
 #[cfg(feature = "debug")]
 pub mod debug;
