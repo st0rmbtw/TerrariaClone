@@ -25,13 +25,14 @@ pub struct Settings {
     pub cursor_color: Color
 }
 
+
 impl Default for Settings {
     fn default() -> Self {
         Self { 
             full_screen: false,
             show_tile_grid: false,
             vsync: true,
-            resolution: Resolution { width: 1920., height: 1080. },
+            resolution: RESOLUTIONS[16],
             cursor_color: Color::PINK
         }
     }
@@ -89,4 +90,94 @@ impl Plugin for SettingsPlugin {
             .insert_resource(CursorColor(settings.cursor_color))
             .insert_resource(settings.resolution);
     }
+}
+
+lazy_static! {
+    pub static ref RESOLUTIONS: Vec<Resolution> = vec![
+        Resolution {
+            width: 800.,
+            height: 600.,
+            index: 0
+        },
+        Resolution {
+            width: 1024.,
+            height: 768.,
+            index: 1
+        },
+        Resolution {
+            width: 1152.,
+            height: 864.,
+            index: 2
+        },
+        Resolution {
+            width: 1176.,
+            height: 664.,
+            index: 3
+        },
+        Resolution {
+            width: 1280.,
+            height: 720.,
+            index: 4
+        },
+        Resolution {
+            width: 1280.,
+            height: 768.,
+            index: 5
+        },
+        Resolution {
+            width: 1280.,
+            height: 800.,
+            index: 6
+        },
+        Resolution {
+            width: 1280.,
+            height: 960.,
+            index: 7
+        },
+        Resolution {
+            width: 1280.,
+            height: 1024.,
+            index: 8
+        },
+        Resolution {
+            width: 1360.,
+            height: 768.,
+            index: 9
+        },
+        Resolution {
+            width: 1366.,
+            height: 768.,
+            index: 10
+        },
+        Resolution {
+            width: 1440.,
+            height: 900.,
+            index: 11
+        },
+        Resolution {
+            width: 1600.,
+            height: 900.,
+            index: 12
+        },
+        Resolution {
+            width: 1600.,
+            height: 1024.,
+            index: 13
+        },
+        Resolution {
+            width: 1680.,
+            height: 1050.,
+            index: 14
+        },
+        Resolution {
+            width: 1680.,
+            height: 1050.,
+            index: 15
+        },
+        Resolution {
+            width: 1920.,
+            height: 1080.,
+            index: 16
+        }
+    ];
 }

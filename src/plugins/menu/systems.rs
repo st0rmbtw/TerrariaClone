@@ -65,6 +65,55 @@ pub fn menu_button(
         });
 }
 
+#[autodefault]
+pub fn control_buttons_layout(
+    builder: &mut ChildBuilder,
+    spawn_builder: impl FnOnce(&mut ChildBuilder)
+) {
+    builder
+        .spawn(NodeBundle {
+            style: Style {
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                flex_direction: FlexDirection::Column,
+                margin: UiRect::top(Val::Px(10.)),
+            },
+            focus_policy: FocusPolicy::Pass
+        }).with_children(spawn_builder);
+}
+
+#[autodefault]
+pub fn control_button(
+    builder: &mut ChildBuilder,
+    text_style: TextStyle,
+    name: String,
+    marker: impl Component
+) {
+    const FONT_SIZE: f32 = 52.;
+
+    builder
+        .spawn(NodeBundle {
+            style: Style {
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                margin: UiRect::vertical(Val::Px(40.)),
+            },
+            focus_policy: FocusPolicy::Pass
+        })
+        .with_children(|b| {
+            b.spawn(TextBundle {
+                style: Style {
+                    position_type: PositionType::Absolute,
+                },
+                text: Text::from_section(name, TextStyle { font_size: FONT_SIZE, ..text_style }),
+            })
+            .insert(Button)
+            .insert(Interaction::default())
+            .insert(Animator::new(text_tween(FONT_SIZE)).with_state(AnimatorState::Paused))
+            .insert(marker);
+        });
+}
+
 pub fn setup_main_menu(
     mut commands: Commands, 
     fonts: Res<FontAssets>,
@@ -73,7 +122,7 @@ pub fn setup_main_menu(
 ) {
     let text_style = TextStyle {
         font: fonts.andy_bold.clone(),
-        font_size: 48.,
+        font_size: 54.,
         color: TEXT_COLOR,
     };
 

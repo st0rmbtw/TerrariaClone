@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "PascalCase")]
 pub struct Resolution {
     pub width: f32,
-    pub height: f32
+    pub height: f32,
+    pub index: i32
 }
 
 #[derive(Resource)]
