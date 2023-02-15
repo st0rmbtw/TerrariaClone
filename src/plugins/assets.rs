@@ -281,6 +281,15 @@ pub struct SoundAssets {
 
     #[asset(path = "sounds/Menu_Close.wav")]
     pub menu_close: Handle<AudioSource>,
+
+    #[asset(path = "sounds/Swing_1.wav")]
+    pub swing_1: Handle<AudioSource>,
+
+    #[asset(path = "sounds/Swing_2.wav")]
+    pub swing_2: Handle<AudioSource>,
+
+    #[asset(path = "sounds/Swing_3.wav")]
+    pub swing_3: Handle<AudioSource>,
 }
 
 impl WallAssets {

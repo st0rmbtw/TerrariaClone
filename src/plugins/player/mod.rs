@@ -105,8 +105,7 @@ impl Plugin for PlayerPlugin {
                     .with_system(player_using_item)
                     .with_system(set_using_item_visibility)
                     .into()
-            )
-            .add_fixed_timestep(Duration::from_secs_f32(1. / 60.), "fixed_update");
+            );
 
         #[cfg(not(feature = "debug_movement"))] {
             app

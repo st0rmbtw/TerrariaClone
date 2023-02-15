@@ -4,7 +4,7 @@ mod systems;
 
 use bevy::{ui::{Val, Size}, prelude::{KeyCode, Plugin, App}, utils::HashMap};
 pub use components::*;
-use iyes_loopless::prelude::ConditionSet;
+use iyes_loopless::prelude::{ConditionSet, AppLooplessFixedTimestepExt, IntoConditionalSystem};
 pub use resources::*;
 pub use systems::*;
 
@@ -53,11 +53,11 @@ impl Plugin for PlayerInventoryPlugin {
                 ConditionSet::new()
                     .run_in_state(GameState::InGame)
                     .with_system(scroll_select_item)
-                    .with_system(select_item)
+                    .with_system(select_cell)
                     .with_system(set_selected_item)
-                    .with_system(use_item)
                     .into(),
             )
+            .add_fixed_timestep_system("fixed_update", 0, use_item.run_in_state(GameState::InGame))
             .add_system_set(
                 ConditionSet::new()
                     .run_in_state(GameState::InGame)
