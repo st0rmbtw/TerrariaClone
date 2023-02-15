@@ -1,11 +1,11 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveExt, Camera2dBundle, ChildBuilder, NodeBundle, BuildChildren, TextBundle, Button, Res, default, Changed, EventWriter, Color}, text::{Text, TextStyle}, ui::{Style, JustifyContent, AlignItems, UiRect, FocusPolicy, PositionType, Interaction, Size, Val, FlexDirection}, app::AppExit};
+use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveExt, Camera2dBundle, ChildBuilder, NodeBundle, BuildChildren, TextBundle, Button, Res, default, Changed, EventWriter, Color, Audio}, text::{Text, TextStyle}, ui::{Style, JustifyContent, AlignItems, UiRect, FocusPolicy, PositionType, Interaction, Size, Val, FlexDirection}, app::AppExit};
 use interpolation::EaseFunction;
 use iyes_loopless::state::NextState;
 
-use crate::{animation::{Tween, TweeningType, Animator, AnimatorState, TweeningDirection}, lens::TextFontSizeLens, parallax::ParallaxCameraComponent, plugins::{camera::MainCamera, assets::FontAssets, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor}}, TEXT_COLOR, state::GameState, language::LanguageContent};
+use crate::{animation::{Tween, TweeningType, Animator, AnimatorState, TweeningDirection}, lens::TextFontSizeLens, parallax::ParallaxCameraComponent, plugins::{camera::MainCamera, assets::{FontAssets, SoundAssets}, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor}}, TEXT_COLOR, state::GameState, language::LanguageContent};
 
 use super::{Menu, SinglePlayerButton, SettingsButton, ExitButton};
 
@@ -173,11 +173,15 @@ pub fn update_buttons(
         (&Interaction, &mut Text, &mut Animator<Text>),
         (With<Button>, Changed<Interaction>),
     >,
+    audio: Res<Audio>,
+    sounds: Res<SoundAssets>
 ) {
     for (interaction, mut text, mut animator) in query.iter_mut() {
 
         match interaction {
             Interaction::Hovered => {
+                audio.play(sounds.menu_tick.clone());
+
                 text.sections[0].style.color = Color::YELLOW;
 
                 animator.start();
