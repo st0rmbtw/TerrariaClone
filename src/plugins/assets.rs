@@ -1,5 +1,5 @@
 use bevy::ecs::world::Mut;
-use bevy::prelude::Resource;
+use bevy::prelude::{Resource, AudioSource};
 use bevy::{
     asset::HandleUntyped,
     math::Vec2,
@@ -28,7 +28,8 @@ impl Plugin for AssetsPlugin {
                 .with_collection::<ItemAssets>()
                 .with_collection::<CursorAssets>()
                 .with_collection::<BackgroundAssets>()
-                .with_collection::<WallAssets>(),
+                .with_collection::<WallAssets>()
+                .with_collection::<SoundAssets>(),
         )
         .add_exit_system(GameState::AssetLoading, setup);
     }
@@ -268,6 +269,18 @@ handles! {
         #[asset(path = "sprites/walls/Walls.png")]
         pub walls: Handle<Image>,
     }
+}
+
+#[derive(Resource, AssetCollection)]
+pub struct SoundAssets {
+    #[asset(path = "sounds/Menu_Tick.wav")]
+    pub menu_tick: Handle<AudioSource>,
+
+    #[asset(path = "sounds/Menu_Open.wav")]
+    pub menu_open: Handle<AudioSource>,
+
+    #[asset(path = "sounds/Menu_Close.wav")]
+    pub menu_close: Handle<AudioSource>,
 }
 
 impl WallAssets {

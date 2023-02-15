@@ -1,7 +1,7 @@
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Res, NodeBundle, Name, Input, BuildChildren, EventWriter, ResMut, KeyCode, Query, Visibility, With}, ui::{Style, Size, FlexDirection, Val, JustifyContent, AlignItems, UiRect}};
+use bevy::{prelude::{Commands, Res, NodeBundle, Name, Input, BuildChildren, EventWriter, ResMut, KeyCode, Query, Visibility, With, Audio}, ui::{Style, Size, FlexDirection, Val, JustifyContent, AlignItems, UiRect}};
 
-use crate::{plugins::{assets::{FontAssets, UiAssets}, fps::spawn_fps_text, inventory::spawn_inventory_ui, settings::spawn_ingame_settings_button}, language::LanguageContent};
+use crate::{plugins::{assets::{FontAssets, UiAssets, SoundAssets}, fps::spawn_fps_text, inventory::spawn_inventory_ui, settings::spawn_ingame_settings_button}, language::LanguageContent};
 
 use super::{MainUiContainer, ToggleExtraUiEvent, ExtraUiVisibility, UiVisibility};
 
@@ -94,11 +94,19 @@ pub fn toggle_extra_ui(
     input: Res<Input<KeyCode>>,
     mut events: EventWriter<ToggleExtraUiEvent>,
     mut extra_ui_visibility: ResMut<ExtraUiVisibility>,
+    sounds: Res<SoundAssets>,
+    audio: Res<Audio>
 ) {
     if input.just_pressed(KeyCode::Escape) {
         let visibility = !extra_ui_visibility.0;
         extra_ui_visibility.0 = visibility;
         events.send(ToggleExtraUiEvent(visibility));
+
+        if visibility {
+            audio.play(sounds.menu_open.clone());
+        } else {
+            audio.play(sounds.menu_close.clone());
+        }
     }
 }
 

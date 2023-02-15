@@ -7,7 +7,7 @@ authors = ["st0rmbtw"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = { version = "0.9.1", features = ["dynamic"] }
+bevy = { version = "0.9.1", features = ["dynamic", "wav"] }
 bevy_asset_loader = { version = "0.14.1", features = ["2d", "stageless"] }
 lazy_static = "1.4.0"
 rand = "0.8.5"
