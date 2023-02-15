@@ -2,12 +2,13 @@ use bevy::{prelude::*, math::Vec3Swizzles};
 use bevy_ecs_tilemap::tiles::TilePos;
 use bevy_hanabi::prelude::*;
 use leafwing_input_manager::prelude::ActionState;
+use rand::seq::SliceRandom;
 
 use crate::{
     state::MovementState,
     plugins::{
         world::{WorldData, TILE_SIZE}, 
-        assets::ItemAssets, 
+        assets::{ItemAssets, SoundAssets}, 
         inventory::SelectedItem,
     }, 
     world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}, 
@@ -410,8 +411,15 @@ pub fn update_use_item_animation_index(
     mut index: ResMut<UseItemAnimationIndex>,
     mut timer: ResMut<UseItemAnimationTimer>,
     mut anim: ResMut<UseItemAnimation>,
+    sounds: Res<SoundAssets>,
+    audio: Res<Audio>
 ) {
     if timer.tick(time.delta()).just_finished() {
+        if index.0 == 0 {
+            let sound = vec![sounds.swing_1.clone(), sounds.swing_2.clone(), sounds.swing_3.clone()]; 
+            audio.play(sound.choose(&mut rand::thread_rng()).unwrap().clone());
+        }
+
         index.0 = (index.0 + 1) % USE_ITEM_ANIMATION_FRAMES_COUNT;
     }
 
@@ -428,7 +436,6 @@ pub fn use_item_animation(
         sprite.index = anim_data.0 + index.0;
     });
 }
-
 
 pub fn current_speed(
     velocity: Res<PlayerVelocity>
