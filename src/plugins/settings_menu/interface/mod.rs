@@ -6,9 +6,9 @@ use autodefault::autodefault;
 use bevy::{prelude::{Commands, Res, NodeBundle, BuildChildren, With, Query, ResMut, Component}, text::{TextStyle, Text}, ui::{Style, Size, Val, JustifyContent, AlignItems, FlexDirection}};
 use iyes_loopless::state::NextState;
 
-use crate::{plugins::{assets::FontAssets, menu::menu_button, settings::ShowTileGrid}, language::LanguageContent, TEXT_COLOR, state::GameState};
+use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button}, settings::ShowTileGrid}, language::LanguageContent, TEXT_COLOR, state::GameState};
 
-use super::{BackButton, SettingsMenuState};
+use super::{SettingsMenuState, MENU_BUTTON_FONT_SIZE, BackButton};
 
 #[derive(Component)]
 pub struct InterfaceMenu;
@@ -21,7 +21,7 @@ pub fn setup_interface_menu(
 ) {
     let text_style = TextStyle {
         font: fonts.andy_bold.clone(),
-        font_size: 44.,
+        font_size: MENU_BUTTON_FONT_SIZE,
         color: TEXT_COLOR,
     };
 
@@ -39,7 +39,10 @@ pub fn setup_interface_menu(
     .insert(InterfaceMenu)
     .with_children(|builder| {
         menu_button(builder, text_style.clone(), language_content.ui.tile_grid.clone(), ToggleTileGridButton);
-        menu_button(builder, text_style.clone(), language_content.ui.back.clone(), BackButton);
+
+        control_buttons_layout(builder, |control_button_builder| {
+            control_button(control_button_builder, text_style.clone(), language_content.ui.back.clone(), BackButton);
+        });
     });
 }
 

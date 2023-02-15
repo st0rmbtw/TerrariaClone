@@ -33,7 +33,13 @@ pub struct UI {
     pub exit: String,
     pub on: String,
     pub off: String,
-    pub back: String
+    pub back: String,
+    pub apply: String,
+    pub resolution: String,
+    pub full_screen: String,
+    #[serde(rename = "VSync")]
+    pub vsync: String,
+    pub full_screen_resolution: String
 }
 
 #[derive(Debug, Deserialize, Clone)]

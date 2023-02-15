@@ -75,6 +75,11 @@
 		"Exit": "Exit",
 		"On": "On",
 		"Off": "Off",
-		"Back": "Back"
+		"Back": "Back",
+		"Apply": "Apply",
+		"Resolution": "Resolution",
+		"FullScreen": "Fullscreen",
+		"FullScreenResolution": "Fullscreen Resolution",
+		"VSync": "VSync"
 	}
 }

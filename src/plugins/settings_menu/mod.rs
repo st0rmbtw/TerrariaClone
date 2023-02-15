@@ -1,11 +1,12 @@
 mod buttons;
 pub mod interface;
+pub mod video;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Res, NodeBundle, BuildChildren, Plugin, App, Component}, text::{TextStyle}, ui::{Style, Size, Val, JustifyContent, AlignItems, FlexDirection}};
+use bevy::{prelude::{Commands, Res, NodeBundle, BuildChildren, Plugin, App, Component}, text::TextStyle, ui::{Style, Size, Val, JustifyContent, AlignItems, FlexDirection}};
 use iyes_loopless::{state::NextState, prelude::{AppLooplessStateExt, IntoConditionalSystem, ConditionSet}};
 
-use crate::{plugins::{assets::FontAssets, menu::menu_button}, language::LanguageContent, TEXT_COLOR, state::{GameState}, util::on_btn_clicked};
+use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button}}, language::LanguageContent, TEXT_COLOR, state::GameState, util::on_btn_clicked};
 
 use self::buttons::{InterfaceButton, VideoButton, CursorButton};
 
@@ -16,6 +17,7 @@ pub enum SettingsMenuState {
     Interface,
     Video,
     Cursor,
+    Resolution,
     None
 }
 
@@ -25,7 +27,12 @@ pub struct SettingsMenu;
 #[derive(Component)]
 pub struct BackButton;
 
+#[derive(Component)]
+pub struct ApplyButton;
+
 pub struct SettingsMenuPlugin;
+
+pub const MENU_BUTTON_FONT_SIZE: f32 = 42.;
 
 impl Plugin for SettingsMenuPlugin {
     fn build(&self, app: &mut App) {
@@ -54,7 +61,35 @@ impl Plugin for SettingsMenuPlugin {
                     .with_system(interface::toggle_tile_grid_clicked.run_if(on_btn_clicked::<interface::ToggleTileGridButton>))
                     .with_system(interface::back_clicked.run_if(on_btn_clicked::<BackButton>))
                     .into()
-            );
+            )
+            
+            // ------ Video -------
+            .add_enter_system(SettingsMenuState::Video, video::setup_video_menu)
+            .add_exit_system(SettingsMenuState::Video, despawn_with::<video::VideoMenu>)
+            .add_system_set(
+                ConditionSet::new()
+                    .run_in_state(SettingsMenuState::Video)
+                    .with_system(video::update_vsync_button_text)
+                    .with_system(video::resolution_clicked.run_if(on_btn_clicked::<video::ResolutionButton>))
+                    .with_system(video::vsync_clicked.run_if(on_btn_clicked::<video::VSyncButton>))
+                    .with_system(video::back_clicked.run_if(on_btn_clicked::<BackButton>))
+                    .into()
+            )
+            
+            // ----- Resolution -----
+            .add_enter_system(SettingsMenuState::Resolution, video::resolution::setup_resolution_menu)
+            .add_exit_system(SettingsMenuState::Resolution, despawn_with::<video::resolution::ResolutionMenu>)
+            .add_system_set(
+                ConditionSet::new()
+                    .run_in_state(SettingsMenuState::Resolution)
+                    .with_system(video::resolution::update_fullscreen_resolution_button_text)
+                    .with_system(video::resolution::update_resolution_button_text)
+                    .with_system(video::resolution::fullscreen_resolution_clicked.run_if(on_btn_clicked::<video::resolution::FullScreenResolutionButton>))
+                    .with_system(video::resolution::fullscreen_clicked.run_if(on_btn_clicked::<video::resolution::FullScreenButton>))
+                    .with_system(video::resolution::apply_clicked.run_if(on_btn_clicked::<ApplyButton>))
+                    .with_system(video::resolution::back_clicked.run_if(on_btn_clicked::<BackButton>))
+                    .into()
+            );  
     }
 }
 
@@ -66,7 +101,7 @@ pub fn setup_settings_menu(
 ) {
     let text_style = TextStyle {
         font: fonts.andy_bold.clone(),
-        font_size: 44.,
+        font_size: MENU_BUTTON_FONT_SIZE,
         color: TEXT_COLOR,
     };
 
@@ -87,7 +122,10 @@ pub fn setup_settings_menu(
         menu_button(builder, text_style.clone(), language_content.ui.interface.clone(), InterfaceButton);
         menu_button(builder, text_style.clone(), language_content.ui.video.clone(), VideoButton);
         menu_button(builder, text_style.clone(), language_content.ui.cursor.clone(), CursorButton);
-        menu_button(builder, text_style.clone(), language_content.ui.back.clone(), BackButton)
+
+        control_buttons_layout(builder, |control_button_builder| {
+            control_button(control_button_builder, text_style.clone(), language_content.ui.back.clone(), BackButton);
+        });
     });
 }
 
@@ -96,9 +134,8 @@ pub fn interface_clicked(mut commands: Commands) {
     commands.insert_resource(NextState(SettingsMenuState::Interface));
 }
 
-pub fn video_clicked(/* mut commands: Commands */) {
-    // TODO: Implement Video menu
-    // commands.insert_resource(NextState(SettingsMenuState::Video));
+pub fn video_clicked(mut commands: Commands) {
+    commands.insert_resource(NextState(SettingsMenuState::Video));
 }
 
 pub fn cursor_clicked(/* mut commands: Commands */) {
