@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Query, Visibility, With, EventReader, Button, Name, Color, TextBundle, Entity, Commands, NodeBundle, BuildChildren, Changed}, ui::{Interaction, Style, UiRect, Val, AlignItems, JustifyContent, Size}, text::{TextAlignment, TextStyle, Text}};
+use bevy::{prelude::{Query, Visibility, With, EventReader, Name, Color, TextBundle, Entity, Commands, NodeBundle, BuildChildren, Changed}, ui::{Interaction, Style, UiRect, Val, AlignItems, JustifyContent, Size}, text::{TextAlignment, TextStyle, Text}};
 use interpolation::EaseFunction;
 
 use crate::{plugins::{ui::ToggleExtraUiEvent, assets::FontAssets}, animation::{Animator, Tween, TweeningDirection, RepeatStrategy, Tweenable}, lens::TextFontSizeLens, language::LanguageContent};
@@ -54,7 +54,6 @@ pub fn spawn_ingame_settings_button(
                 )
                 .with_alignment(TextAlignment::CENTER),
             })
-            .insert(Button)
             .insert(Name::new("Settings button"))
             .insert(Interaction::default())
             .insert(SettingsButtonText)
@@ -77,7 +76,7 @@ pub fn set_btn_visibility(
 pub fn update(
     mut query: Query<
         (&Interaction, &mut Animator<Text>),
-        (With<Button>, With<Text>, Changed<Interaction>),
+        (With<SettingsButtonText>, Changed<Interaction>),
     >,
 ) {
     for (interaction, mut animator) in query.iter_mut() {

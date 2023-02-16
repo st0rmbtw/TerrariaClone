@@ -1,6 +1,6 @@
 use std::{fs::OpenOptions, io::{BufReader, Write}};
 
-use bevy::prelude::{Plugin, App, Color};
+use bevy::{prelude::{Plugin, App, Color}, text::Text};
 use iyes_loopless::prelude::{ConditionSet, IntoConditionalSystem};
 use serde::{Deserialize, Serialize};
 
@@ -79,7 +79,7 @@ impl Plugin for SettingsPlugin {
                     .into(),
             )
             .add_system(
-                component_animator_system::<SettingsButtonText>
+                component_animator_system::<Text>
                     .run_in_state(GameState::InGame)
                     .label(AnimationSystem::AnimationUpdate)
             )
