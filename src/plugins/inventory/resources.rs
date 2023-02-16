@@ -2,6 +2,8 @@ use bevy::prelude::{Resource, Deref, DerefMut};
 
 use crate::items::ItemStack;
 
+use super::CELL_COUNT_IN_ROW;
+
 #[derive(Resource)]
 pub struct Inventory {
     pub(super) items: [Option<ItemStack>; 50],
@@ -31,9 +33,14 @@ impl Inventory {
         self.items[slot] = None;
     }
 
-    pub fn select_item(&mut self, slot: usize) {
-        assert!(slot <= 9);
-        self.selected_slot = slot;
+    /// Returns true if the `slot` to select is less then [`CELL_COUNT_IN_ROW`] and is not the same as the `selected_slot`
+    pub fn select_item(&mut self, slot: usize) -> bool {
+        if slot < CELL_COUNT_IN_ROW && slot != self.selected_slot {
+            self.selected_slot = slot;
+            return true;
+        }
+
+        return false;
     }
 
     pub fn selected_item(&self) -> Option<ItemStack> {
@@ -55,8 +62,10 @@ impl Inventory {
         for inv_item_option in self.items.iter_mut() {
             match inv_item_option {
                 Some(inv_item) if inv_item.item == item.item => {
-                    if (inv_item.stack + item.stack) < inv_item.item.max_stack() {
-                        inv_item.stack += item.stack;
+                    let new_stack = inv_item.stack + item.stack;
+
+                    if new_stack < inv_item.item.max_stack() {
+                        inv_item.stack += new_stack;
                     }
                     break;
                 },

@@ -253,7 +253,7 @@ pub fn update_selected_cell_image(
     }
 }
 
-pub fn select_cell(
+pub fn select_inventory_cell(
     mut inventory: ResMut<Inventory>, 
     input: Res<Input<KeyCode>>,
     sounds: Res<SoundAssets>,
@@ -264,13 +264,13 @@ pub fn select_cell(
         .find_map(|k| KEYCODE_TO_DIGIT.get(k));
 
     if let Some(index) = digit {
-        inventory.select_item(*index);
-
-        audio.play(sounds.menu_tick.clone());
+        if inventory.select_item(*index) {
+            audio.play(sounds.menu_tick.clone());
+        }
     }
 }
 
-pub fn scroll_select_item(
+pub fn scroll_select_inventory_item(
     mut inventory: ResMut<Inventory>, 
     mut events: EventReader<MouseWheel>,
     sounds: Res<SoundAssets>,

@@ -1,10 +1,10 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Query, Visibility, With, EventReader, Name, Color, TextBundle, Entity, Commands, NodeBundle, BuildChildren, Changed}, ui::{Interaction, Style, UiRect, Val, AlignItems, JustifyContent, Size}, text::{TextAlignment, TextStyle, Text}};
+use bevy::{prelude::{Query, Visibility, With, EventReader, Name, Color, TextBundle, Entity, Commands, NodeBundle, BuildChildren, Changed, Res, Audio}, ui::{Interaction, Style, UiRect, Val, AlignItems, JustifyContent, Size}, text::{TextAlignment, TextStyle, Text}};
 use interpolation::EaseFunction;
 
-use crate::{plugins::{ui::ToggleExtraUiEvent, assets::FontAssets}, animation::{Animator, Tween, TweeningType, TweeningDirection}, lens::TextFontSizeLens, language::LanguageContent};
+use crate::{plugins::{ui::ToggleExtraUiEvent, assets::{FontAssets, SoundAssets}}, animation::{Animator, Tween, TweeningType, TweeningDirection}, lens::TextFontSizeLens, language::LanguageContent};
 
 use super::{SettingsButtonContainer, SettingsButtonText};
 
@@ -78,10 +78,14 @@ pub fn update(
         (&Interaction, &mut Animator<Text>),
         (With<SettingsButtonText>, Changed<Interaction>),
     >,
+    audio: Res<Audio>,
+    sounds: Res<SoundAssets>
 ) {
     for (interaction, mut animator) in query.iter_mut() {
         match interaction {
             Interaction::Hovered => {
+                audio.play(sounds.menu_tick.clone());
+
                 animator.start();
 
                 let tweenable = animator.tweenable_mut();
