@@ -3,7 +3,7 @@ use std::{io::BufReader, fs::File, error::Error};
 use bevy::prelude::Resource;
 use serde::Deserialize;
 
-use crate::{items::Pickaxe, block::Block};
+use crate::items::{Pickaxe, Tool, Item, Block};
 
 pub enum Language {
     US
@@ -50,13 +50,26 @@ pub struct LanguageContent {
 }
 
 impl LanguageContent {
-    pub fn pickaxe_name(&self, pickaxe: Pickaxe) -> String {
+    pub fn name(&self, item: Item) -> String {
+        match item {
+            Item::Tool(tool) => self.tool_name(tool),
+            Item::Block(block) => self.block_name(block),
+        }
+    }
+
+    fn tool_name(&self, tool: Tool) -> String {
+        match tool {
+            Tool::Pickaxe(pickaxe) => self.pickaxe_name(pickaxe),
+        }
+    }
+
+    fn pickaxe_name(&self, pickaxe: Pickaxe) -> String {
         match pickaxe {
             Pickaxe::CopperPickaxe => self.items.copper_pickaxe.clone(),
         }
     }
 
-    pub fn block_name(&self, block: Block) -> String {
+    fn block_name(&self, block: Block) -> String {
         match block {
             Block::Dirt => self.items.dirt_block.clone(),
             Block::Stone => self.items.stone_block.clone(),

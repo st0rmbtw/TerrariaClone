@@ -1,6 +1,6 @@
 use bevy::prelude::{Color, Vec2};
 use bevy_ecs_tilemap::{tiles::TilePos, helpers::square_grid::neighbors::{Neighbors, SquareDirection}, prelude::SquarePos};
-use block::Block;
+use items::Block;
 use plugins::{world::MAP_SIZE, player::Collisions};
 use wall::Wall as WallType;
 use world_generator::{Tile, Cell, CellArray, Wall};
@@ -9,7 +9,6 @@ use world_generator::{Tile, Cell, CellArray, Wall};
 extern crate lazy_static;
 
 pub mod animation;
-pub mod block;
 pub mod items;
 pub mod lens;
 pub mod parallax;

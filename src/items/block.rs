@@ -15,4 +15,12 @@ impl Block {
             Block::Stone => true,
         }
     }
+
+    // Block hit points
+    pub fn hp(&self) -> usize {
+        match self {
+            Block::Dirt | Block::Grass => 50,
+            Block::Stone => 100,
+        } 
+    }
 }

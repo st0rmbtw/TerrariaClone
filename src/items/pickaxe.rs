@@ -6,9 +6,9 @@ pub enum Pickaxe {
 }
 
 impl Pickaxe {
-    pub fn name(&self, language_content: LanguageContent) -> String {
+    pub fn name(&self, language_content: &LanguageContent) -> String {
         match self {
-            Pickaxe::CopperPickaxe => language_content.items.copper_pickaxe,
+            Pickaxe::CopperPickaxe => language_content.items.copper_pickaxe.clone(),
         }
     }
 }

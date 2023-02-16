@@ -6,7 +6,7 @@ use bevy::{
     ui::Interaction,
 };
 
-use crate::{plugins::world::TILE_SIZE, block::Block, wall::Wall};
+use crate::{plugins::world::TILE_SIZE, wall::Wall, items::Block};
 
 pub trait Lerp<T> {
     fn lerp(self, other: T, t: f32) -> T;
@@ -167,19 +167,9 @@ pub fn move_towards(current: f32, target: f32, max_delta: f32) -> f32 {
 
 pub fn inverse_lerp(a: f32, b: f32, value: f32) -> f32 {
     if a != b {
-        return clamp01((value - a) / (b - a));
+        return ((value - a) / (b - a)).clamp(0., 1.)
     } else {
-        return 0.0;
-    }
-}
-
-fn clamp01(value: f32) -> f32 {
-    if value < 0. {
         return 0.;
-    } else if value > 1. {
-        return 1.;
-    } else {
-        return value;
     }
 }
 

@@ -1,36 +1,27 @@
 use bevy::{math::vec2, prelude::Vec2};
 
-use crate::{block::Block, language::LanguageContent};
-
-use super::Pickaxe;
+use super::{Pickaxe, Tool, Block};
 
 pub type ItemId = u16;
 pub type Stack = u16;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Item {
-    Pickaxe(Pickaxe),
+    Tool(Tool),
     Block(Block)
 }
 
 impl Item {
     pub fn consumable(&self) -> bool {
         match self {
-            Item::Pickaxe(_) => false,
+            Item::Tool(_) => false,
             _ => true
-        }
-    }
-
-    pub fn name(&self, language_content: &LanguageContent) -> String {
-        match self {
-            Item::Pickaxe(pickaxe) => language_content.pickaxe_name(*pickaxe),
-            Item::Block(block) => language_content.block_name(*block),
         }
     }
 
     pub fn max_stack(&self) -> Stack {
         match self {
-            Item::Pickaxe(_) => 1,
+            Item::Tool(_) => 1,
             Item::Block(_) => 999
         }
     }
@@ -44,10 +35,7 @@ pub struct ItemStack {
 
 impl ItemStack {
     pub fn with_stack(self, stack: Stack) -> Self {
-        Self { 
-            stack,
-            ..self
-        }
+        Self { stack, ..self }
     }
 }
 
@@ -55,7 +43,7 @@ pub struct Items;
 
 impl Items {
     pub const COPPER_PICKAXE: ItemStack = ItemStack {
-        item: Item::Pickaxe(Pickaxe::CopperPickaxe),
+        item: Item::Tool(Tool::Pickaxe(Pickaxe::CopperPickaxe)),
         stack: 1,
     };
 

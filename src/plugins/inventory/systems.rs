@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use autodefault::autodefault;
 use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color, MouseButton, EventWriter}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, Size, PositionType, AlignContent, Interaction, BackgroundColor, ZIndex}, text::{Text, TextStyle, TextAlignment}};
 
-use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets}, cursor::{HoveredInfo, CursorPosition}, world::BlockEvent}, util::{EntityCommandsExtensions, get_tile_coords}, language::LanguageContent, items::Item};
+use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets}, cursor::{HoveredInfo, CursorPosition}, world::BlockEvent}, util::{EntityCommandsExtensions, get_tile_coords}, language::LanguageContent, items::{Item, Tool}};
 
 use super::{Inventory, HOTBAR_LENGTH, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, KEYCODE_TO_DIGIT, CELL_COUNT_IN_ROW, INVENTORY_ROWS_COUNT, HotbarUi};
 
@@ -267,9 +267,8 @@ pub fn scroll_select_item(mut inventory: ResMut<Inventory>, mut events: EventRea
     for event in events.iter() {
         let selected_item_index = inventory.selected_slot as f32;
         let hotbar_length = HOTBAR_LENGTH as f32;
-        let new_index = (
-            ((selected_item_index + event.y.signum() * -1.) % hotbar_length) + hotbar_length
-        ) % hotbar_length;
+        let next_index = selected_item_index - event.y.signum();
+        let new_index = ((next_index % hotbar_length) + hotbar_length) % hotbar_length;
 
         inventory.select_item(new_index as usize);
     }
@@ -312,7 +311,7 @@ pub fn update_selected_item_name_text(
                 .map(|item_stack| item_stack.item);
 
             name
-                .map(|item| item.name(&language_content))
+                .map(|item| language_content.name(item))
                 .unwrap_or(language_content.ui.items.clone())
         }
     }
@@ -384,7 +383,7 @@ pub fn inventory_cell_background_hover(
             info.0 = match interaction {
                 Interaction::None => "".to_string(),
                 _ => {
-                    let mut name = item_stack.item.name(&language_content).to_owned();
+                    let mut name = language_content.name(item_stack.item).to_owned();
                     
                     if item_stack.stack > 1 {
                         name.push_str(&format!(" ({})", item_stack.stack.to_string()));
@@ -408,7 +407,7 @@ pub fn use_item(
 
         if let Some(item_stack) = inventory.selected_item() {
             match item_stack.item {
-                Item::Pickaxe(_) => {
+                Item::Tool(Tool::Pickaxe(_)) => {
                     let tile_pos = get_tile_coords(cursor.world_position);
                     block_events.send(
                         BlockEvent::Break { tile_pos }

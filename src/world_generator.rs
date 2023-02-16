@@ -4,7 +4,7 @@ use ndarray::prelude::*;
 use noise::{NoiseFn, OpenSimplex, Seedable, SuperSimplex};
 use rand::{rngs::StdRng, Rng, SeedableRng, thread_rng};
 
-use crate::{block::Block, wall::Wall as WallType, util::{get_tile_start_index, get_wall_start_index}};
+use crate::{wall::Wall as WallType, util::{get_tile_start_index, get_wall_start_index}, items::Block};
 
 pub const WORLD_SIZE_X: usize = 1750;
 pub const WORLD_SIZE_Y: usize = 900;

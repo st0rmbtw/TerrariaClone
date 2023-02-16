@@ -1,7 +1,7 @@
 use bevy::prelude::Vec2;
 use bevy_ecs_tilemap::tiles::TilePos;
 
-use crate::block::Block;
+use crate::items::Block;
 
 use super::ChunkPos;
 
