@@ -207,7 +207,7 @@ pub fn spawn_inventory_cell(
         })
         .insert(Name::new(name))
         .insert(InventoryCellIndex(index))
-        .insert_if(HotbarCellMarker, || hotbar_cell)
+        .insert_if(HotbarCellMarker, hotbar_cell)
         .insert(Interaction::default());
 }
 
