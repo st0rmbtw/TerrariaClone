@@ -9,11 +9,11 @@ use crate::{
     plugins::{
         world::{WorldData, TILE_SIZE}, 
         assets::{ItemAssets, SoundAssets}, 
-        inventory::SelectedItem,
+        inventory::{SelectedItem, Inventory},
     }, 
     world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}, 
     util::{move_towards, map_range}, 
-    items::get_animation_points, CellArrayExtensions
+    items::{get_animation_points, ItemStack, Item}, CellArrayExtensions
 };
 
 use super::*;
@@ -411,13 +411,16 @@ pub fn update_use_item_animation_index(
     mut index: ResMut<UseItemAnimationIndex>,
     mut timer: ResMut<UseItemAnimationTimer>,
     mut anim: ResMut<UseItemAnimation>,
+    inventory: Res<Inventory>,
     sounds: Res<SoundAssets>,
     audio: Res<Audio>
 ) {
     if timer.tick(time.delta()).just_finished() {
         if index.0 == 0 {
-            let sound = vec![sounds.swing_1.clone(), sounds.swing_2.clone(), sounds.swing_3.clone()]; 
-            audio.play(sound.choose(&mut rand::thread_rng()).unwrap().clone());
+            if let Some(ItemStack { item: Item::Tool(_), .. }) = inventory.selected_item() {
+                let sound = vec![sounds.swing_1.clone(), sounds.swing_2.clone(), sounds.swing_3.clone()]; 
+                audio.play(sound.choose(&mut rand::thread_rng()).unwrap().clone());   
+            }
         }
 
         index.0 = (index.0 + 1) % USE_ITEM_ANIMATION_FRAMES_COUNT;

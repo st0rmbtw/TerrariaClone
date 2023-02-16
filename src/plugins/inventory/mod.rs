@@ -32,7 +32,7 @@ const INVENTORY_CELL_SIZE_SELECTED: Size = Size {
 };
 // endregion
 
-const CELL_COUNT_IN_ROW: usize = 10;
+pub(self) const CELL_COUNT_IN_ROW: usize = 10;
 
 const HOTBAR_LENGTH: usize = 10;
 
@@ -52,8 +52,8 @@ impl Plugin for PlayerInventoryPlugin {
             .add_system_set(
                 ConditionSet::new()
                     .run_in_state(GameState::InGame)
-                    .with_system(scroll_select_item)
-                    .with_system(select_cell)
+                    .with_system(scroll_select_inventory_item)
+                    .with_system(select_inventory_cell)
                     .with_system(set_selected_item)
                     .into(),
             )
