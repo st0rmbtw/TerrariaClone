@@ -2,30 +2,36 @@ use autodefault::autodefault;
 use bevy::{
     prelude::{
         Commands, Camera2dBundle, OrthographicProjection, Transform, Res, KeyCode, Query, 
-        With, GlobalTransform
+        With, GlobalTransform, Image, default, Handle, ResMut, Assets, Vec3, Mesh, shape
     }, 
-    time::Time
+    time::Time, render::{render_resource::{AsBindGroup, ShaderRef}}, reflect::TypeUuid, sprite::{Material2d, MaterialMesh2dBundle}
 };
 use leafwing_input_manager::{InputManagerBundle, prelude::{ActionState, InputMap}};
 
-use crate::{parallax::ParallaxCameraComponent, plugins::world::TILE_SIZE, world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}};
+use crate::{parallax::ParallaxCameraComponent, plugins::{world::TILE_SIZE, assets::BackgroundAssets}, world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}};
 
 #[cfg(not(feature = "free_camera"))]
 use crate::plugins::player::Player;
 
-use super::{MainCamera, CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, MouseAction};
+use super::{MainCamera, CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, MouseAction, lighting::PostProcessingCamera};
 
-#[autodefault]
-pub fn setup_camera(mut commands: Commands) {
+#[autodefault(except(TextureDescriptor, ShadowMapMaterial, LightMapMaterial, SunMaterial, LightingMaterial))]
+pub fn setup_camera(
+    mut commands: Commands,
+    mut sun_materials: ResMut<Assets<SunMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    background_assets: Res<BackgroundAssets>,
+) {
     commands
         .spawn((
             MainCamera,
             ParallaxCameraComponent,
+            PostProcessingCamera,
             Camera2dBundle {
                 projection: OrthographicProjection { 
                     scale: 0.9
                 },
-                transform: Transform::from_xyz(0., 0., 500.),
+                transform: Transform::from_xyz(0., 0., 500.)
             },
             InputManagerBundle::<MouseAction> {
                 action_state: ActionState::default(),
@@ -33,8 +39,20 @@ pub fn setup_camera(mut commands: Commands) {
                     (KeyCode::Equals, MouseAction::ZoomIn),
                     (KeyCode::Minus, MouseAction::ZoomOut),
                 ])
-            }   
+            },
         ));
+
+    commands.spawn(MaterialMesh2dBundle {
+        mesh: meshes.add(Mesh::from(shape::Circle::new(57.))).into(),
+        material: sun_materials.add(SunMaterial {
+            texture: background_assets.sun.clone()
+        }),
+        transform: Transform {
+            translation: Vec3::new(14000., -2800., 1.),
+            ..default()
+        },
+        ..default()
+    });
 }
 
 pub fn zoom(
@@ -80,6 +98,48 @@ pub fn move_camera(
                 camera_translation.y = player_transform.translation.y.clamp(min, max);
             }
         }
+    }
+}
+
+#[derive(AsBindGroup, TypeUuid, Clone)]
+#[uuid = "bc2f08eb-a0fb-43f1-a908-54871ea597d5"]
+pub struct ShadowMapMaterial {
+    #[texture(0)]
+    #[sampler(1)]
+    texture: Handle<Image>,
+}
+
+impl Material2d for ShadowMapMaterial {
+    fn fragment_shader() -> ShaderRef {
+        "shaders/shadow_map.wgsl".into()
+    }
+}
+
+#[derive(AsBindGroup, TypeUuid, Clone)]
+#[uuid = "3d107e59-4947-456b-87a2-91e1c53db7ea"]
+pub struct LightMapMaterial {
+    #[texture(0)]
+    #[sampler(1)]
+    texture: Handle<Image>,
+}
+
+impl Material2d for LightMapMaterial {
+    fn fragment_shader() -> ShaderRef {
+        "shaders/light_map.wgsl".into()
+    }
+}
+
+#[derive(AsBindGroup, TypeUuid, Clone)]
+#[uuid = "aefae18a-5321-4c01-be90-16d87972a553"]
+pub struct SunMaterial {
+    #[texture(0)]
+    #[sampler(1)]
+    texture: Handle<Image>,
+}
+
+impl Material2d for SunMaterial {
+    fn fragment_shader() -> ShaderRef {
+        "shaders/sun.wgsl".into()
     }
 }
 

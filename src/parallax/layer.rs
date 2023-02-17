@@ -6,7 +6,7 @@ pub struct LayerData {
     /// Relative speed of layer to the camera movement
     pub speed: f32,
 
-    pub image: Handle<TextureAtlas>,
+    pub image: Handle<Image>,
     /// Scale of the texture
     pub scale: f32,
     /// Z position of the layer

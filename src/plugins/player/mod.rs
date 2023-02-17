@@ -134,7 +134,7 @@ impl Plugin for PlayerPlugin {
             );
         }
 
-        app.add_system(current_speed);
+        // app.add_system(current_speed);
 
         #[cfg(feature = "debug_movement")] {
             app
