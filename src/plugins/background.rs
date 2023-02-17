@@ -19,7 +19,6 @@ impl Plugin for BackgroundPlugin {
         app
             .add_enter_system(GameState::MainMenu, setup_main_menu_background)
             .add_enter_system(GameState::InGame, despawn_background)
-            .add_enter_system(GameState::InGame, setup_game_background)
             .add_exit_system(GameState::InGame, despawn_background)
             .add_enter_system(GameState::MainMenu, spawn_stars)
             .add_system(move_stars.run_in_state(GameState::MainMenu));
@@ -169,23 +168,6 @@ fn setup_main_menu_background(
         ],
         ..default()
     });
-}
-
-// endregion
-
-// region: Game background
-
-fn setup_game_background(mut commands: Commands, backgrounds: Res<BackgroundAssets>) {
-    commands.insert_resource(ParallaxResource {
-        layer_data: vec![LayerData {
-            speed: 1.,
-            image: backgrounds.background_0.clone(),
-            z: 0.0,
-            scale: 1.,
-            ..default()
-        }],
-        ..default()
-    })
 }
 
 // endregion

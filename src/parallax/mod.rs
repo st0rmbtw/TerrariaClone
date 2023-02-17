@@ -95,6 +95,7 @@ impl ParallaxResource {
                 ..Default::default()
             };
 
+            let texture = images.get(&layer.image).unwrap();
 
             // Three textures always spawned
             let mut texture_count = 3.0;
