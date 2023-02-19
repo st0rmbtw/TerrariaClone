@@ -20,7 +20,7 @@ use bevy_ecs_tilemap::{
 };
 use iyes_loopless::state::NextState;
 
-use crate::{util::{FRect, URect}, world_generator::{Tile, WORLD_SIZE_X, WORLD_SIZE_Y, generate, Wall}, plugins::{inventory::Inventory, world::{CHUNK_SIZE, TILE_SIZE}, assets::{BlockAssets, WallAssets}, camera::MainCamera}, state::GameState, CellArrayExtensions};
+use crate::{util::{FRect, URect}, world_generator::{Tile, WORLD_SIZE_X, WORLD_SIZE_Y, generate, Wall, generate_light_map}, plugins::{inventory::Inventory, world::{CHUNK_SIZE, TILE_SIZE, LightMap}, assets::{BlockAssets, WallAssets}, camera::MainCamera}, state::GameState, CellArrayExtensions};
 
 use super::{get_chunk_pos, CHUNK_SIZE_U, MAP_SIZE, TileChunk, UpdateNeighborsEvent, WorldData, BlockEvent, WallChunk, WALL_SIZE, CHUNKMAP_SIZE, Chunk, get_camera_fov, ChunkManager, ChunkPos, get_chunk_tile_pos};
 
@@ -34,11 +34,18 @@ pub fn spawn_terrain(mut commands: Commands) {
 
     println!("Generating world...");
     let tiles = generate(seed);
+    let light_map = generate_light_map(&tiles);
 
     commands.insert_resource(WorldData {
         width: tiles.ncols() as u16,
         height: tiles.nrows() as u16,
         tiles,
+    });
+
+    commands.insert_resource(LightMap {
+        width: light_map.ncols() as u16,
+        height: light_map.nrows() as u16,
+        colors: light_map
     });
 
     commands.insert_resource(NextState(GameState::InGame));

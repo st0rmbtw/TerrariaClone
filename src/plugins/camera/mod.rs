@@ -22,17 +22,15 @@ pub struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_plugin(Material2dPlugin::<ShadowMapMaterial>::default())
-            .add_plugin(Material2dPlugin::<LightMapMaterial>::default())
             .add_plugin(Material2dPlugin::<SunMaterial>::default())
-            .add_plugin(LightingPlugin)
             .add_plugin(InputManagerPlugin::<MouseAction>::default())
             .add_enter_system(GameState::InGame, setup_camera)
             .add_system(zoom.run_in_state(GameState::InGame))
             .add_system(
                 move_camera
-                    .run_in_state(GameState::InGame)
-                    .after(PlayerLabel::Update)
-            );
+                .run_in_state(GameState::InGame)
+                .after(PlayerLabel::Update)
+            )
+            .add_plugin(LightingPlugin);
     }
 }

@@ -102,34 +102,6 @@ pub fn move_camera(
 }
 
 #[derive(AsBindGroup, TypeUuid, Clone)]
-#[uuid = "bc2f08eb-a0fb-43f1-a908-54871ea597d5"]
-pub struct ShadowMapMaterial {
-    #[texture(0)]
-    #[sampler(1)]
-    texture: Handle<Image>,
-}
-
-impl Material2d for ShadowMapMaterial {
-    fn fragment_shader() -> ShaderRef {
-        "shaders/shadow_map.wgsl".into()
-    }
-}
-
-#[derive(AsBindGroup, TypeUuid, Clone)]
-#[uuid = "3d107e59-4947-456b-87a2-91e1c53db7ea"]
-pub struct LightMapMaterial {
-    #[texture(0)]
-    #[sampler(1)]
-    texture: Handle<Image>,
-}
-
-impl Material2d for LightMapMaterial {
-    fn fragment_shader() -> ShaderRef {
-        "shaders/light_map.wgsl".into()
-    }
-}
-
-#[derive(AsBindGroup, TypeUuid, Clone)]
 #[uuid = "aefae18a-5321-4c01-be90-16d87972a553"]
 pub struct SunMaterial {
     #[texture(0)]
@@ -146,7 +118,7 @@ impl Material2d for SunMaterial {
 #[cfg(feature = "free_camera")]
 pub fn move_camera(
     mut camera: Query<&mut GlobalTransform, With<MainCamera>>,
-    input: Res<Input<KeyCode>>
+    input: Res<bevy::prelude::Input<KeyCode>>
 ) {
     use bevy::prelude::Vec2;
 
