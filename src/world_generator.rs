@@ -1011,13 +1011,13 @@ pub fn generate(seed: u32) -> CellArray {
 }
 
 pub fn generate_light_map(tiles: &CellArray) -> Array2<UVec4> {
-    let mut light_map = Array2::<UVec4>::default((tiles.ncols(), tiles.nrows()));
+    let mut light_map = Array2::<UVec4>::default((tiles.nrows(), tiles.ncols()));
 
     for ((y, x), cell) in tiles.indexed_iter() {
         if cell.tile.is_some() && cell.wall.is_some() {
-            light_map[[x, y]] = UVec4::new(0, 0, 0, 255);
+            light_map[[y, x]] = UVec4::new(0, 0, 0, 255);
         } else {
-            light_map[[x, y]] = UVec4::new(255, 255, 255, 255);
+            light_map[[y, x]] = UVec4::new(255, 255, 255, 255);
         }
     }
 
