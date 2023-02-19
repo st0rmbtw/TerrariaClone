@@ -1,4 +1,5 @@
 use autodefault::autodefault;
+use bevy::prelude::UVec4;
 use bevy_ecs_tilemap::helpers::square_grid::neighbors::Neighbors;
 use ndarray::prelude::*;
 use noise::{NoiseFn, OpenSimplex, Seedable, SuperSimplex};
@@ -1007,6 +1008,20 @@ pub fn generate(seed: u32) -> CellArray {
     remove_extra_walls(&mut world);
 
     world
+}
+
+pub fn generate_light_map(tiles: &CellArray) -> Array2<UVec4> {
+    let mut light_map = Array2::<UVec4>::default((tiles.ncols(), tiles.nrows()));
+
+    for ((y, x), cell) in tiles.indexed_iter() {
+        if cell.tile.is_some() && cell.wall.is_some() {
+            light_map[[x, y]] = UVec4::new(0, 0, 0, 255);
+        } else {
+            light_map[[x, y]] = UVec4::new(255, 255, 255, 255);
+        }
+    }
+
+    light_map
 }
 
 fn remove_extra_walls(world: &mut CellArray) {

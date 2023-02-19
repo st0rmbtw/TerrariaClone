@@ -12,12 +12,13 @@ use bevy::{
         view::RenderLayers,
     },
     sprite::{Material2d, Material2dPlugin, MaterialMesh2dBundle},
-    window::{WindowId, WindowResized},
+    window::{WindowId, WindowResized}, math::Vec3Swizzles,
 };
-use bevy_ecs_tilemap::tiles::TilePos;
 use iyes_loopless::prelude::IntoConditionalSystem;
 
-use crate::{world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}, plugins::world::WorldData, CellArrayExtensions};
+use crate::{plugins::{world::{WorldData, LightMap}}, state::GameState};
+
+use super::MainCamera;
 
 pub struct LightingPlugin;
 
@@ -25,8 +26,9 @@ impl Plugin for LightingPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(Material2dPlugin::<LightingMaterial>::default())
             .add_system(setup_new_post_processing_cameras.run_if_resource_exists::<WorldData>())
-            .add_system(update_image_to_window_size);
-    }
+            .add_system(update_image_to_window_size)
+            .add_system(update_lighting_material.run_in_state(GameState::InGame));
+    }   
 }
 
 /// To support window resizing, this fits an image to a windows size.
@@ -74,6 +76,51 @@ fn update_image_to_window_size(
     }
 }
 
+fn update_light_map_texture(light_map: &LightMap, camera_pos: Vec2, proj: &OrthographicProjection, texture: &mut Vec<u8>) {
+    let bottom = camera_pos.y + proj.bottom;
+    let top = camera_pos.y + proj.top;
+    let left = camera_pos.x + proj.left;
+    let right = camera_pos.x + proj.right;
+
+    for y in (bottom as usize)..(top as usize) {
+        for x in (left as usize)..(right as usize) {
+            let mut color = UVec4::new(0, 0, 0, 0);
+
+            if let Some(map_color) = light_map.colors.get((x, y)) {
+                color = *map_color;
+            }
+
+            let index = x + light_map.width as usize * y;
+
+            texture[index] = (color.x & 0xFF) as u8; // R
+            texture[(index) + 1] = (color.y & 0xFF) as u8; // G
+            texture[(index) + 2] = (color.z & 0xFF) as u8; // B
+            texture[(index) + 3] = 0xFF; // A
+        }
+    }
+}
+
+fn update_lighting_material(
+    cameras: Query<(&GlobalTransform, &OrthographicProjection, &Handle<LightingMaterial>), With<MainCamera>>,
+    mut images: ResMut<Assets<Image>>,
+    mut post_processing_materials: ResMut<Assets<LightingMaterial>>,
+    light_map: Res<LightMap>,
+) {
+    if let Ok((transform, proj, lighting_material_handle)) = cameras.get_single() {
+        let camera_position = transform.translation().xy().abs();
+        let mut lighting_material = post_processing_materials.get_mut(lighting_material_handle).unwrap();
+        
+        lighting_material.player_position = camera_position;
+        lighting_material.proj = Vec4::new(proj.left, proj.top, proj.bottom, proj.right);
+
+        if light_map.is_changed() {
+            let light_map_texture = images.get_mut(&lighting_material.color_map).unwrap();
+
+            update_light_map_texture(&light_map, camera_position, proj, &mut light_map_texture.data);
+        }
+    }
+}
+
 /// sets up post processing for cameras that have had `PostProcessingCamera` added
 fn setup_new_post_processing_cameras(
     mut commands: Commands,
@@ -81,10 +128,10 @@ fn setup_new_post_processing_cameras(
     mut meshes: ResMut<Assets<Mesh>>,
     mut post_processing_materials: ResMut<Assets<LightingMaterial>>,
     mut images: ResMut<Assets<Image>>,
-    mut cameras: Query<(Entity, &mut Camera), With<PostProcessingCamera>>,
-    world_data: Res<WorldData>
+    mut cameras: Query<(Entity, &mut Camera, &OrthographicProjection), Added<PostProcessingCamera>>,
+    light_map: Res<LightMap>
 ) {
-    for (entity, mut camera) in &mut cameras {
+    for (entity, mut camera, proj) in &mut cameras {
         let original_target = camera.target.clone();
 
         let mut option_window_id: Option<WindowId> = None;
@@ -108,55 +155,30 @@ fn setup_new_post_processing_cameras(
                 );
                 image.texture_descriptor.size
             }
-        };
+        }; 
 
-        let tilemap_size = Extent3d {
-            width: WORLD_SIZE_X as u32,
-            height: WORLD_SIZE_Y as u32,
-            ..default()
-        };
+        // let mut bytes = Vec::<u8>::with_capacity(light_map.colors.len() * 4);
+        let mut bytes = vec![0; light_map.colors.len() * 4];
 
-        let mut colors = Vec::<Vec3>::with_capacity(tilemap_size.width as usize * tilemap_size.height as usize * 4);
+        for ((row, col), color) in light_map.colors.indexed_iter() {
+            let index = ((row * light_map.colors.ncols()) + col) * 4;
 
-        for y in 0..tilemap_size.height {
-            for x in 0..tilemap_size.width {
-                if let Some(_) = world_data.tiles.get_wall(TilePos::new(x, y)) {
-                    if let Some(_) = world_data.tiles.get_tile(TilePos::new(x, y)) {
-                        colors.push(Vec3::new(0.2, 0.2, 0.2));
-                        continue;
-                    }
-                }
-                colors.push(Vec3::new(1., 1., 1.));
-            }
+            bytes[index] = (color.x & 0xFF) as u8;
+            bytes[(index) + 1] = (color.y & 0xFF) as u8;
+            bytes[(index) + 2] = (color.z & 0xFF) as u8;
+            bytes[(index) + 3] = (color.w & 0xFF) as u8;
         }
 
-        // for y in 0..tilemap_size.height {
-        //     for x in 0..tilemap_size.width {
-        //         if let Some(_) = world_data.tiles.get_wall(TilePos::new(x, y)) {
-        //             if let Some(_) = world_data.tiles.get_tile(TilePos::new(x, y)) {
-        //                 bytes.push(0xff); // R
-        //                 bytes.push(0xff); // G
-        //                 bytes.push(0xff); // B
-        //                 bytes.push(0xff); // A
-        //                 continue;
-        //             }
-        //         }
-
-        //         bytes.push(0x10); // R
-        //         bytes.push(0x10); // G
-        //         bytes.push(0x10); // B
-        //         bytes.push(0xff); // A
-        //     }
-        // }
-
-
-        // This is the texture that will be rendered to.
-        // let shadow_map = Image::new(
-        //     tilemap_size, 
-        //     TextureDimension::D2, 
-        //     bytes, 
-        //     TextureFormat::Rgba8UnormSrgb
-        // );
+        let light_map = Image::new(
+            Extent3d {
+                width: light_map.colors.ncols() as u32,
+                height: light_map.colors.nrows() as u32,
+                ..default()
+            }, 
+            TextureDimension::D2,
+            bytes,
+            TextureFormat::Rgba8UnormSrgb
+        );
 
         let mut image = Image {
             texture_descriptor: TextureDescriptor {
@@ -177,7 +199,7 @@ fn setup_new_post_processing_cameras(
         image.resize(size);
 
         let image_handle = images.add(image);
-        // let shadow_map_handle = images.add(shadow_map);
+        let light_map_handle = images.add(light_map);
 
         // This specifies the layer used for the post processing camera, which will be attached to the post processing camera and 2d fullscreen triangle.
         let post_processing_pass_layer =
@@ -206,11 +228,13 @@ fn setup_new_post_processing_cameras(
         );
 
         let triangle_handle = meshes.add(triangle_mesh);
-    
+
         // This material has the texture that has been rendered.
         let material_handle = post_processing_materials.add(LightingMaterial {
             source_image: image_handle.clone(),
-            color_map: colors
+            color_map: light_map_handle,
+            player_position: Vec2::default(),
+            proj: Vec4::new(proj.left, proj.top, proj.bottom, proj.right)
         });
 
         commands
@@ -252,9 +276,15 @@ fn setup_new_post_processing_cameras(
                         priority: camera.priority + 10,
                         // set this new camera to render to where the other camera was rendering
                         target: original_target,
+                        
                         ..Default::default()
                     },
-                    ..Camera2dBundle::default()
+                    projection: OrthographicProjection { 
+                        scale: 0.9,
+                        ..default()
+                    },
+                    transform: Transform::from_xyz(0., 0., 500.),
+                    ..default()
                 },
                 post_processing_pass_layer
             ));
@@ -268,8 +298,15 @@ pub struct LightingMaterial {
     #[sampler(1)]
     source_image: Handle<Image>,
 
+    #[texture(2)]
+    #[sampler(3)]
+    color_map: Handle<Image>,
+
     #[uniform(4)]
-    color_map: Vec<Vec3>
+    player_position: Vec2,
+
+    #[uniform(5)]
+    proj: Vec4
 }
 
 impl Material2d for LightingMaterial {
