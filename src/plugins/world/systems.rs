@@ -20,7 +20,7 @@ use bevy_ecs_tilemap::{
 };
 use iyes_loopless::state::NextState;
 
-use crate::{util::{FRect, URect}, world_generator::{Tile, WORLD_SIZE_X, WORLD_SIZE_Y, generate, Wall, generate_light_map, get_spawn_point}, plugins::{inventory::Inventory, world::{CHUNK_SIZE, TILE_SIZE, LightMap}, assets::{BlockAssets, WallAssets}, camera::MainCamera}, state::GameState, CellArrayExtensions};
+use crate::{util::{FRect, URect}, world_generator::{Tile, WORLD_SIZE_X, WORLD_SIZE_Y, generate, Wall, generate_light_map, get_spawn_point}, plugins::{inventory::Inventory, world::{CHUNK_SIZE, TILE_SIZE, LightMap}, assets::{BlockAssets, WallAssets}, camera::{MainCamera, UpdateLightEvent}}, state::GameState, CellArrayExtensions};
 
 use super::{get_chunk_pos, CHUNK_SIZE_U, MAP_SIZE, TileChunk, UpdateNeighborsEvent, WorldData, BlockEvent, WallChunk, WALL_SIZE, CHUNKMAP_SIZE, Chunk, get_camera_fov, ChunkManager, ChunkPos, get_chunk_tile_pos};
 
@@ -322,12 +322,13 @@ pub fn get_chunk_position_by_camera_fov(camera_fov: FRect) -> URect {
 pub fn handle_block_event(
     mut commands: Commands,
     mut world_data: ResMut<WorldData>,
-    mut events: EventReader<BlockEvent>,
+    mut block_events: EventReader<BlockEvent>,
+    mut update_light_events: EventWriter<UpdateLightEvent>,
     mut update_neighbors_ew: EventWriter<UpdateNeighborsEvent>,
     mut inventory: ResMut<Inventory>,
     mut chunks: Query<(&TileChunk, &mut TileStorage, Entity)>
 ) {
-    for event in events.iter() {
+    for event in block_events.iter() {
         match event {
             BlockEvent::Place { tile_pos, block, inventory_item_index } => {
                 let map_tile_pos = TilePos { x: tile_pos.x as u32, y: tile_pos.y as u32 };
@@ -356,6 +357,11 @@ pub fn handle_block_event(
                         chunk_tile_pos,
                         chunk_pos
                     });
+
+                    update_light_events.send(UpdateLightEvent {
+                        tile_pos: map_tile_pos,
+                        color: 0
+                    });
                 }
             },
             BlockEvent::Break { tile_pos } => {
@@ -378,6 +384,11 @@ pub fn handle_block_event(
                         tile_pos: map_tile_pos,
                         chunk_tile_pos,
                         chunk_pos
+                    });
+
+                    update_light_events.send(UpdateLightEvent {
+                        tile_pos: map_tile_pos,
+                        color: 0xFF
                     });
                 }
             },

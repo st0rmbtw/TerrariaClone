@@ -6,12 +6,14 @@ use crate::{state::GameState, labels::PlayerLabel};
 
 pub use components::*;
 pub use systems::*;
+pub use events::*;
 
 use self::lighting::LightingPlugin;
 
 mod components;
 mod systems;
 mod lighting;
+mod events;
 
 const MAX_CAMERA_ZOOM: f32 = 2.;
 const MIN_CAMERA_ZOOM: f32 = 0.46;

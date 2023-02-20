@@ -1,34 +1,41 @@
 use bevy::{
+    math::Vec3Swizzles,
     prelude::*,
     reflect::TypeUuid,
     render::{
         camera::RenderTarget,
         mesh::Indices,
         render_resource::{
-            AsBindGroup, Extent3d, PrimitiveTopology, ShaderRef, TextureDescriptor,
-            TextureDimension, TextureFormat, TextureUsages, SamplerDescriptor, AddressMode,
+            AddressMode, AsBindGroup, Extent3d, PrimitiveTopology, SamplerDescriptor, ShaderRef,
+            TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
         },
         texture::{BevyDefault, ImageSampler},
         view::RenderLayers,
     },
     sprite::{Material2d, Material2dPlugin, MaterialMesh2dBundle},
-    window::{WindowId, WindowResized}, math::Vec3Swizzles,
+    window::{WindowId, WindowResized},
 };
 use iyes_loopless::prelude::IntoConditionalSystem;
 
-use crate::{plugins::{world::{WorldData, LightMap}}, state::GameState};
+use crate::{
+    plugins::world::{LightMap, WorldData},
+    state::GameState
+};
 
-use super::MainCamera;
+use super::{MainCamera, UpdateLightEvent};
 
 pub struct LightingPlugin;
 
 impl Plugin for LightingPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugin(Material2dPlugin::<LightingMaterial>::default())
+        app
+            .add_event::<UpdateLightEvent>()
+            .add_plugin(Material2dPlugin::<LightingMaterial>::default())
             .add_system(setup_new_post_processing_cameras.run_if_resource_exists::<WorldData>())
             .add_system(update_image_to_window_size)
-            .add_system(update_lighting_material.run_in_state(GameState::InGame));
-    }   
+            .add_system(update_lighting_material.run_in_state(GameState::InGame))
+            .add_system(update_light_map.run_in_state(GameState::InGame));
+    }
 }
 
 /// To support window resizing, this fits an image to a windows size.
@@ -38,13 +45,13 @@ struct FitToWindowSize {
     material: Handle<LightingMaterial>,
     window_id: WindowId,
 }
+
 #[derive(Component)]
-pub struct PostProcessingCamera;
+pub struct LightMapCamera;
 
 /// Update image size to fit window
 fn update_image_to_window_size(
     windows: Res<Windows>,
-    mut image_events: EventWriter<AssetEvent<Image>>,
     mut images: ResMut<Assets<Image>>,
     mut post_processing_materials: ResMut<Assets<LightingMaterial>>,
     mut resize_events: EventReader<WindowResized>,
@@ -66,60 +73,79 @@ fn update_image_to_window_size(
                 );
                 info!("resize to {:?}", size);
                 image.resize(size);
-                // Hack because of https://github.com/bevyengine/bevy/issues/5595
-                image_events.send(AssetEvent::Modified {
-                    handle: fit_to_window.image.clone(),
-                });
                 post_processing_materials.get_mut(&fit_to_window.material);
             }
         }
     }
 }
 
-fn update_light_map_texture(light_map: &LightMap, camera_pos: Vec2, proj: &OrthographicProjection, texture: &mut Vec<u8>) {
-    let bottom = camera_pos.y + proj.bottom;
-    let top = camera_pos.y + proj.top;
-    let left = camera_pos.x + proj.left;
-    let right = camera_pos.x + proj.right;
+fn update_light_map_texture(
+    tile_x: usize,
+    tile_y: usize,
+    light_map: &LightMap,
+    texture_data: &mut Vec<u8>,
+) {
+    for row in (-4 as i32)..=(4 as i32) {
+        for col in (-4 as i32)..=(4 as i32) {
+            let y = ((tile_y as i32) + row) as usize;
+            let x = ((tile_x as i32) + col) as usize;
 
-    for y in (bottom as usize)..(top as usize) {
-        for x in (left as usize)..(right as usize) {
-            let mut color = 0;
+            if let Some(color) = light_map.colors.get((y, x)) {
+                let index = ((y * light_map.colors.ncols()) + x) * 4;
 
-            if let Some(map_color) = light_map.colors.get((x, y)) {
-                color = *map_color;
+                texture_data[index]     = *color; // R
+                texture_data[index + 1] = *color; // G
+                texture_data[index + 2] = *color; // B
+                texture_data[index + 3] = 0xFF; // A
             }
-
-            let index = x + light_map.width as usize * y;
-
-            texture[index] = (color & 0xFF) as u8; // R
-            texture[(index) + 1] = (color & 0xFF) as u8; // G
-            texture[(index) + 2] = (color & 0xFF) as u8; // B
-            texture[(index) + 3] = 0xFF; // A
         }
     }
 }
 
 fn update_lighting_material(
-    cameras: Query<(&GlobalTransform, &OrthographicProjection, &Handle<LightingMaterial>), With<MainCamera>>,
-    mut images: ResMut<Assets<Image>>,
+    cameras: Query<
+        (
+            &GlobalTransform,
+            &OrthographicProjection,
+            &Handle<LightingMaterial>,
+        ),
+        With<MainCamera>,
+    >,
     mut post_processing_materials: ResMut<Assets<LightingMaterial>>,
-    light_map: Res<LightMap>,
 ) {
     if let Ok((transform, proj, lighting_material_handle)) = cameras.get_single() {
         let camera_position = transform.translation().xy().abs();
-        let mut lighting_material = post_processing_materials.get_mut(lighting_material_handle).unwrap();
-        
+        let mut lighting_material = post_processing_materials
+            .get_mut(lighting_material_handle)
+            .unwrap();
+
         lighting_material.player_position = camera_position;
         lighting_material.scale = proj.scale;
-
-        if light_map.is_changed() {
-            let light_map_texture = images.get_mut(&lighting_material.light_map).unwrap();
-
-            update_light_map_texture(&light_map, camera_position, proj, &mut light_map_texture.data);
-        }
     }
 }
+
+fn update_light_map(
+    cameras: Query<&Handle<LightingMaterial>, With<MainCamera>>,
+    mut update_light_events: EventReader<UpdateLightEvent>,
+    mut images: ResMut<Assets<Image>>,
+    mut post_processing_materials: ResMut<Assets<LightingMaterial>>,
+    mut light_map: ResMut<LightMap>
+) {
+    if let Ok(lighting_material_handle) = cameras.get_single() {
+        let lighting_material = post_processing_materials
+            .get_mut(lighting_material_handle)
+            .unwrap();
+        let light_map_texture = images.get_mut(&lighting_material.light_map).unwrap();
+
+        for UpdateLightEvent { tile_pos, color } in update_light_events.iter() {
+            let x = tile_pos.x as usize;
+            let y = tile_pos.y as usize;
+            
+            light_map.colors[(y, x)] = *color;
+            update_light_map_texture(x, y, &light_map, &mut light_map_texture.data);
+        }
+    }
+}       
 
 /// sets up post processing for cameras that have had `PostProcessingCamera` added
 fn setup_new_post_processing_cameras(
@@ -128,8 +154,8 @@ fn setup_new_post_processing_cameras(
     mut meshes: ResMut<Assets<Mesh>>,
     mut post_processing_materials: ResMut<Assets<LightingMaterial>>,
     mut images: ResMut<Assets<Image>>,
-    mut cameras: Query<(Entity, &mut Camera, &OrthographicProjection), Added<PostProcessingCamera>>,
-    light_map: Res<LightMap>
+    mut cameras: Query<(Entity, &mut Camera, &OrthographicProjection), Added<LightMapCamera>>,
+    light_map: Res<LightMap>,
 ) {
     for (entity, mut camera, proj) in &mut cameras {
         let original_target = camera.target.clone();
@@ -155,7 +181,7 @@ fn setup_new_post_processing_cameras(
                 );
                 image.texture_descriptor.size
             }
-        }; 
+        };
 
         // let mut bytes = Vec::<u8>::with_capacity(light_map.colors.len() * 4);
         let mut bytes = vec![0; light_map.colors.len() * 4];
@@ -163,10 +189,10 @@ fn setup_new_post_processing_cameras(
         for ((row, col), color) in light_map.colors.indexed_iter() {
             let index = ((row * light_map.colors.ncols()) + col) * 4;
 
-            bytes[index] = (color & 0xFF) as u8;
-            bytes[(index) + 1] = (color & 0xFF) as u8;
-            bytes[(index) + 2] = (color & 0xFF) as u8;
-            bytes[(index) + 3] = 0xFF;
+            bytes[index]     = *color;
+            bytes[index + 1] = *color;
+            bytes[index + 2] = *color;
+            bytes[index + 3] = 0xFF;
         }
 
         let light_map = Image::new(
@@ -174,10 +200,10 @@ fn setup_new_post_processing_cameras(
                 width: light_map.colors.ncols() as u32,
                 height: light_map.colors.nrows() as u32,
                 ..default()
-            }, 
+            },
             TextureDimension::D2,
             bytes,
-            TextureFormat::Rgba8UnormSrgb
+            TextureFormat::Rgba8UnormSrgb,
         );
 
         let mut image = Image {
@@ -217,9 +243,9 @@ fn setup_new_post_processing_cameras(
         triangle_mesh.insert_attribute(
             Mesh::ATTRIBUTE_POSITION,
             vec![
-                [-half_extents.x, half_extents.y, 0.0],
-                [half_extents.x * 3f32, half_extents.y, 0.0],
-                [-half_extents.x, half_extents.y * 3f32, 0.0],
+                [-half_extents.x, half_extents.y, 0.],
+                [half_extents.x * 3., half_extents.y, 0.0],
+                [-half_extents.x, half_extents.y * 3., 0.0],
             ],
         );
         triangle_mesh.set_indices(Some(Indices::U32(vec![0, 1, 2])));
@@ -240,7 +266,7 @@ fn setup_new_post_processing_cameras(
             source_image: image_handle.clone(),
             light_map: light_map_handle,
             player_position: Vec2::default(),
-            scale: proj.scale
+            scale: proj.scale,
         });
 
         commands
@@ -249,6 +275,7 @@ fn setup_new_post_processing_cameras(
             .insert(material_handle.clone())
             // also disable show_ui so UI elements don't get rendered twice
             .insert(UiCameraConfig { show_ui: false });
+
         if let Some(window_id) = option_window_id {
             commands.entity(entity).insert(FitToWindowSize {
                 image: image_handle.clone(),
@@ -258,42 +285,38 @@ fn setup_new_post_processing_cameras(
         }
         camera.target = RenderTarget::Image(image_handle);
 
-        // Post processing 2d fullscreen triangle, with material using the render texture done by the main camera, with a custom shader.
-        commands
-            .spawn((
-                MaterialMesh2dBundle {
-                    mesh: triangle_handle.into(),
-                    material: material_handle,
-                    transform: Transform {
-                        translation: Vec3::new(0.0, 0.0, 1.5),
-                        ..Default::default()
-                    },
+        commands.spawn((
+            MaterialMesh2dBundle {
+                mesh: triangle_handle.into(),
+                material: material_handle,
+                transform: Transform {
+                    translation: Vec3::new(0.0, 0.0, 1.5),
                     ..Default::default()
                 },
-                post_processing_pass_layer
-            ));
+                ..Default::default()
+            },
+            post_processing_pass_layer,
+        ));
 
         // The post-processing pass camera.
-        commands
-            .spawn((
-                Camera2dBundle {
-                    camera: Camera {
-                        // renders after the first main camera which has default value: 0.
-                        priority: camera.priority + 10,
-                        // set this new camera to render to where the other camera was rendering
-                        target: original_target,
-                        
-                        ..Default::default()
-                    },
-                    projection: OrthographicProjection { 
-                        scale: 0.9,
-                        ..default()
-                    },
-                    transform: Transform::from_xyz(0., 0., 500.),
+        commands.spawn((
+            Camera2dBundle {
+                camera: Camera {
+                    // renders after the first main camera which has default value: 0.
+                    priority: camera.priority + 10,
+                    // set this new camera to render to where the other camera was rendering
+                    target: original_target,
                     ..default()
                 },
-                post_processing_pass_layer
-            ));
+                projection: OrthographicProjection {
+                    scale: 0.9,
+                    ..default()
+                },
+                transform: Transform::from_xyz(0., 0., 500.),
+                ..default()
+            },
+            post_processing_pass_layer,
+        ));
     }
 }
 
@@ -310,7 +333,7 @@ pub struct LightingMaterial {
 
     #[uniform(4)]
     player_position: Vec2,
-    
+
     #[uniform(5)]
     scale: f32,
 }

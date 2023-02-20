@@ -57,15 +57,11 @@ fn fragment(
     #import bevy_sprite::mesh2d_vertex_output
 ) -> @location(0) vec4<f32> {
     let uv = coords_to_viewport_uv(position.xy, view.viewport);
-    var player_uv = player_position.xy / vec2(1750. * 16., 900. * 16.);
+    let player_uv = player_position.xy / (vec2(1750. * 16., 900. * 16.) - vec2(16., 32.));
 
-    var scl = view.viewport.zw / vec2(1750. * 16., 900. * 16.);
-    scl *= camera_scale;
+    let scl = view.viewport.zw / vec2(1750. * 16., 900. * 16.);
 
-    let scale = scale(scl);
-
-    var light_map_uv = uv - 0.5;
-    light_map_uv = light_map_uv * scale;
+    let light_map_uv = (uv - 0.5) * scale(scl * camera_scale);
 
     return textureSample(texture, texture_sampler, uv) * blur(light_map_texture, light_map_texture_sampler, view.viewport.zw, light_map_uv + player_uv);
 }
