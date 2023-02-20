@@ -13,7 +13,7 @@ use crate::{parallax::ParallaxCameraComponent, plugins::{world::{TILE_SIZE, Worl
 #[cfg(not(feature = "free_camera"))]
 use crate::plugins::player::Player;
 
-use super::{MainCamera, CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, MouseAction, lighting::PostProcessingCamera};
+use super::{MainCamera, CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, MouseAction, lighting::LightMapCamera};
 
 #[autodefault(except(TextureDescriptor, ShadowMapMaterial, LightMapMaterial, SunMaterial, LightingMaterial))]
 pub fn setup_camera(
@@ -29,7 +29,7 @@ pub fn setup_camera(
         .spawn((
             MainCamera,
             ParallaxCameraComponent,
-            PostProcessingCamera,
+            LightMapCamera,
             Camera2dBundle {
                 projection: OrthographicProjection { 
                     scale: 0.9

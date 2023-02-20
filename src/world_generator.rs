@@ -157,7 +157,7 @@ pub fn generate_light_map(tiles: &CellArray) -> Array2<u8> {
 
     for y in 0..light_map.nrows() {
         for x in 0..light_map.ncols() {
-            propogate_light(x, y, &mut light_map);
+            propogate_light(x, y, &mut light_map, &tiles);
         }
     }
 
@@ -165,24 +165,26 @@ pub fn generate_light_map(tiles: &CellArray) -> Array2<u8> {
     light_map
 }
 
-fn propogate_light(x: usize, y: usize, light_map: &mut Array2<u8>) {
+pub fn propogate_light(x: usize, y: usize, light_map: &mut Array2<u8>, tiles: &CellArray) {
     if x >= light_map.ncols() - 1 { return; }
     if y >= light_map.nrows() - 1 { return; }
 
     if x.checked_sub(1).is_none() { return; }
     if y.checked_sub(1).is_none() { return; }
 
+    if tiles[(y, x)].tile.is_none() || tiles[(y, x)].wall.is_none() { return; }
+
     if light_map[(y - 1, x)] > light_map[(y, x)] { 
-        light_map[(y, x)] = light_map[(y - 1, x)].checked_sub(65).unwrap_or(0); 
+        light_map[(y, x)] = light_map[(y - 1, x)].checked_sub(150).unwrap_or(0);
     }
     if light_map[(y, x - 1)] > light_map[(y, x)] { 
-        light_map[(y, x)] = light_map[(y, x - 1)].checked_sub(65).unwrap_or(0); 
+        light_map[(y, x)] = light_map[(y, x - 1)].checked_sub(150).unwrap_or(0);
     }
     if light_map[(y + 1, x)] > light_map[(y, x)] { 
-        light_map[(y, x)] = light_map[(y + 1, x)].checked_sub(65).unwrap_or(0); 
+        light_map[(y, x)] = light_map[(y + 1, x)].checked_sub(150).unwrap_or(0);
     }
     if light_map[(y, x + 1)] > light_map[(y, x)] { 
-        light_map[(y, x)] = light_map[(y, x + 1)].checked_sub(65).unwrap_or(0); 
+        light_map[(y, x)] = light_map[(y, x + 1)].checked_sub(150).unwrap_or(0); 
     }
 }
 
