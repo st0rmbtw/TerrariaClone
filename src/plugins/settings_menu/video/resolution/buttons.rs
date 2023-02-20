@@ -1,7 +1,7 @@
 use bevy::prelude::Component;
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct FullScreenResolutionButton;
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct FullScreenButton;

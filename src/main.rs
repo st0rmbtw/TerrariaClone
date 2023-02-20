@@ -2,7 +2,7 @@
 
 use std::{error::Error, time::Duration};
 
-use bevy::prelude::*;
+use bevy::{prelude::*, render::settings::{WgpuSettings, WgpuFeatures}};
 use bevy_ecs_tilemap::TilemapPlugin;
 use bevy_hanabi::HanabiPlugin;
 use game::{
@@ -27,6 +27,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut app = App::new();
 
     app.add_plugin(SettingsPlugin);
+
+    let mut wgpu_settings = WgpuSettings::default();
+    wgpu_settings.features.set(WgpuFeatures::ADDRESS_MODE_CLAMP_TO_BORDER, true);
+
+    app.insert_resource(wgpu_settings);
 
     let resolution = app.world.resource::<Resolution>().data();
     let vsync = app.world.resource::<VSync>();

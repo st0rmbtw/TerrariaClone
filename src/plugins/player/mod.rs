@@ -8,7 +8,7 @@ pub use resources::*;
 pub use systems::*;
 pub use utils::*;
 
-use crate::{state::GameState, world_generator::WORLD_SIZE_X, labels::PlayerLabel};
+use crate::{state::GameState, labels::PlayerLabel, util::tile_to_world_coords};
 use std::time::Duration;
 use iyes_loopless::prelude::*;
 use bevy_hanabi::prelude::*;
@@ -16,10 +16,13 @@ use bevy::{prelude::*, time::{Timer, TimerMode}, sprite::Anchor};
 use autodefault::autodefault;
 use leafwing_input_manager::prelude::InputManagerPlugin;
 
-use super::assets::PlayerAssets;
+use super::{assets::PlayerAssets, world::{WorldData, TILE_SIZE}};
 
 pub const PLAYER_WIDTH: f32 = 22. /* 2. * TILE_SIZE */;
 pub const PLAYER_HEIGHT: f32 = 42.5 /* 3. * TILE_SIZE */;
+
+pub const PLAYER_HALF_WIDTH: f32 = PLAYER_WIDTH / 2.;
+pub const PLAYER_HALF_HEIGHT: f32 = PLAYER_HEIGHT / 2.;
 
 const WALKING_ANIMATION_MAX_INDEX: usize = 13;
 
@@ -162,9 +165,14 @@ pub fn spawn_player(
     mut commands: Commands,
     player_assets: Res<PlayerAssets>,
     mut effects: ResMut<Assets<EffectAsset>>,
+    world_data: Res<WorldData>
 ) {
+    let spawn_point = tile_to_world_coords(world_data.spawn_point);
+
     let player = commands
-        .spawn(PlayerBundle::new(Transform::from_xyz(WORLD_SIZE_X as f32 * 16. / 2., 0., 3.)))
+        .spawn(PlayerBundle::new(
+            Transform::from_xyz(spawn_point.x + TILE_SIZE / 2. + PLAYER_HALF_WIDTH, spawn_point.y + TILE_SIZE / 2. + PLAYER_HALF_HEIGHT, 3.)
+        ))
         .with_children(|cmd| {
             // region: Hair
             cmd.spawn((

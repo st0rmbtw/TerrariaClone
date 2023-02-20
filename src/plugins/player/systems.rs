@@ -87,8 +87,6 @@ pub fn update(
     mut collisions: ResMut<Collisions>,
     mut player_data: ResMut<PlayerData>
 ) {
-    const PLAYER_HALF_WIDTH: f32 = PLAYER_WIDTH / 2.;
-    const PLAYER_HALF_HEIGHT: f32 = PLAYER_HEIGHT / 2.;
     const MIN: f32 = PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
     const MAX: f32 = WORLD_SIZE_X as f32 * TILE_SIZE - PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
 
@@ -133,8 +131,8 @@ pub fn update(
             if world_data.tiles.tile_exists(TilePos::new(x, y)) {
                 let tile_pos = Vec2::new(x as f32 * TILE_SIZE, y as f32 * TILE_SIZE);
 
-                if (next_position.x + PLAYER_WIDTH / 2.) > (tile_pos.x - TILE_SIZE / 2.) && (next_position.x - PLAYER_WIDTH / 2.) < (tile_pos.x + TILE_SIZE / 2.) && (next_position.y + PLAYER_HEIGHT / 2.) > (tile_pos.y - TILE_SIZE / 2.) && (next_position.y - PLAYER_HEIGHT / 2.) < (tile_pos.y + TILE_SIZE / 2.) {
-                    if position.y + PLAYER_HEIGHT / 2. <= tile_pos.y - TILE_SIZE / 2. {
+                if (next_position.x + PLAYER_HALF_WIDTH) > (tile_pos.x - TILE_SIZE / 2.) && (next_position.x - PLAYER_HALF_WIDTH) < (tile_pos.x + TILE_SIZE / 2.) && (next_position.y + PLAYER_HALF_HEIGHT) > (tile_pos.y - TILE_SIZE / 2.) && (next_position.y - PLAYER_HALF_HEIGHT) < (tile_pos.y + TILE_SIZE / 2.) {
+                    if position.y + PLAYER_HALF_HEIGHT <= tile_pos.y - TILE_SIZE / 2. {
                         new_collisions.bottom = true;
 
                         velocity.y = 0.;
@@ -152,26 +150,26 @@ pub fn update(
                             yx = x as i32;
                             yy = y as i32;
                             if yx != xx {
-                                velocity.y = ((tile_pos.y - TILE_SIZE / 2.) - (position.y + PLAYER_HEIGHT / 2.)) * time.delta_seconds();
+                                velocity.y = ((tile_pos.y - TILE_SIZE / 2.) - (position.y + PLAYER_HALF_HEIGHT)) * time.delta_seconds();
                                 a = tile_pos.y;
                             }
                         }
                     } else {    
-                        if position.x + PLAYER_WIDTH / 2. <= tile_pos.x - TILE_SIZE / 2. {
+                        if position.x + PLAYER_HALF_WIDTH <= tile_pos.x - TILE_SIZE / 2. {
                             xx = x as i32;
                             xy = y as i32;
                             if xy != yy {
-                                velocity.x = ((tile_pos.x - TILE_SIZE / 2.) - (position.x + PLAYER_WIDTH / 2.)) * time.delta_seconds();
+                                velocity.x = ((tile_pos.x - TILE_SIZE / 2.) - (position.x + PLAYER_HALF_WIDTH)) * time.delta_seconds();
                             }
                             if yx == xx {
                                 velocity.y = velocity.y;
                             }
                         } else {
-                            if position.x - PLAYER_WIDTH / 2. >= tile_pos.x + TILE_SIZE / 2. {
+                            if position.x - PLAYER_HALF_WIDTH >= tile_pos.x + TILE_SIZE / 2. {
                                 xx = x as i32;
                                 xy = y as i32;
                                 if xy != yy {
-                                    velocity.x = ((tile_pos.x + TILE_SIZE / 2.) - (position.x - PLAYER_WIDTH / 2.)) * time.delta_seconds();
+                                    velocity.x = ((tile_pos.x + TILE_SIZE / 2.) - (position.x - PLAYER_HALF_WIDTH)) * time.delta_seconds();
                                 }
                                 if yx == xx {
                                     velocity.y = velocity.y;
@@ -181,7 +179,7 @@ pub fn update(
                                     collisions.top = true;
                                     yx = x as i32;
                                     yy = y as i32;
-                                    velocity.y = ((tile_pos.y + TILE_SIZE / 2.) - (position.y - PLAYER_HEIGHT / 2.) + 0.01) * time.delta_seconds();
+                                    velocity.y = ((tile_pos.y + TILE_SIZE / 2.) - (position.y - PLAYER_HALF_HEIGHT) + 0.01) * time.delta_seconds();
                                     if xx == xy {
                                         velocity.x = velocity.x;
                                     }
@@ -211,8 +209,8 @@ pub fn spawn_particles(
         let (mut effect, mut effect_transform) = effects.get_mut(particle_effects.walking).unwrap();
 
         effect_transform.translation = match face_direction {
-            FaceDirection::LEFT => Vec3::new(0., -PLAYER_HEIGHT / 2., 0.),
-            FaceDirection::RIGHT => Vec3::new(0., -PLAYER_HEIGHT / 2., 0.),
+            FaceDirection::LEFT => Vec3::new(0., -PLAYER_HALF_HEIGHT, 0.),
+            FaceDirection::RIGHT => Vec3::new(0., -PLAYER_HALF_HEIGHT, 0.),
         };
 
         effect

@@ -1,7 +1,7 @@
 use bevy::prelude::Component;
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct ResolutionButton;
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct VSyncButton;
