@@ -21,6 +21,6 @@ pub fn get_camera_fov(camera_pos: Vec2, projection: &OrthographicProjection) -> 
         left: camera_pos.x + projection.left * projection.scale,
         right: camera_pos.x + projection.right * projection.scale,
         top: camera_pos.y + projection.top * projection.scale,
-        bottom: camera_pos.y - projection.bottom * projection.scale,
+        bottom: camera_pos.y + projection.bottom * projection.scale,
     }
 }

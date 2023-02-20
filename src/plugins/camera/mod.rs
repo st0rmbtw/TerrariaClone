@@ -13,7 +13,7 @@ mod components;
 mod systems;
 mod lighting;
 
-const MAX_CAMERA_ZOOM: f32 = 1.1;
+const MAX_CAMERA_ZOOM: f32 = 2.;
 const MIN_CAMERA_ZOOM: f32 = 0.46;
 const CAMERA_ZOOM_STEP: f32 = 0.3;
 

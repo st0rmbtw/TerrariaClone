@@ -5,6 +5,7 @@ use bevy::{
     prelude::{Button, Changed, Component, Query, With, Vec2, Camera, GlobalTransform},
     ui::Interaction,
 };
+use bevy_ecs_tilemap::tiles::TilePos;
 
 use crate::{plugins::world::TILE_SIZE, wall::Wall, items::Block};
 
@@ -151,6 +152,10 @@ impl Mul<f32> for FRect {
 
 pub fn get_tile_coords(world_coords: Vec2) -> Vec2 {
     (world_coords / TILE_SIZE).round().abs()
+}
+
+pub fn tile_to_world_coords(tile_pos: TilePos) -> Vec2 {
+    Vec2::new(tile_pos.x as f32 * TILE_SIZE, -(tile_pos.y as f32) * TILE_SIZE)
 }
 
 pub fn move_towards(current: f32, target: f32, max_delta: f32) -> f32 {

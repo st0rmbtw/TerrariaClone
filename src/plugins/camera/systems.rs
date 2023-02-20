@@ -8,7 +8,7 @@ use bevy::{
 };
 use leafwing_input_manager::{InputManagerBundle, prelude::{ActionState, InputMap}};
 
-use crate::{parallax::ParallaxCameraComponent, plugins::{world::TILE_SIZE, assets::BackgroundAssets}, world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}};
+use crate::{parallax::ParallaxCameraComponent, plugins::{world::{TILE_SIZE, WorldData}, assets::BackgroundAssets}, world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}, util::tile_to_world_coords};
 
 #[cfg(not(feature = "free_camera"))]
 use crate::plugins::player::Player;
@@ -21,7 +21,10 @@ pub fn setup_camera(
     mut sun_materials: ResMut<Assets<SunMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     background_assets: Res<BackgroundAssets>,
+    world_data: Res<WorldData>
 ) {
+    let spawn_point = tile_to_world_coords(world_data.spawn_point);
+
     commands
         .spawn((
             MainCamera,
@@ -31,7 +34,7 @@ pub fn setup_camera(
                 projection: OrthographicProjection { 
                     scale: 0.9
                 },
-                transform: Transform::from_xyz(0., 0., 500.)
+                transform: Transform::from_xyz(spawn_point.x + TILE_SIZE / 2., spawn_point.y + TILE_SIZE / 2., 500.)
             },
             InputManagerBundle::<MouseAction> {
                 action_state: ActionState::default(),

@@ -20,7 +20,7 @@ use bevy_ecs_tilemap::{
 };
 use iyes_loopless::state::NextState;
 
-use crate::{util::{FRect, URect}, world_generator::{Tile, WORLD_SIZE_X, WORLD_SIZE_Y, generate, Wall, generate_light_map}, plugins::{inventory::Inventory, world::{CHUNK_SIZE, TILE_SIZE, LightMap}, assets::{BlockAssets, WallAssets}, camera::MainCamera}, state::GameState, CellArrayExtensions};
+use crate::{util::{FRect, URect}, world_generator::{Tile, WORLD_SIZE_X, WORLD_SIZE_Y, generate, Wall, generate_light_map, get_spawn_point}, plugins::{inventory::Inventory, world::{CHUNK_SIZE, TILE_SIZE, LightMap}, assets::{BlockAssets, WallAssets}, camera::MainCamera}, state::GameState, CellArrayExtensions};
 
 use super::{get_chunk_pos, CHUNK_SIZE_U, MAP_SIZE, TileChunk, UpdateNeighborsEvent, WorldData, BlockEvent, WallChunk, WALL_SIZE, CHUNKMAP_SIZE, Chunk, get_camera_fov, ChunkManager, ChunkPos, get_chunk_tile_pos};
 
@@ -34,12 +34,15 @@ pub fn spawn_terrain(mut commands: Commands) {
 
     println!("Generating world...");
     let tiles = generate(seed);
+    let spawn_point = get_spawn_point(&tiles);
+
     let light_map = generate_light_map(&tiles);
 
     commands.insert_resource(WorldData {
         width: tiles.ncols() as u16,
         height: tiles.nrows() as u16,
         tiles,
+        spawn_point
     });
 
     commands.insert_resource(LightMap {
@@ -157,7 +160,7 @@ pub fn spawn_chunks(
     >,
 ) {
     if let Ok((camera_transform, projection)) = camera_query.get_single() {
-        let camera_fov = get_camera_fov(camera_transform.translation().xy().abs(), projection);
+        let camera_fov = get_camera_fov(camera_transform.translation().xy(), projection);
         let camera_chunk_pos = get_chunk_position_by_camera_fov(camera_fov);
 
         for y in camera_chunk_pos.top..=camera_chunk_pos.bottom {
@@ -182,7 +185,7 @@ pub fn despawn_chunks(
     >,
 ) {
     if let Ok((camera_transform, projection)) = camera_query.get_single() {
-        let camera_fov = get_camera_fov(camera_transform.translation().xy().abs(), projection);
+        let camera_fov = get_camera_fov(camera_transform.translation().xy(), projection);
         let camera_chunk_pos = get_chunk_position_by_camera_fov(camera_fov);
 
         for (entity, Chunk { pos: chunk_pos }) in chunks.iter() {
@@ -298,8 +301,8 @@ pub fn get_chunk_position_by_camera_fov(camera_fov: FRect) -> URect {
     let mut rect = URect { 
         left: (camera_fov.left / (CHUNK_SIZE * TILE_SIZE)).floor() as u32, 
         right: (camera_fov.right / (CHUNK_SIZE * TILE_SIZE)).ceil() as u32, 
-        bottom: (camera_fov.bottom / (CHUNK_SIZE * TILE_SIZE) + 1.) as u32, 
-        top: ((camera_fov.top / (CHUNK_SIZE * TILE_SIZE)) - 3.) as u32,
+        bottom: (camera_fov.bottom.abs() / (CHUNK_SIZE * TILE_SIZE).ceil()) as u32, 
+        top: ((camera_fov.top.abs() / (CHUNK_SIZE * TILE_SIZE)).floor()) as u32,
     };
 
     const MAX_CHUNK_X: u32 = WORLD_SIZE_X as u32 / CHUNK_SIZE_U;

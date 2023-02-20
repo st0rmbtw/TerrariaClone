@@ -1,4 +1,5 @@
-use bevy::{utils::HashSet, prelude::{Resource, UVec4}};
+use bevy::{utils::HashSet, prelude::Resource};
+use bevy_ecs_tilemap::tiles::TilePos;
 use ndarray::Array2;
 
 use crate::world_generator::CellArray;
@@ -10,13 +11,14 @@ pub struct WorldData {
     pub width: u16,
     pub height: u16,
     pub tiles: CellArray,
+    pub spawn_point: TilePos
 }
 
 #[derive(Resource)]
 pub struct LightMap {
     pub width: u16,
     pub height: u16,
-    pub colors: Array2<UVec4>,
+    pub colors: Array2<u8>,
 }
 
 #[derive(Resource, Default)]

@@ -6,9 +6,9 @@ use bevy::{
         mesh::Indices,
         render_resource::{
             AsBindGroup, Extent3d, PrimitiveTopology, ShaderRef, TextureDescriptor,
-            TextureDimension, TextureFormat, TextureUsages,
+            TextureDimension, TextureFormat, TextureUsages, SamplerDescriptor, AddressMode,
         },
-        texture::BevyDefault,
+        texture::{BevyDefault, ImageSampler},
         view::RenderLayers,
     },
     sprite::{Material2d, Material2dPlugin, MaterialMesh2dBundle},
@@ -84,7 +84,7 @@ fn update_light_map_texture(light_map: &LightMap, camera_pos: Vec2, proj: &Ortho
 
     for y in (bottom as usize)..(top as usize) {
         for x in (left as usize)..(right as usize) {
-            let mut color = UVec4::new(0, 0, 0, 0);
+            let mut color = 0;
 
             if let Some(map_color) = light_map.colors.get((x, y)) {
                 color = *map_color;
@@ -92,9 +92,9 @@ fn update_light_map_texture(light_map: &LightMap, camera_pos: Vec2, proj: &Ortho
 
             let index = x + light_map.width as usize * y;
 
-            texture[index] = (color.x & 0xFF) as u8; // R
-            texture[(index) + 1] = (color.y & 0xFF) as u8; // G
-            texture[(index) + 2] = (color.z & 0xFF) as u8; // B
+            texture[index] = (color & 0xFF) as u8; // R
+            texture[(index) + 1] = (color & 0xFF) as u8; // G
+            texture[(index) + 2] = (color & 0xFF) as u8; // B
             texture[(index) + 3] = 0xFF; // A
         }
     }
@@ -111,10 +111,10 @@ fn update_lighting_material(
         let mut lighting_material = post_processing_materials.get_mut(lighting_material_handle).unwrap();
         
         lighting_material.player_position = camera_position;
-        lighting_material.proj = Vec4::new(proj.left, proj.top, proj.bottom, proj.right);
+        lighting_material.scale = proj.scale;
 
         if light_map.is_changed() {
-            let light_map_texture = images.get_mut(&lighting_material.color_map).unwrap();
+            let light_map_texture = images.get_mut(&lighting_material.light_map).unwrap();
 
             update_light_map_texture(&light_map, camera_position, proj, &mut light_map_texture.data);
         }
@@ -163,10 +163,10 @@ fn setup_new_post_processing_cameras(
         for ((row, col), color) in light_map.colors.indexed_iter() {
             let index = ((row * light_map.colors.ncols()) + col) * 4;
 
-            bytes[index] = (color.x & 0xFF) as u8;
-            bytes[(index) + 1] = (color.y & 0xFF) as u8;
-            bytes[(index) + 2] = (color.z & 0xFF) as u8;
-            bytes[(index) + 3] = (color.w & 0xFF) as u8;
+            bytes[index] = (color & 0xFF) as u8;
+            bytes[(index) + 1] = (color & 0xFF) as u8;
+            bytes[(index) + 2] = (color & 0xFF) as u8;
+            bytes[(index) + 3] = 0xFF;
         }
 
         let light_map = Image::new(
@@ -192,6 +192,12 @@ fn setup_new_post_processing_cameras(
                     | TextureUsages::COPY_DST
                     | TextureUsages::RENDER_ATTACHMENT,
             },
+            sampler_descriptor: ImageSampler::Descriptor(SamplerDescriptor {
+                address_mode_u: AddressMode::ClampToBorder,
+                address_mode_v: AddressMode::ClampToBorder,
+                address_mode_w: AddressMode::ClampToBorder,
+                ..default()
+            }),
             ..Default::default()
         };
 
@@ -232,9 +238,9 @@ fn setup_new_post_processing_cameras(
         // This material has the texture that has been rendered.
         let material_handle = post_processing_materials.add(LightingMaterial {
             source_image: image_handle.clone(),
-            color_map: light_map_handle,
+            light_map: light_map_handle,
             player_position: Vec2::default(),
-            proj: Vec4::new(proj.left, proj.top, proj.bottom, proj.right)
+            scale: proj.scale
         });
 
         commands
@@ -300,13 +306,13 @@ pub struct LightingMaterial {
 
     #[texture(2)]
     #[sampler(3)]
-    color_map: Handle<Image>,
+    light_map: Handle<Image>,
 
     #[uniform(4)]
     player_position: Vec2,
-
+    
     #[uniform(5)]
-    proj: Vec4
+    scale: f32,
 }
 
 impl Material2d for LightingMaterial {
