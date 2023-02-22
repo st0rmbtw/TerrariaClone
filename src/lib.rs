@@ -18,6 +18,7 @@ pub mod util;
 pub mod wall;
 pub mod world_generator;
 pub mod language;
+pub mod lighting;
 
 pub const TRANSPARENT: Color = Color::rgba(0., 0., 0., 0.);
 pub const TEXT_COLOR: Color = Color::rgb(156. / 255., 156. / 255., 156. / 255.);
