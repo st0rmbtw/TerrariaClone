@@ -1,5 +1,5 @@
 use bevy::ecs::world::Mut;
-use bevy::prelude::{Resource, AudioSource};
+use bevy::prelude::{Resource, AudioSource, Shader};
 use bevy::{
     asset::HandleUntyped,
     math::Vec2,
@@ -29,7 +29,8 @@ impl Plugin for AssetsPlugin {
                 .with_collection::<CursorAssets>()
                 .with_collection::<BackgroundAssets>()
                 .with_collection::<WallAssets>()
-                .with_collection::<SoundAssets>(),
+                .with_collection::<SoundAssets>()
+                .with_collection::<ShaderAssets>(),
         )
         .add_exit_system(GameState::AssetLoading, setup);
     }
@@ -270,6 +271,12 @@ pub struct SoundAssets {
 
     #[asset(path = "sounds/Swing_3.wav")]
     pub swing_3: Handle<AudioSource>,
+}
+
+#[derive(Resource, AssetCollection)]
+pub struct ShaderAssets {
+    #[asset(path = "shaders/lighting.wgsl")]
+    pub lighting: Handle<Shader>,
 }
 
 impl WallAssets {

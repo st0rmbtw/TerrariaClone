@@ -1,67 +1,75 @@
-#import bevy_sprite::mesh2d_view_bindings
-#import bevy_pbr::utils
+#import game::gi_camera
+#import game::gi_types
+#import game::gi_halton
+#import game::gi_raymarch
+#import game::gi_attenuation
 
-@group(1) @binding(0)
-var texture: texture_2d<f32>;
+@group(0) @binding(0) var<uniform> camera_params:         CameraParams;
+@group(0) @binding(1) var<uniform> cfg:                   LightPassParams;
+@group(0) @binding(2) var<storage> lights_source_buffer:  LightSourceBuffer;
+@group(0) @binding(3) var          ss_probe_out:          texture_storage_2d<rgba16float, write>;
 
-@group(1) @binding(1)
-var texture_sampler: sampler;
 
-@group(1) @binding(2)
-var light_map_texture: texture_2d<f32>;
+@compute @workgroup_size(8, 8, 1)
+fn main(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
+    let tile_xy      = vec2<i32>(invocation_id.xy);
 
-@group(1) @binding(3)
-var light_map_texture_sampler: sampler;
+    // Screen-space position of the probe.
+    let reservoir_size           = i32(cfg.reservoir_size);
+    let frame_index              = cfg.frame_counter % reservoir_size;
+    let probe_tile_origin_screen = tile_xy * cfg.probe_size;
+    let probe_size_f32           = f32(cfg.probe_size);
+    let halton_jitter            = hammersley2d(frame_index, reservoir_size);
 
-@group(1) @binding(4)
-var<uniform> player_position: vec2<f32>;
+    // Get current frame.
+    let probe_offset_world  = halton_jitter * probe_size_f32;
+    let probe_center_world_unbiased = screen_to_world(
+                                              probe_tile_origin_screen,
+                                              camera_params.screen_size,
+                                              camera_params.inverse_view_proj,
+                                              camera_params.screen_size_inv,
+                                          );
+    let probe_center_world  =  probe_center_world_unbiased + probe_offset_world;
 
-@group(1) @binding(5)
-var<uniform> camera_scale: f32;
+    var probe_irradiance = vec3<f32>(0.0);
 
-fn scale(scale: vec2<f32>) -> mat2x2<f32> {
-    return mat2x2(scale.x, 0.0,
-                  0.0, scale.y);
-}
+    for (var i: i32 = 0; i < i32(lights_source_buffer.count); i++) {
+        let light = lights_source_buffer.data[i];
 
-fn blur(texture: texture_2d<f32>, texture_sampler: sampler, resolution: vec2<f32>, uv: vec2<f32>) -> vec4<f32> {
-    let Pi = 6.28318530718; // Pi*2
-    
-    // GAUSSIAN BLUR SETTINGS {{{
-    let Directions = 16.; // BLUR DIRECTIONS (Default 16.0 - More is better but slower)
-    let Quality = 5.; // BLUR QUALITY (Default 4.0 - More is better but slower)
-    let Size = 2.; // BLUR SIZE (Radius)
-    // GAUSSIAN BLUR SETTINGS }}}
-   
-    let Radius = Size/resolution;
-    // Pixel colour
-    var Color = textureSample(texture, texture_sampler, uv);
-    
-    // Blur calculations
-    for (var d = 0.0; d < Pi; d += Pi / Directions) {
-		for (var i = 1.0 / Quality; i <= 1.0; i += 1.0 / Quality) {
-			Color += textureSample(texture, texture_sampler, uv+vec2(cos(d),sin(d))*Radius*i);
+        let ray_result = raymarch_primary(
+            probe_center_world,
+            light.center,
+            32,
+            camera_params,
+            0.3
+        );
+
+        let att = light_attenuation_r2(
+            probe_center_world,
+            light.center,
+            light.falloff.x,
+            light.falloff.y,
+            light.falloff.z,
+        );
+
+        // let att = 1.;
+
+        if (ray_result.success > 0) {
+            probe_irradiance += light.color * att * light.intensity;
         }
     }
-    
-    // Output to screen
-    Color /= Quality * Directions - 15.0;
 
-    return Color;
-}
+    // Coordinates of the screen-space cache output tile.
+    let atlas_row  = frame_index / cfg.probe_size;
+    let atlas_col  = frame_index % cfg.probe_size;
 
+    let out_atlas_tile_offset = vec2<i32>(
+        cfg.probe_atlas_cols * atlas_col,
+        cfg.probe_atlas_rows * atlas_row,
+    );
 
-@fragment
-fn fragment(
-    @builtin(position) position: vec4<f32>,
-    #import bevy_sprite::mesh2d_vertex_output
-) -> @location(0) vec4<f32> {
-    let uv = coords_to_viewport_uv(position.xy, view.viewport);
-    let player_uv = player_position.xy / (vec2(1750. * 16., 900. * 16.) - vec2(16., 32.));
+    let out_atlas_tile_pose = out_atlas_tile_offset + tile_xy;
 
-    let scl = view.viewport.zw / vec2(1750. * 16., 900. * 16.);
-
-    let light_map_uv = (uv - 0.5) * scale(scl * camera_scale);
-
-    return textureSample(texture, texture_sampler, uv) * blur(light_map_texture, light_map_texture_sampler, view.viewport.zw, light_map_uv + player_uv);
+    textureStore(ss_probe_out, out_atlas_tile_pose, vec4(probe_irradiance, 1.));
+    // textureStore(ss_probe_out, out_atlas_tile_pose, vec4(1., 1., 1., 1.));
 }

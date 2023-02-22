@@ -14,7 +14,7 @@ use game::{
         ui::PlayerUiPlugin, settings::{SettingsPlugin, Resolution, VSync, FullScreen}, menu::MenuPlugin, world::WorldPlugin, 
         inventory::PlayerInventoryPlugin, fps::FpsPlugin, settings_menu::{SettingsMenuState, SettingsMenuPlugin}
     }, 
-    language::{load_language, Language},
+    language::{load_language, Language}, lighting::LightingPlugin,
 };
 use iyes_loopless::prelude::{AppLooplessStateExt, AppLooplessFixedTimestepExt};
 use rand::seq::SliceRandom;
@@ -74,6 +74,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .add_plugin(CursorPlugin)
         .add_plugin(SettingsMenuPlugin)
         .add_plugin(CameraPlugin)
+        .add_plugin(LightingPlugin)
         .add_plugin(ParallaxPlugin { initial_speed: 0.2 })
         .add_plugin(HanabiPlugin)
         .add_plugin(BackgroundPlugin)

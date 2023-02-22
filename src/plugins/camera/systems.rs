@@ -2,25 +2,23 @@ use autodefault::autodefault;
 use bevy::{
     prelude::{
         Commands, Camera2dBundle, OrthographicProjection, Transform, Res, KeyCode, Query, 
-        With, GlobalTransform, Image, default, Handle, ResMut, Assets, Vec3, Mesh, shape
+        With, GlobalTransform, default,ResMut, Assets, Vec3, Mesh, shape, Input, Color, Name,
     }, 
-    time::Time, render::{render_resource::{AsBindGroup, ShaderRef}}, reflect::TypeUuid, sprite::{Material2d, MaterialMesh2dBundle}
+    time::Time, sprite::{MaterialMesh2dBundle, ColorMaterial}
 };
-use leafwing_input_manager::{InputManagerBundle, prelude::{ActionState, InputMap}};
 
-use crate::{parallax::ParallaxCameraComponent, plugins::{world::{TILE_SIZE, WorldData}, assets::BackgroundAssets}, world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}, util::tile_to_world_coords};
+use crate::{parallax::ParallaxCameraComponent, plugins::{world::{TILE_SIZE, WorldData}, cursor::CursorPosition}, world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}, util::tile_to_world_coords, lighting::{compositing::LightMapCamera, types::OmniLightSource2D}};
 
 #[cfg(not(feature = "free_camera"))]
 use crate::plugins::player::Player;
 
-use super::{MainCamera, CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, MouseAction, lighting::LightMapCamera};
+use super::{MainCamera, CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, MouseLight};
 
 #[autodefault(except(TextureDescriptor, ShadowMapMaterial, LightMapMaterial, SunMaterial, LightingMaterial))]
 pub fn setup_camera(
     mut commands: Commands,
-    mut sun_materials: ResMut<Assets<SunMaterial>>,
+    mut color_materials: ResMut<Assets<ColorMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
-    background_assets: Res<BackgroundAssets>,
     world_data: Res<WorldData>
 ) {
     let spawn_point = tile_to_world_coords(world_data.spawn_point);
@@ -36,40 +34,74 @@ pub fn setup_camera(
                 },
                 transform: Transform::from_xyz(spawn_point.x + TILE_SIZE / 2., spawn_point.y + TILE_SIZE / 2., 500.)
             },
-            InputManagerBundle::<MouseAction> {
-                action_state: ActionState::default(),
-                input_map: InputMap::new([
-                    (KeyCode::Equals, MouseAction::ZoomIn),
-                    (KeyCode::Minus, MouseAction::ZoomOut),
-                ])
-            },
+            // InputManagerBundle::<MouseAction> {
+            //     action_state: ActionState::default(),
+            //     input_map: InputMap::new([
+            //         (KeyCode::Equals, MouseAction::ZoomIn),
+            //         (KeyCode::Minus, MouseAction::ZoomOut),
+            //     ])
+            // },
         ));
 
-    commands.spawn(MaterialMesh2dBundle {
-        mesh: meshes.add(Mesh::from(shape::Circle::new(57.))).into(),
-        material: sun_materials.add(SunMaterial {
-            texture: background_assets.sun.clone()
-        }),
-        transform: Transform {
-            translation: Vec3::new(14000., -2800., 1.),
+    // commands
+    //     .spawn(MaterialMesh2dBundle {
+    //         mesh: meshes.add(Mesh::from(shape::Circle::new(57.))).into(),
+    //         material: standard_materials.add(StandardMaterial {
+    //             base_color_texture: Some(background_assets.sun.clone()),
+    //             alpha_mode: AlphaMode::Blend,
+    //             ..default()
+    //         }),
+    //         transform: Transform {
+    //             translation: Vec3::new(14000., -2800., 1.),
+    //             ..default()
+    //         },
+    //         ..default()
+    //     })
+    //     .insert(OmniLightSource2D {
+    //         intensity: 10.0,
+    //         color:     Color::YELLOW,
+    //         falloff:   Vec3::new(50.0, 20.0, 0.05),
+    //         ..default()
+    //     });
+
+    let block_mesh = meshes.add(Mesh::from(shape::Quad::default()));
+
+    commands
+        .spawn(MaterialMesh2dBundle {
+            mesh: block_mesh.clone().into(),
+            material: color_materials.add(ColorMaterial::from(Color::YELLOW)).into(),
+            transform: Transform {
+                translation: Vec3::new(0.0, 0.0, 1000.0),
+                scale:       Vec3::splat(8.0),
+                ..default()
+            },
             ..default()
-        },
-        ..default()
-    });
+        })
+        .insert(Name::new("cursor_light"))
+        .insert(OmniLightSource2D {
+            intensity: 10.,
+            color:     Color::rgb_u8(254, 100, 34),
+            falloff:   Vec3::new(10.0, 10.0, 0.05),
+            jitter_intensity: 0.7,
+            jitter_translation: 1.,
+            ..default()
+        })
+        .insert(MouseLight);
 }
 
 pub fn zoom(
     time: Res<Time>,
-    mut camera_query: Query<(&mut OrthographicProjection, &ActionState<MouseAction>), With<MainCamera>>,
+    input: Res<Input<KeyCode>>,
+    mut camera_query: Query<&mut OrthographicProjection>,
 ) {
-    if let Ok((mut projection, input)) = camera_query.get_single_mut() {
-        if input.pressed(MouseAction::ZoomIn) {
+    for mut projection in &mut camera_query {
+        if input.pressed(KeyCode::Equals) {
             let scale = projection.scale - (CAMERA_ZOOM_STEP * time.delta_seconds());
 
             projection.scale = scale.max(MIN_CAMERA_ZOOM);
         }
 
-        if input.pressed(MouseAction::ZoomOut) {
+        if input.pressed(KeyCode::Minus) {
             let scale = projection.scale + (CAMERA_ZOOM_STEP * time.delta_seconds());
 
             projection.scale = scale.min(MAX_CAMERA_ZOOM);
@@ -95,6 +127,7 @@ pub fn move_camera(
                 let max = (WORLD_SIZE_X as f32 * 16.) - projection_right - TILE_SIZE / 2.;
                 camera_translation.x = player_transform.translation.x.clamp(min, max);
             }
+
             {
                 let max = -(projection_top - TILE_SIZE / 2.);
                 let min = -((WORLD_SIZE_Y as f32 * 16.) + projection_top + TILE_SIZE / 2.);
@@ -104,17 +137,12 @@ pub fn move_camera(
     }
 }
 
-#[derive(AsBindGroup, TypeUuid, Clone)]
-#[uuid = "aefae18a-5321-4c01-be90-16d87972a553"]
-pub struct SunMaterial {
-    #[texture(0)]
-    #[sampler(1)]
-    texture: Handle<Image>,
-}
-
-impl Material2d for SunMaterial {
-    fn fragment_shader() -> ShaderRef {
-        "shaders/sun.wgsl".into()
+pub fn move_mouse_light(
+    mut query: Query<&mut Transform, With<MouseLight>>,
+    cursor_position: Res<CursorPosition>
+) {
+    for mut transform in &mut query {
+        transform.translation = cursor_position.world_position.extend(10.);
     }
 }
 
