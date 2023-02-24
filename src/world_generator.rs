@@ -155,37 +155,40 @@ pub fn generate_light_map(tiles: &CellArray) -> Array2<u8> {
         }
     }
 
-    for y in 0..light_map.nrows() {
-        for x in 0..light_map.ncols() {
-            propogate_light(x, y, &mut light_map, &tiles);
-        }
-    }
+    // for y in 0..light_map.nrows() {
+    //     for x in 0..light_map.ncols() {
+    //         let color = light_map[(y, x)];
+
+    //         if color > 0 {
+    //             flood_fill(x, y, color, &mut light_map)
+    //         }
+    //     }
+    // }
 
 
     light_map
 }
 
-pub fn propogate_light(x: usize, y: usize, light_map: &mut Array2<u8>, tiles: &CellArray) {
+fn flood_fill(x: usize, y: usize, color: u8, light_map: &mut Array2<u8>) { 
     if x >= light_map.ncols() - 1 { return; }
     if y >= light_map.nrows() - 1 { return; }
 
     if x.checked_sub(1).is_none() { return; }
     if y.checked_sub(1).is_none() { return; }
 
-    if tiles[(y, x)].tile.is_none() || tiles[(y, x)].wall.is_none() { return; }
+    // if light_map[(y, x)] != color { return; }
+    if light_map[(y, x)] == 0 { return; }
+  
+    light_map[(y, x)] = color;
 
-    if light_map[(y - 1, x)] > light_map[(y, x)] { 
-        light_map[(y, x)] = light_map[(y - 1, x)].checked_sub(150).unwrap_or(0);
-    }
-    if light_map[(y, x - 1)] > light_map[(y, x)] { 
-        light_map[(y, x)] = light_map[(y, x - 1)].checked_sub(150).unwrap_or(0);
-    }
-    if light_map[(y + 1, x)] > light_map[(y, x)] { 
-        light_map[(y, x)] = light_map[(y + 1, x)].checked_sub(150).unwrap_or(0);
-    }
-    if light_map[(y, x + 1)] > light_map[(y, x)] { 
-        light_map[(y, x)] = light_map[(y, x + 1)].checked_sub(150).unwrap_or(0); 
-    }
+    let new_color = color.checked_sub(20).unwrap_or(0);
+
+    println!("curr: {}, new: {}", color, new_color);
+    
+    flood_fill(x+1, y, new_color, light_map); 
+    flood_fill(x-1, y, new_color, light_map); 
+    flood_fill(x, y+1, new_color, light_map); 
+    flood_fill(x, y-1, new_color, light_map); 
 }
 
 fn remove_extra_walls(world: &mut CellArray) {

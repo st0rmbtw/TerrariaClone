@@ -22,7 +22,7 @@ impl Plugin for CameraPlugin {
         app
             .add_enter_system(GameState::InGame, setup_camera)
             .add_system(zoom.run_in_state(GameState::InGame))
-            .add_system(move_mouse_light.run_in_state(GameState::InGame))
+            .add_system(control_mouse_light.run_in_state(GameState::InGame))
             .add_system(
                 move_camera
                 .run_in_state(GameState::InGame)

@@ -1,5 +1,6 @@
 #import bevy_sprite::mesh2d_view_bindings
 #import bevy_pbr::utils
+#import game::gi_math
 
 @group(1) @binding(0)
 var texture: texture_2d<f32>;
@@ -24,11 +25,6 @@ var<uniform> player_position: vec2<f32>;
 
 @group(1) @binding(7)
 var<uniform> camera_scale: f32;
-
-fn scale(scale: vec2<f32>) -> mat2x2<f32> {
-    return mat2x2(scale.x, 0.0,
-                  0.0, scale.y);
-}
 
 fn blur(texture: texture_2d<f32>, texture_sampler: sampler, resolution: vec2<f32>, uv: vec2<f32>) -> vec4<f32> {
     let Pi = 6.28318530718; // Pi*2
@@ -56,6 +52,16 @@ fn blur(texture: texture_2d<f32>, texture_sampler: sampler, resolution: vec2<f32
     return Color;
 }
 
+fn lin_to_srgb(color: vec3<f32>) -> vec3<f32> {
+    let x = color * 12.92;
+    let y = 1.055 * pow(clamp(color, vec3<f32>(0.0), vec3<f32>(1.0)), vec3<f32>(0.4166667)) - vec3<f32>(0.055);
+    var clr = color;
+    clr.x = select(x.x, y.x, (color.x < 0.0031308));
+    clr.y = select(x.y, y.y, (color.y < 0.0031308));
+    clr.z = select(x.z, y.z, (color.z < 0.0031308));
+    return clr;
+}
+
 @fragment
 fn fragment(
     @builtin(position) position: vec4<f32>,
@@ -63,20 +69,29 @@ fn fragment(
 ) -> @location(0) vec4<f32> {
     let uv = coords_to_viewport_uv(position.xy, view.viewport);
     let player_uv = player_position.xy / (vec2(1750. * 16., 900. * 16.) - vec2(16., 32.));
-    
-    let scl = view.viewport.zw / vec2(1750. * 16., 900. * 16.);
-
-    let scale = scale(scl * camera_scale);
-
-    let light_map_uv = (uv - 0.5) * scale;
 
     let texture_diffuse = textureSample(texture, texture_sampler, uv);
+    
+    var light_map_uv = vec2(0.);
+    {
+        let scl = view.viewport.zw / vec2(1750. * 16., 900. * 16.);
 
-    let in_irradiance = textureSample(in_irradiance_texture, in_irradiance_texture_sampler, (uv + 0.5) * scale);
+        let scale = scale(scl * camera_scale);
 
-    // Calculate object irradiance.
-    // TODO: parametrize this filter.
-    // TODO: we don't really need to do this per pixel.
+        light_map_uv = (uv - 0.5) * scale;
+    }
+
+    var in_irradiance_uv = vec2(0.);
+    {
+        let scl = view.viewport.zw / vec2(view.viewport.z * 16., view.viewport.w * 16.);
+
+        let scale = scale(scl);
+
+        in_irradiance_uv = uv * scale;
+    }
+
+    let in_irradiance = blur(in_irradiance_texture, in_irradiance_texture_sampler, view.viewport.zw, in_irradiance_uv).rgb;
+
     var object_irradiance = in_irradiance;
     let k_size = 1;
     let k_width = 10;
@@ -89,10 +104,9 @@ fn fragment(
     //         let sample_irradiance = textureSample(
     //             in_irradiance_texture,
     //             in_irradiance_texture_sampler,
-    //             irradiance_uv * scale
-    //         );
+    //             irradiance_uv
+    //         ).rgb;
 
-    //         // TODO: Might also need a visibility check here.
     //         if any(irradiance_uv < vec2<f32>(0.0)) || any(irradiance_uv > vec2<f32>(1.0)) {
     //             continue;
     //         }
@@ -100,8 +114,12 @@ fn fragment(
     //         object_irradiance = max(object_irradiance, sample_irradiance);
     //     }
     // }
+
+    let object_irradiance_srgb = lin_to_srgb(object_irradiance);
+    let light_map_color = blur(light_map_texture, light_map_texture_sampler, view.viewport.zw, light_map_uv + player_uv);
+    // let light_map_color = textureSample(light_map_texture, light_map_texture_sampler, light_map_uv + player_uv);
     
-    let color = texture_diffuse * (blur(light_map_texture, light_map_texture_sampler, view.viewport.zw, light_map_uv + player_uv) + object_irradiance);
+    let color = texture_diffuse * (light_map_color + vec4(object_irradiance, 1.));
 
     return color;
 }

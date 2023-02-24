@@ -12,7 +12,7 @@ use super::types_gpu::{GpuCameraParams, GpuLightSourceBuffer, GpuOmniLightSource
 
 #[rustfmt::skip]
 #[derive(Default, Resource)]
-pub(crate) struct LightPassPipelineAssets {
+pub struct LightPassPipelineAssets {
     pub camera_params:     UniformBuffer<GpuCameraParams>,
     pub light_pass_params: UniformBuffer<GpuLightPassParams>,
     pub light_sources:     StorageBuffer<GpuLightSourceBuffer>,

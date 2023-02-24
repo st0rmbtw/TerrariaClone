@@ -3,16 +3,16 @@ use bevy::{
         extract_resource::ExtractResourcePlugin, RenderApp, RenderStage, 
         render_graph::{RenderGraph, self}, 
         renderer::RenderContext, 
-        render_resource::{PipelineCache, ComputePassDescriptor}
+        render_resource::{PipelineCache, ComputePassDescriptor, Extent3d}
     }, 
-    prelude::{Shader, Vec2, ResMut, Res, World, Plugin, App, IntoSystemDescriptor, default, EventReader},
+    prelude::{Shader, Vec2, ResMut, Res, World, Plugin, App, IntoSystemDescriptor, default, EventReader, Assets, Image},
     window::{Windows, WindowResized},
     asset::load_internal_asset, sprite::Material2dPlugin,
 };
 use iyes_loopless::prelude::IntoConditionalSystem;
 use tracing::warn;
 
-use crate::{plugins::{camera::UpdateLightEvent, world::WorldData}, lighting::{compositing::{PostProcessingMaterial, setup_post_processing_camera, update_image_to_window_size, update_lighting_material, update_light_map}, constants::{SHADER_GI_HALTON, SHADER_GI_ATTENUATION, SHADER_GI_MATH, SHADER_GI_RAYMARCH}}, state::GameState};
+use crate::{plugins::{camera::UpdateLightEvent, world::WorldData}, lighting::{compositing::{PostProcessingMaterial, setup_post_processing_camera, update_image_to_window_size, update_lighting_material, update_light_map}, constants::{SHADER_GI_HALTON, SHADER_GI_ATTENUATION, SHADER_GI_MATH}}, state::GameState};
 
 use self::{
     pipeline::{LightPassPipelineBindGroups, PipelineTargetsWrapper, system_setup_gi_pipeline, LightPassPipeline, system_queue_bind_groups}, 
@@ -92,13 +92,6 @@ impl Plugin for LightingPlugin {
             Shader::from_wgsl
         );
 
-        load_internal_asset!(
-            app,
-            SHADER_GI_RAYMARCH,
-            "shaders/gi_raymarch.wgsl",
-            Shader::from_wgsl
-        );
-
         let render_app = app.sub_app_mut(RenderApp);
         render_app
             .init_resource::<LightPassPipeline>()
@@ -127,23 +120,43 @@ pub fn detect_target_sizes(
     mut target_sizes: ResMut<ComputedTargetSizes>
 ) {
 
-    let window       = windows.get_primary().expect("No primary window");
+    let window = windows.get_primary().expect("No primary window");
     let primary_size = Vec2::new(
-        (window.physical_width()  as f64 / window.backend_scale_factor()) as f32,
-        (window.physical_height() as f64 / window.backend_scale_factor()) as f32,
+        window.width(),
+        window.height()
     );
-
-    target_sizes.primary_target_size  = primary_size;
+    
+    target_sizes.primary_target_size = primary_size;
 }
 
 pub fn resize_primary_target(
+    windows: Res<Windows>,
     mut resize_events: EventReader<WindowResized>,
-    mut target_sizes: ResMut<ComputedTargetSizes>
+    mut target_sizes: ResMut<ComputedTargetSizes>,
+    mut images: ResMut<Assets<Image>>,
+    targets_wrapper: Res<PipelineTargetsWrapper>,
 ) {
-    for resize_event in resize_events.iter() {
-        let size = Vec2::new(resize_event.width, resize_event.height);
+    let window = windows.get_primary().expect("No primary window");
 
-        target_sizes.primary_target_size = size;
+    for _ in resize_events.iter() {
+        target_sizes.primary_target_size = Vec2::new(
+            window.width(),
+            window.height()
+        );
+
+        if let Some(targets) = targets_wrapper.targets.as_ref() {
+            let size = target_sizes.primary_target_usize();
+
+            let extent = Extent3d {
+                width: size.x,
+                height: size.y,
+                ..default()  
+            };
+
+            images.get_mut(&targets.lighting_target.clone_weak())
+                .unwrap()
+                .resize(extent);
+        }
     }
 }
 

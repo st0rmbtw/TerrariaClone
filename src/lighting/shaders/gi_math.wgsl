@@ -39,3 +39,8 @@ fn distance_squared(a: vec2<f32>, b: vec2<f32>) -> f32 {
 fn hash(p: vec2<f32>) -> f32 {
     return fract(sin(dot(p, vec2<f32>(11.9898, 78.233))) * 43758.5453);
 }
+
+fn scale(scale: vec2<f32>) -> mat2x2<f32> {
+    return mat2x2(scale.x, 0.0,
+                  0.0, scale.y);
+}
