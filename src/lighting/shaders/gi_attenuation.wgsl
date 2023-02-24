@@ -1,5 +1,7 @@
 #define_import_path game::gi_attenuation
 
+#import game::gi_math
+
 fn distance_squared2(a: vec2<f32>, b: vec2<f32>) -> f32 {
     let c = a - b;
     return dot(c, c);
@@ -12,9 +14,9 @@ fn light_attenuation_r2(
     b: f32, // 30.0
     c: f32, // 0.1
 ) -> f32 {
-    let d = distance_squared2(light_pose, sample_pose);
+    let d = fast_distance_2d(light_pose, sample_pose);
     let att       = a / (b + c * d);
-    return clamp(att, 0.0, 1000.0);
+    return clamp(att, 0.0, 10.);
 }
 
 fn light_attenuation_r1(

@@ -4,7 +4,10 @@
         "game::gi_types": "file:///D:/TerrariaClone/src/lighting/shaders/gi_types.wgsl",
         "game::gi_halton": "file:///D:/TerrariaClone/src/lighting/shaders/gi_halton.wgsl",
         "game::gi_math": "file:///D:/TerrariaClone/src/lighting/shaders/gi_math.wgsl",
-        "game::gi_raymarch": "file:///D:/TerrariaClone/src/lighting/shaders/gi_raymarch.wgsl",
         "game::gi_attenuation": "file:///D:/TerrariaClone/src/lighting/shaders/gi_attenuation.wgsl"
+    },
+    "files.associations": {
+        "stdio.h": "c",
+        "stdlib.h": "c"
     }
 }

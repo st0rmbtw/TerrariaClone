@@ -2,12 +2,13 @@ use autodefault::autodefault;
 use bevy::{
     prelude::{
         Commands, Camera2dBundle, OrthographicProjection, Transform, Res, KeyCode, Query, 
-        With, GlobalTransform, default,ResMut, Assets, Vec3, Mesh, shape, Input, Color, Name,
+        With, GlobalTransform, default,ResMut, Assets, Vec3, Mesh, shape, Input, Color, Name, MouseButton, Vec2,
     }, 
     time::Time, sprite::{MaterialMesh2dBundle, ColorMaterial}
 };
+use rand::{thread_rng, Rng};
 
-use crate::{parallax::ParallaxCameraComponent, plugins::{world::{TILE_SIZE, WorldData}, cursor::CursorPosition}, world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}, util::tile_to_world_coords, lighting::{compositing::LightMapCamera, types::OmniLightSource2D}};
+use crate::{parallax::ParallaxCameraComponent, plugins::{world::{TILE_SIZE, WorldData}, cursor::CursorPosition, assets::BackgroundAssets}, world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}, util::tile_to_world_coords, lighting::{compositing::LightMapCamera, types::OmniLightSource2D}};
 
 #[cfg(not(feature = "free_camera"))]
 use crate::plugins::player::Player;
@@ -19,7 +20,8 @@ pub fn setup_camera(
     mut commands: Commands,
     mut color_materials: ResMut<Assets<ColorMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
-    world_data: Res<WorldData>
+    world_data: Res<WorldData>,
+    background_assets: Res<BackgroundAssets>
 ) {
     let spawn_point = tile_to_world_coords(world_data.spawn_point);
 
@@ -43,28 +45,26 @@ pub fn setup_camera(
             // },
         ));
 
-    // commands
-    //     .spawn(MaterialMesh2dBundle {
-    //         mesh: meshes.add(Mesh::from(shape::Circle::new(57.))).into(),
-    //         material: standard_materials.add(StandardMaterial {
-    //             base_color_texture: Some(background_assets.sun.clone()),
-    //             alpha_mode: AlphaMode::Blend,
-    //             ..default()
-    //         }),
-    //         transform: Transform {
-    //             translation: Vec3::new(14000., -2800., 1.),
-    //             ..default()
-    //         },
-    //         ..default()
-    //     })
-    //     .insert(OmniLightSource2D {
-    //         intensity: 10.0,
-    //         color:     Color::YELLOW,
-    //         falloff:   Vec3::new(50.0, 20.0, 0.05),
-    //         ..default()
-    //     });
+    commands
+        .spawn(MaterialMesh2dBundle {
+            mesh: meshes.add(Mesh::from(shape::Circle::new(57.))).into(),
+            material: color_materials.add(ColorMaterial::from(background_assets.sun.clone())).into(),
+            transform: Transform {
+                translation: Vec3::new(14000., -2800., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(OmniLightSource2D {
+            intensity: 4.5,
+            color:     Color::ORANGE,
+            falloff:   Vec3::new(50.0, 1., 0.05),
+            jitter_intensity: 0.2,
+            jitter_translation: 0.1,
+            ..default()
+        });
 
-    let block_mesh = meshes.add(Mesh::from(shape::Quad::default()));
+    let block_mesh = meshes.add(Mesh::from(shape::Quad::new(Vec2::ZERO)));
 
     commands
         .spawn(MaterialMesh2dBundle {
@@ -81,9 +81,9 @@ pub fn setup_camera(
         .insert(OmniLightSource2D {
             intensity: 10.,
             color:     Color::rgb_u8(254, 100, 34),
-            falloff:   Vec3::new(10.0, 10.0, 0.05),
+            falloff:   Vec3::new(10.0, 5.0, 0.05),
             jitter_intensity: 0.7,
-            jitter_translation: 1.,
+            jitter_translation: 0.1,
             ..default()
         })
         .insert(MouseLight);
@@ -137,12 +137,19 @@ pub fn move_camera(
     }
 }
 
-pub fn move_mouse_light(
-    mut query: Query<&mut Transform, With<MouseLight>>,
-    cursor_position: Res<CursorPosition>
+pub fn control_mouse_light(
+    mut query: Query<(&mut Transform, &mut OmniLightSource2D), With<MouseLight>>,
+    cursor_position: Res<CursorPosition>,
+    mouse: Res<Input<MouseButton>>,
 ) {
-    for mut transform in &mut query {
-        transform.translation = cursor_position.world_position.extend(10.);
+    let mut rng = thread_rng();
+
+    let (mut transform, mut light_source) = query.single_mut();
+
+    transform.translation = cursor_position.world_position.extend(10.);
+
+    if mouse.just_pressed(MouseButton::Right) {
+        light_source.color = Color::rgba(rng.gen(), rng.gen(), rng.gen(), 1.0);
     }
 }
 
