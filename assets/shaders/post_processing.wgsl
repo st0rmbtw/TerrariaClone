@@ -67,6 +67,8 @@ fn fragment(
     @builtin(position) position: vec4<f32>,
     #import bevy_sprite::mesh2d_vertex_output
 ) -> @location(0) vec4<f32> {
+    let pixelate = 10.;
+
     let uv = coords_to_viewport_uv(position.xy, view.viewport);
     let player_uv = player_position.xy / (vec2(1750. * 16., 900. * 16.) - vec2(16., 32.));
 
@@ -74,7 +76,9 @@ fn fragment(
     
     var light_map_uv = vec2(0.);
     {
-        let scl = view.viewport.zw / vec2(1750. * 16., 900. * 16.);
+        let size = vec2(1750. * 16., 900. * 16.);
+
+        let scl = view.viewport.zw / size;
 
         let scale = scale(scl * camera_scale);
 
@@ -83,11 +87,14 @@ fn fragment(
 
     var in_irradiance_uv = vec2(0.);
     {
-        let scl = view.viewport.zw / vec2(view.viewport.z * 16., view.viewport.w * 16.);
+        let size = vec2(view.viewport.z * 16., view.viewport.w * 16.);
+
+        let scl = view.viewport.zw / size;
 
         let scale = scale(scl);
 
         in_irradiance_uv = uv * scale;
+        // in_irradiance_uv = (floor(position.xy / pixelate) * pixelate + 0.5) / size;
     }
 
     let in_irradiance = blur(in_irradiance_texture, in_irradiance_texture_sampler, view.viewport.zw, in_irradiance_uv).rgb;

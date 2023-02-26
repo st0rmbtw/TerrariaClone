@@ -9,7 +9,7 @@
 @group(0) @binding(3) var          ss_probe_out:          texture_storage_2d<rgba16float, write>;
 
 
-@compute @workgroup_size(16, 16, 1)
+@compute @workgroup_size(10, 10, 1)
 fn main(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let tile_xy      = vec2<i32>(invocation_id.xy);
 
@@ -17,19 +17,21 @@ fn main(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let probe_tile_origin_screen = tile_xy * cfg.probe_size;
 
     // Get current frame.
-    let probe_center_world = screen_to_world(
+    var probe_center_world = screen_to_world(
         probe_tile_origin_screen,
         camera_params.screen_size,
         camera_params.inverse_view_proj,
         camera_params.screen_size_inv,
     );
 
+    probe_center_world = probe_center_world + vec2(4., -4.);
+
     var probe_irradiance = vec3<f32>(0.0);
 
     for (var i: i32 = 0; i < i32(lights_source_buffer.count); i++) {
         let light = lights_source_buffer.data[i];
 
-        let att = smoothstep(100., 0., fast_distance_2d(light.center, probe_center_world));
+        let att = smoothstep(light.radius, 0., fast_distance_2d(light.center, probe_center_world));
 
         probe_irradiance += light.color * att * light.intensity;
     }
