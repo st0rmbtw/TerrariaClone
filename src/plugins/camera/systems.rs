@@ -8,7 +8,7 @@ use bevy::{
 };
 use rand::{thread_rng, Rng};
 
-use crate::{parallax::ParallaxCameraComponent, plugins::{world::{TILE_SIZE, WorldData}, cursor::CursorPosition, assets::BackgroundAssets}, world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}, util::tile_to_world_coords, lighting::{compositing::LightMapCamera, types::OmniLightSource2D}};
+use crate::{parallax::ParallaxCameraComponent, plugins::{world::{TILE_SIZE, WorldData}, cursor::CursorPosition, assets::BackgroundAssets}, world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}, util::tile_to_world_coords, lighting::{compositing::LightMapCamera, types::LightSource}};
 
 #[cfg(not(feature = "free_camera"))]
 use crate::plugins::player::Player;
@@ -55,10 +55,10 @@ pub fn setup_camera(
             },
             ..default()
         })
-        .insert(OmniLightSource2D {
-            intensity: 4.5,
-            color:     Color::ORANGE,
-            falloff:   Vec3::new(50.0, 1., 0.05),
+        .insert(LightSource {
+            intensity: 3.,
+            color: Color::ORANGE,
+            radius: 500.,
             jitter_intensity: 0.2,
             jitter_translation: 0.1,
             ..default()
@@ -72,18 +72,18 @@ pub fn setup_camera(
             material: color_materials.add(ColorMaterial::from(Color::YELLOW)).into(),
             transform: Transform {
                 translation: Vec3::new(0.0, 0.0, 1000.0),
-                scale:       Vec3::splat(8.0),
+                scale: Vec3::splat(8.0),
                 ..default()
             },
             ..default()
         })
         .insert(Name::new("cursor_light"))
-        .insert(OmniLightSource2D {
+        .insert(LightSource {
             intensity: 10.,
-            color:     Color::rgb_u8(254, 100, 34),
-            falloff:   Vec3::new(10.0, 5.0, 0.05),
+            radius: 100.,
             jitter_intensity: 0.7,
             jitter_translation: 0.1,
+            color: Color::rgb_u8(254, 100, 34),
             ..default()
         })
         .insert(MouseLight);
@@ -138,7 +138,7 @@ pub fn move_camera(
 }
 
 pub fn control_mouse_light(
-    mut query: Query<(&mut Transform, &mut OmniLightSource2D), With<MouseLight>>,
+    mut query: Query<(&mut Transform, &mut LightSource), With<MouseLight>>,
     cursor_position: Res<CursorPosition>,
     mouse: Res<Input<MouseButton>>,
 ) {

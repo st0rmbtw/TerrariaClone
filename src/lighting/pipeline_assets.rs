@@ -7,15 +7,14 @@ use rand::{thread_rng, Rng};
 use crate::plugins::camera::MainCamera;
 use super::constants::GI_SCREEN_PROBE_SIZE;
 use super::resource::{ComputedTargetSizes, LightPassParams};
-use super::types::OmniLightSource2D;
-use super::types_gpu::{GpuCameraParams, GpuLightSourceBuffer, GpuOmniLightSource, GpuLightPassParams};
+use super::types::LightSource;
+use super::types_gpu::{GpuCameraParams, GpuLightSourceBuffer, GpuLightSource, GpuLightPassParams};
 
-#[rustfmt::skip]
 #[derive(Default, Resource)]
 pub struct LightPassPipelineAssets {
-    pub camera_params:     UniformBuffer<GpuCameraParams>,
+    pub camera_params: UniformBuffer<GpuCameraParams>,
     pub light_pass_params: UniformBuffer<GpuLightPassParams>,
-    pub light_sources:     StorageBuffer<GpuLightSourceBuffer>,
+    pub light_sources: StorageBuffer<GpuLightSourceBuffer>,
 }
 
 impl LightPassPipelineAssets {
@@ -26,26 +25,24 @@ impl LightPassPipelineAssets {
     }
 }
 
-#[rustfmt::skip]
 pub(crate) fn system_prepare_pipeline_assets(
-    render_device:         Res<RenderDevice>,
-    render_queue:          Res<RenderQueue>,
+    render_device: Res<RenderDevice>,
+    render_queue: Res<RenderQueue>,
     mut gi_compute_assets: ResMut<LightPassPipelineAssets>,
 ) {
     gi_compute_assets.write_buffer(&render_device, &render_queue);
 }
 
-#[rustfmt::skip]
 pub(crate) fn system_extract_pipeline_assets(
-    res_light_pass_params:      Extract<Res<LightPassParams>>,
-    res_target_sizes:           Extract<Res<ComputedTargetSizes>>,
+    res_light_pass_params: Extract<Res<LightPassParams>>,
+    res_target_sizes: Extract<Res<ComputedTargetSizes>>,
 
-    query_lights:               Extract<Query<(&Transform, &OmniLightSource2D, &ComputedVisibility)>>,
-    query_camera:               Extract<Query<(&Camera, &GlobalTransform, &OrthographicProjection), With<MainCamera>>>,
+    query_lights: Extract<Query<(&Transform, &LightSource, &ComputedVisibility)>>,
+    query_camera: Extract<Query<(&Camera, &GlobalTransform, &OrthographicProjection), With<MainCamera>>>,
 
-    mut gpu_target_sizes:       ResMut<ComputedTargetSizes>,
-    mut gpu_pipeline_assets:    ResMut<LightPassPipelineAssets>,
-    mut gpu_frame_counter:      Local<i32>,
+    mut gpu_target_sizes: ResMut<ComputedTargetSizes>,
+    mut gpu_pipeline_assets: ResMut<LightPassPipelineAssets>,
+    mut gpu_frame_counter: Local<i32>,
 ) {
     *gpu_target_sizes = **res_target_sizes;
 
@@ -57,8 +54,8 @@ pub(crate) fn system_extract_pipeline_assets(
         for (transform, light_source, visibility) in query_lights.iter() {
             if visibility.is_visible() {
                 light_sources.count += 1;
-                light_sources.data.push(GpuOmniLightSource::new(
-                    OmniLightSource2D {
+                light_sources.data.push(GpuLightSource::new(
+                    LightSource {
                         intensity: light_source.intensity
                             + rng.gen_range(-1.0..1.0) * light_source.jitter_intensity,
                         ..*light_source
@@ -102,21 +99,10 @@ pub(crate) fn system_extract_pipeline_assets(
     }
 
     {
-        let cols = gpu_target_sizes.primary_target_isize().x as i32 / GI_SCREEN_PROBE_SIZE;
-        let rows = gpu_target_sizes.primary_target_isize().y as i32 / GI_SCREEN_PROBE_SIZE;
-
         let mut gpu_light_pass_params = gpu_pipeline_assets.light_pass_params.get_mut();
         gpu_light_pass_params.frame_counter = *gpu_frame_counter;
         gpu_light_pass_params.probe_size = GI_SCREEN_PROBE_SIZE;
-        gpu_light_pass_params.probe_atlas_cols            = cols;
-        gpu_light_pass_params.probe_atlas_rows            = rows;
-        gpu_light_pass_params.reservoir_size              = res_light_pass_params.reservoir_size;
-        gpu_light_pass_params.smooth_kernel_size_h        = res_light_pass_params.smooth_kernel_size.0;
-        gpu_light_pass_params.smooth_kernel_size_w        = res_light_pass_params.smooth_kernel_size.1;
-        gpu_light_pass_params.direct_light_contrib        = res_light_pass_params.direct_light_contrib;
-        gpu_light_pass_params.indirect_light_contrib      = res_light_pass_params.indirect_light_contrib;
-        gpu_light_pass_params.indirect_rays_radius_factor = res_light_pass_params.indirect_rays_radius_factor;
-        gpu_light_pass_params.indirect_rays_per_sample    = res_light_pass_params.indirect_rays_per_sample;
+        gpu_light_pass_params.reservoir_size = res_light_pass_params.reservoir_size;
     }
 
     *gpu_frame_counter = (*gpu_frame_counter + 1) % (GI_SCREEN_PROBE_SIZE * GI_SCREEN_PROBE_SIZE);

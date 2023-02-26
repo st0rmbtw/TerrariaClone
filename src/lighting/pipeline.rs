@@ -29,7 +29,6 @@ pub struct LightPassPipelineBindGroups {
 }
 
 
-#[rustfmt::skip]
 fn create_texture_2d(size: Extent3d, format: TextureFormat, filter: FilterMode) -> Image {
     let mut image = Image::new_fill(
         Extent3d {
@@ -153,7 +152,6 @@ impl FromWorld for LightPassPipeline {
             render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
                 label: Some("lighting_bind_group_layout"),
                 entries: &[
-                    // Camera.
                     BindGroupLayoutEntry {
                         binding: 0,
                         visibility: ShaderStages::COMPUTE,
@@ -164,7 +162,7 @@ impl FromWorld for LightPassPipeline {
                         },
                         count: None,
                     },
-                    // GI State.
+                    
                     BindGroupLayoutEntry {
                         binding: 1,
                         visibility: ShaderStages::COMPUTE,
@@ -175,7 +173,7 @@ impl FromWorld for LightPassPipeline {
                         },
                         count: None,
                     },
-                    // Light sources.
+                    
                     BindGroupLayoutEntry {
                         binding: 2,
                         visibility: ShaderStages::COMPUTE,
@@ -186,7 +184,7 @@ impl FromWorld for LightPassPipeline {
                         },
                         count: None,
                     },
-                    // SS Probe.
+
                     BindGroupLayoutEntry {
                         binding: 3,
                         visibility: ShaderStages::COMPUTE,

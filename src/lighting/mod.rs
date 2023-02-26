@@ -42,11 +42,7 @@ impl Plugin for LightingPlugin {
             .init_resource::<PipelineTargetsWrapper>()
             .init_resource::<ComputedTargetSizes>()
             .insert_resource(LightPassParams {
-                reservoir_size: 16,
-                smooth_kernel_size: (2, 1),
-                direct_light_contrib: 0.2,
-                indirect_light_contrib: 0.8,
-                ..default()
+                reservoir_size: 16
             })
 
             .add_startup_system(detect_target_sizes)
@@ -163,12 +159,11 @@ pub fn resize_primary_target(
 impl render_graph::Node for LightPass2DNode {
     fn update(&mut self, _world: &mut World) {}
 
-    #[rustfmt::skip]
     fn run(
         &self,
-        _:              &mut render_graph::RenderGraphContext,
+        _: &mut render_graph::RenderGraphContext,
         render_context: &mut RenderContext,
-        world:          &World,
+        world: &World,
     ) -> Result<(), render_graph::NodeRunError> {
 
         if let Some(pipeline_bind_groups) = world.get_resource::<LightPassPipelineBindGroups>() {

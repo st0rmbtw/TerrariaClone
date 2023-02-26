@@ -22,14 +22,4 @@ impl ComputedTargetSizes {
 #[derive(Default, Resource, Copy, Clone, Debug)]
 pub struct LightPassParams {
     pub reservoir_size: u32,
-
-    pub smooth_kernel_size: (u32, u32),
-
-    pub direct_light_contrib: f32,
-
-    pub indirect_light_contrib: f32,
-
-    pub indirect_rays_per_sample: i32,
-
-    pub indirect_rays_radius_factor: f32,
 }
