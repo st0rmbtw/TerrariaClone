@@ -175,11 +175,8 @@ pub fn update_cursor_position(
         if let Some(wnd) = wnd {
             if let Some(screen_pos) = wnd.cursor_position() {
                 if let Ok(mut style) = cursor_query.get_single_mut() {
-                    style.position = UiRect {
-                        left: Val::Px(screen_pos.x - 2.),
-                        bottom: Val::Px(screen_pos.y - 20.),
-                        ..default()
-                    };
+                    style.position.left = Val::Px(screen_pos.x);
+                    style.position.top = Val::Px(wnd.height() - screen_pos.y);
                 }
 
                 let window_size = Vec2::new(wnd.width() as f32, wnd.height() as f32);
