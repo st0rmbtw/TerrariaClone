@@ -22,15 +22,6 @@ impl Plugin for CursorPlugin {
             .insert_resource(CursorPosition::default())
             .add_enter_system(GameState::MainMenu, setup)
             .add_enter_system(GameState::InGame, spawn_tile_grid)
-            .add_system_set_to_stage(
-                CoreStage::Last,
-                ConditionSet::new()
-                    .run_not_in_state(GameState::AssetLoading)
-                    .with_system(set_ui_component_z::<HoveredInfoMarker>)
-                    .with_system(set_ui_component_z::<CursorBackground>)
-                    .with_system(set_cursor_foreground_z)
-                    .into(),
-            )
             .add_system_set(
                 ConditionSet::new()
                     .run_not_in_state(GameState::AssetLoading)

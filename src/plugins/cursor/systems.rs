@@ -4,11 +4,11 @@ use autodefault::autodefault;
 use bevy::{
     prelude::{
         Res, Commands, Vec3, Color, NodeBundle, default, TextBundle, Name, ImageBundle, Transform, 
-        Component, GlobalTransform, Query, With, Without, ResMut, Camera, Vec2, Visibility, 
+        Component, GlobalTransform, Query, With, ResMut, Camera, Vec2, Visibility, 
         BuildChildren
     }, 
     ui::{
-        Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Size, Val, AlignSelf, UiRect
+        Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Size, Val, AlignSelf, UiRect, ZIndex
     }, 
     text::{Text, TextStyle}, 
     sprite::{SpriteBundle, Sprite}, 
@@ -65,6 +65,7 @@ pub fn setup(mut commands: Commands, cursor_assets: Res<CursorAssets>, fonts: Re
                 ..default()
             },
             focus_policy: FocusPolicy::Pass,
+            z_index: ZIndex::Global(10),
             ..default()
         })
         .with_children(|c| {
@@ -117,6 +118,7 @@ pub fn setup(mut commands: Commands, cursor_assets: Res<CursorAssets>, fonts: Re
                     color: Color::WHITE.into(),
                 },
             ),
+            z_index: ZIndex::Global(10)
         })
         .insert(HoveredInfoMarker);
 }
@@ -132,31 +134,6 @@ pub fn spawn_tile_grid(mut commands: Commands, ui_assets: Res<UiAssets>) {
             transform: Transform::from_xyz(0., 0., 5.),
         })
         .insert(TileGrid);
-}
-
-pub fn set_ui_component_z<C: Component>(
-    mut query: Query<
-        (&mut Transform, &mut GlobalTransform),
-        With<C>,
-    >,
-) {
-    let (mut transform, mut global_transform) = query.single_mut();
-
-    transform.translation.z = 10.;
-    global_transform.translation_mut().z = 10.;
-}
- 
-pub fn set_cursor_foreground_z(
-    mut cursor_foreground_query: Query<
-        (&mut Transform, &mut GlobalTransform),
-        (With<CursorForeground>, Without<CursorBackground>),
-    >,
-) {
-    let (mut cursor_foreground_transform, mut cursor_foreground_global_transform) =
-        cursor_foreground_query.single_mut();
-
-    cursor_foreground_transform.translation.z = 10.1;
-    cursor_foreground_global_transform.translation_mut().z = 10.1;
 }
 
 pub fn update_cursor_position(
