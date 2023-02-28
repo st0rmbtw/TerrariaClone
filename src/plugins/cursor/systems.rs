@@ -8,7 +8,7 @@ use bevy::{
         BuildChildren
     }, 
     ui::{
-        Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Size, Val, AlignSelf, UiRect, ZIndex
+        Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Size, Val, AlignSelf, ZIndex, FlexDirection, UiRect
     }, 
     text::{Text, TextStyle}, 
     sprite::{SpriteBundle, Sprite}, 
@@ -59,9 +59,9 @@ pub fn setup(mut commands: Commands, cursor_assets: Res<CursorAssets>, fonts: Re
     commands
         .spawn(NodeBundle {
             style: Style {
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
                 position_type: PositionType::Absolute,
+                flex_direction: FlexDirection::Column,
+                justify_content: JustifyContent::SpaceBetween,
                 ..default()
             },
             focus_policy: FocusPolicy::Pass,
@@ -71,18 +71,21 @@ pub fn setup(mut commands: Commands, cursor_assets: Res<CursorAssets>, fonts: Re
         .with_children(|c| {
             // region: Cursor
 
+            const CURSOR_SIZE: f32 = 22.;
+
             c.spawn(ImageBundle {
                 style: Style {
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
-                    align_self: AlignSelf::Center,
-                    size: Size::new(Val::Px(22.), Val::Px(22.)),
+                    align_self: AlignSelf::FlexStart,
+                    size: Size::new(Val::Px(CURSOR_SIZE), Val::Px(CURSOR_SIZE)),
                 },
                 focus_policy: FocusPolicy::Pass,
                 image: cursor_assets.cursor_background.clone().into(),
                 background_color: Color::rgb(0.7, 0.7, 0.7).into(),
             })
             .insert(CursorBackground)
+            .insert(Animator::new(animate_scale))
             .with_children(|c| {
                 c.spawn(ImageBundle {
                     style: Style {
@@ -100,27 +103,25 @@ pub fn setup(mut commands: Commands, cursor_assets: Res<CursorAssets>, fonts: Re
             });
 
             // endregion
+
+            c.spawn(TextBundle {
+                style: Style {
+                    align_self: AlignSelf::FlexEnd,
+                    margin: UiRect::left(Val::Px(CURSOR_SIZE))
+                },
+                text: Text::from_section(
+                    "",
+                    TextStyle {
+                        font: fonts.andy_bold.clone(),
+                        font_size: 22.,
+                        color: Color::WHITE.into(),
+                    },
+                )
+            })
+            .insert(HoveredInfoMarker);
         })
         .insert(CursorContainer)
-        .insert(Name::new("Cursor Container"))
-        .insert(Animator::new(animate_scale));
-
-    commands
-        .spawn(TextBundle {
-            style: Style {
-                position_type: PositionType::Absolute,
-            },
-            text: Text::from_section(
-                "",
-                TextStyle {
-                    font: fonts.andy_bold.clone(),
-                    font_size: 22.,
-                    color: Color::WHITE.into(),
-                },
-            ),
-            z_index: ZIndex::Global(10)
-        })
-        .insert(HoveredInfoMarker);
+        .insert(Name::new("Cursor Container"));
 }
 
 #[autodefault]
@@ -185,19 +186,6 @@ pub fn set_visibility<C: Component>(
         for mut visibility in &mut query {
             visibility.is_visible = ui_visibility.0;
         }
-    }
-}
-
-pub fn update_hovered_info_position(
-    cursor: Res<CursorPosition>,
-    mut query: Query<&mut Style, With<HoveredInfoMarker>>,
-) {
-    let mut style = query.single_mut();
-
-    style.position = UiRect {
-        left: Val::Px(cursor.position.x + 20.),
-        bottom: Val::Px(cursor.position.y - 45.),
-        ..default()
     }
 }
 
