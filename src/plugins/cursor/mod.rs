@@ -27,7 +27,6 @@ impl Plugin for CursorPlugin {
                     .run_not_in_state(GameState::AssetLoading)
                     .run_if_resource_equals(UiVisibility(true))
                     .with_system(update_cursor_position)
-                    .with_system(update_hovered_info_position)
                     .with_system(update_hovered_info)
                     .into(),
             )
