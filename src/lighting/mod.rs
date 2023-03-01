@@ -5,12 +5,11 @@ use bevy::{
         renderer::RenderContext, 
         render_resource::{PipelineCache, ComputePassDescriptor, Extent3d}
     }, 
-    prelude::{Shader, Vec2, ResMut, Res, World, Plugin, App, IntoSystemDescriptor, default, EventReader, Assets, Image},
+    prelude::{Shader, Vec2, ResMut, Res, World, Plugin, App, IntoSystemDescriptor, default, EventReader, Assets, Image, warn},
     window::{Windows, WindowResized},
     asset::load_internal_asset, sprite::Material2dPlugin,
 };
 use iyes_loopless::prelude::IntoConditionalSystem;
-use tracing::warn;
 
 use crate::{plugins::{camera::UpdateLightEvent, world::WorldData}, lighting::{compositing::{PostProcessingMaterial, setup_post_processing_camera, update_image_to_window_size, update_lighting_material, update_light_map}, constants::{SHADER_GI_HALTON, SHADER_GI_ATTENUATION, SHADER_GI_MATH}}, state::GameState};
 
