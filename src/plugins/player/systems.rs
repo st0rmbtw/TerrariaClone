@@ -84,7 +84,8 @@ pub fn update(
     world_data: Res<WorldData>,
     mut velocity: ResMut<PlayerVelocity>,
     mut collisions: ResMut<Collisions>,
-    mut player_data: ResMut<PlayerData>
+    mut player_data: ResMut<PlayerData>,
+    mut previous_position: Local<Vec2>
 ) {
     const PLAYER_HALF_WIDTH: f32 = PLAYER_WIDTH / 2.;
     const PLAYER_HALF_HEIGHT: f32 = PLAYER_HEIGHT / 2.;
@@ -198,8 +199,12 @@ pub fn update(
     // -------- Move player --------
     let raw = transform.translation.xy() + velocity.0;
 
-    transform.translation.x = raw.x.clamp(MIN, MAX);
-    transform.translation.y = raw.y.clamp(-(WORLD_SIZE_Y as f32) * TILE_SIZE + PLAYER_HALF_HEIGHT, -PLAYER_HALF_HEIGHT);
+    let interpolated = raw.lerp(*previous_position, 1. / 60.);
+
+    transform.translation.x = interpolated.x.clamp(MIN, MAX);
+    transform.translation.y = interpolated.y.clamp(-(WORLD_SIZE_Y as f32) * TILE_SIZE + PLAYER_HALF_HEIGHT, -PLAYER_HALF_HEIGHT);
+
+    *previous_position = transform.translation.xy();
 }
 
 pub fn spawn_particles(
