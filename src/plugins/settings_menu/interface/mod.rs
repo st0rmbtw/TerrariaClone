@@ -38,7 +38,7 @@ pub fn setup_interface_menu(
     })
     .insert(InterfaceMenu)
     .with_children(|builder| {
-        menu_button(builder, text_style.clone(), language_content.ui.tile_grid.clone(), ToggleTileGridButton);
+        menu_button(builder, text_style.clone(), language_content.ui.tile_grid.clone(), ToggleTileGridButton, None);
 
         control_buttons_layout(builder, |control_button_builder| {
             control_button(control_button_builder, text_style.clone(), language_content.ui.back.clone(), BackButton);

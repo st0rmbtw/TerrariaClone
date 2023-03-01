@@ -35,8 +35,8 @@ pub fn setup_resolution_menu(
     })
     .insert(ResolutionMenu)
     .with_children(|builder| {
-        menu_button(builder, text_style.clone(), language_content.ui.full_screen_resolution.clone(), FullScreenResolutionButton);
-        menu_button(builder, text_style.clone(), language_content.ui.full_screen.clone(), FullScreenButton);
+        menu_button(builder, text_style.clone(), language_content.ui.full_screen_resolution.clone(), FullScreenResolutionButton, None);
+        menu_button(builder, text_style.clone(), language_content.ui.full_screen.clone(), FullScreenButton, None);
 
         control_buttons_layout(builder, |control_button_builder| {
             control_button(control_button_builder, text_style.clone(), language_content.ui.apply.clone(), ApplyButton);

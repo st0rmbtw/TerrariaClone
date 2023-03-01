@@ -39,8 +39,8 @@ pub fn setup_video_menu(
     })
     .insert(VideoMenu)
     .with_children(|builder| {
-        menu_button(builder, text_style.clone(), language_content.ui.resolution.clone(), ResolutionButton);
-        menu_button(builder, text_style.clone(), language_content.ui.vsync.clone(), VSyncButton);
+        menu_button(builder, text_style.clone(), language_content.ui.resolution.clone(), ResolutionButton, None);
+        menu_button(builder, text_style.clone(), language_content.ui.vsync.clone(), VSyncButton, None);
 
         control_buttons_layout(builder, |control_button_builder| {
             control_button(control_button_builder, text_style.clone(), language_content.ui.back.clone(), BackButton);

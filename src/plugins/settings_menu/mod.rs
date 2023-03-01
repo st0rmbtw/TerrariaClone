@@ -119,9 +119,9 @@ pub fn setup_settings_menu(
     .insert(SettingsMenu)
     .with_children(|builder| {
         use buttons::*;
-        menu_button(builder, text_style.clone(), language_content.ui.interface.clone(), InterfaceButton);
-        menu_button(builder, text_style.clone(), language_content.ui.video.clone(), VideoButton);
-        menu_button(builder, text_style.clone(), language_content.ui.cursor.clone(), CursorButton);
+        menu_button(builder, text_style.clone(), language_content.ui.interface.clone(), InterfaceButton, None);
+        menu_button(builder, text_style.clone(), language_content.ui.video.clone(), VideoButton, None);
+        menu_button(builder, text_style.clone(), language_content.ui.cursor.clone(), CursorButton, None);
 
         control_buttons_layout(builder, |control_button_builder| {
             control_button(control_button_builder, text_style.clone(), language_content.ui.back.clone(), BackButton);

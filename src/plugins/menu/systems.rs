@@ -41,13 +41,16 @@ pub fn menu_button(
     text_style: TextStyle,
     button_name: String,
     marker: impl Component,
+    margin: Option<f32>
 ) {
+    let margin = margin.unwrap_or(25.);
+
     builder
         .spawn(NodeBundle {
             style: Style {
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
-                margin: UiRect::vertical(Val::Px(25.)),
+                margin: UiRect::vertical(Val::Px(margin)),
             },
             focus_policy: FocusPolicy::Pass
         })
@@ -158,52 +161,28 @@ pub fn setup_main_menu(
             ..default()
         })
         .insert(Menu)
-        .with_children(|children| {
-            children.spawn((
-                ImageBundle {
-                    style: Style {
-                        position_type: PositionType::Absolute,
-                        align_self: AlignSelf::Center,
-                        ..default()
-                    },
-                    image: UiImage(ui_assets.logo.clone()),
-                    ..default()
-                },
-                Animator::new(logo_animation)
-            ));
-
-            children.spawn(NodeBundle {
-                style: Style {
-                    size: Size {
-                        width: Val::Percent(100.),
-                        height: Val::Percent(100.),
-                    },
-                    justify_content: JustifyContent::Center,
-                    align_items: AlignItems::Center,
-                    flex_direction: FlexDirection::Column,
-                    ..default()
-                },
-                ..default()
-            }).with_children(|children| {    
-                menu_button(
-                    children,
-                    text_style.clone(),
-                    language_content.ui.single_player.clone(),
-                    SinglePlayerButton,
-                );
-                menu_button(
-                    children, 
-                    text_style.clone(), 
-                    language_content.ui.settings.clone(), 
-                    SettingsButton
-                );
-                menu_button(
-                    children, 
-                    text_style.clone(), 
-                    language_content.ui.exit.clone(), 
-                    ExitButton
-                );
-            });
+        .with_children(|builder| {
+            menu_button(
+                builder,
+                text_style.clone(),
+                language_content.ui.single_player.clone(),
+                SinglePlayerButton,
+                Some(30.)
+            );
+            menu_button(
+                builder, 
+                text_style.clone(), 
+                language_content.ui.settings.clone(), 
+                SettingsButton,
+                Some(30.)
+            );
+            menu_button(
+                builder, 
+                text_style.clone(), 
+                language_content.ui.exit.clone(), 
+                ExitButton,
+                Some(30.)
+            );
         });
 }
 
