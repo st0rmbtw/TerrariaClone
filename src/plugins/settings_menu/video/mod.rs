@@ -7,7 +7,7 @@ use autodefault::autodefault;
 use bevy::{prelude::{Commands, Res, NodeBundle, BuildChildren, Component, ResMut, Query, With}, text::{TextStyle, Text}, ui::{Style, Size, Val, JustifyContent, AlignItems, FlexDirection}, window::Windows};
 use iyes_loopless::state::NextState;
 
-use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button}, settings::VSync}, language::LanguageContent, TEXT_COLOR};
+use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button}, settings::VSync}, language::LanguageContent, TEXT_COLOR, state::GameState};
 
 use super::{SettingsMenuState, MENU_BUTTON_FONT_SIZE, BackButton};
 
@@ -53,7 +53,8 @@ pub fn resolution_clicked(mut commands: Commands) {
 }
 
 pub fn back_clicked(mut commands: Commands) {
-    commands.insert_resource(NextState(SettingsMenuState::Interface));
+    commands.insert_resource(NextState(SettingsMenuState::None));
+    commands.insert_resource(NextState(GameState::Settings));
 }
 
 pub fn vsync_clicked(mut window: ResMut<Windows>, mut vsync: ResMut<VSync>) {
