@@ -41,13 +41,16 @@ pub fn menu_button(
     text_style: TextStyle,
     button_name: String,
     marker: impl Component,
+    margin: Option<f32>
 ) {
+    let margin = margin.unwrap_or(25.);
+
     builder
         .spawn(NodeBundle {
             style: Style {
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
-                margin: UiRect::vertical(Val::Px(25.)),
+                margin: UiRect::vertical(Val::Px(margin)),
             },
             focus_policy: FocusPolicy::Pass
         })
@@ -146,18 +149,21 @@ pub fn setup_main_menu(
                 text_style.clone(),
                 language_content.ui.single_player.clone(),
                 SinglePlayerButton,
+                Some(30.)
             );
             menu_button(
                 builder, 
                 text_style.clone(), 
                 language_content.ui.settings.clone(), 
-                SettingsButton
+                SettingsButton,
+                Some(30.)
             );
             menu_button(
                 builder, 
                 text_style.clone(), 
                 language_content.ui.exit.clone(), 
-                ExitButton
+                ExitButton,
+                Some(30.)
             );
         });
 }
