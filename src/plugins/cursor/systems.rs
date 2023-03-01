@@ -56,8 +56,8 @@ pub fn setup(
         TweeningType::PingPong,
         Duration::from_millis(500),
         BackgroundColorLens {
-            start: Color::PINK * 0.7,
-            end: Color::PINK,
+            start: cursor_color.foreground_color * 0.7,
+            end: cursor_color.foreground_color,
         },
     );
 
@@ -87,7 +87,7 @@ pub fn setup(
                 },
                 focus_policy: FocusPolicy::Pass,
                 image: cursor_assets.cursor_background.clone().into(),
-                background_color: Color::rgb(0.7, 0.7, 0.7).into(),
+                background_color: cursor_color.background_color.into(),
             })
             .insert(CursorBackground)
             .insert(Animator::new(animate_scale))
@@ -101,7 +101,7 @@ pub fn setup(
                     },
                     focus_policy: FocusPolicy::Pass,
                     image: cursor_assets.cursor.clone().into(),
-                    background_color: cursor_color.0.into(),
+                    background_color: cursor_color.foreground_color.into(),
                 })
                 .insert(CursorForeground)
                 .insert(Animator::new(animate_color));
