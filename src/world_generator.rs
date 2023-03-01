@@ -144,14 +144,14 @@ pub fn get_spawn_point(tiles: &CellArray) -> TilePos {
     return TilePos::new(x as u32, y as u32);
 }
 
-pub fn generate_light_map(tiles: &CellArray) -> Array2<u8> {
-    let mut light_map = Array2::<u8>::default((tiles.nrows(), tiles.ncols()));
+pub fn generate_light_map(tiles: &CellArray) -> Array2<f32> {
+    let mut light_map = Array2::<f32>::default((tiles.nrows(), tiles.ncols()));
 
     for ((y, x), cell) in tiles.indexed_iter() {
         if cell.tile.is_some() {
-            light_map[[y, x]] = 0;
+            light_map[[y, x]] = 0.;
         } else {
-            light_map[[y, x]] = 255;
+            light_map[[y, x]] = 255.;
         }
     }
 
@@ -164,29 +164,29 @@ pub fn generate_light_map(tiles: &CellArray) -> Array2<u8> {
     light_map
 }
 
-fn propagate_light(x: usize, y: usize, light_map: &mut Array2<u8>) { 
+fn propagate_light(x: usize, y: usize, light_map: &mut Array2<f32>) { 
     if x >= light_map.ncols() - 1 { return; }
     if y >= light_map.nrows() - 1 { return; }
 
     if x.checked_sub(1).is_none() { return; }
     if y.checked_sub(1).is_none() { return; }
 
-    let light_pass = 50;
+    let light_pass = 50.;
 
     if light_map[(y, x - 1)] > light_map[(y, x)] { 
-        light_map[(y, x)] = light_map[(y, x - 1)].checked_sub(light_pass).unwrap_or(0);
+        light_map[(y, x)] = (light_map[(y, x - 1)] - light_pass).max(0.);
     }
 
     if light_map[(y - 1, x)] > light_map[(y, x)] { 
-        light_map[(y, x)] = light_map[(y - 1, x)].checked_sub(light_pass).unwrap_or(0);
+        light_map[(y, x)] = (light_map[(y - 1, x)] - light_pass).max(0.);
     }
 
     if light_map[(y, x + 1)] > light_map[(y, x)] { 
-        light_map[(y, x)] = light_map[(y, x + 1)].checked_sub(light_pass).unwrap_or(0);
+        light_map[(y, x)] = (light_map[(y, x + 1)] - light_pass).max(0.);
     }
 
     if light_map[(y + 1, x)] > light_map[(y, x)] { 
-        light_map[(y, x)] = light_map[(y + 1, x)].checked_sub(light_pass).unwrap_or(0);
+        light_map[(y, x)] = (light_map[(y + 1, x)] - light_pass).max(0.);
     }
 }
 

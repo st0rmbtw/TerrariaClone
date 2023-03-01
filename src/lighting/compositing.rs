@@ -95,29 +95,6 @@ pub fn update_image_to_window_size(
     }
 }
 
-fn update_light_map_texture(
-    tile_x: usize,
-    tile_y: usize,
-    light_map: &LightMap,
-    texture_data: &mut Vec<u8>,
-) {
-    for row in (-4 as i32)..=(4 as i32) {
-        for col in (-4 as i32)..=(4 as i32) {
-            let y = ((tile_y as i32) + row) as usize;
-            let x = ((tile_x as i32) + col) as usize;
-
-            if let Some(color) = light_map.colors.get((y, x)) {
-                let index = ((y * light_map.colors.ncols()) + x) * 4;
-
-                texture_data[index]     = *color; // R
-                texture_data[index + 1] = *color; // G
-                texture_data[index + 2] = *color; // B
-                texture_data[index + 3] = 0xFF; // A
-            }
-        }
-    }
-}
-
 pub fn update_lighting_material(
     cameras: Query<
         (
@@ -141,38 +118,28 @@ pub fn update_lighting_material(
 }
 
 pub fn update_light_map(
-    cameras: Query<&Handle<PostProcessingMaterial>, With<MainCamera>>,
     mut update_light_events: EventReader<UpdateLightEvent>,
-    mut images: ResMut<Assets<Image>>,
-    mut post_processing_materials: ResMut<Assets<PostProcessingMaterial>>,
     mut light_map: ResMut<LightMap>
 ) {
-    if let Ok(lighting_material_handle) = cameras.get_single() {
-        let lighting_material = post_processing_materials
-            .get_mut(lighting_material_handle)
-            .unwrap();
-        let light_map_texture = images.get_mut(&lighting_material.shadow_map_image).unwrap();
-
-        for UpdateLightEvent { tile_pos, color } in update_light_events.iter() {
-            let x = tile_pos.x as usize;
-            let y = tile_pos.y as usize;
-            
-            light_map.colors[(y, x)] = *color;
-            update_light_map_texture(x, y, &light_map, &mut light_map_texture.data);
-        }
+    for UpdateLightEvent { tile_pos, color } in update_light_events.iter() {
+        let x = tile_pos.x as usize;
+        let y = tile_pos.y as usize;
+        
+        light_map.colors[(y, x)] = *color as f32;
     }
-}       
+}
 
-pub fn setup_post_processing_camera(
+pub(super) fn setup_post_processing_camera(
     mut commands: Commands,
     windows: Res<Windows>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut shadow_map_meterials: ResMut<Assets<PostProcessingMaterial>>,
     mut images: ResMut<Assets<Image>>,
     mut cameras: Query<(Entity, &mut Camera, &OrthographicProjection), Added<LightMapCamera>>,
-    light_map: Res<LightMap>,
     gpu_targets_wrapper: Res<PipelineTargetsWrapper>,
 ) {
+    println!("ADSDASDASDAS");
+
     for (entity, mut camera, proj) in &mut cameras {
         let original_target = camera.target.clone();
 
@@ -199,28 +166,6 @@ pub fn setup_post_processing_camera(
             }
         };
 
-        let mut bytes = vec![0; light_map.colors.len() * 4];
-
-        for ((row, col), color) in light_map.colors.indexed_iter() {
-            let index = ((row * light_map.colors.ncols()) + col) * 4;
-
-            bytes[index]     = *color;
-            bytes[index + 1] = *color;
-            bytes[index + 2] = *color;
-            bytes[index + 3] = 0xFF;
-        }
-
-        let shadow_map_image = Image::new(
-            Extent3d {
-                width: light_map.colors.ncols() as u32,
-                height: light_map.colors.nrows() as u32,
-                ..default()
-            },
-            TextureDimension::D2,
-            bytes,
-            TextureFormat::Rgba8UnormSrgb,
-        );
-
         let mut image = Image {
             texture_descriptor: TextureDescriptor {
                 label: None,
@@ -245,7 +190,6 @@ pub fn setup_post_processing_camera(
         image.resize(size);
 
         let image_handle = images.add(image);
-        let shadow_map_image_handle = images.add(shadow_map_image);
 
         // This specifies the layer used for the post processing camera, which will be attached to the post processing camera and 2d fullscreen triangle.
         let post_processing_pass_layer = RenderLayers::layer((RenderLayers::TOTAL_LAYERS - 1) as u8);
@@ -279,7 +223,14 @@ pub fn setup_post_processing_camera(
             player_position: Vec2::default(),
             scale: proj.scale,
             source_image: image_handle.clone(),
-            shadow_map_image: shadow_map_image_handle,
+
+            shadow_map_image: gpu_targets_wrapper
+                .targets
+                .as_ref()
+                .expect("Targets must be initialized")
+                .light_map_target
+                .clone(),
+
             light_sources_image: gpu_targets_wrapper
                 .targets
                 .as_ref()

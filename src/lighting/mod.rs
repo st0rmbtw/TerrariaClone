@@ -20,13 +20,13 @@ use self::{
     pipeline_assets::{LightPassPipelineAssets, system_extract_pipeline_assets, system_prepare_pipeline_assets}
 };
 
-pub mod resource;
-pub mod types;
-pub mod types_gpu;
-pub mod pipeline;
-pub mod pipeline_assets;
-pub mod constants;
-pub mod compositing;
+pub(super) mod resource;
+pub(super) mod types;
+pub(super) mod types_gpu;
+pub(super) mod pipeline;
+pub(super) mod pipeline_assets;
+pub(super) mod constants;
+pub(super) mod compositing;
 
 const WORKGROUP_SIZE: u32 = 8;
 
@@ -46,7 +46,7 @@ impl Plugin for LightingPlugin {
 
             .add_startup_system(detect_target_sizes)
             .add_startup_system(system_setup_gi_pipeline.after(detect_target_sizes))
-            .add_system(setup_post_processing_camera.run_if_resource_exists::<WorldData>())
+            .add_system(setup_post_processing_camera.run_if_resource_added::<WorldData>())
             .add_system(update_image_to_window_size)
             .add_system(update_lighting_material.run_in_state(GameState::InGame))
             .add_system(update_light_map.run_in_state(GameState::InGame))
@@ -110,7 +110,7 @@ impl Plugin for LightingPlugin {
 #[derive(Default)]
 struct LightPass2DNode {}
 
-pub fn detect_target_sizes(
+pub(self) fn detect_target_sizes(
     windows: Res<Windows>,
     mut target_sizes: ResMut<ComputedTargetSizes>
 ) {
@@ -124,7 +124,7 @@ pub fn detect_target_sizes(
     target_sizes.primary_target_size = primary_size;
 }
 
-pub fn resize_primary_target(
+pub(self) fn resize_primary_target(
     windows: Res<Windows>,
     mut resize_events: EventReader<WindowResized>,
     mut target_sizes: ResMut<ComputedTargetSizes>,
@@ -171,9 +171,13 @@ impl render_graph::Node for LightPass2DNode {
             let pipeline        = world.resource::<LightPassPipeline>();
             let target_sizes    = world.resource::<ComputedTargetSizes>();
 
-            if let Some(lighting_pipeline) = 
-                pipeline_cache.get_compute_pipeline(pipeline.lighting_pipeline) 
-            {
+            if let (
+                Some(lighting_pipeline),
+                Some(light_map_pipeline),
+            ) = (
+                pipeline_cache.get_compute_pipeline(pipeline.lighting_pipeline),
+                pipeline_cache.get_compute_pipeline(pipeline.light_map_pipeline),
+            ) {
                 let primary_w = target_sizes.primary_target_usize().x;
                 let primary_h = target_sizes.primary_target_usize().y;
 
@@ -184,12 +188,19 @@ impl render_graph::Node for LightPass2DNode {
                             label: Some("light_pass_2d".into()),
                         });
 
+
                 {
                     let grid_w = (primary_w / GI_SCREEN_PROBE_SIZE as u32) / WORKGROUP_SIZE;
                     let grid_h = (primary_h / GI_SCREEN_PROBE_SIZE as u32) / WORKGROUP_SIZE;
                     pass.set_bind_group(0, &pipeline_bind_groups.lighting_bind_group, &[]);
                     pass.set_pipeline(&lighting_pipeline);
                     pass.dispatch_workgroups(grid_w, grid_h, 1);
+                }
+
+                {
+                    pass.set_bind_group(0, &pipeline_bind_groups.light_map_bind_group, &[]);
+                    pass.set_pipeline(&light_map_pipeline);
+                    pass.dispatch_workgroups(1750, 900, 1);
                 }
             }
         } else {

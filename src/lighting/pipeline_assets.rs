@@ -5,27 +5,30 @@ use bevy::render::Extract;
 use rand::{thread_rng, Rng};
 
 use crate::plugins::camera::MainCamera;
+use crate::plugins::world::LightMap;
 use super::constants::GI_SCREEN_PROBE_SIZE;
 use super::resource::{ComputedTargetSizes, LightPassParams};
 use super::types::LightSource;
-use super::types_gpu::{GpuCameraParams, GpuLightSourceBuffer, GpuLightSource, GpuLightPassParams};
+use super::types_gpu::{GpuCameraParams, GpuLightSourceBuffer, GpuLightSource, GpuLightPassParams, GpuLightMap};
 
 #[derive(Default, Resource)]
-pub struct LightPassPipelineAssets {
+pub(super) struct LightPassPipelineAssets {
     pub camera_params: UniformBuffer<GpuCameraParams>,
     pub light_pass_params: UniformBuffer<GpuLightPassParams>,
     pub light_sources: StorageBuffer<GpuLightSourceBuffer>,
+    pub light_map: StorageBuffer<GpuLightMap>,
 }
 
 impl LightPassPipelineAssets {
     pub fn write_buffer(&mut self, device: &RenderDevice, queue: &RenderQueue) {
         self.light_sources.write_buffer(device, queue);
+        self.light_map.write_buffer(device, queue);
         self.camera_params.write_buffer(device, queue);
         self.light_pass_params.write_buffer(device, queue);
     }
 }
 
-pub(crate) fn system_prepare_pipeline_assets(
+pub(super) fn system_prepare_pipeline_assets(
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
     mut gi_compute_assets: ResMut<LightPassPipelineAssets>,
@@ -33,7 +36,7 @@ pub(crate) fn system_prepare_pipeline_assets(
     gi_compute_assets.write_buffer(&render_device, &render_queue);
 }
 
-pub(crate) fn system_extract_pipeline_assets(
+pub(super) fn system_extract_pipeline_assets(
     res_light_pass_params: Extract<Res<LightPassParams>>,
     res_target_sizes: Extract<Res<ComputedTargetSizes>>,
 
@@ -43,6 +46,8 @@ pub(crate) fn system_extract_pipeline_assets(
     mut gpu_target_sizes: ResMut<ComputedTargetSizes>,
     mut gpu_pipeline_assets: ResMut<LightPassPipelineAssets>,
     mut gpu_frame_counter: Local<i32>,
+
+    light_map: Extract<Res<LightMap>>
 ) {
     *gpu_target_sizes = **res_target_sizes;
 
@@ -69,6 +74,18 @@ pub(crate) fn system_extract_pipeline_assets(
                 ));
             }
         }
+    }
+
+    if light_map.is_changed() {
+        let gpu_light_map = gpu_pipeline_assets.light_map.get_mut();
+
+        let width = light_map.colors.ncols();
+
+        gpu_light_map.width = width as u32;
+
+        gpu_light_map.colors = vec![255.; light_map.colors.len()];
+
+        println!("123123123");
     }
 
     {

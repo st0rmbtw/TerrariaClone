@@ -37,6 +37,7 @@ impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app
             .init_resource::<ChunkManager>()
+            .init_resource::<LightMap>()
             .add_event::<BlockEvent>()
             .add_event::<UpdateNeighborsEvent>()
             .add_enter_system(GameState::WorldLoading, spawn_terrain)

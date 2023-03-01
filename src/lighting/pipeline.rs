@@ -7,25 +7,28 @@ use bevy::render::texture::ImageSampler;
 
 use super::pipeline_assets::LightPassPipelineAssets;
 use super::resource::ComputedTargetSizes;
-use super::types_gpu::{GpuCameraParams, GpuLightSourceBuffer, GpuLightPassParams};
+use super::types_gpu::{GpuCameraParams, GpuLightSourceBuffer, GpuLightPassParams, GpuLightMap};
 
 const LIGHTING_TARGET_FORMAT: TextureFormat = TextureFormat::Rgba16Float;
+const LIGHT_MAP_TARGET_FORMAT: TextureFormat = TextureFormat::Rgba8Unorm;
 
 const LIGHTING_PIPELINE_ENTRY: &str = "main";
 
 #[derive(Clone, Resource, ExtractResource, Default)]
-pub struct PipelineTargetsWrapper {
-    pub(crate) targets: Option<GiPipelineTargets>,
+pub(super) struct PipelineTargetsWrapper {
+    pub(super) targets: Option<GiPipelineTargets>,
 }
 
 #[derive(Clone)]
-pub struct GiPipelineTargets {
-    pub(crate) lighting_target: Handle<Image>,
+pub(super) struct GiPipelineTargets {
+    pub(super) lighting_target: Handle<Image>,
+    pub(super) light_map_target: Handle<Image>,
 }
 
 #[derive(Resource)]
-pub struct LightPassPipelineBindGroups {
-    pub(crate) lighting_bind_group: BindGroup,
+pub(super) struct LightPassPipelineBindGroups {
+    pub(super) lighting_bind_group: BindGroup,
+    pub(super) light_map_bind_group: BindGroup,
 }
 
 
@@ -61,37 +64,53 @@ fn create_texture_2d(size: Extent3d, format: TextureFormat, filter: FilterMode) 
     image
 }
 
-pub fn system_setup_gi_pipeline(
+pub(super) fn system_setup_gi_pipeline(
     mut images: ResMut<Assets<Image>>,
     mut targets_wrapper: ResMut<PipelineTargetsWrapper>,
-    targets_sizes: Res<ComputedTargetSizes>,
+    targets_sizes: Res<ComputedTargetSizes>
 ) {
-    let target_size = Extent3d {
-        width:  targets_sizes.primary_target_usize().x,
-        height: targets_sizes.primary_target_usize().y,
-        ..default()
+    let lighting_tex = { 
+        let size = Extent3d {
+            width:  targets_sizes.primary_target_usize().x,
+            height: targets_sizes.primary_target_usize().y,
+            ..default()
+        };
+
+        create_texture_2d(
+            size,
+            LIGHTING_TARGET_FORMAT,
+            FilterMode::Nearest,
+        )
     };
 
-    let lighting_tex = create_texture_2d(
-        target_size,
-        LIGHTING_TARGET_FORMAT,
-        FilterMode::Nearest,
-    );
+    let light_map_tex = {
+        let size = Extent3d {
+            width:  1750,
+            height: 900,
+            ..default()
+        };
+
+        create_texture_2d(size, LIGHT_MAP_TARGET_FORMAT, FilterMode::Linear)
+    };
 
     let lighting_target  = images.add(lighting_tex);
+    let light_map_target  = images.add(light_map_tex);
 
     targets_wrapper.targets = Some(GiPipelineTargets {
         lighting_target,
+        light_map_target
     });
 }
 
 #[derive(Resource)]
-pub struct LightPassPipeline {
+pub(super) struct LightPassPipeline {
     pub lighting_bind_group_layout: BindGroupLayout,
     pub lighting_pipeline: CachedComputePipelineId,
+    pub light_map_bind_group_layout: BindGroupLayout,
+    pub light_map_pipeline: CachedComputePipelineId,
 }
 
-pub(crate) fn system_queue_bind_groups(
+pub(super) fn system_queue_bind_groups(
     mut commands: Commands,
     pipeline: Res<LightPassPipeline>,
     gpu_images: Res<RenderAssets<Image>>,
@@ -101,10 +120,12 @@ pub(crate) fn system_queue_bind_groups(
 ) {
     if let (
         Some(light_sources),
+        Some(light_map),
         Some(camera_params),
         Some(light_pass_params),
     ) = (
         gi_compute_assets.light_sources.binding(),
+        gi_compute_assets.light_map.binding(),
         gi_compute_assets.camera_params.binding(),
         gi_compute_assets.light_pass_params.binding(),
     ) {
@@ -114,6 +135,7 @@ pub(crate) fn system_queue_bind_groups(
             .expect("Targets should be initialized");
 
         let lighting_image = &gpu_images[&targets.lighting_target];
+        let light_map_image = &gpu_images[&targets.light_map_target];
 
         let lighting_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
             label: "lighting".into(),
@@ -125,11 +147,11 @@ pub(crate) fn system_queue_bind_groups(
                 },
                 BindGroupEntry {
                     binding: 1,
-                    resource: light_pass_params.clone(),
+                    resource: light_pass_params,
                 },
                 BindGroupEntry {
                     binding: 2,
-                    resource: light_sources.clone(),
+                    resource: light_sources,
                 },
                 BindGroupEntry {
                     binding: 3,
@@ -138,8 +160,28 @@ pub(crate) fn system_queue_bind_groups(
             ],
         });
 
+        let light_map_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
+            label: "light_map".into(),
+            layout: &pipeline.light_map_bind_group_layout,
+            entries: &[
+                BindGroupEntry {
+                    binding: 0,
+                    resource: camera_params,
+                },
+                BindGroupEntry {
+                    binding: 1,
+                    resource: light_map,
+                },
+                BindGroupEntry {
+                    binding: 2,
+                    resource: BindingResource::TextureView(&light_map_image.texture_view),
+                },
+            ],
+        });
+
         commands.insert_resource(LightPassPipelineBindGroups {
             lighting_bind_group,
+            light_map_bind_group
         });
     }
 }
@@ -198,9 +240,49 @@ impl FromWorld for LightPassPipeline {
                 ],
             });
 
+        let light_map_bind_group_layout =
+            render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+                label: Some("light_map_bind_group_layout"),
+                entries: &[
+                    BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::Buffer {
+                            ty: BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: Some(GpuCameraParams::min_size()),
+                        },
+                        count: None,
+                    },
+
+                    BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::Buffer {
+                            ty: BufferBindingType::Storage { read_only: true },
+                            has_dynamic_offset: false,
+                            min_binding_size: Some(GpuLightMap::min_size()),
+                        },
+                        count: None,
+                    },
+
+                    BindGroupLayoutEntry {
+                        binding: 2,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::StorageTexture {
+                            access: StorageTextureAccess::WriteOnly,
+                            format: LIGHT_MAP_TARGET_FORMAT,
+                            view_dimension: TextureViewDimension::D2,
+                        },
+                        count: None,
+                    },
+                ],
+            });
+
         let assets_server = world.resource::<AssetServer>();
         
         let lighting = assets_server.load("shaders/lighting.wgsl");
+        let light_map_shader = assets_server.load("shaders/light_map.wgsl");
 
         let mut pipeline_cache = world.resource_mut::<PipelineCache>();
 
@@ -212,9 +294,19 @@ impl FromWorld for LightPassPipeline {
             entry_point: LIGHTING_PIPELINE_ENTRY.into(),
         });
 
+        let light_map_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
+            label: Some("light_map_pipeline".into()),
+            layout: Some(vec![light_map_bind_group_layout.clone()]),
+            shader: light_map_shader,
+            shader_defs: vec![],
+            entry_point: LIGHTING_PIPELINE_ENTRY.into(),
+        });
+
         LightPassPipeline {
             lighting_bind_group_layout,
             lighting_pipeline,
+            light_map_bind_group_layout,
+            light_map_pipeline
         }
     }
 }

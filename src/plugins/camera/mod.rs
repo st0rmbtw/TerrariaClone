@@ -1,7 +1,7 @@
-use bevy::prelude::{Plugin, App, Component};
+use bevy::prelude::{Plugin, App, Component, CoreStage};
 use iyes_loopless::prelude::{AppLooplessStateExt, IntoConditionalSystem};
 
-use crate::{state::GameState, labels::PlayerLabel};
+use crate::state::GameState;
 
 pub use components::*;
 pub use systems::*;
@@ -23,10 +23,8 @@ impl Plugin for CameraPlugin {
             .add_enter_system(GameState::InGame, setup_camera)
             .add_system(zoom.run_in_state(GameState::InGame))
             .add_system(control_mouse_light.run_in_state(GameState::InGame))
-            .add_system(
-                move_camera
-                .run_in_state(GameState::InGame)
-                .after(PlayerLabel::Update)
+            .add_system_to_stage(
+                CoreStage::PostUpdate, move_camera.run_in_state(GameState::InGame)
             );
     }
 }

@@ -14,11 +14,12 @@ pub struct WorldData {
     pub spawn_point: TilePos
 }
 
-#[derive(Resource)]
+#[derive(Resource, Default)]
 pub struct LightMap {
     pub width: u16,
     pub height: u16,
-    pub colors: Array2<u8>,
+    // f32 because WGSL doesn't support u8 yet
+    pub colors: Array2<f32>,
 }
 
 #[derive(Resource, Default)]
