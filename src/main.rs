@@ -1,6 +1,6 @@
 // #![windows_subsystem = "windows"]
 
-use std::error::Error;
+use std::{error::Error, time::Duration};
 
 use bevy::{
     prelude::*,
@@ -17,9 +17,9 @@ use game::{
         ui::PlayerUiPlugin, settings::SettingsPlugin, menu::MenuPlugin, world::WorldPlugin, 
         inventory::PlayerInventoryPlugin, fps::FpsPlugin
     }, 
-    language::{load_language, Language},
+    language::{load_language, Language}, FIXED_UPDATE_TIMESTEP,
 };
-use iyes_loopless::prelude::AppLooplessStateExt;
+use iyes_loopless::prelude::{AppLooplessStateExt, AppLooplessFixedTimestepExt};
 use rand::seq::SliceRandom;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -56,6 +56,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             244. / 255.,
         )))
         .add_loopless_state(GameState::AssetLoading)
+        .add_fixed_timestep(Duration::from_secs_f32(1. / 60.), FIXED_UPDATE_TIMESTEP)
         .add_plugin(TweeningPlugin)
         .add_plugin(TilemapPlugin)
         .add_plugin(AssetsPlugin)

@@ -8,7 +8,7 @@ pub use resources::*;
 pub use systems::*;
 pub use utils::*;
 
-use crate::{state::GameState, world_generator::WORLD_SIZE_X, labels::PlayerLabel};
+use crate::{state::GameState, world_generator::WORLD_SIZE_X, labels::PlayerLabel, FIXED_UPDATE_TIMESTEP};
 use std::time::Duration;
 use iyes_loopless::prelude::*;
 use bevy_hanabi::prelude::*;
@@ -106,19 +106,23 @@ impl Plugin for PlayerPlugin {
                     .with_system(set_using_item_visibility)
                     .into()
             )
-            .add_fixed_timestep(Duration::from_secs_f32(1. / 60.), "fixed_update");
+            
+            .add_system_to_stage(
+                CoreStage::PostUpdate, 
+                interpolate_player_transform.run_in_state(GameState::InGame)
+            );
 
         #[cfg(not(feature = "debug_movement"))] {
             app
             .add_fixed_timestep_system(
-                "fixed_update",
+                FIXED_UPDATE_TIMESTEP,
                 0,
                 horizontal_movement
                     .run_in_state(GameState::InGame)
                     .label(PlayerLabel::HorizontalMovement)
             )
             .add_fixed_timestep_system(
-                "fixed_update",
+                FIXED_UPDATE_TIMESTEP,
                 0,
                 update_jump
                     .run_in_state(GameState::InGame)
@@ -126,7 +130,7 @@ impl Plugin for PlayerPlugin {
                     .after(PlayerLabel::HorizontalMovement)
             )
             .add_fixed_timestep_system(
-                "fixed_update",
+                FIXED_UPDATE_TIMESTEP,
                 0,
                 update
                     .run_in_state(GameState::InGame)
@@ -140,14 +144,14 @@ impl Plugin for PlayerPlugin {
         #[cfg(feature = "debug_movement")] {
             app
             .add_fixed_timestep_system_set(
-                "fixed_update",
+                FIXED_UPDATE_TIMESTEP,
                 0,
                 debug_horizontal_movement
                     .run_in_state(GameState::InGame)
                     .label(PlayerLabel::HorizontalMovement)
             )
             .add_fixed_timestep_system_set(
-                "fixed_update",
+                FIXED_UPDATE_TIMESTEP,
                 0,
                 debug_horizontal_movement
                     .run_in_state(GameState::InGame)

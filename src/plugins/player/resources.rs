@@ -1,4 +1,4 @@
-use bevy::{prelude::{Deref, DerefMut, Resource}, time::Timer};
+use bevy::{prelude::{Deref, DerefMut, Resource, Vec2}, time::Timer};
 use leafwing_input_manager::Actionlike;
 
 use crate::Velocity;
@@ -33,7 +33,8 @@ pub struct PlayerVelocity(pub Velocity);
 pub struct PlayerData {
     pub jump: i32,
     // The distance of player's fall in tiles
-    pub fall_distance: f32
+    pub fall_distance: f32,
+    pub prev_position: Vec2
 }
 
 #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug)]

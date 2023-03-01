@@ -85,7 +85,6 @@ pub fn update(
     mut velocity: ResMut<PlayerVelocity>,
     mut collisions: ResMut<Collisions>,
     mut player_data: ResMut<PlayerData>,
-    mut previous_position: Local<Vec2>
 ) {
     const PLAYER_HALF_WIDTH: f32 = PLAYER_WIDTH / 2.;
     const PLAYER_HALF_HEIGHT: f32 = PLAYER_HEIGHT / 2.;
@@ -199,12 +198,31 @@ pub fn update(
     // -------- Move player --------
     let raw = transform.translation.xy() + velocity.0;
 
-    let interpolated = raw.lerp(*previous_position, 1. / 60.);
+    transform.translation.x = raw.x.clamp(MIN, MAX);
+    transform.translation.y = raw.y.clamp(-(WORLD_SIZE_Y as f32) * TILE_SIZE + PLAYER_HALF_HEIGHT, -PLAYER_HALF_HEIGHT);
 
-    transform.translation.x = interpolated.x.clamp(MIN, MAX);
-    transform.translation.y = interpolated.y.clamp(-(WORLD_SIZE_Y as f32) * TILE_SIZE + PLAYER_HALF_HEIGHT, -PLAYER_HALF_HEIGHT);
+    player_data.prev_position = transform.translation.xy();
+}
 
-    *previous_position = transform.translation.xy();
+pub fn interpolate_player_transform(
+    time: Res<Time>,
+    player_data: Res<PlayerData>,
+    fixed_timesteps: Res<FixedTimesteps>,
+    mut player_query: Query<&mut Transform, With<Player>>,
+) {
+    let mut transform = player_query.single_mut();
+
+    let fixed_timestep = fixed_timesteps.get(FIXED_UPDATE_TIMESTEP).unwrap();
+
+    let fixed_elapsed = fixed_timestep.remaining().as_secs_f32();
+    let fixed_delta_time = fixed_timestep.timestep().as_secs_f32();
+    
+    let interpolation = (time.elapsed_seconds() - fixed_elapsed) / fixed_delta_time;
+
+    let interpolated = player_data.prev_position.lerp(transform.translation.xy(), interpolation);
+    
+    transform.translation.x = interpolated.x;
+    transform.translation.y = interpolated.y;
 }
 
 pub fn spawn_particles(

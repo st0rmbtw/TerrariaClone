@@ -21,6 +21,7 @@ pub mod language;
 
 pub const TRANSPARENT: Color = Color::rgba(0., 0., 0., 0.);
 pub const TEXT_COLOR: Color = Color::rgb(156. / 255., 156. / 255., 156. / 255.);
+pub const FIXED_UPDATE_TIMESTEP: &str = "fixed_update";
 
 pub type Velocity = Vec2;
 
