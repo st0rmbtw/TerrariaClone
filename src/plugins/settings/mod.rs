@@ -1,6 +1,6 @@
 use std::{fs::OpenOptions, io::{BufReader, Write}};
 
-use bevy::{prelude::{Plugin, App, Color}, text::Text};
+use bevy::{prelude::{Plugin, App}, text::Text};
 use iyes_loopless::prelude::{ConditionSet, IntoConditionalSystem};
 use serde::{Deserialize, Serialize};
 
@@ -22,7 +22,7 @@ pub struct Settings {
     #[serde(rename = "VSync")]
     pub vsync: bool,
     pub resolution: Resolution,
-    pub cursor_color: Color
+    pub cursor_color: CursorColor
 }
 
 
@@ -33,7 +33,7 @@ impl Default for Settings {
             show_tile_grid: false,
             vsync: true,
             resolution: RESOLUTIONS[16],
-            cursor_color: Color::PINK
+            cursor_color: CursorColor::default()
         }
     }
 }
@@ -87,7 +87,7 @@ impl Plugin for SettingsPlugin {
             .insert_resource(FullScreen(settings.full_screen))
             .insert_resource(ShowTileGrid(settings.show_tile_grid))
             .insert_resource(VSync(settings.vsync))
-            .insert_resource(CursorColor(settings.cursor_color))
+            .insert_resource(settings.cursor_color)
             .insert_resource(settings.resolution);
     }
 }

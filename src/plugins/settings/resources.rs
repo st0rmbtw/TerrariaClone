@@ -18,8 +18,20 @@ pub struct FullScreen(pub bool);
 #[derive(Resource, PartialEq, Clone)]
 pub struct ShowTileGrid(pub bool);
 
-#[derive(Resource)]
-pub struct CursorColor(pub Color);
+#[derive(Resource, Clone, Copy, Serialize, Deserialize)]
+pub struct CursorColor {
+    pub background_color: Color,
+    pub foreground_color: Color
+}
+
+impl Default for CursorColor {
+    fn default() -> Self {
+        Self { 
+            background_color: Color::rgb(0.7, 0.7, 0.7),
+            foreground_color: Color::PINK
+        }
+    }
+}
 
 impl VSync {
     pub fn as_present_mode(&self) -> PresentMode {

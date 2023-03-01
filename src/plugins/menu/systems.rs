@@ -260,6 +260,6 @@ pub fn exit_clicked(
         show_tile_grid: show_tile_grid.0,
         vsync: vsync.0,
         resolution: *resolution,
-        cursor_color: cursor_color.0
+        cursor_color: *cursor_color
     });
 }
