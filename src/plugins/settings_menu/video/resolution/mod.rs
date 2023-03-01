@@ -4,8 +4,9 @@ pub use buttons::*;
 use autodefault::autodefault;
 use bevy::{prelude::{Component, Commands, Res, NodeBundle, BuildChildren, ResMut, Query, With, Local}, text::{TextStyle, Text}, ui::{Style, Size, Val, JustifyContent, AlignItems, FlexDirection}, window::Windows};
 use iyes_loopless::state::NextState;
+use strum::EnumCount;
 
-use crate::{plugins::{assets::FontAssets, settings_menu::{MENU_BUTTON_FONT_SIZE, BackButton, ApplyButton, SettingsMenuState}, menu::{menu_button, control_buttons_layout, control_button}, settings::{FullScreen, Resolution, RESOLUTIONS}}, language::LanguageContent, TEXT_COLOR};
+use crate::{plugins::{assets::FontAssets, settings_menu::{MENU_BUTTON_FONT_SIZE, BackButton, ApplyButton, SettingsMenuState}, menu::{menu_button, control_buttons_layout, control_button}, settings::{FullScreen, Resolution}}, language::LanguageContent, TEXT_COLOR};
 
 #[derive(Component)]
 pub struct ResolutionMenu;
@@ -49,9 +50,9 @@ pub fn fullscreen_resolution_clicked(
     mut resolution_index: Local<usize>,
     mut resolution: ResMut<Resolution> 
 ) {
-    *resolution_index = (*resolution_index + 1) % RESOLUTIONS.len();
+    *resolution_index = (*resolution_index + 1) % Resolution::COUNT;
 
-    *resolution = RESOLUTIONS[*resolution_index];
+    *resolution = Resolution::from_repr(*resolution_index).unwrap();
 }
 
 pub fn fullscreen_clicked(mut fullscreen: ResMut<FullScreen>) {
@@ -68,9 +69,10 @@ pub fn apply_clicked(
     resolution: Res<Resolution>
 ) {
     let primary_window = window.get_primary_mut().unwrap();
+    let resolution_data = resolution.data();
     
     primary_window.set_mode(fullscreen.as_window_mode());
-    primary_window.set_resolution(resolution.width, resolution.height);
+    primary_window.set_resolution(resolution_data.width, resolution_data.height);
 }
 
 pub fn update_fullscreen_resolution_button_text(
@@ -79,8 +81,9 @@ pub fn update_fullscreen_resolution_button_text(
     language_content: Res<LanguageContent>
 ) {
     let mut text = query.single_mut();
+    let resolution_data = resolution.data();
 
-    let resolution_str = format!("{}x{}", resolution.width, resolution.height);
+    let resolution_str = format!("{}x{}", resolution_data.width, resolution_data.height);
 
     text.sections[0].value = format!("{} {}", language_content.ui.full_screen_resolution, resolution_str);
 }
