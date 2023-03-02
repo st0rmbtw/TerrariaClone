@@ -1,5 +1,5 @@
 use bevy::{
-    prelude::{Color, Vec4},
+    prelude::{Color, Vec4, Transform},
     text::Text,
     ui::BackgroundColor,
 };
@@ -29,8 +29,22 @@ pub struct TextFontSizeLens {
     pub end: f32,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct TransformLens {
+    pub start: Transform,
+    pub end: Transform,
+}
+
 impl Lens<Text> for TextFontSizeLens {
     fn lerp(&mut self, target: &mut Text, ratio: f32) {
         target.sections[0].style.font_size = self.start.lerp(&self.end, &ratio);
+    }
+}
+
+impl Lens<Transform> for TransformLens {
+    fn lerp(&mut self, target: &mut Transform, ratio: f32) {
+        target.translation = self.start.translation.lerp(self.end.translation, ratio);
+        target.rotation = self.start.rotation.lerp(self.end.rotation, ratio);
+        target.scale = self.start.scale.lerp(self.end.scale, ratio);
     }
 }
