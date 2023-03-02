@@ -215,33 +215,29 @@ handles! {
 }
 
 handles! {
-    Handle<TextureAtlas>,
+    Handle<Image>,
     #[derive(Resource, AssetCollection)]
     pub struct BackgroundAssets {
-        #[asset(texture_atlas(tile_size_x = 48., tile_size_y = 1400., columns = 1, rows = 1))]
         #[asset(path = "sprites/backgrounds/Background_0.png")]
-        pub background_0: Handle<TextureAtlas>,
+        pub background_0: Handle<Image>,
 
-        #[asset(texture_atlas(tile_size_x = 1024., tile_size_y = 600., columns = 1, rows = 1))]
         #[asset(path = "sprites/backgrounds/Background_7.png")]
-        pub background_7: Handle<TextureAtlas>,
+        pub background_7: Handle<Image>,
 
-        #[asset(texture_atlas(tile_size_x = 1024., tile_size_y = 600., columns = 1, rows = 1))]
         #[asset(path = "sprites/backgrounds/Background_90.png")]
-        pub background_90: Handle<TextureAtlas>,
+        pub background_90: Handle<Image>,
 
-        #[asset(texture_atlas(tile_size_x = 1024., tile_size_y = 600., columns = 1, rows = 1))]
         #[asset(path = "sprites/backgrounds/Background_91.png")]
-        pub background_91: Handle<TextureAtlas>,
+        pub background_91: Handle<Image>,
 
-        #[asset(texture_atlas(tile_size_x = 1024., tile_size_y = 600., columns = 1, rows = 1))]
         #[asset(path = "sprites/backgrounds/Background_92.png")]
-        pub background_92: Handle<TextureAtlas>,
+        pub background_92: Handle<Image>,
 
-        #[asset(texture_atlas(tile_size_x = 2048., tile_size_y = 434., columns = 1, rows = 1))]
         #[asset(path = "sprites/backgrounds/Background_112.png")]
-        pub background_112: Handle<TextureAtlas>,
+        pub background_112: Handle<Image>,
 
+        #[asset(path = "sprites/backgrounds/Sun.png")]
+        pub sun: Handle<Image>,
     }
 }
 
@@ -283,14 +279,12 @@ impl ItemAssets {
 
 fn setup(
     mut images: ResMut<Assets<Image>>,
-    texture_atlasses: Res<Assets<TextureAtlas>>,
     background_assets: Res<BackgroundAssets>,
     ui_assets: Res<UiAssets>,
     cursor_assets: Res<CursorAssets>,
 ) {
     for handle in background_assets.handles() {
-        let atlas = texture_atlasses.get(&handle).unwrap();
-        let mut image = images.get_mut(&atlas.texture).unwrap();
+        let mut image = images.get_mut(&handle).unwrap();
 
         image.sampler_descriptor = ImageSampler::nearest();
     }

@@ -5,7 +5,7 @@ use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveE
 use interpolation::EaseFunction;
 use iyes_loopless::state::NextState;
 
-use crate::{animation::{Tween, TweeningType, Animator, AnimatorState, TweeningDirection}, lens::{TextFontSizeLens, TransformLens}, parallax::ParallaxCameraComponent, plugins::{camera::MainCamera, assets::{FontAssets, UiAssets}}, TEXT_COLOR, state::GameState, language::LanguageContent};
+use crate::{animation::{Tween, Animator, AnimatorState, TweeningDirection, RepeatStrategy, Tweenable, RepeatCount}, lens::{TextFontSizeLens, TransformLens}, parallax::ParallaxCameraComponent, plugins::{camera::MainCamera, assets::{FontAssets, UiAssets}}, TEXT_COLOR, state::GameState, language::LanguageContent};
 
 use super::{Menu, SinglePlayerButton, SettingsButton, ExitButton};
 
@@ -19,7 +19,7 @@ pub fn despawn_with<C: Component>(query: Query<Entity, With<C>>, mut commands: C
 pub fn text_tween() -> Tween<Text> {
     Tween::new(
         EaseFunction::QuadraticInOut,
-        TweeningType::Once,
+        RepeatStrategy::MirroredRepeat,
         Duration::from_millis(200),
         TextFontSizeLens {
             start: 48.,
@@ -78,8 +78,8 @@ pub fn setup_main_menu(
     };
 
     let logo_animation = Tween::new(
-        EaseFunction::SineInOut, 
-        TweeningType::PingPong,
+        EaseFunction::SineInOut,
+        RepeatStrategy::MirroredRepeat,
         Duration::from_secs(10),
         TransformLens {
             start: Transform {
@@ -93,7 +93,7 @@ pub fn setup_main_menu(
                 ..default()
             }
         }
-    );
+    ).with_repeat_count(RepeatCount::Infinite);
 
     commands
         .spawn(NodeBundle {
@@ -172,14 +172,14 @@ pub fn update_buttons(
 
                 animator.start();
 
-                let tweenable = animator.tweenable_mut();
+                let tweenable = animator.tweenable_mut().as_any_mut().downcast_mut::<Tween<Text>>().unwrap();
                 tweenable.set_progress(1. - tweenable.progress());
                 tweenable.set_direction(TweeningDirection::Forward);
             }
             Interaction::None => {
                 text.sections[0].style.color = TEXT_COLOR;
 
-                let tweenable = animator.tweenable_mut();
+                let tweenable = animator.tweenable_mut().as_any_mut().downcast_mut::<Tween<Text>>().unwrap();
                 tweenable.set_progress(1. - tweenable.progress());
                 tweenable.set_direction(TweeningDirection::Backward);
             }

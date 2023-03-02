@@ -1,17 +1,163 @@
-mod lens;
-mod plugin;
-mod tweenable;
+#![deny(
+    warnings,
+    missing_copy_implementations,
+    trivial_casts,
+    trivial_numeric_casts,
+    unsafe_code,
+    unstable_features,
+    unused_import_braces,
+    unused_qualifications,
+    missing_docs
+)]
 
-pub use lens::*;
-pub use plugin::*;
-pub use tweenable::*;
+//! Tweening animation plugin for the Bevy game engine
+//!
+//! 🍃 Bevy Tweening provides interpolation-based animation between ("tweening")
+//! two values, for Bevy components and assets. Each field of a component or
+//! asset can be animated via a collection or predefined easing functions,
+//! or providing a custom animation curve. Custom components and assets are also
+//! supported.
+//!
+//! # Example
+//!
+//! Add the tweening plugin to your app:
+//!
+//! ```no_run
+//! use bevy::prelude::*;
+//! use bevy_tweening::*;
+//!
+//! App::default()
+//!     .add_plugins(DefaultPlugins)
+//!     .add_plugin(TweeningPlugin)
+//!     .run();
+//! ```
+//!
+//! Animate the position ([`Transform::translation`]) of an [`Entity`]:
+//!
+//! ```
+//! # use bevy::prelude::*;
+//! # use bevy_tweening::{lens::*, *};
+//! # use std::time::Duration;
+//! # fn system(mut commands: Commands) {
+//! # let size = 16.;
+//! // Create a single animation (tween) to move an entity.
+//! let tween = Tween::new(
+//!     // Use a quadratic easing on both endpoints.
+//!     EaseFunction::QuadraticInOut,
+//!     // Animation time.
+//!     Duration::from_secs(1),
+//!     // The lens gives access to the Transform component of the Entity,
+//!     // for the Animator to animate it. It also contains the start and
+//!     // end values respectively associated with the progress ratios 0. and 1.
+//!     TransformPositionLens {
+//!         start: Vec3::ZERO,
+//!         end: Vec3::new(1., 2., -4.),
+//!     },
+//! );
+//!
+//! commands.spawn((
+//!     // Spawn an entity to animate the position of.
+//!     TransformBundle::default(),
+//!     // Add an Animator component to control and execute the animation.
+//!     Animator::new(tween),
+//! ));
+//! # }
+//! ```
+//!
+//! # Tweenables
+//!
+//! 🍃 Bevy Tweening supports several types of _tweenables_, building blocks
+//! that can be combined to form complex animations. A tweenable is a type
+//! implementing the [`Tweenable`] trait.
+//!
+//! - [`Tween`] - A simple tween (easing) animation between two values.
+//! - [`Sequence`] - A series of tweenables executing in series, one after the
+//!   other.
+//! - [`Tracks`] - A collection of tweenables executing in parallel.
+//! - [`Delay`] - A time delay. This doesn't animate anything.
+//!
+//! ## Chaining animations
+//!
+//! Most tweenables can be chained with the `then()` operator to produce a
+//! [`Sequence`] tweenable:
+//!
+//! ```
+//! # use bevy::prelude::*;
+//! # use bevy_tweening::{lens::*, *};
+//! # use std::time::Duration;
+//! let tween1 = Tween::new(
+//!     // [...]
+//! #    EaseFunction::BounceOut,
+//! #    Duration::from_secs(2),
+//! #    TransformScaleLens {
+//! #        start: Vec3::ZERO,
+//! #        end: Vec3::ONE,
+//! #    },
+//! );
+//! let tween2 = Tween::new(
+//!     // [...]
+//! #    EaseFunction::QuadraticInOut,
+//! #    Duration::from_secs(1),
+//! #    TransformPositionLens {
+//! #        start: Vec3::ZERO,
+//! #        end: Vec3::new(3.5, 0., 0.),
+//! #    },
+//! );
+//! // Produce a Sequence executing first 'tween1' then 'tween2'
+//! let seq = tween1.then(tween2);
+//! ```
+//!
+//! # Animators and lenses
+//!
+//! Bevy components and assets are animated with tweening _animator_ components,
+//! which take a tweenable and apply it to another component on the same
+//! [`Entity`]. Those animators determine that other component and its fields to
+//! animate using a _lens_.
+//!
+//! ## Components animation
+//!
+//! Components are animated with the [`Animator`] component, which is generic
+//! over the type of component it animates. This is a restriction imposed by
+//! Bevy, to access the animated component as a mutable reference via a
+//! [`Query`] and comply with the ECS rules.
+//!
+//! The [`Animator`] itself is not generic over the subset of fields of the
+//! components it animates. This limits the proliferation of generic types when
+//! animating e.g. both the position and rotation of an entity.
+//!
+//! ## Lenses
+//!
+//! Both [`Animator`] and [`AssetAnimator`] access the field(s) to animate via a
+//! lens, a type that implements the [`Lens`] trait.
+//!
+//! Several predefined lenses are provided in the [`lens`] module for the most
+//! commonly animated fields, like the components of a [`Transform`]. A custom
+//! lens can also be created by implementing the trait, allowing to animate
+//! virtually any field of any Bevy component or asset.
+//!
+//! [`Transform::translation`]: https://docs.rs/bevy/0.9.0/bevy/transform/components/struct.Transform.html#structfield.translation
+//! [`Entity`]: https://docs.rs/bevy/0.9.0/bevy/ecs/entity/struct.Entity.html
+//! [`Query`]: https://docs.rs/bevy/0.9.0/bevy/ecs/system/struct.Query.html
+//! [`ColorMaterial`]: https://docs.rs/bevy/0.9.0/bevy/sprite/struct.ColorMaterial.html
+//! [`Sprite`]: https://docs.rs/bevy/0.9.0/bevy/sprite/struct.Sprite.html
+//! [`Transform`]: https://docs.rs/bevy/0.9.0/bevy/transform/components/struct.Transform.html
 
 use std::time::Duration;
 
-use bevy::prelude::{default, Component};
-pub use interpolation::{Ease, EaseFunction};
+use bevy::prelude::*;
+use interpolation::Ease as IEase;
+pub use interpolation::{EaseFunction, Lerp};
 
-use self::tweenable::{BoxedTweenable, Tweenable};
+pub use lens::Lens;
+pub use plugin::{component_animator_system, AnimationSystem, TweeningPlugin};
+pub use tweenable::{
+    BoxedTweenable, Targetable, TotalDuration, Tracks, Tween, TweenCompleted,
+    TweenState, Tweenable,
+};
+
+pub mod lens;
+mod plugin;
+mod tweenable;
 
 /// How many times to repeat a tween animation. See also: [`RepeatStrategy`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -24,7 +170,26 @@ pub enum RepeatCount {
     Infinite,
 }
 
-/// What to do when a tween animation needs to be repeated.
+impl Default for RepeatCount {
+    fn default() -> Self {
+        Self::Finite(1)
+    }
+}
+
+impl From<u32> for RepeatCount {
+    fn from(value: u32) -> Self {
+        Self::Finite(value)
+    }
+}
+
+impl From<Duration> for RepeatCount {
+    fn from(value: Duration) -> Self {
+        Self::For(value)
+    }
+}
+
+/// What to do when a tween animation needs to be repeated. See also
+/// [`RepeatCount`].
 ///
 /// Only applicable when [`RepeatCount`] is greater than the animation duration.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -41,36 +206,9 @@ pub enum RepeatStrategy {
     MirroredRepeat,
 }
 
-impl Default for RepeatCount {
-    fn default() -> Self {
-        Self::Finite(1)
-    }
-}
-
 impl Default for RepeatStrategy {
     fn default() -> Self {
         Self::Repeat
-    }
-}
-
-/// Type of looping for a tween animation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TweeningType {
-    /// Run the animation once from start to end only.
-    Once,
-    /// Loop the animation indefinitely, restarting from the start each time the
-    /// end is reached.
-    Loop,
-    /// Loop the animation back and forth, changing direction each time an
-    /// endpoint is reached. A complete cycle start -> end -> start always
-    /// counts as 2 loop iterations for the various operations where looping
-    /// matters.
-    PingPong,
-}
-
-impl Default for TweeningType {
-    fn default() -> Self {
-        Self::Once
     }
 }
 
@@ -224,20 +362,29 @@ macro_rules! animator_impl {
             self.speed = speed;
         }
 
+        /// Get the animation speed.
+        ///
+        /// See [`set_speed()`] for a definition of what the animation speed is.
+        ///
+        /// [`set_speed()`]: Animator::speed
+        pub fn speed(&self) -> f32 {
+            self.speed
+        }
+
         /// Set the top-level tweenable item this animator controls.
-        pub fn set_tweenable(&mut self, tween: impl Tweenable<T> + Send + Sync + 'static) {
+        pub fn set_tweenable(&mut self, tween: impl Tweenable<T> + 'static) {
             self.tweenable = Box::new(tween);
         }
 
         /// Get the top-level tweenable this animator is currently controlling.
         #[must_use]
-        pub fn tweenable(&self) -> &(dyn Tweenable<T> + Send + Sync + 'static) {
+        pub fn tweenable(&self) -> &dyn Tweenable<T> {
             self.tweenable.as_ref()
         }
 
         /// Get the top-level mutable tweenable this animator is currently controlling.
         #[must_use]
-        pub fn tweenable_mut(&mut self) -> &mut (dyn Tweenable<T> + Send + Sync + 'static) {
+        pub fn tweenable_mut(&mut self) -> &mut dyn Tweenable<T> {
             self.tweenable.as_mut()
         }
 
@@ -250,12 +397,9 @@ macro_rules! animator_impl {
             self.tweenable_mut().rewind();
         }
 
+        ///
         pub fn start(&mut self) {
             self.state = AnimatorState::Playing;
-        }
-
-        pub fn completed(&self) -> bool {
-            self.tweenable().completed()
         }
     };
 }
@@ -280,7 +424,7 @@ impl<T: Component + std::fmt::Debug> std::fmt::Debug for Animator<T> {
 impl<T: Component> Animator<T> {
     /// Create a new animator component from a single tweenable.
     #[must_use]
-    pub fn new(tween: impl Tweenable<T> + Send + Sync + 'static) -> Self {
+    pub fn new(tween: impl Tweenable<T> + 'static) -> Self {
         Self {
             state: default(),
             tweenable: Box::new(tween),

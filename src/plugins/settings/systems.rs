@@ -4,7 +4,7 @@ use autodefault::autodefault;
 use bevy::{prelude::{Query, Visibility, With, EventReader, Button, Name, Color, TextBundle, Entity, Commands, NodeBundle, BuildChildren, Changed}, ui::{Interaction, Style, UiRect, Val, AlignItems, JustifyContent, Size}, text::{TextAlignment, TextStyle, Text}};
 use interpolation::EaseFunction;
 
-use crate::{plugins::{ui::ToggleExtraUiEvent, assets::FontAssets}, animation::{Animator, Tween, TweeningType, TweeningDirection}, lens::TextFontSizeLens, language::LanguageContent};
+use crate::{plugins::{ui::ToggleExtraUiEvent, assets::FontAssets}, animation::{Animator, Tween, TweeningDirection, RepeatStrategy, Tweenable}, lens::TextFontSizeLens, language::LanguageContent};
 
 use super::{SettingsButtonContainer, SettingsButtonText};
 
@@ -16,7 +16,7 @@ pub fn spawn_ingame_settings_button(
 ) -> Entity {
     let tween = Tween::new(
         EaseFunction::QuadraticInOut,
-        TweeningType::Once,
+        RepeatStrategy::MirroredRepeat,
         Duration::from_millis(150),
         TextFontSizeLens {
             start: 32.,
@@ -85,12 +85,12 @@ pub fn update(
             Interaction::Hovered => {
                 animator.start();
 
-                let tweenable = animator.tweenable_mut();
+                let tweenable = animator.tweenable_mut().as_any_mut().downcast_mut::<Tween<Text>>().unwrap();
                 tweenable.set_progress(1. - tweenable.progress());
                 tweenable.set_direction(TweeningDirection::Forward);
             }
             Interaction::None => {
-                let tweenable = animator.tweenable_mut();
+                let tweenable = animator.tweenable_mut().as_any_mut().downcast_mut::<Tween<Text>>().unwrap();
                 tweenable.set_progress(1. - tweenable.progress());
                 tweenable.set_direction(TweeningDirection::Backward);
             }

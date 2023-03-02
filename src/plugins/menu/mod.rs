@@ -1,10 +1,12 @@
 mod components;
 mod systems;
+mod sun;
 
 pub use components::*;
-use iyes_loopless::prelude::{ConditionSet, AppLooplessStateExt, IntoConditionalSystem};
 pub use systems::*;
+use sun::*;
 
+use iyes_loopless::prelude::{ConditionSet, AppLooplessStateExt, IntoConditionalSystem};
 use bevy::prelude::{Plugin, App};
 
 use crate::{state::GameState, util::on_btn_clicked, parallax::move_background_system};
@@ -17,6 +19,7 @@ impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(setup_camera)
             .add_enter_system(GameState::MainMenu, setup_main_menu)
+            .add_enter_system(GameState::MainMenu, setup_sun)
             .add_system_set(
                 ConditionSet::new()
                     .run_in_state(GameState::MainMenu)

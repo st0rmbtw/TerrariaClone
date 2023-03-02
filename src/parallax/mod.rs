@@ -76,19 +76,19 @@ impl ParallaxResource {
     pub fn create_layers(
         &mut self,
         commands: &mut Commands,
-        texture_atlasses: &Assets<TextureAtlas>,
+        images: &Assets<Image>,
     ) {
         // Despawn any existing layers
         self.despawn_layers(commands);
 
         // Spawn new layers using layer_data
         for (i, layer) in self.layer_data.iter().enumerate() {
-            let spritesheet_bundle = SpriteSheetBundle {
-                texture_atlas: layer.image.clone(),
+            let spritesheet_bundle = SpriteBundle {
+                texture: layer.image.clone(),
                 ..Default::default()
             };
 
-            let texture = texture_atlasses.get(&layer.image).unwrap();
+            let texture = images.get(&layer.image).unwrap();
 
             // Three textures always spawned
             let mut texture_count = 3.0;
@@ -110,19 +110,19 @@ impl ParallaxResource {
                     parent
                         .spawn(spritesheet_bundle.clone())
                         .insert(LayerTextureComponent {
-                            width: texture.size.x,
+                            width: texture.size().x,
                         });
 
-                    let mut max_x = (texture.size.x / 2.0) * layer.scale;
+                    let mut max_x = (texture.size().x / 2.0) * layer.scale;
                     let mut adjusted_spritesheet_bundle = spritesheet_bundle.clone();
 
                     // Spawn right texture
-                    adjusted_spritesheet_bundle.transform.translation.x += texture.size.x;
-                    max_x += texture.size.x * layer.scale;
+                    adjusted_spritesheet_bundle.transform.translation.x += texture.size().x;
+                    max_x += texture.size().x * layer.scale;
                     parent
                         .spawn(adjusted_spritesheet_bundle.clone())
                         .insert(LayerTextureComponent {
-                            width: texture.size.x,
+                            width: texture.size().x,
                         });
 
                     // Spawn left texture
@@ -133,17 +133,17 @@ impl ParallaxResource {
                             bundle
                         })
                         .insert(LayerTextureComponent {
-                            width: texture.size.x,
+                            width: texture.size().x,
                         });
 
                     // Spawn additional textures to make 2 windows length of background textures
                     while max_x < self.window_size.x {
-                        adjusted_spritesheet_bundle.transform.translation.x += texture.size.x;
-                        max_x += texture.size.x * layer.scale;
+                        adjusted_spritesheet_bundle.transform.translation.x += texture.size().x;
+                        max_x += texture.size().x * layer.scale;
                         parent
                             .spawn(adjusted_spritesheet_bundle.clone())
                             .insert(LayerTextureComponent {
-                                width: texture.size.x,
+                                width: texture.size().x,
                             });
 
                         parent
@@ -153,7 +153,7 @@ impl ParallaxResource {
                                 bundle
                             })
                             .insert(LayerTextureComponent {
-                                width: texture.size.x,
+                                width: texture.size().x,
                             });
 
                         texture_count += 2.0;
@@ -188,12 +188,12 @@ pub fn move_background_system() -> ConditionalSystemDescriptor {
 fn initialize_parallax_system(
     mut commands: Commands,
     windows: Res<Windows>,
-    texture_atlasses: Res<Assets<TextureAtlas>>,
+    images: Res<Assets<Image>>,
     mut parallax_res: ResMut<ParallaxResource>,
 ) {
     let window = windows.get_primary().unwrap();
     parallax_res.window_size = Vec2::new(window.width(), window.height());
-    parallax_res.create_layers(&mut commands, &texture_atlasses);
+    parallax_res.create_layers(&mut commands, &images);
 }
 
 /// Move camera and background layers

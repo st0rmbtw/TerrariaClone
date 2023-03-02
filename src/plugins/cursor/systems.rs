@@ -24,7 +24,7 @@ use crate::{
         ui::UiVisibility, 
         world::TILE_SIZE
     }, 
-    animation::{Tween, TweeningType, TransformScaleLens, Animator}, 
+    animation::{Tween, lens::TransformScaleLens, Animator, RepeatStrategy}, 
     lens::BackgroundColorLens,
     util::Lerp,
 };
@@ -38,7 +38,7 @@ use super::{HoveredInfoMarker, CursorContainer, CursorForeground, CursorBackgrou
 pub fn setup(mut commands: Commands, cursor_assets: Res<CursorAssets>, fonts: Res<FontAssets>) {
     let animate_scale = Tween::new(
         EaseFunction::QuadraticInOut,
-        TweeningType::PingPong,
+        RepeatStrategy::MirroredRepeat,
         Duration::from_millis(500),
         TransformScaleLens {
             start: Vec3::new(1., 1., 1.),
@@ -48,7 +48,7 @@ pub fn setup(mut commands: Commands, cursor_assets: Res<CursorAssets>, fonts: Re
 
     let animate_color = Tween::new(
         EaseFunction::QuadraticInOut,
-        TweeningType::PingPong,
+        RepeatStrategy::MirroredRepeat,
         Duration::from_millis(500),
         BackgroundColorLens {
             start: Color::PINK * 0.7,
