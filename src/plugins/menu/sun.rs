@@ -3,12 +3,12 @@ use std::time::Duration;
 use autodefault::autodefault;
 use bevy::{prelude::{Commands, ImageBundle, Res, Component}, ui::{UiImage, UiRect, Val, PositionType, Style}};
 
-use crate::{plugins::assets::BackgroundAssets, animation::{Tween, EaseMethod, lens::UiPositionLens, Animator, RepeatStrategy, Tracks, RepeatCount}};
+use crate::{plugins::assets::BackgroundAssets, animation::{Tween, EaseMethod, lens::{UiPositionHorizontalLens, UiPositionVerticalLens}, Animator, RepeatStrategy, Tracks, RepeatCount}};
 
 #[derive(Component)]
 pub struct Sun;
 
-#[autodefault(except(UiPositionLens))]
+#[autodefault(except(UiPositionHorizontalLens, UiPositionVerticalLens))]
 pub(super) fn setup_sun(
     mut commands: Commands,
     background_assets: Res<BackgroundAssets>
@@ -16,9 +16,9 @@ pub(super) fn setup_sun(
 
     let x_animation = Tween::new(
         EaseMethod::Linear,
-        RepeatStrategy::MirroredRepeat,
+        RepeatStrategy::Repeat,
         Duration::from_secs(25),
-        UiPositionLens {
+        UiPositionHorizontalLens {
             start: UiRect {
                 left: Val::Percent(0.)
             },
@@ -37,11 +37,11 @@ pub(super) fn setup_sun(
                 x
             }
         }),
-        RepeatStrategy::MirroredRepeat,
+        RepeatStrategy::Repeat,
         Duration::from_secs(25),
-        UiPositionLens {
+        UiPositionVerticalLens {
             start: UiRect {
-                bottom: Val::Percent(50.),
+                bottom: Val::Percent(75.),
             },
             end: UiRect {
                 bottom: Val::Percent(100.),
@@ -50,9 +50,9 @@ pub(super) fn setup_sun(
     )
     .with_repeat_count(RepeatCount::Infinite);
 
-    let logo_animation = Tracks::new([
-        y_animation,
+    let logo_animation = Tracks::<Style>::new([
         x_animation,
+        y_animation
     ]);
 
     commands.spawn((

@@ -297,6 +297,26 @@ pub struct UiPositionLens {
     pub end: UiRect,
 }
 
+/// A lens to manipulate the [`position`] field of a UI [`Style`] component.
+/// Only Left and Right
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct UiPositionHorizontalLens {
+    /// Start position.
+    pub start: UiRect,
+    /// End position.
+    pub end: UiRect,
+}
+
+/// A lens to manipulate the [`position`] field of a UI [`Style`] component.
+/// Only Top and Bottom
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct UiPositionVerticalLens {
+    /// Start position.
+    pub start: UiRect,
+    /// End position.
+    pub end: UiRect,
+}
+
 fn lerp_val(start: &Val, end: &Val, ratio: f32) -> Val {
     match (start, end) {
         (Val::Percent(start), Val::Percent(end)) => {
@@ -315,6 +335,20 @@ impl Lens<Style> for UiPositionLens {
             top: lerp_val(&self.start.top, &self.end.top, ratio),
             bottom: lerp_val(&self.start.bottom, &self.end.bottom, ratio),
         };
+    }
+}
+
+impl Lens<Style> for UiPositionHorizontalLens {
+    fn lerp(&mut self, target: &mut Style, ratio: f32) {
+        target.position.left = lerp_val(&self.start.left, &self.end.left, ratio);
+        target.position.right = lerp_val(&self.start.right, &self.end.right, ratio);
+    }
+}
+
+impl Lens<Style> for UiPositionVerticalLens {
+    fn lerp(&mut self, target: &mut Style, ratio: f32) {
+        target.position.top = lerp_val(&self.start.top, &self.end.top, ratio);
+        target.position.bottom = lerp_val(&self.start.bottom, &self.end.bottom, ratio);
     }
 }
 
