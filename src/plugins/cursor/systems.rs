@@ -24,7 +24,7 @@ use crate::{
         ui::UiVisibility, 
         world::TILE_SIZE
     }, 
-    animation::{Tween, lens::TransformScaleLens, Animator, RepeatStrategy}, 
+    animation::{Tween, lens::TransformScaleLens, Animator, RepeatStrategy, RepeatCount}, 
     lens::BackgroundColorLens,
     util::{Lerp, screen_to_world},
 };
@@ -44,7 +44,8 @@ pub fn setup(mut commands: Commands, cursor_assets: Res<CursorAssets>, fonts: Re
             start: Vec3::new(1., 1., 1.),
             end: Vec3::new(1.15, 1.15, 1.),
         },
-    );
+    )
+    .with_repeat_count(RepeatCount::Infinite);
 
     let animate_color = Tween::new(
         EaseFunction::QuadraticInOut,
@@ -54,7 +55,7 @@ pub fn setup(mut commands: Commands, cursor_assets: Res<CursorAssets>, fonts: Re
             start: Color::PINK * 0.7,
             end: Color::PINK,
         },
-    );
+    ).with_repeat_count(RepeatCount::Infinite);
 
     commands
         .spawn(NodeBundle {

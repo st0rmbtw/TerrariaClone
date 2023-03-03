@@ -45,7 +45,7 @@ fn setup_main_menu_background(
             LayerData {
                 speed: 0.9,
                 image: backgrounds.background_112.clone(),
-                z: 0.0,
+                z: 0.05,
                 transition_factor: 1.,
                 scale: 2.,
                 position: Vec2::NEG_Y * height + 400.,
