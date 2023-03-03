@@ -5,7 +5,7 @@ use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveE
 use interpolation::EaseFunction;
 use iyes_loopless::state::NextState;
 
-use crate::{animation::{Tween, Animator, AnimatorState, TweeningDirection, RepeatStrategy, Tweenable, RepeatCount}, lens::{TextFontSizeLens, TransformLens}, parallax::ParallaxCameraComponent, plugins::{camera::MainCamera, assets::{FontAssets, UiAssets}}, TEXT_COLOR, state::GameState, language::LanguageContent};
+use crate::{animation::{Tween, Animator, AnimatorState, TweeningDirection, RepeatStrategy, Tweenable, EaseMethod, RepeatCount}, lens::{TextFontSizeLens, TransformLens}, parallax::ParallaxCameraComponent, plugins::{camera::MainCamera, assets::{FontAssets, UiAssets}}, TEXT_COLOR, state::GameState, language::LanguageContent};
 
 use super::{Menu, SinglePlayerButton, SettingsButton, ExitButton};
 
@@ -18,7 +18,7 @@ pub fn despawn_with<C: Component>(query: Query<Entity, With<C>>, mut commands: C
 #[inline(always)]
 pub fn text_tween() -> Tween<Text> {
     Tween::new(
-        EaseFunction::QuadraticInOut,
+        EaseMethod::Linear,
         RepeatStrategy::MirroredRepeat,
         Duration::from_millis(200),
         TextFontSizeLens {

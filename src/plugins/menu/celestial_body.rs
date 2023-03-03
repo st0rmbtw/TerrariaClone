@@ -1,11 +1,11 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, IntoSystemDescriptor}, sprite::{SpriteSheetBundle, TextureAtlasSprite, TextureAtlas}, window::Windows};
+use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, IntoSystemDescriptor, Local, Input, MouseButton}, sprite::{SpriteSheetBundle, TextureAtlasSprite, TextureAtlas}, window::Windows};
 use interpolation::Lerp;
 use iyes_loopless::prelude::{AppLooplessStateExt, IntoConditionalSystem};
 
-use crate::{plugins::{assets::BackgroundAssets, camera::MainCamera}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, Tracks, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystem}, state::GameState, util::screen_to_world};
+use crate::{plugins::{assets::BackgroundAssets, camera::MainCamera, cursor::CursorPosition}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, Tracks, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystem, AnimatorState}, state::GameState, util::{screen_to_world, FRect}};
 
 pub(super) struct CelestialBodyPlugin;
 
@@ -17,11 +17,14 @@ impl Plugin for CelestialBodyPlugin {
             .add_system(update_celestial_type.run_in_state(GameState::MainMenu))
             .add_system(update_time_type.run_in_state(GameState::MainMenu))
             .add_system(move_celestial_body.run_in_state(GameState::MainMenu))
+            .add_system(drag_celestial_body.run_in_state(GameState::MainMenu))
             .add_system(component_animator_system::<CelestialBody>.label(AnimationSystem::AnimationUpdate));
     }
 }
 
 const X_ANIMATION_COMPLETED: u64 = 1;
+const SUN_SIZE: f32 = 42.;
+const MOON_SIZE: f32 = 50.;
 
 #[derive(Component, Clone, Copy, Default, PartialEq)]
 struct CelestialBody {
@@ -60,8 +63,8 @@ fn setup(
         RepeatStrategy::Repeat,
         Duration::from_secs(25),
         CelestialBodyPositionXLens {
-            start: 0.,
-            end: window.width()
+            start: -20.,
+            end: window.width() + 20.
         }
     )
     .with_repeat_count(RepeatCount::Infinite)
@@ -130,6 +133,46 @@ fn update_time_type(
                 TimeType::Night => TimeType::Day,
             };
         }
+    }
+}
+
+fn drag_celestial_body(
+    windows: Res<Windows>,
+    input: Res<Input<MouseButton>>,
+    cursor_position: Res<CursorPosition>,
+    time_type: Res<TimeType>,
+    mut query_celestial_body: Query<(&mut Transform, &mut Animator<CelestialBody>), With<CelestialBody>>,
+    mut dragging: Local<bool>,
+) {
+    let window = windows.primary();
+
+    let (mut celestial_body_transform, mut animator) = query_celestial_body.single_mut();
+
+    let celestial_body_size = match *time_type {
+        TimeType::Day => SUN_SIZE,
+        TimeType::Night => MOON_SIZE,
+    };
+
+    let cb_rect = FRect {
+        left: celestial_body_transform.translation.x - celestial_body_size / 2.,
+        right: celestial_body_transform.translation.x + celestial_body_size / 2.,
+        top: celestial_body_transform.translation.y + celestial_body_size / 2.,
+        bottom: celestial_body_transform.translation.y - celestial_body_size / 2.,
+    };
+
+    let cursor_is_on_celestial_body = cb_rect.inside((cursor_position.world_position.x, cursor_position.world_position.y));
+
+    if input.pressed(MouseButton::Left) && (cursor_is_on_celestial_body || *dragging) {
+        celestial_body_transform.translation.x = cursor_position.world_position.x;
+        celestial_body_transform.translation.y = cursor_position.world_position.y;
+        *dragging = true;
+        animator.state = AnimatorState::Paused;
+
+        let tracks = animator.tweenable_mut().as_any_mut().downcast_mut::<Tracks<CelestialBody>>().unwrap();
+        tracks.get_track_mut(0).unwrap().set_progress(cursor_position.position.x / window.width());
+    } else {
+        *dragging = false;
+        animator.state = AnimatorState::Playing;
     }
 }
 

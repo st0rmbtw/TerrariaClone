@@ -686,6 +686,16 @@ impl<T> Tracks<T> {
             elapsed: Duration::ZERO
         }
     }
+
+    ///
+    pub fn get_track(&self, index: usize) -> Option<&BoxedTweenable<T>> {
+        self.tracks.get(index)
+    }
+
+    ///
+    pub fn get_track_mut(&mut self, index: usize) -> Option<&mut BoxedTweenable<T>> {
+        self.tracks.get_mut(index)
+    }
 }
 
 impl<T: 'static> Tweenable<T> for Tracks<T> {
