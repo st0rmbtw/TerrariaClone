@@ -53,18 +53,15 @@ enum TimeType {
 #[autodefault(except(CelestialBodyPositionXLens, CelestialBodyPositionYLens))]
 fn setup(
     mut commands: Commands,
-    background_assets: Res<BackgroundAssets>,
-    windows: Res<Windows>
+    background_assets: Res<BackgroundAssets>
 ) {
-    let window = windows.primary();
-
     let x_animation = Tween::new(
         EaseMethod::Linear,
         RepeatStrategy::Repeat,
         Duration::from_secs(25),
         CelestialBodyPositionXLens {
-            start: -20.,
-            end: window.width() + 20.
+            start: 0.,
+            end: 1.
         }
     )
     .with_repeat_count(RepeatCount::Infinite)
@@ -81,8 +78,8 @@ fn setup(
         RepeatStrategy::Repeat,
         Duration::from_secs(25),
         CelestialBodyPositionYLens {
-            start: window.height() * 0.7,
-            end: window.height()
+            start: 1. * 0.7,
+            end: 1.
         }
     )
     .with_repeat_count(RepeatCount::Infinite);
@@ -116,7 +113,7 @@ fn move_celestial_body(
     let (camera, camera_transform) = query_camera.single();
     let (mut celestial_body_transform, celestial_body) = query_celestial_body.single_mut();
 
-    let world_pos = screen_to_world(celestial_body.position, window_size, camera, camera_transform);
+    let world_pos = screen_to_world(celestial_body.position * window_size, window_size, camera, camera_transform);
 
     celestial_body_transform.translation.x = world_pos.x;
     celestial_body_transform.translation.y = world_pos.y;
@@ -166,10 +163,10 @@ fn drag_celestial_body(
         celestial_body_transform.translation.x = cursor_position.world_position.x;
         celestial_body_transform.translation.y = cursor_position.world_position.y;
         *dragging = true;
-        animator.state = AnimatorState::Paused;
 
         let tracks = animator.tweenable_mut().as_any_mut().downcast_mut::<Tracks<CelestialBody>>().unwrap();
         tracks.get_track_mut(0).unwrap().set_progress(cursor_position.position.x / window.width());
+        animator.state = AnimatorState::Paused;
     } else {
         *dragging = false;
         animator.state = AnimatorState::Playing;
