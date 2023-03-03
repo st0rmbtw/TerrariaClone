@@ -2,7 +2,7 @@ use std::ops::Mul;
 
 use bevy::{
     ecs::system::EntityCommands,
-    prelude::{Button, Changed, Component, Query, With, Vec2},
+    prelude::{Button, Changed, Component, Query, With, Vec2, Camera, GlobalTransform},
     ui::Interaction,
 };
 
@@ -182,4 +182,18 @@ pub fn get_wall_start_index(wall: Wall) -> u32 {
         Wall::StoneWall => 0,
         Wall::DirtWall => 5 * 13,
     }
+}
+
+pub fn screen_to_world(screen_pos: Vec2, window_size: Vec2, camera: &Camera, transform: &GlobalTransform) -> Vec2 {
+    // convert screen position [0..resolution] to ndc [-1..1] (gpu coordinates)
+    let ndc = (screen_pos / window_size) * 2.0 - Vec2::ONE;
+
+    // matrix for undoing the projection and camera transform
+    let ndc_to_world = transform.compute_matrix() * camera.projection_matrix().inverse();
+
+    // use it to convert ndc to world-space coordinates
+    let world_pos = ndc_to_world.project_point3(ndc.extend(1.0));
+
+    // reduce it to a 2D value
+    world_pos.truncate()
 }

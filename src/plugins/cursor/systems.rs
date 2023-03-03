@@ -26,7 +26,7 @@ use crate::{
     }, 
     animation::{Tween, lens::TransformScaleLens, Animator, RepeatStrategy}, 
     lens::BackgroundColorLens,
-    util::Lerp,
+    util::{Lerp, screen_to_world},
 };
 
 #[cfg(not(feature = "free_camera"))]
@@ -159,17 +159,7 @@ pub fn update_cursor_position(
 
                 let window_size = Vec2::new(wnd.width(), wnd.height());
 
-                // convert screen position [0..resolution] to ndc [-1..1] (gpu coordinates)
-                let ndc = (screen_pos / window_size) * 2.0 - Vec2::ONE;
-
-                // matrix for undoing the projection and camera transform
-                let ndc_to_world = camera_transform.compute_matrix() * camera.projection_matrix().inverse();
-
-                // use it to convert ndc to world-space coordinates
-                let world_pos = ndc_to_world.project_point3(ndc.extend(1.0));
-
-                // reduce it to a 2D value
-                let world_pos = world_pos.truncate();
+                let world_pos = screen_to_world(screen_pos, window_size, camera, camera_transform);
 
                 cursor.position = screen_pos;
                 cursor.world_position = world_pos;
