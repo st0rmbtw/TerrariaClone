@@ -102,7 +102,7 @@ pub fn setup_main_menu(
                     width: Val::Percent(100.),
                     height: Val::Percent(100.),
                 },
-                padding: UiRect::all(Val::Px(20.)),
+                padding: UiRect::all(Val::Px(50.)),
                 flex_direction: FlexDirection::Column,
                 ..default()
             },
