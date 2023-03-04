@@ -1,11 +1,11 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveExt, Camera2dBundle, ChildBuilder, NodeBundle, BuildChildren, TextBundle, Button, Res, default, Changed, EventWriter, Color}, text::{Text, TextStyle}, ui::{Style, JustifyContent, AlignItems, UiRect, FocusPolicy, PositionType, Interaction, Size, Val, FlexDirection}, app::AppExit};
+use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveExt, Camera2dBundle, ChildBuilder, NodeBundle, BuildChildren, TextBundle, Button, Res, default, Changed, EventWriter, Color, ImageBundle, Transform, Quat, Vec3}, text::{Text, TextStyle}, ui::{Style, JustifyContent, AlignItems, UiRect, FocusPolicy, PositionType, Interaction, Size, Val, FlexDirection, UiImage, AlignSelf}, app::AppExit};
 use interpolation::EaseFunction;
 use iyes_loopless::state::NextState;
 
-use crate::{animation::{Tween, TweeningType, Animator, AnimatorState, TweeningDirection}, lens::TextFontSizeLens, parallax::ParallaxCameraComponent, plugins::{camera::MainCamera, assets::FontAssets}, TEXT_COLOR, state::GameState, language::LanguageContent};
+use crate::{animation::{Tween, TweeningType, Animator, AnimatorState, TweeningDirection}, lens::{TextFontSizeLens, TransformLens}, parallax::ParallaxCameraComponent, plugins::{camera::MainCamera, assets::{FontAssets, UiAssets}}, TEXT_COLOR, state::GameState, language::LanguageContent};
 
 use super::{Menu, SinglePlayerButton, SettingsButton, ExitButton};
 
@@ -68,13 +68,32 @@ pub fn menu_button(
 pub fn setup_main_menu(
     mut commands: Commands, 
     fonts: Res<FontAssets>,
-    language_content: Res<LanguageContent>
+    language_content: Res<LanguageContent>,
+    ui_assets: Res<UiAssets>
 ) {
     let text_style = TextStyle {
         font: fonts.andy_bold.clone(),
         font_size: 48.,
         color: TEXT_COLOR,
     };
+
+    let logo_animation = Tween::new(
+        EaseFunction::SineInOut, 
+        TweeningType::PingPong,
+        Duration::from_secs(10),
+        TransformLens {
+            start: Transform {
+                scale: Vec3::splat(1.),
+                rotation: Quat::from_rotation_z(-5f32.to_radians()),
+                ..default()
+            },
+            end: Transform {
+                scale: Vec3::splat(1.1),
+                rotation: Quat::from_rotation_z(5f32.to_radians()),
+                ..default()
+            }
+        }
+    );
 
     commands
         .spawn(NodeBundle {
@@ -83,8 +102,7 @@ pub fn setup_main_menu(
                     width: Val::Percent(100.),
                     height: Val::Percent(100.),
                 },
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
+                padding: UiRect::all(Val::Px(50.)),
                 flex_direction: FlexDirection::Column,
                 ..default()
             },
@@ -92,24 +110,51 @@ pub fn setup_main_menu(
         })
         .insert(Menu)
         .with_children(|children| {
-            menu_button(
-                children,
-                text_style.clone(),
-                language_content.ui.single_player.clone(),
-                SinglePlayerButton,
-            );
-            menu_button(
-                children, 
-                text_style.clone(), 
-                language_content.ui.settings.clone(), 
-                SettingsButton
-            );
-            menu_button(
-                children, 
-                text_style.clone(), 
-                language_content.ui.exit.clone(), 
-                ExitButton
-            );
+            children.spawn((
+                ImageBundle {
+                    style: Style {
+                        position_type: PositionType::Absolute,
+                        align_self: AlignSelf::Center,
+                        ..default()
+                    },
+                    image: UiImage(ui_assets.logo.clone()),
+                    ..default()
+                },
+                Animator::new(logo_animation)
+            ));
+
+            children.spawn(NodeBundle {
+                style: Style {
+                    size: Size {
+                        width: Val::Percent(100.),
+                        height: Val::Percent(100.),
+                    },
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    flex_direction: FlexDirection::Column,
+                    ..default()
+                },
+                ..default()
+            }).with_children(|children| {    
+                menu_button(
+                    children,
+                    text_style.clone(),
+                    language_content.ui.single_player.clone(),
+                    SinglePlayerButton,
+                );
+                menu_button(
+                    children, 
+                    text_style.clone(), 
+                    language_content.ui.settings.clone(), 
+                    SettingsButton
+                );
+                menu_button(
+                    children, 
+                    text_style.clone(), 
+                    language_content.ui.exit.clone(), 
+                    ExitButton
+                );
+            });
         });
 }
 

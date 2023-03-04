@@ -70,6 +70,9 @@ handles! {
 
         #[asset(path = "sprites/ui/Radial.png")]
         pub radial: Handle<Image>,
+
+        #[asset(path = "sprites/ui/Logo.png")]
+        pub logo: Handle<Image>,
     }
 }
 
