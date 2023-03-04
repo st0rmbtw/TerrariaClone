@@ -43,6 +43,15 @@ fn setup_main_menu_background(
     commands.insert_resource(ParallaxResource {
         layer_data: vec![
             LayerData {
+                speed: 1.,
+                scale: 1.,
+                z: 0.0,
+                image: backgrounds.background_0.clone(),
+                fill_screen_height: true,
+                // position: Vec2::NEG_Y * (window.height() - 1400. / 2.),
+                ..default()
+            },
+            LayerData {
                 speed: 0.9,
                 image: backgrounds.background_112.clone(),
                 z: 0.05,

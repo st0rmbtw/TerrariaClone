@@ -15,6 +15,8 @@ pub struct LayerData {
     pub position: Vec2,
     /// Number used to determine when textures are moved to opposite side of camera
     pub transition_factor: f32,
+
+    pub fill_screen_height: bool
 }
 
 impl Default for LayerData {
@@ -26,6 +28,7 @@ impl Default for LayerData {
             z: 0.0,
             position: Vec2::ZERO,
             transition_factor: 1.2,
+            fill_screen_height: false
         }
     }
 }

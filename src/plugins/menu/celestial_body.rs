@@ -1,11 +1,11 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, IntoSystemDescriptor, Local, Input, MouseButton}, sprite::{SpriteSheetBundle, TextureAtlasSprite, TextureAtlas}, window::Windows};
+use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, IntoSystemDescriptor, Local, Input, MouseButton, Color, Vec4}, sprite::{SpriteSheetBundle, TextureAtlasSprite, TextureAtlas, Sprite}, window::Windows};
 use interpolation::Lerp;
 use iyes_loopless::prelude::{AppLooplessStateExt, IntoConditionalSystem};
 
-use crate::{plugins::{assets::BackgroundAssets, camera::MainCamera, cursor::CursorPosition}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, Tracks, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystem, AnimatorState}, state::GameState, util::{screen_to_world, FRect}};
+use crate::{plugins::{assets::BackgroundAssets, camera::MainCamera, cursor::CursorPosition}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, Tracks, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystem, AnimatorState}, state::GameState, util::{screen_to_world, FRect}, parallax::LayerTextureComponent};
 
 pub(super) struct CelestialBodyPlugin;
 
@@ -18,7 +18,8 @@ impl Plugin for CelestialBodyPlugin {
             .add_system(update_time_type.run_in_state(GameState::MainMenu))
             .add_system(move_celestial_body.run_in_state(GameState::MainMenu))
             .add_system(drag_celestial_body.run_in_state(GameState::MainMenu))
-            .add_system(component_animator_system::<CelestialBody>.label(AnimationSystem::AnimationUpdate));
+            .add_system(component_animator_system::<CelestialBody>.label(AnimationSystem::AnimationUpdate))
+            .add_system(update_sprites_color.run_in_state(GameState::MainMenu));
     }
 }
 
@@ -138,12 +139,12 @@ fn drag_celestial_body(
     input: Res<Input<MouseButton>>,
     cursor_position: Res<CursorPosition>,
     time_type: Res<TimeType>,
-    mut query_celestial_body: Query<(&mut Transform, &mut Animator<CelestialBody>), With<CelestialBody>>,
+    mut query_celestial_body: Query<(&mut Transform, &mut Animator<CelestialBody>, &mut CelestialBody)>,
     mut dragging: Local<bool>,
 ) {
     let window = windows.primary();
 
-    let (mut celestial_body_transform, mut animator) = query_celestial_body.single_mut();
+    let (mut celestial_body_transform, mut animator, mut celestial_body) = query_celestial_body.single_mut();
 
     let celestial_body_size = match *time_type {
         TimeType::Day => SUN_SIZE,
@@ -162,11 +163,13 @@ fn drag_celestial_body(
     if input.pressed(MouseButton::Left) && (cursor_is_on_celestial_body || *dragging) {
         celestial_body_transform.translation.x = cursor_position.world_position.x;
         celestial_body_transform.translation.y = cursor_position.world_position.y;
-        *dragging = true;
+        celestial_body.position.x = (cursor_position.position.x / window.width()).clamp(0., 1.);
+        celestial_body.position.y = (cursor_position.position.y / window.height()).clamp(0., 1.);
 
         let tracks = animator.tweenable_mut().as_any_mut().downcast_mut::<Tracks<CelestialBody>>().unwrap();
         tracks.get_track_mut(0).unwrap().set_progress(cursor_position.position.x / window.width());
         animator.state = AnimatorState::Paused;
+        *dragging = true;
     } else {
         *dragging = false;
         animator.state = AnimatorState::Playing;
@@ -189,6 +192,41 @@ fn update_celestial_type(
                 *sprite = background_assets.moon_0.clone_weak();
             },
         }
+    }
+}
+
+fn update_sprites_color(
+    time_type: Res<TimeType>,
+    mut query_sprite: Query<&mut Sprite, With<LayerTextureComponent>>,
+    query_celestial_body: Query<&CelestialBody>
+) {
+    fn map_range(in_min: f32, in_max: f32, out_min: f32, out_max: f32, value: f32) -> f32 {
+        return out_min + (((value - in_min) / (in_max - in_min)) * (out_max - out_min));
+    }
+
+    let celestial_body = query_celestial_body.single();
+
+    let mut color = match *time_type {
+        TimeType::Day => Color::WHITE,
+        TimeType::Night => Color::rgb(0.2, 0.2, 0.2),
+    };
+
+    if celestial_body.position.x <= 0.2 {
+        let start: Vec4 = Color::rgb_u8(0, 54, 107).into();
+        let end: Vec4 = color.into();
+        let s = map_range(0., 0.2, 0., 1., celestial_body.position.x);
+
+        color = start.lerp(end, s).into();
+    } else if celestial_body.position.x > 0.8 {
+        let start: Vec4 = color.into();
+        let end: Vec4 = Color::rgb(0.5, 0.4, 0.5).into();
+        let s = map_range(0.8, 1., 0., 1., celestial_body.position.x);
+
+        color = start.lerp(end, s).into();
+    }
+    
+    for mut sprite in &mut query_sprite {
+        sprite.color = color;
     }
 }
 

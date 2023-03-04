@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, window::WindowResized};
 
 mod layer;
 
@@ -21,7 +21,8 @@ impl Plugin for ParallaxPlugin {
             update_layer_textures_system
                 .run_if_resource_exists::<ParallaxResource>()
                 .after("follow_camera"),
-        );
+        )
+        .add_system(update_window_size.run_if_resource_exists::<ParallaxResource>());
     }
 }
 
@@ -83,12 +84,17 @@ impl ParallaxResource {
 
         // Spawn new layers using layer_data
         for (i, layer) in self.layer_data.iter().enumerate() {
+            let texture = images.get(&layer.image).unwrap();
+
             let spritesheet_bundle = SpriteBundle {
+                sprite: Sprite {
+                    custom_size: if layer.fill_screen_height { Some(Vec2::new(texture.size().x, self.window_size.y)) } else { None },
+                    ..default()
+                },
                 texture: layer.image.clone(),
                 ..Default::default()
             };
 
-            let texture = images.get(&layer.image).unwrap();
 
             // Three textures always spawned
             let mut texture_count = 3.0;
@@ -252,6 +258,32 @@ fn update_layer_textures_system(
                     {
                         texture_transform.translation.x +=
                             layer_texture.width * layer.texture_count;
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn update_window_size(
+    mut resize_events: EventReader<WindowResized>,
+    mut res_parallax: ResMut<ParallaxResource>,
+    query_children: Query<&Children>,
+    mut query_layer: Query<&mut Sprite>,
+) {
+    for event in resize_events.iter() {
+        res_parallax.window_size.x = event.width;
+        res_parallax.window_size.y = event.height;
+
+        for (entity, layer_data) in res_parallax.layer_entities.iter().zip(res_parallax.layer_data.iter()) {
+            if layer_data.fill_screen_height {
+                let children = query_children.get(*entity).unwrap();
+
+                for entity in children.iter() {
+                    let mut sprite = query_layer.get_mut(*entity).unwrap();
+
+                    if let Some(size) = &mut sprite.custom_size {
+                        size.y = event.height;
                     }
                 }
             }
