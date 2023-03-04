@@ -23,7 +23,7 @@ impl Plugin for CelestialBodyPlugin {
     }
 }
 
-const X_ANIMATION_COMPLETED: u64 = 1;
+const LOGO_ANIMATION_COMPLETED: u64 = 1;
 const SUN_SIZE: f32 = 42.;
 const MOON_SIZE: f32 = 50.;
 
@@ -59,7 +59,8 @@ fn setup(
             end: Vec2::new(1.1, 1.)
         }
     )
-    .with_repeat_count(RepeatCount::Infinite);
+    .with_repeat_count(RepeatCount::Infinite)
+    .with_completed_event(LOGO_ANIMATION_COMPLETED);
 
     commands.spawn((
         SpriteSheetBundle {
@@ -96,7 +97,7 @@ fn update_time_type(
     mut time_type: ResMut<TimeType>
 ) {
     for event in events.iter() {
-        if event.user_data == X_ANIMATION_COMPLETED {
+        if event.user_data == LOGO_ANIMATION_COMPLETED {
             *time_type = match *time_type {
                 TimeType::Day => TimeType::Night,
                 TimeType::Night => TimeType::Day,
