@@ -211,16 +211,19 @@ fn update_sprites_color(
         TimeType::Night => Color::rgb(0.2, 0.2, 0.2),
     };
 
-    if celestial_body.position.x <= 0.2 {
+    const SUNRISE_THRESHOLD: f32 = 0.2;
+    const SUNSET_THRESHOLD: f32 = 0.8;
+
+    if celestial_body.position.x <= SUNRISE_THRESHOLD {
         let start: Vec4 = Color::rgb_u8(0, 54, 107).into();
         let end: Vec4 = color.into();
-        let s = map_range(0., 0.2, 0., 1., celestial_body.position.x);
+        let s = map_range(0., SUNRISE_THRESHOLD, 0., 1., celestial_body.position.x);
 
         color = start.lerp(end, s).into();
-    } else if celestial_body.position.x > 0.8 {
+    } else if celestial_body.position.x > SUNSET_THRESHOLD {
         let start: Vec4 = color.into();
-        let end: Vec4 = Color::rgb(0.5, 0.4, 0.5).into();
-        let s = map_range(0.8, 1., 0., 1., celestial_body.position.x);
+        let end: Vec4 = Color::rgb(0.3, 0.2, 0.3).into();
+        let s = map_range(SUNSET_THRESHOLD, 1., 0., 1., celestial_body.position.x);
 
         color = start.lerp(end, s).into();
     }
