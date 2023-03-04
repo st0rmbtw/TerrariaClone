@@ -241,6 +241,21 @@ pub struct BackgroundAssets {
     #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 7, padding_x = 0., padding_y = 0.))]
     #[asset(path = "sprites/backgrounds/Moon_0.png")]
     pub moon_0: Handle<TextureAtlas>,
+
+    #[asset(path = "sprites/backgrounds/Star_0.png")]
+    pub star_0: Handle<Image>,
+
+    #[asset(path = "sprites/backgrounds/Star_1.png")]
+    pub star_1: Handle<Image>,
+
+    #[asset(path = "sprites/backgrounds/Star_2.png")]
+    pub star_2: Handle<Image>,
+
+    #[asset(path = "sprites/backgrounds/Star_3.png")]
+    pub star_3: Handle<Image>,
+
+    #[asset(path = "sprites/backgrounds/Star_4.png")]
+    pub star_4: Handle<Image>,
 }
 
 handles! {
