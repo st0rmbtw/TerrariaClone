@@ -5,7 +5,7 @@ use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, Wit
 use interpolation::Lerp;
 use iyes_loopless::prelude::{AppLooplessStateExt, IntoConditionalSystem};
 
-use crate::{plugins::{assets::BackgroundAssets, camera::MainCamera, cursor::CursorPosition}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, Tracks, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystem, AnimatorState}, state::GameState, util::{screen_to_world, FRect}, parallax::LayerTextureComponent};
+use crate::{plugins::{assets::BackgroundAssets, camera::MainCamera, cursor::CursorPosition}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystem, AnimatorState}, state::GameState, util::{screen_to_world, FRect}, parallax::LayerTextureComponent};
 
 pub(super) struct CelestialBodyPlugin;
 
@@ -33,15 +33,9 @@ struct CelestialBody {
 }
 
 #[derive(Clone, Copy, PartialEq)]
-struct CelestialBodyPositionXLens {
-    start: f32,
-    end: f32
-}
-
-#[derive(Clone, Copy, PartialEq)]
-struct CelestialBodyPositionYLens {
-    start: f32,
-    end: f32
+struct CelestialBodyPositionLens {
+    start: Vec2,
+    end: Vec2
 }
 
 #[derive(Default, Resource, Clone, Copy)]
@@ -51,44 +45,21 @@ enum TimeType {
     Night
 }
 
-#[autodefault(except(CelestialBodyPositionXLens, CelestialBodyPositionYLens))]
+#[autodefault(except(CelestialBodyPositionLens))]
 fn setup(
     mut commands: Commands,
     background_assets: Res<BackgroundAssets>
 ) {
-    let x_animation = Tween::new(
+    let logo_animation = Tween::new(
         EaseMethod::Linear,
         RepeatStrategy::Repeat,
         Duration::from_secs(25),
-        CelestialBodyPositionXLens {
-            start: 0.,
-            end: 1.
-        }
-    )
-    .with_repeat_count(RepeatCount::Infinite)
-    .with_completed_event(X_ANIMATION_COMPLETED);
-
-    let y_animation = Tween::new(
-        EaseMethod::CustomFunction(|x| {
-            if x >= 0.5 {
-                1. - x
-            } else {
-                x
-            }
-        }),
-        RepeatStrategy::Repeat,
-        Duration::from_secs(25),
-        CelestialBodyPositionYLens {
-            start: 1. * 0.7,
-            end: 1.
+        CelestialBodyPositionLens {
+            start: Vec2::new(-0.1, 1. * 0.7),
+            end: Vec2::new(1.1, 1.)
         }
     )
     .with_repeat_count(RepeatCount::Infinite);
-
-    let logo_animation = Tracks::new([
-        x_animation,
-        y_animation
-    ]);
 
     commands.spawn((
         SpriteSheetBundle {
@@ -163,11 +134,12 @@ fn drag_celestial_body(
     if input.pressed(MouseButton::Left) && (cursor_is_on_celestial_body || *dragging) {
         celestial_body_transform.translation.x = cursor_position.world_position.x;
         celestial_body_transform.translation.y = cursor_position.world_position.y;
-        celestial_body.position.x = (cursor_position.position.x / window.width()).clamp(0., 1.);
-        celestial_body.position.y = (cursor_position.position.y / window.height()).clamp(0., 1.);
+        celestial_body.position.x = cursor_position.position.x / window.width();
+        celestial_body.position.y = cursor_position.position.y / window.height();
 
-        let tracks = animator.tweenable_mut().as_any_mut().downcast_mut::<Tracks<CelestialBody>>().unwrap();
-        tracks.get_track_mut(0).unwrap().set_progress(cursor_position.position.x / window.width());
+        let tween = animator.tweenable_mut();
+        tween.set_progress(cursor_position.position.x / window.width());
+
         animator.state = AnimatorState::Paused;
         *dragging = true;
     } else {
@@ -206,6 +178,8 @@ fn update_sprites_color(
 
     let celestial_body = query_celestial_body.single();
 
+    let celestial_body_position = celestial_body.position.x.clamp(0., 1.);
+
     let mut color = match *time_type {
         TimeType::Day => Color::WHITE,
         TimeType::Night => Color::rgb(0.2, 0.2, 0.2),
@@ -214,16 +188,16 @@ fn update_sprites_color(
     const SUNRISE_THRESHOLD: f32 = 0.2;
     const SUNSET_THRESHOLD: f32 = 0.8;
 
-    if celestial_body.position.x <= SUNRISE_THRESHOLD {
+    if celestial_body_position <= SUNRISE_THRESHOLD {
         let start: Vec4 = Color::rgb_u8(0, 54, 107).into();
         let end: Vec4 = color.into();
-        let s = map_range(0., SUNRISE_THRESHOLD, 0., 1., celestial_body.position.x);
+        let s = map_range(0., SUNRISE_THRESHOLD, 0., 1., celestial_body_position);
 
         color = start.lerp(end, s).into();
-    } else if celestial_body.position.x > SUNSET_THRESHOLD {
+    } else if celestial_body_position > SUNSET_THRESHOLD {
         let start: Vec4 = color.into();
         let end: Vec4 = Color::rgb(0.3, 0.2, 0.3).into();
-        let s = map_range(SUNSET_THRESHOLD, 1., 0., 1., celestial_body.position.x);
+        let s = map_range(SUNSET_THRESHOLD, 1., 0., 1., celestial_body_position);
 
         color = start.lerp(end, s).into();
     }
@@ -233,14 +207,16 @@ fn update_sprites_color(
     }
 }
 
-impl Lens<CelestialBody> for CelestialBodyPositionXLens {
+impl Lens<CelestialBody> for CelestialBodyPositionLens {
     fn lerp(&mut self, target: &mut CelestialBody, ratio: f32) {
-        target.position.x = self.start.lerp(&self.end, &ratio);
-    }
-}
+        target.position.x = self.start.x.lerp(&self.end.x, &ratio);
 
-impl Lens<CelestialBody> for CelestialBodyPositionYLens {
-    fn lerp(&mut self, target: &mut CelestialBody, ratio: f32) {
-        target.position.y = self.start.lerp(&self.end, &ratio);
+        let y_ratio = if ratio >= 0.5 {
+            1. - ratio
+        } else {
+            ratio
+        };
+
+        target.position.y = self.start.y.lerp(&self.end.y, &y_ratio);
     }
 }
