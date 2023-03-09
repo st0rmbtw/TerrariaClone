@@ -46,66 +46,6 @@ pub fn spawn_terrain(mut commands: Commands) {
     commands.insert_resource(NextState(GameState::InGame));
 }
 
-#[cfg(feature = "debug_grid")]
-pub fn spawn_tile_grid(
-    mut lines: ResMut<bevy_prototype_debug_lines::DebugLines>
-) {
-    use bevy::prelude::Color;
-    use bevy::prelude::Vec3;
-
-    for y in 0..WORLD_SIZE_Y {
-        let pos_y = (y as f32 * TILE_SIZE - TILE_SIZE / 2.) / 10.;
-
-        lines.line_colored(
-            Vec3::new(0., -pos_y, 3.),
-            Vec3::new(WORLD_SIZE_X as f32 * TILE_SIZE, -pos_y, 3.),
-            0.,
-            Color::PURPLE
-        );
-    }
-
-    for x in 0..WORLD_SIZE_X {
-        let pos_x = x as f32 * TILE_SIZE - TILE_SIZE / 2.;
-
-        lines.line_colored(
-            Vec3::new(pos_x, 0., 3.),
-            Vec3::new(pos_x, WORLD_SIZE_Y as f32 * -TILE_SIZE, 3.),
-            0.,
-            Color::PURPLE
-        );
-    }
-}
-
-#[cfg(feature = "debug_grid")]
-pub fn spawn_pixel_grid(
-    mut lines: ResMut<bevy_prototype_debug_lines::DebugLines>
-) {
-    use bevy::prelude::Color;
-    use bevy::prelude::Vec3;
- 
-    for y in 0..WORLD_SIZE_Y * TILE_SIZE as usize {
-        let pos_y = y as f32 * 2.;
-
-        lines.line_colored(
-            Vec3::new(0., -pos_y, 3.),
-            Vec3::new(WORLD_SIZE_X as f32 * TILE_SIZE, -pos_y, 3.),
-            0.,
-            Color::PURPLE
-        );
-    }
-
-    for x in 0..WORLD_SIZE_X * TILE_SIZE as usize {
-        let pos_x = x as f32 * 2.;
-
-        lines.line_colored(
-            Vec3::new(pos_x, 0., 3.),
-            Vec3::new(pos_x, WORLD_SIZE_Y as f32 * -TILE_SIZE * 2., 3.),
-            0.,
-            Color::PURPLE
-        );
-    }
-}
-
 pub fn spawn_block(
     commands: &mut Commands,
     block: Block,

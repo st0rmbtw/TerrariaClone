@@ -3,7 +3,7 @@
 use std::{error::Error, time::Duration};
 
 use bevy::{prelude::*, render::settings::{WgpuSettings, WgpuFeatures}};
-use bevy_ecs_tilemap::TilemapPlugin;
+use bevy_ecs_tilemap::{TilemapPlugin, prelude::TilemapRenderSettings};
 use bevy_hanabi::HanabiPlugin;
 use game::{
     animation::TweeningPlugin,
@@ -58,6 +58,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             })
             .set(ImagePlugin::default_nearest())
         )
+        .insert_resource(TilemapRenderSettings {
+            render_chunk_size: UVec2::new(100, 100),
+        })
         .insert_resource(language_content.clone())
         .insert_resource(Msaa { samples: 1 })
         .insert_resource(ClearColor(Color::rgb(

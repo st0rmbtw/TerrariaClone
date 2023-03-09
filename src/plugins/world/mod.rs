@@ -58,15 +58,6 @@ impl Plugin for WorldPlugin {
                     .with_system(update_neighbors)
                     .into(),
             );
-        
-        #[cfg(feature = "debug_grid")]
-        app.add_system_set(
-            ConditionSet::new()
-                .run_in_state(GameState::InGame)
-                .with_system(spawn_tile_grid)
-                .with_system(spawn_pixel_grid)
-                .into()
-        );
     }
 }
 
