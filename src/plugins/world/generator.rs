@@ -68,7 +68,7 @@ pub fn generate(seed: u32, world_size: WorldSize) -> WorldData {
 pub fn set_spawn_point(world: &mut WorldData) {
     let x = world.size.width / 2;
     
-    let mut y: usize = 0;
+    let mut y = world.layer.dirt.from - DIRT_HILL_HEIGHT as usize;
 
     loop {
         if world.blocks.get((y, x)).map(|b| b).is_some() {

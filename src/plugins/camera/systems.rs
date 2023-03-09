@@ -8,7 +8,7 @@ use bevy::{
 };
 use rand::{thread_rng, Rng};
 
-use crate::{parallax::ParallaxCameraComponent, plugins::{world::{TILE_SIZE, WorldData}, cursor::CursorPosition, assets::BackgroundAssets}, util::tile_to_world_coords, lighting::{compositing::LightMapCamera, types::LightSource}};
+use crate::{parallax::ParallaxCameraComponent, plugins::{world::{TILE_SIZE, WorldData}, cursor::CursorPosition}, util::tile_to_world_coords, lighting::{compositing::LightMapCamera, types::LightSource}};
 
 #[cfg(not(feature = "free_camera"))]
 use crate::plugins::player::Player;
@@ -20,8 +20,7 @@ pub fn setup_camera(
     mut commands: Commands,
     mut color_materials: ResMut<Assets<ColorMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
-    world_data: Res<WorldData>,
-    background_assets: Res<BackgroundAssets>
+    world_data: Res<WorldData>
 ) {
     let spawn_point = tile_to_world_coords(world_data.spawn_point);
 
@@ -44,25 +43,6 @@ pub fn setup_camera(
             //     ])
             // },
         ));
-
-    commands
-        .spawn(MaterialMesh2dBundle {
-            mesh: meshes.add(Mesh::from(shape::Circle::new(57.))).into(),
-            material: color_materials.add(ColorMaterial::from(background_assets.sun.clone())).into(),
-            transform: Transform {
-                translation: Vec3::new(14000., -2800., 1.),
-                ..default()
-            },
-            ..default()
-        })
-        .insert(LightSource {
-            intensity: 3.,
-            color: Color::ORANGE,
-            radius: 500.,
-            jitter_intensity: 0.2,
-            jitter_translation: 0.1,
-            ..default()
-        });
 
     let block_mesh = meshes.add(Mesh::from(shape::Quad::new(Vec2::ZERO)));
 

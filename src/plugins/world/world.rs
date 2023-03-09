@@ -100,15 +100,19 @@ impl WorldData {
 
     #[inline]
     pub fn set_block<Pos: AsTilePos>(&mut self, tile_pos: Pos, block: &Block) {
-        if let Some(b) = self.get_block_mut(tile_pos.yx()) {
-            *b = *block;
+        unsafe {
+            if let Some(b) = self.blocks.get_mut_ptr(tile_pos.yx()) {
+                *b = Some(*block);
+            }
         }
     }
 
     #[inline]
     pub fn set_wall<Pos: AsTilePos>(&mut self, tile_pos: Pos, wall: Wall) {
-        if let Some(w) = self.get_wall_mut(tile_pos.yx()) {
-            *w = wall;
+        unsafe {
+            if let Some(w) = self.walls.get_mut_ptr(tile_pos.yx()) {
+                *w = Some(wall);
+            }
         }
     }
 
@@ -123,7 +127,7 @@ impl WorldData {
 
     #[inline]
     pub fn block_exists<Pos: AsTilePos>(&self, tile_pos: Pos) -> bool {
-        self.get_block(tile_pos.yx()).is_some()
+        self.get_block(tile_pos).is_some()
     }
 
     pub fn get_block_neighbors<Pos: AsTilePos>(&self, tile_pos: Pos) -> Neighbors<&Block> {

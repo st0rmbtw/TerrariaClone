@@ -77,6 +77,7 @@ pub fn update_jump(
     }
 }
 
+#[allow(non_upper_case_globals)]
 pub fn update(
     time: Res<Time>,
     mut player_query: Query<&mut Transform, With<Player>>,
@@ -192,11 +193,14 @@ pub fn update(
     // -------- Move player --------
     let raw = transform.translation.xy() + velocity.0;
 
-    const MIN: f32 = PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
-    let max: f32 = world_data.size.width as f32 * TILE_SIZE - PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
+    const min_x: f32 = PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
+    let max_x = world_data.size.width as f32 * TILE_SIZE - PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
 
-    transform.translation.x = raw.x.clamp(MIN, max);
-    transform.translation.y = raw.y.clamp(-(world_data.size.height as f32) * TILE_SIZE + PLAYER_HALF_HEIGHT, -PLAYER_HALF_HEIGHT);
+    let min_y: f32 = -(world_data.size.height as f32) * TILE_SIZE + PLAYER_HALF_HEIGHT;
+    const max_y: f32 = -PLAYER_HALF_HEIGHT;
+
+    transform.translation.x = raw.x.clamp(min_x, max_x);
+    transform.translation.y = raw.y.clamp(min_y, max_y);
 }
 
 pub fn spawn_particles(
