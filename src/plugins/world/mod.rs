@@ -3,6 +3,12 @@ mod events;
 mod resources;
 mod systems;
 mod utils;
+pub mod generator;
+mod world;
+mod block;
+mod wall;
+mod tree;
+mod light;
 
 pub use components::*;
 pub use events::*;
@@ -10,8 +16,13 @@ use iyes_loopless::prelude::{ConditionSet, AppLooplessStateExt};
 pub use resources::*;
 pub use systems::*;
 pub use utils::*;
+pub use world::*;
+pub use block::*;
+pub use wall::*;
+pub use tree::*;
+pub use light::*;
 
-use crate::{world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}, state::GameState};
+use crate::{state::GameState};
 use bevy::prelude::{Plugin, App};
 use bevy_ecs_tilemap::prelude::TilemapSize;
 
@@ -26,10 +37,8 @@ const CHUNKMAP_SIZE: TilemapSize = TilemapSize {
     y: CHUNK_SIZE as u32,
 };
 
-pub const MAP_SIZE: TilemapSize = TilemapSize {
-    x: WORLD_SIZE_X as u32,
-    y: WORLD_SIZE_Y as u32
-};
+pub const DIRT_HILL_HEIGHT: f32 = 50.;
+pub const STONE_HILL_HEIGHT: f32 = 15.;
 
 pub struct WorldPlugin;
 
@@ -58,5 +67,17 @@ impl Plugin for WorldPlugin {
                 .with_system(spawn_pixel_grid)
                 .into()
         );
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Frame {
+    pub x: u16,
+    pub y: u16
+}
+
+impl Frame {
+    pub const fn new(x: u16, y: u16) -> Self {
+        Self { x, y }
     }
 }

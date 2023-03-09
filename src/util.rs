@@ -7,7 +7,7 @@ use bevy::{
 };
 use bevy_ecs_tilemap::tiles::TilePos;
 
-use crate::{plugins::world::TILE_SIZE, wall::Wall, items::Block};
+use crate::plugins::world::{TILE_SIZE, Wall, BlockType};
 
 pub trait Lerp<T> {
     fn lerp(self, other: T, t: f32) -> T;
@@ -174,18 +174,19 @@ pub fn inverse_lerp(a: f32, b: f32, value: f32) -> f32 {
 }
 
 
-pub fn get_tile_start_index(block: Block) -> u32 {
+pub fn get_tile_start_index(block: BlockType) -> u32 {
     match block {
-        Block::Dirt => 0,
-        Block::Stone => 16 * 15,
-        Block::Grass => 16 * 30
+        BlockType::Dirt => 0,
+        BlockType::Stone => 16 * 15,
+        BlockType::Grass => 16 * 30,
+        BlockType::Tree(_) => todo!(),
     }
 }
 
 pub fn get_wall_start_index(wall: Wall) -> u32 {
     match wall {
-        Wall::StoneWall => 0,
-        Wall::DirtWall => 5 * 13,
+        Wall::Stone => 0,
+        Wall::Dirt => 5 * 13,
     }
 }
 

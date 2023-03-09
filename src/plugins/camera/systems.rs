@@ -8,7 +8,7 @@ use bevy::{
 };
 use rand::{thread_rng, Rng};
 
-use crate::{parallax::ParallaxCameraComponent, plugins::{world::{TILE_SIZE, WorldData}, cursor::CursorPosition, assets::BackgroundAssets}, world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}, util::tile_to_world_coords, lighting::{compositing::LightMapCamera, types::LightSource}};
+use crate::{parallax::ParallaxCameraComponent, plugins::{world::{TILE_SIZE, WorldData}, cursor::CursorPosition, assets::BackgroundAssets}, util::tile_to_world_coords, lighting::{compositing::LightMapCamera, types::LightSource}};
 
 #[cfg(not(feature = "free_camera"))]
 use crate::plugins::player::Player;
@@ -113,6 +113,7 @@ pub fn zoom(
 pub fn move_camera(
     mut player: Query<&Transform, With<Player>>,
     mut camera: Query<(&mut GlobalTransform, &OrthographicProjection), With<MainCamera>>,
+    world_data: Res<WorldData>
 ) {
     if let Ok((mut camera_transform, projection)) = camera.get_single_mut() {
         if let Ok(player_transform) = player.get_single_mut() {
@@ -124,13 +125,13 @@ pub fn move_camera(
             
             {
                 let min = projection_left.abs() - TILE_SIZE / 2.;
-                let max = (WORLD_SIZE_X as f32 * 16.) - projection_right - TILE_SIZE / 2.;
+                let max = (world_data.size.width as f32 * 16.) - projection_right - TILE_SIZE / 2.;
                 camera_translation.x = player_transform.translation.x.clamp(min, max);
             }
 
             {
                 let max = -(projection_top - TILE_SIZE / 2.);
-                let min = -((WORLD_SIZE_Y as f32 * 16.) + projection_top + TILE_SIZE / 2.);
+                let min = -((world_data.size.height as f32 * 16.) + projection_top + TILE_SIZE / 2.);
                 camera_translation.y = player_transform.translation.y.clamp(min, max);
             }
         }

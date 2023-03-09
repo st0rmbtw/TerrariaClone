@@ -11,8 +11,10 @@ use bevy::{
 use bevy_asset_loader::prelude::{AssetCollection, LoadingState, LoadingStateAppExt};
 use iyes_loopless::prelude::AppLooplessStateExt;
 
-use crate::items::{Item, Pickaxe, Tool, Block};
-use crate::{state::GameState, util::handles, wall::Wall};
+use crate::items::{Item, Pickaxe, Tool};
+use crate::{state::GameState, util::handles};
+
+use super::world::{Wall, BlockType};
 
 pub struct AssetsPlugin;
 
@@ -302,7 +304,7 @@ pub struct ShaderAssets {
 impl WallAssets {
     pub fn get_by_wall(&self, id: Wall) -> Option<Handle<Image>> {
         match id {
-            Wall::DirtWall => Some(self.wall_2.clone()),
+            Wall::Dirt => Some(self.wall_2.clone()),
             _ => None,
         }
     }
@@ -315,10 +317,14 @@ impl ItemAssets {
 
     pub fn get_by_item(&self, item: Item) -> Handle<Image> {
         match item {
-            Item::Block(Block::Dirt) => self.dirt_block.clone(),
-            Item::Block(Block::Stone) => self.stone_block.clone(),
+            Item::Block(block) => {
+                match block.block_type {
+                    BlockType::Dirt => self.dirt_block.clone(),
+                    BlockType::Stone => self.stone_block.clone(),
+                    _ => self.no_item()
+                }
+            }
             Item::Tool(Tool::Pickaxe(Pickaxe::CopperPickaxe)) => self.copper_pickaxe.clone(),
-            _ => self.no_item(),
         }
     }
 }
@@ -339,11 +345,12 @@ fn setup(
 }
 
 impl BlockAssets {
-    pub fn get_by_block(&self, block: Block) -> Option<Handle<Image>> {
+    pub fn get_by_block(&self, block: BlockType) -> Option<Handle<Image>> {
         match block {
-            Block::Dirt => Some(self.dirt.clone()),
-            Block::Stone => Some(self.stone.clone()),
-            Block::Grass => Some(self.grass.clone()),
+            BlockType::Dirt => Some(self.dirt.clone()),
+            BlockType::Stone => Some(self.stone.clone()),
+            BlockType::Grass => Some(self.grass.clone()),
+            BlockType::Tree(_) => todo!(),
         }
     }
 }

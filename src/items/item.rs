@@ -1,11 +1,13 @@
 use bevy::{math::vec2, prelude::Vec2};
 
-use super::{Pickaxe, Tool, Block};
+use crate::plugins::world::Block;
+
+use super::{Pickaxe, Tool};
 
 pub type ItemId = u16;
 pub type Stack = u16;
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum Item {
     Tool(Tool),
     Block(Block)

@@ -7,7 +7,7 @@ pub use resources::*;
 pub use systems::*;
 
 use iyes_loopless::prelude::*;
-use bevy::{prelude::{Plugin, App, CoreStage}, ui::BackgroundColor};
+use bevy::{prelude::{Plugin, App}, ui::BackgroundColor};
 use crate::{state::GameState, animation::{AnimationSystem, component_animator_system}};
 use super::{ui::UiVisibility, settings::ShowTileGrid};
 

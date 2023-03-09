@@ -3,7 +3,7 @@ use std::{io::BufReader, fs::File, error::Error};
 use bevy::prelude::Resource;
 use serde::Deserialize;
 
-use crate::items::{Pickaxe, Tool, Item, Block};
+use crate::{items::{Pickaxe, Tool, Item}, plugins::world::BlockType};
 
 pub enum Language {
     US
@@ -66,7 +66,7 @@ impl LanguageContent {
     pub fn name(&self, item: Item) -> String {
         match item {
             Item::Tool(tool) => self.tool_name(tool),
-            Item::Block(block) => self.block_name(block),
+            Item::Block(block) => self.block_name(block.block_type),
         }
     }
 
@@ -82,10 +82,10 @@ impl LanguageContent {
         }
     }
 
-    fn block_name(&self, block: Block) -> String {
-        match block {
-            Block::Dirt => self.items.dirt_block.clone(),
-            Block::Stone => self.items.stone_block.clone(),
+    fn block_name(&self, block_type: BlockType) -> String {
+        match block_type {
+            BlockType::Dirt => self.items.dirt_block.clone(),
+            BlockType::Stone => self.items.stone_block.clone(),
             _ => panic!("No such item")
         }
     }

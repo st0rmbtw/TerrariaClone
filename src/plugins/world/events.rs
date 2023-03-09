@@ -1,9 +1,7 @@
 use bevy::prelude::Vec2;
 use bevy_ecs_tilemap::tiles::TilePos;
 
-use crate::items::Block;
-
-use super::ChunkPos;
+use super::{ChunkPos, Block};
 
 pub enum BlockEvent {
     Place { tile_pos: Vec2, block: Block, inventory_item_index: usize },

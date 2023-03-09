@@ -1,5 +1,4 @@
 use bevy::{prelude::*, math::Vec3Swizzles};
-use bevy_ecs_tilemap::tiles::TilePos;
 use bevy_hanabi::prelude::*;
 use leafwing_input_manager::prelude::ActionState;
 use rand::seq::SliceRandom;
@@ -11,9 +10,8 @@ use crate::{
         assets::{ItemAssets, SoundAssets}, 
         inventory::{SelectedItem, Inventory},
     }, 
-    world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}, 
     util::{move_towards, map_range}, 
-    items::{get_animation_points, ItemStack, Item}, CellArrayExtensions
+    items::{get_animation_points, ItemStack, Item}
 };
 
 use super::*;
@@ -85,11 +83,8 @@ pub fn update(
     world_data: Res<WorldData>,
     mut velocity: ResMut<PlayerVelocity>,
     mut collisions: ResMut<Collisions>,
-    mut player_data: ResMut<PlayerData>
+    mut player_data: ResMut<PlayerData>,
 ) {
-    const MIN: f32 = PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
-    const MAX: f32 = WORLD_SIZE_X as f32 * TILE_SIZE - PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
-
     let mut transform = player_query.single_mut();
 
     // -------- Gravity --------
@@ -109,7 +104,7 @@ pub fn update(
     let mut bottom = ((position.y + PLAYER_HALF_HEIGHT) / TILE_SIZE) + 3.;
     let mut top = ((position.y - PLAYER_HALF_HEIGHT) / TILE_SIZE) - 1.;
 
-    bottom = bottom.clamp(0., WORLD_SIZE_Y as f32);
+    bottom = bottom.clamp(0., world_data.size.height as f32);
     top = top.max(0.);
 
     let uleft = left as u32;
@@ -128,7 +123,7 @@ pub fn update(
 
     for x in uleft..uright {
         for y in utop..ubottom {
-            if world_data.tiles.tile_exists(TilePos::new(x, y)) {
+            if world_data.block_exists((x, y)) {
                 let tile_pos = Vec2::new(x as f32 * TILE_SIZE, y as f32 * TILE_SIZE);
 
                 if (next_position.x + PLAYER_HALF_WIDTH) > (tile_pos.x - TILE_SIZE / 2.) && (next_position.x - PLAYER_HALF_WIDTH) < (tile_pos.x + TILE_SIZE / 2.) && (next_position.y + PLAYER_HALF_HEIGHT) > (tile_pos.y - TILE_SIZE / 2.) && (next_position.y - PLAYER_HALF_HEIGHT) < (tile_pos.y + TILE_SIZE / 2.) {
@@ -197,8 +192,11 @@ pub fn update(
     // -------- Move player --------
     let raw = transform.translation.xy() + velocity.0;
 
-    transform.translation.x = raw.x.clamp(MIN, MAX);
-    transform.translation.y = raw.y.clamp(-(WORLD_SIZE_Y as f32) * TILE_SIZE + PLAYER_HALF_HEIGHT, -PLAYER_HALF_HEIGHT);
+    const MIN: f32 = PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
+    let max: f32 = world_data.size.width as f32 * TILE_SIZE - PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
+
+    transform.translation.x = raw.x.clamp(MIN, max);
+    transform.translation.y = raw.y.clamp(-(world_data.size.height as f32) * TILE_SIZE + PLAYER_HALF_HEIGHT, -PLAYER_HALF_HEIGHT);
 }
 
 pub fn spawn_particles(
