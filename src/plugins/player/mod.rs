@@ -185,7 +185,7 @@ pub fn spawn_player(
                         color: Color::rgb(0.55, 0.23, 0.14),
                     },
                     transform: Transform::from_xyz(0., 0., 0.1),
-                    texture_atlas: player_assets.hair.clone(),
+                    texture_atlas: player_assets.hair.clone_weak(),
                 }
             ));
             // endregion
@@ -200,7 +200,7 @@ pub fn spawn_player(
                     sprite: TextureAtlasSprite {
                         color: Color::rgb(0.92, 0.45, 0.32),
                     },
-                    texture_atlas: player_assets.head.clone(),
+                    texture_atlas: player_assets.head.clone_weak(),
                     transform: Transform::from_xyz(0., 0., 0.003),
                 }
             ));
@@ -216,7 +216,7 @@ pub fn spawn_player(
                         color: Color::WHITE,
                     },
                     transform: Transform::from_xyz(0., 0., 0.1),
-                    texture_atlas: player_assets.eyes_1.clone(),
+                    texture_atlas: player_assets.eyes_1.clone_weak(),
                 },
                 MovementAnimationBundle {
                     walking: WalkingAnimationData {
@@ -235,7 +235,7 @@ pub fn spawn_player(
                         color: Color::rgb(89. / 255., 76. / 255., 64. / 255.),
                     },
                     transform: Transform::from_xyz(0., 0., 0.01),
-                    texture_atlas: player_assets.eyes_2.clone(),
+                    texture_atlas: player_assets.eyes_2.clone_weak(),
                 },
                 MovementAnimationBundle {
                     walking: WalkingAnimationData {
@@ -259,7 +259,7 @@ pub fn spawn_player(
                         color: Color::rgb(0.58, 0.55, 0.47),
                     },
                     transform: Transform::from_xyz(0., -8., 0.2),
-                    texture_atlas: player_assets.left_shoulder.clone(),
+                    texture_atlas: player_assets.left_shoulder.clone_weak(),
                 },
                 MovementAnimationBundle {
                     walking: WalkingAnimationData {
@@ -280,7 +280,7 @@ pub fn spawn_player(
                         color: Color::rgb(0.92, 0.45, 0.32),
                     },
                     transform: Transform::from_xyz(0., -8., 0.2),
-                    texture_atlas: player_assets.left_hand.clone(),
+                    texture_atlas: player_assets.left_hand.clone_weak(),
                 },
                 MovementAnimationBundle {
                     walking: WalkingAnimationData {
@@ -303,7 +303,7 @@ pub fn spawn_player(
                         color: Color::rgb(0.92, 0.45, 0.32),
                     },
                     transform: Transform::from_xyz(0., -20., 0.001),
-                    texture_atlas: player_assets.right_arm.clone(),
+                    texture_atlas: player_assets.right_arm.clone_weak(),
                 },
                 MovementAnimationBundle {
                     walking: WalkingAnimationData { count: 13 },
@@ -327,7 +327,7 @@ pub fn spawn_player(
                         color: Color::rgb(0.58, 0.55, 0.47),
                     },
                     transform: Transform::from_xyz(0., 0., 0.002),
-                    texture_atlas: player_assets.chest.clone(),
+                    texture_atlas: player_assets.chest.clone_weak(),
                 },
             ));
             // endregion
@@ -341,7 +341,7 @@ pub fn spawn_player(
                     sprite: TextureAtlasSprite {
                         color: Color::rgb(190. / 255., 190. / 255., 156. / 255.),
                     },
-                    texture_atlas: player_assets.feet.clone(),
+                    texture_atlas: player_assets.feet.clone_weak(),
                     transform: Transform::from_xyz(0., 0., 0.15),
                     ..default()
                 },

@@ -39,7 +39,7 @@ pub fn spawn_inventory_ui(
                     text: Text::from_section(
                         language_content.ui.items.clone(),
                         TextStyle {
-                            font: fonts.andy_bold.clone(),
+                            font: fonts.andy_bold.clone_weak(),
                             font_size: 20.,
                             color: Color::WHITE,
                         },
@@ -66,7 +66,7 @@ pub fn spawn_inventory_ui(
                         spawn_inventory_cell(
                             children,
                             format!("Hotbar Cell #{i}"),
-                            ui_assets.inventory_background.clone(),
+                            ui_assets.inventory_background.clone_weak(),
                             true,
                             i,
                             &fonts,
@@ -105,7 +105,7 @@ pub fn spawn_inventory_ui(
                                     spawn_inventory_cell(
                                         children,
                                         format!("Inventory Cell #{}", index),
-                                        ui_assets.inventory_background.clone(),
+                                        ui_assets.inventory_background.clone_weak(),
                                         false,
                                         index,
                                         &fonts,
@@ -176,7 +176,7 @@ pub fn spawn_inventory_cell(
                         text: Text::from_section(
                             ((index + 1) % HOTBAR_LENGTH).to_string(),
                             TextStyle {
-                                font: fonts.andy_bold.clone(),
+                                font: fonts.andy_bold.clone_weak(),
                                 font_size: 16.,
                                 color: Color::WHITE,
                             },
@@ -193,7 +193,7 @@ pub fn spawn_inventory_cell(
                         text: Text::from_section(
                             "",
                             TextStyle {
-                                font: fonts.andy_regular.clone(),
+                                font: fonts.andy_regular.clone_weak(),
                                 font_size: 16.,
                                 color: Color::WHITE,
                             },
@@ -246,9 +246,9 @@ pub fn update_selected_cell_image(
         let selected = cell_index.0 == inventory.selected_slot;
 
         image.0 = if selected {
-            ui_assets.selected_inventory_background.clone()
+            ui_assets.selected_inventory_background.clone_weak()
         } else {
-            ui_assets.inventory_background.clone()
+            ui_assets.inventory_background.clone_weak()
         }
     }
 }
@@ -265,7 +265,7 @@ pub fn select_inventory_cell(
 
     if let Some(index) = digit {
         if inventory.select_item(*index) {
-            audio.play(sounds.menu_tick.clone());
+            audio.play(sounds.menu_tick.clone_weak());
         }
     }
 }
@@ -284,7 +284,7 @@ pub fn scroll_select_inventory_item(
 
         inventory.select_item(new_index as usize);
 
-        audio.play(sounds.menu_tick.clone());
+        audio.play(sounds.menu_tick.clone_weak());
     }
 }
 

@@ -180,7 +180,11 @@ impl Wall {
                 ..
             } if bt == wall && bb == wall && br == wall => 13 * rand,
 
-            _ => panic!()
+            _ => {
+                println!("Neighbors = {:#?}", neighbors);
+                println!("Wall = {:#?}", wall);
+                panic!();
+            }
         }
     }
 }

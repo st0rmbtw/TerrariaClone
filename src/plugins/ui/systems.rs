@@ -103,9 +103,9 @@ pub fn toggle_extra_ui(
         events.send(ToggleExtraUiEvent(visibility));
 
         if visibility {
-            audio.play(sounds.menu_open.clone());
+            audio.play(sounds.menu_open.clone_weak());
         } else {
-            audio.play(sounds.menu_close.clone());
+            audio.play(sounds.menu_close.clone_weak());
         }
     }
 }

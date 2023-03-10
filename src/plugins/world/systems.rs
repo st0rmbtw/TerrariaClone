@@ -200,7 +200,7 @@ pub fn spawn_chunk(
             },
             size: CHUNKMAP_SIZE,
             storage: tile_storage,
-            texture: TilemapTexture::Single(block_assets.tiles.clone()),
+            texture: TilemapTexture::Single(block_assets.tiles.clone_weak()),
             tile_size: TilemapTileSize {
                 x: TILE_SIZE,
                 y: TILE_SIZE,
@@ -223,7 +223,7 @@ pub fn spawn_chunk(
             },
             size: CHUNKMAP_SIZE,
             storage: wall_storage,
-            texture: TilemapTexture::Single(wall_assets.walls.clone()),
+            texture: TilemapTexture::Single(wall_assets.walls.clone_weak()),
             tile_size: TilemapTileSize {
                 x: WALL_SIZE,
                 y: WALL_SIZE,

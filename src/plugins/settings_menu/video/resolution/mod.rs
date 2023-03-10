@@ -18,7 +18,7 @@ pub fn setup_resolution_menu(
     language_content: Res<LanguageContent>
 ) {
     let text_style = TextStyle {
-        font: fonts.andy_bold.clone(),
+        font: fonts.andy_bold.clone_weak(),
         font_size: MENU_BUTTON_FONT_SIZE,
         color: TEXT_COLOR,
     };

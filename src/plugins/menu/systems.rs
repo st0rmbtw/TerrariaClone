@@ -124,7 +124,7 @@ pub fn setup_main_menu(
     ui_assets: Res<UiAssets>
 ) {
     let text_style = TextStyle {
-        font: fonts.andy_bold.clone(),
+        font: fonts.andy_bold.clone_weak(),
         font_size: 54.,
         color: TEXT_COLOR,
     };
@@ -198,7 +198,7 @@ pub fn update_buttons(
 
         match interaction {
             Interaction::Hovered => {
-                audio.play(sounds.menu_tick.clone());
+                audio.play(sounds.menu_tick.clone_weak());
 
                 text.sections[0].style.color = Color::YELLOW;
 

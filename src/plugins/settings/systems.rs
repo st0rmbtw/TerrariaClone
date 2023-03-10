@@ -47,7 +47,7 @@ pub fn spawn_ingame_settings_button(
                 text: Text::from_section(
                     language_content.ui.settings.clone(),
                     TextStyle {
-                        font: fonts.andy_bold.clone(),
+                        font: fonts.andy_bold.clone_weak(),
                         font_size: 32.,
                         color: Color::WHITE,
                     },
@@ -84,7 +84,7 @@ pub fn update(
     for (interaction, mut animator) in query.iter_mut() {
         match interaction {
             Interaction::Hovered => {
-                audio.play(sounds.menu_tick.clone());
+                audio.play(sounds.menu_tick.clone_weak());
 
                 animator.start();
 

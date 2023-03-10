@@ -412,14 +412,15 @@ pub fn update_use_item_animation_index(
     mut timer: ResMut<UseItemAnimationTimer>,
     mut anim: ResMut<UseItemAnimation>,
     inventory: Res<Inventory>,
-    sounds: Res<SoundAssets>,
+    sound_assets: Res<SoundAssets>,
     audio: Res<Audio>
 ) {
     if timer.tick(time.delta()).just_finished() {
         if index.0 == 0 {
             if let Some(ItemStack { item: Item::Tool(_), .. }) = inventory.selected_item() {
-                let sound = vec![sounds.swing_1.clone(), sounds.swing_2.clone(), sounds.swing_3.clone()]; 
-                audio.play(sound.choose(&mut rand::thread_rng()).unwrap().clone());   
+                let sound = sound_assets.swing.choose(&mut rand::thread_rng()).unwrap();
+
+                audio.play(sound.clone_weak());
             }
         }
 

@@ -87,7 +87,7 @@ pub fn setup(
                     size: Size::new(Val::Px(CURSOR_SIZE), Val::Px(CURSOR_SIZE)),
                 },
                 focus_policy: FocusPolicy::Pass,
-                image: cursor_assets.cursor_background.clone().into(),
+                image: cursor_assets.cursor_background.clone_weak().into(),
                 background_color: cursor_color.background_color.into(),
             })
             .insert(CursorBackground)
@@ -101,7 +101,7 @@ pub fn setup(
                         size: Size::new(Val::Px(16.), Val::Px(16.)),
                     },
                     focus_policy: FocusPolicy::Pass,
-                    image: cursor_assets.cursor.clone().into(),
+                    image: cursor_assets.cursor.clone_weak().into(),
                     background_color: cursor_color.foreground_color.into(),
                 })
                 .insert(CursorForeground)
@@ -118,7 +118,7 @@ pub fn setup(
                 text: Text::from_section(
                     "",
                     TextStyle {
-                        font: fonts.andy_bold.clone(),
+                        font: fonts.andy_bold.clone_weak(),
                         font_size: 22.,
                         color: Color::WHITE.into(),
                     },
@@ -140,7 +140,7 @@ pub fn spawn_tile_grid(
             sprite: Sprite {
                 color: Color::rgba(1., 1., 1., MAX_TILE_GRID_OPACITY),
             },
-            texture: ui_assets.radial.clone().into(),
+            texture: ui_assets.radial.clone_weak().into(),
             transform: Transform::from_xyz(0., 0., 5.),
             visibility: Visibility::INVISIBLE
         })

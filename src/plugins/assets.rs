@@ -287,14 +287,8 @@ pub struct SoundAssets {
     #[asset(path = "sounds/Menu_Close.wav")]
     pub menu_close: Handle<AudioSource>,
 
-    #[asset(path = "sounds/Swing_1.wav")]
-    pub swing_1: Handle<AudioSource>,
-
-    #[asset(path = "sounds/Swing_2.wav")]
-    pub swing_2: Handle<AudioSource>,
-
-    #[asset(path = "sounds/Swing_3.wav")]
-    pub swing_3: Handle<AudioSource>,
+    #[asset(paths("sounds/Swing_1.wav", "sounds/Swing_2.wav", "sounds/Swing_3.wav"), collection(typed))]
+    pub swing: Vec<Handle<AudioSource>>,
 
     #[asset(paths("sounds/Dig_0.wav", "sounds/Dig_1.wav", "sounds/Dig_2.wav"), collection(typed))]
     pub dig: Vec<Handle<AudioSource>>,
