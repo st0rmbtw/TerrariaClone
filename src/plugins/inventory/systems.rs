@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use autodefault::autodefault;
 use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color, MouseButton, EventWriter, Audio, Local}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, Size, PositionType, AlignContent, Interaction, BackgroundColor, ZIndex}, text::{Text, TextStyle, TextAlignment}};
 
-use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets, SoundAssets}, cursor::{HoveredInfo, CursorPosition}, world::BlockEvent}, util::{EntityCommandsExtensions, get_tile_coords}, language::LanguageContent, items::{Item, Tool, Pickaxe}};
+use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets, SoundAssets}, cursor::{HoveredInfo, CursorPosition}, world::{DigBlockEvent, PlaceBlockEvent}}, util::{EntityCommandsExtensions, get_tile_coords}, language::LanguageContent, items::{Item, Tool}};
 
 use super::{Inventory, HOTBAR_LENGTH, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, KEYCODE_TO_DIGIT, CELL_COUNT_IN_ROW, INVENTORY_ROWS_COUNT, HotbarUi};
 
@@ -414,33 +414,32 @@ pub fn use_item(
     input: Res<Input<MouseButton>>,
     cursor: Res<CursorPosition>,
     inventory: Res<Inventory>,
-    mut block_events: EventWriter<BlockEvent>,
+    mut dig_block_events: EventWriter<DigBlockEvent>,
+    mut place_block_events: EventWriter<PlaceBlockEvent>,
     mut frame: Local<u32>
 ) {
-    if input.pressed(MouseButton::Left) {
+    if *frame > 0 {
+        *frame -= 1;
+        return;
+    }
+
+    if input.pressed(MouseButton::Left) || input.just_pressed(MouseButton::Left) {
         let selected_item_index = inventory.selected_slot;
 
         if let Some(item_stack) = inventory.selected_item() {
             match item_stack.item {
                 Item::Tool(Tool::Pickaxe(pickaxe)) => {
-                    if *frame > 0 {
-                        *frame -= 1;
-                        return;
-                    }
-
                     let tile_pos = get_tile_coords(cursor.world_position);
-                    block_events.send(
-                        BlockEvent::Break { tile_pos }
+                    dig_block_events.send(
+                        DigBlockEvent { tile_pos, pickaxe }
                     );
 
-                    if pickaxe == Pickaxe::CopperPickaxe && *frame == 0 {
-                        *frame = 15;
-                    }
+                    *frame = pickaxe.cooldown();
                 },
                 Item::Block(block) => {
                     let tile_pos = get_tile_coords(cursor.world_position);
-                    block_events.send(
-                        BlockEvent::Place { tile_pos, block, inventory_item_index: selected_item_index }
+                    place_block_events.send(
+                        PlaceBlockEvent { tile_pos, block, inventory_item_index: selected_item_index }
                     );
                 },
             }

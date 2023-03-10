@@ -1,14 +1,18 @@
-use crate::language::LanguageContent;
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Pickaxe {
     CopperPickaxe
 }
 
 impl Pickaxe {
-    pub fn name(&self, language_content: &LanguageContent) -> String {
+    pub fn power(&self) -> i32 {
         match self {
-            Pickaxe::CopperPickaxe => language_content.items.copper_pickaxe.clone(),
+            Pickaxe::CopperPickaxe => 35,
+        }
+    }
+
+    pub fn cooldown(&self) -> u32 {
+        match self {
+            Pickaxe::CopperPickaxe => 15,
         }
     }
 }

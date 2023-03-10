@@ -98,7 +98,6 @@ impl WorldData {
         self.walls.get_mut(tile_pos.yx()).and_then(|w| w.as_mut())
     }
 
-    #[inline]
     pub fn set_block<Pos: AsTilePos>(&mut self, tile_pos: Pos, block: &Block) {
         unsafe {
             if let Some(b) = self.blocks.get_mut_ptr(tile_pos.yx()) {
@@ -107,7 +106,6 @@ impl WorldData {
         }
     }
 
-    #[inline]
     pub fn set_wall<Pos: AsTilePos>(&mut self, tile_pos: Pos, wall: Wall) {
         unsafe {
             if let Some(w) = self.walls.get_mut_ptr(tile_pos.yx()) {
@@ -116,7 +114,6 @@ impl WorldData {
         }
     }
 
-    #[inline]
     pub fn remove_block<Pos: AsTilePos>(&mut self, tile_pos: Pos) {
         unsafe {
             if let Some(block) = self.blocks.get_mut_ptr(tile_pos.yx()) {

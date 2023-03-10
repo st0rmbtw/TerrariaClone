@@ -4,7 +4,7 @@ use bevy::{
     prelude::{
         EventReader, ResMut, Query, Commands, EventWriter, Entity, BuildChildren, Transform, 
         default, SpatialBundle, DespawnRecursiveExt, OrthographicProjection, Changed, 
-        GlobalTransform, With, Res, UVec2
+        GlobalTransform, With, Res, UVec2, Audio
     }, 
     math::Vec3Swizzles
 };
@@ -19,10 +19,11 @@ use bevy_ecs_tilemap::{
     TilemapBundle, helpers::square_grid::neighbors::Neighbors
 };
 use iyes_loopless::state::NextState;
+use rand::thread_rng;
 
-use crate::{util::{FRect, URect}, plugins::{inventory::Inventory, world::{CHUNK_SIZE, TILE_SIZE, LightMap, light::generate_light_map, WorldSize}, assets::{BlockAssets, WallAssets}, camera::{MainCamera, UpdateLightEvent}}, state::GameState};
+use crate::{util::{FRect, URect}, plugins::{inventory::Inventory, world::{CHUNK_SIZE, TILE_SIZE, LightMap, light::generate_light_map, WorldSize}, assets::{BlockAssets, WallAssets, SoundAssets}, camera::{MainCamera, UpdateLightEvent}}, state::GameState};
 
-use super::{get_chunk_pos, CHUNK_SIZE_U, TileChunk, UpdateNeighborsEvent, BlockEvent, WallChunk, WALL_SIZE, CHUNKMAP_SIZE, Chunk, get_camera_fov, ChunkManager, ChunkPos, get_chunk_tile_pos, world::WorldData, block::Block, Wall, Size};
+use super::{get_chunk_pos, CHUNK_SIZE_U, TileChunk, UpdateNeighborsEvent, WallChunk, WALL_SIZE, CHUNKMAP_SIZE, Chunk, get_camera_fov, ChunkManager, ChunkPos, get_chunk_tile_pos, world::WorldData, block::Block, Wall, Size, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent};
 
 pub fn spawn_terrain(mut commands: Commands) {
     let _current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
@@ -256,80 +257,116 @@ pub fn get_chunk_position_by_camera_fov(camera_fov: FRect, world_size: Size) -> 
     rect
 }
 
-pub fn handle_block_event(
+pub fn handle_break_block_event(
     mut commands: Commands,
     mut world_data: ResMut<WorldData>,
-    mut block_events: EventReader<BlockEvent>,
+    mut break_block_events: EventReader<BreakBlockEvent>,
+    mut update_light_events: EventWriter<UpdateLightEvent>,
+    mut update_neighbors_ew: EventWriter<UpdateNeighborsEvent>,
+    mut chunks: Query<(&TileChunk, &mut TileStorage)>,
+) {
+    for BreakBlockEvent { tile_pos } in break_block_events.iter() {
+        let map_tile_pos = TilePos { x: tile_pos.x as u32, y: tile_pos.y as u32 };
+
+        if world_data.block_exists(map_tile_pos) {
+            world_data.remove_block(map_tile_pos);
+
+            let chunk_pos = get_chunk_pos(map_tile_pos);
+            let chunk_tile_pos = get_chunk_tile_pos(map_tile_pos);
+
+            if let Some((_, mut tile_storage)) = chunks.iter_mut().find(|(chunk, _)| chunk.pos == chunk_pos) {
+                if let Some(tile_entity) = tile_storage.get(&chunk_tile_pos) {
+                    commands.entity(tile_entity).despawn_recursive();
+                    tile_storage.remove(&chunk_tile_pos);
+                }
+            }
+
+            update_neighbors_ew.send(UpdateNeighborsEvent { 
+                tile_pos: map_tile_pos,
+                chunk_tile_pos,
+                chunk_pos
+            });
+
+            update_light_events.send(UpdateLightEvent {
+                tile_pos: map_tile_pos,
+                color: 0xFF
+            });
+        }
+    }
+}
+
+pub fn handle_dig_block_event(
+    mut world_data: ResMut<WorldData>,
+    mut break_block_events: EventWriter<BreakBlockEvent>,
+    mut dig_block_events: EventReader<DigBlockEvent>,
+    sound_assets: Res<SoundAssets>,
+    audio: Res<Audio>
+) {
+    let mut rng = thread_rng();
+
+    for DigBlockEvent { tile_pos, pickaxe } in dig_block_events.iter() {
+        let map_tile_pos = TilePos { x: tile_pos.x as u32, y: tile_pos.y as u32 };
+
+        if let Some(block) = world_data.get_block_mut(map_tile_pos) {
+            block.hp -= pickaxe.power();
+
+            if block.hp <= 0 {
+                break_block_events.send(BreakBlockEvent { tile_pos: *tile_pos });
+            }
+
+            audio.play(sound_assets.get_by_block(block.block_type, &mut rng));
+        }
+    }
+}
+
+pub fn handle_place_block_event(
+    mut commands: Commands,
+    mut world_data: ResMut<WorldData>,
+    mut place_block_events: EventReader<PlaceBlockEvent>,
     mut update_light_events: EventWriter<UpdateLightEvent>,
     mut update_neighbors_ew: EventWriter<UpdateNeighborsEvent>,
     mut inventory: ResMut<Inventory>,
-    mut chunks: Query<(&TileChunk, &mut TileStorage, Entity)>
+    mut chunks: Query<(&TileChunk, &mut TileStorage, Entity)>,
+    sound_assets: Res<SoundAssets>,
+    audio: Res<Audio>
 ) {
-    for event in block_events.iter() {
-        match event {
-            BlockEvent::Place { tile_pos, block, inventory_item_index } => {
-                let map_tile_pos = TilePos { x: tile_pos.x as u32, y: tile_pos.y as u32 };
-        
-                if world_data.get_block(map_tile_pos).is_none() {
-                    let neighbors = world_data
-                        .get_block_neighbors(map_tile_pos)
-                        .map_ref(|b| b.block_type);
+    let mut rng = thread_rng();
 
-                    world_data.set_block(map_tile_pos, block);
+    for PlaceBlockEvent { tile_pos, block, inventory_item_index } in place_block_events.iter() {
+        let map_tile_pos = TilePos { x: tile_pos.x as u32, y: tile_pos.y as u32 };
 
-                    let chunk_pos = get_chunk_pos(map_tile_pos);
-                    let chunk_tile_pos = get_chunk_tile_pos(map_tile_pos);
+        if !world_data.block_exists(map_tile_pos) {
+            let neighbors = world_data
+                .get_block_neighbors(map_tile_pos)
+                .map_ref(|b| b.block_type);
 
-                    if let Some((_, mut tile_storage, tilemap_entity)) = chunks.iter_mut().find(|(chunk, _, _)| chunk.pos == chunk_pos) {
-                        let index = Block::get_sprite_index(&neighbors, block.block_type);
-                        let tile_entity = spawn_block(&mut commands, *block, chunk_tile_pos, tilemap_entity, index);
+            world_data.set_block(map_tile_pos, block);
 
-                        commands.entity(tilemap_entity).add_child(tile_entity);
-                        tile_storage.set(&chunk_tile_pos, tile_entity);
-                    }
+            let chunk_pos = get_chunk_pos(map_tile_pos);
+            let chunk_tile_pos = get_chunk_tile_pos(map_tile_pos);
 
-                    inventory.consume_item(*inventory_item_index);
+            if let Some((_, mut tile_storage, tilemap_entity)) = chunks.iter_mut().find(|(chunk, _, _)| chunk.pos == chunk_pos) {
+                let index = Block::get_sprite_index(&neighbors, block.block_type);
+                let tile_entity = spawn_block(&mut commands, *block, chunk_tile_pos, tilemap_entity, index);
 
-                    update_neighbors_ew.send(UpdateNeighborsEvent { 
-                        tile_pos: map_tile_pos,
-                        chunk_tile_pos,
-                        chunk_pos
-                    });
+                commands.entity(tilemap_entity).add_child(tile_entity);
+                tile_storage.set(&chunk_tile_pos, tile_entity);
+            }
 
-                    update_light_events.send(UpdateLightEvent {
-                        tile_pos: map_tile_pos,
-                        color: 0
-                    });
-                }
-            },
-            BlockEvent::Break { tile_pos } => {
-                let map_tile_pos = TilePos { x: tile_pos.x as u32, y: tile_pos.y as u32 };
+            inventory.consume_item(*inventory_item_index);
 
-                if world_data.get_block(map_tile_pos).is_some() {
-                    world_data.remove_block(map_tile_pos);
+            update_neighbors_ew.send(UpdateNeighborsEvent { 
+                tile_pos: map_tile_pos,
+                chunk_tile_pos,
+                chunk_pos
+            });
 
-                    let chunk_pos = get_chunk_pos(map_tile_pos);
-                    let chunk_tile_pos = get_chunk_tile_pos(map_tile_pos);
+            update_light_events.send(UpdateLightEvent {
+                tile_pos: map_tile_pos,
+                color: 0
+            });
 
-                    if let Some((_, mut tile_storage, _)) = chunks.iter_mut().find(|(chunk, _, _)| chunk.pos == chunk_pos) {
-                        if let Some(tile_entity) = tile_storage.get(&chunk_tile_pos) {
-                            commands.entity(tile_entity).despawn_recursive();
-                            tile_storage.remove(&chunk_tile_pos);
-                        }
-                    }
-
-                    update_neighbors_ew.send(UpdateNeighborsEvent { 
-                        tile_pos: map_tile_pos,
-                        chunk_tile_pos,
-                        chunk_pos
-                    });
-
-                    update_light_events.send(UpdateLightEvent {
-                        tile_pos: map_tile_pos,
-                        color: 0xFF
-                    });
-                }
-            },
+            audio.play(sound_assets.get_by_block(block.block_type, &mut rng));
         }
     }
 }

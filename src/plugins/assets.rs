@@ -10,6 +10,8 @@ use bevy::{
 };
 use bevy_asset_loader::prelude::{AssetCollection, LoadingState, LoadingStateAppExt};
 use iyes_loopless::prelude::AppLooplessStateExt;
+use rand::RngCore;
+use rand::seq::SliceRandom;
 
 use crate::items::{Item, Pickaxe, Tool};
 use crate::{state::GameState, util::handles};
@@ -293,6 +295,12 @@ pub struct SoundAssets {
 
     #[asset(path = "sounds/Swing_3.wav")]
     pub swing_3: Handle<AudioSource>,
+
+    #[asset(paths("sounds/Dig_0.wav", "sounds/Dig_1.wav", "sounds/Dig_2.wav"), collection(typed))]
+    pub dig: Vec<Handle<AudioSource>>,
+
+    #[asset(paths("sounds/Tink_0.wav", "sounds/Tink_1.wav", "sounds/Tink_2.wav"), collection(typed))]
+    pub tink: Vec<Handle<AudioSource>>,
 }
 
 #[derive(Resource, AssetCollection)]
@@ -304,7 +312,7 @@ pub struct ShaderAssets {
 impl WallAssets {
     pub fn get_by_wall(&self, id: Wall) -> Option<Handle<Image>> {
         match id {
-            Wall::Dirt => Some(self.wall_2.clone()),
+            Wall::Dirt => Some(self.wall_2.clone_weak()),
             _ => None,
         }
     }
@@ -312,19 +320,39 @@ impl WallAssets {
 
 impl ItemAssets {
     pub fn no_item(&self) -> Handle<Image> {
-        self.no_item.clone()
+        self.no_item.clone_weak()
     }
 
     pub fn get_by_item(&self, item: Item) -> Handle<Image> {
         match item {
             Item::Block(block) => {
                 match block.block_type {
-                    BlockType::Dirt => self.dirt_block.clone(),
-                    BlockType::Stone => self.stone_block.clone(),
+                    BlockType::Dirt => self.dirt_block.clone_weak(),
+                    BlockType::Stone => self.stone_block.clone_weak(),
                     _ => self.no_item()
                 }
             }
-            Item::Tool(Tool::Pickaxe(Pickaxe::CopperPickaxe)) => self.copper_pickaxe.clone(),
+            Item::Tool(Tool::Pickaxe(Pickaxe::CopperPickaxe)) => self.copper_pickaxe.clone_weak(),
+        }
+    }
+}
+
+impl BlockAssets {
+    pub fn get_by_block(&self, block: BlockType) -> Option<Handle<Image>> {
+        match block {
+            BlockType::Dirt => Some(self.dirt.clone_weak()),
+            BlockType::Stone => Some(self.stone.clone_weak()),
+            BlockType::Grass => Some(self.grass.clone_weak()),
+            BlockType::Tree(_) => todo!(),
+        }
+    }
+}
+
+impl SoundAssets {
+    pub fn get_by_block<Rng: RngCore>(&self, block: BlockType, rng: &mut Rng) -> Handle<AudioSource> {
+        match block {
+            BlockType::Stone => self.tink.choose(rng).unwrap().clone_weak(),
+            _ => self.dig.choose(rng).unwrap().clone_weak()
         }
     }
 }
@@ -341,16 +369,5 @@ fn setup(
         let mut image = images.get_mut(&handle).unwrap();
 
         image.sampler_descriptor = ImageSampler::linear();
-    }
-}
-
-impl BlockAssets {
-    pub fn get_by_block(&self, block: BlockType) -> Option<Handle<Image>> {
-        match block {
-            BlockType::Dirt => Some(self.dirt.clone()),
-            BlockType::Stone => Some(self.stone.clone()),
-            BlockType::Grass => Some(self.grass.clone()),
-            BlockType::Tree(_) => todo!(),
-        }
     }
 }
