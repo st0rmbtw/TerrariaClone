@@ -109,6 +109,12 @@ impl Block {
             }
         }
 
+        if block_type == BlockType::Grass {
+            if let Some(idx) = get_grass_sprite_index_by_dirt_connections(neighbors, rand) {
+                index = idx;
+            }
+        }
+
         get_tile_start_index(block_type) + index
     }
 
@@ -804,5 +810,77 @@ impl Block {
                 ..
             } => TextureAtlasPos::new(0, rand),
         }
+    }
+}
+
+fn get_grass_sprite_index_by_dirt_connections(neighbors: &Neighbors<BlockType>, rand: u32) -> Option<TextureAtlasPos> {
+    match neighbors {
+        //
+        // #X#
+        //  $
+        Neighbors { 
+            east: Some(BlockType::Dirt),
+            west: Some(BlockType::Dirt),
+            north: None,
+            south: Some(_),
+            ..
+        } => Some(TextureAtlasPos::new(2 + rand, 15)),
+
+        //
+        // XX#
+        //  $
+        Neighbors { 
+            east: Some(BlockType::Dirt),
+            west: Some(BlockType::Grass),
+            north: None,
+            south: Some(_),
+            ..
+        } => Some(TextureAtlasPos::new(3 + rand, 11)),
+
+        //
+        // #XX
+        //  $
+        Neighbors { 
+            east: Some(BlockType::Grass),
+            west: Some(BlockType::Dirt),
+            north: None,
+            south: Some(_),
+            ..
+        } => Some(TextureAtlasPos::new(rand, 11)),
+        
+
+        //  $
+        // #X#
+        //
+        Neighbors { 
+            east: Some(BlockType::Dirt),
+            west: Some(BlockType::Dirt),
+            south: None,
+            north: Some(_),
+            ..
+        } => Some(TextureAtlasPos::new(2 + rand, 16)),
+
+        //  $
+        // XX#
+        //
+        Neighbors { 
+            east: Some(BlockType::Dirt),
+            west: Some(BlockType::Grass),
+            south: None,
+            north: Some(_),
+            ..
+        } => Some(TextureAtlasPos::new(3 + rand, 12)),
+
+        //  $
+        // #XX
+        //
+        Neighbors { 
+            east: Some(BlockType::Grass),
+            west: Some(BlockType::Dirt),
+            south: None,
+            north: Some(_),
+            ..
+        } => Some(TextureAtlasPos::new(rand, 12)),
+        _ => None
     }
 }
