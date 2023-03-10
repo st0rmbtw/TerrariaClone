@@ -780,7 +780,7 @@ impl Block {
                 west: None,
                 east: Some(_),
                 ..
-            } => TextureAtlasPos::new(1 + rand * 2, 4),
+            } => TextureAtlasPos::new(rand * 2, 4),
 
             //  $
             // $X

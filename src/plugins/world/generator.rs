@@ -330,6 +330,7 @@ fn grassify(world: &mut WorldData) {
     }
 }
 
+#[allow(dead_code)]
 fn grow_tree(world: &mut WorldData, rng: &mut StdRng, root_pos: Point) {
     let height: usize = rng.gen_range(5..=16);
 
@@ -465,6 +466,7 @@ fn grow_tree(world: &mut WorldData, rng: &mut StdRng, root_pos: Point) {
     world.blocks[(root_pos.y - height - 1, root_pos.x)] = Some(tree!(TreeType::Forest, frame));
 }
 
+#[allow(dead_code)]
 fn grow_trees(world: &mut WorldData, seed: u32) {
     println!("Growing trees...");
 
