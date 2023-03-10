@@ -69,7 +69,7 @@ pub fn spawn_inventory_ui(
                             ui_assets.inventory_background.clone_weak(),
                             true,
                             i,
-                            &fonts,
+                            fonts,
                         );
                     }
                 })
@@ -108,7 +108,7 @@ pub fn spawn_inventory_ui(
                                         ui_assets.inventory_background.clone_weak(),
                                         false,
                                         index,
-                                        &fonts,
+                                        fonts,
                                     );
                                 }
                             });
@@ -400,7 +400,7 @@ pub fn inventory_cell_background_hover(
                     let mut name = language_content.name(item_stack.item).to_owned();
                     
                     if item_stack.stack > 1 {
-                        name.push_str(&format!(" ({})", item_stack.stack.to_string()));
+                        name.push_str(&format!(" ({})", item_stack.stack));
                     }
         
                     name.to_string()

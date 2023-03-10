@@ -1,7 +1,7 @@
 use bevy::prelude::{Vec2, OrthographicProjection, UVec2};
 use bevy_ecs_tilemap::tiles::TilePos;
 
-use crate::util::FRect;
+use crate::rect::FRect;
 
 use super::{CHUNK_SIZE_U, ChunkPos};
 

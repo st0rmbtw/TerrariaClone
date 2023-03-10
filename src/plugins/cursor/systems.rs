@@ -26,7 +26,7 @@ use crate::{
     }, 
     animation::{Tween, lens::TransformScaleLens, Animator, RepeatStrategy, RepeatCount}, 
     lens::BackgroundColorLens,
-    util::{Lerp, screen_to_world},
+    util::{screen_to_world},
 };
 
 #[cfg(not(feature = "free_camera"))]
@@ -120,7 +120,7 @@ pub fn setup(
                     TextStyle {
                         font: fonts.andy_bold.clone_weak(),
                         font_size: 22.,
-                        color: Color::WHITE.into(),
+                        color: Color::WHITE,
                     },
                 )
             })
@@ -140,7 +140,7 @@ pub fn spawn_tile_grid(
             sprite: Sprite {
                 color: Color::rgba(1., 1., 1., MAX_TILE_GRID_OPACITY),
             },
-            texture: ui_assets.radial.clone_weak().into(),
+            texture: ui_assets.radial.clone_weak(),
             transform: Transform::from_xyz(0., 0., 5.),
             visibility: Visibility::INVISIBLE
         })
@@ -217,12 +217,14 @@ pub fn update_tile_grid_opacity(
     velocity: Res<PlayerVelocity>,
     mut tile_grid: Query<&mut Sprite, With<TileGrid>>,
 ) {
+    use interpolation::Lerp;
+
     let mut sprite = tile_grid.single_mut();
 
     let opacity = if velocity.x.abs() > 0. {
-        MIN_TILE_GRID_OPACITY.lerp(MAX_TILE_GRID_OPACITY, 1. - velocity.x.abs() / MAX_RUN_SPEED)
+        MIN_TILE_GRID_OPACITY.lerp(&MAX_TILE_GRID_OPACITY, &(1. - velocity.x.abs() / MAX_RUN_SPEED))
     } else if velocity.y.abs() > 0. {
-        0f32.lerp(MAX_TILE_GRID_OPACITY, 1. - velocity.y.abs() / MAX_FALL_SPEED)
+        0f32.lerp(&MAX_TILE_GRID_OPACITY, &(1. - velocity.y.abs() / MAX_FALL_SPEED))
     } else {
         MAX_TILE_GRID_OPACITY
     };

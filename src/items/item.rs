@@ -60,8 +60,6 @@ impl Items {
     };
 }
 
-pub fn get_animation_points(item: Item) -> Vec<Vec2> {
-    match item {
-        _ => vec![vec2(-5., 4.), vec2(5., 3.), vec2(5., -7.)]
-    }
+pub fn get_animation_points() -> [Vec2; 3] {
+    [vec2(-5., 4.), vec2(5., 3.), vec2(5., -7.)]
 }

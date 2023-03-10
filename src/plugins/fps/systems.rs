@@ -26,7 +26,7 @@ pub fn spawn_fps_text(commands: &mut Commands, fonts: &FontAssets) -> Entity {
             text: Text {
                 sections: vec![TextSection {
                     value: "".to_string(),
-                    style: text_style.to_owned(),
+                    style: text_style,
                 }],
                 alignment: TextAlignment::CENTER,
             },

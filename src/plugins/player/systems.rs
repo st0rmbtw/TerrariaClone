@@ -115,10 +115,10 @@ pub fn update(
 
     let mut new_collisions = Collisions::default();
 
-    let mut yx: i32 = -1;
+    let mut yx: i32;
+    let mut xy: i32;
     let mut yy: i32 = -1;
     let mut xx: i32 = -1;
-    let mut xy: i32 = -1;
 
     let mut a = (bottom + 3.) * TILE_SIZE;
 
@@ -150,38 +150,23 @@ pub fn update(
                                 a = tile_pos.y;
                             }
                         }
-                    } else {    
-                        if position.x + PLAYER_HALF_WIDTH <= tile_pos.x - TILE_SIZE / 2. {
-                            xx = x as i32;
-                            xy = y as i32;
-                            if xy != yy {
-                                velocity.x = ((tile_pos.x - TILE_SIZE / 2.) - (position.x + PLAYER_HALF_WIDTH)) * time.delta_seconds();
-                            }
-                            if yx == xx {
-                                velocity.y = velocity.y;
-                            }
-                        } else {
-                            if position.x - PLAYER_HALF_WIDTH >= tile_pos.x + TILE_SIZE / 2. {
-                                xx = x as i32;
-                                xy = y as i32;
-                                if xy != yy {
-                                    velocity.x = ((tile_pos.x + TILE_SIZE / 2.) - (position.x - PLAYER_HALF_WIDTH)) * time.delta_seconds();
-                                }
-                                if yx == xx {
-                                    velocity.y = velocity.y;
-                                }
-                            } else {
-                                if position.y >= tile_pos.y + TILE_SIZE / 2. {
-                                    collisions.top = true;
-                                    yx = x as i32;
-                                    yy = y as i32;
-                                    velocity.y = ((tile_pos.y + TILE_SIZE / 2.) - (position.y - PLAYER_HALF_HEIGHT) + 0.01) * time.delta_seconds();
-                                    if xx == xy {
-                                        velocity.x = velocity.x;
-                                    }
-                                }
-                            }
+                    } else if position.x + PLAYER_HALF_WIDTH <= tile_pos.x - TILE_SIZE / 2. {
+                        xx = x as i32;
+                        xy = y as i32;
+                        if xy != yy {
+                            velocity.x = ((tile_pos.x - TILE_SIZE / 2.) - (position.x + PLAYER_HALF_WIDTH)) * time.delta_seconds();
                         }
+                    } else if position.x - PLAYER_HALF_WIDTH >= tile_pos.x + TILE_SIZE / 2. {
+                        xx = x as i32;
+                        xy = y as i32;
+                        if xy != yy {
+                            velocity.x = ((tile_pos.x + TILE_SIZE / 2.) - (position.x - PLAYER_HALF_WIDTH)) * time.delta_seconds();
+                        }
+                    } else if position.y >= tile_pos.y + TILE_SIZE / 2. {
+                        collisions.top = true;
+                        yx = x as i32;
+                        yy = y as i32;
+                        velocity.y = ((tile_pos.y + TILE_SIZE / 2.) - (position.y - PLAYER_HALF_HEIGHT) + 0.01) * time.delta_seconds();
                     }
                 }
             }
@@ -355,8 +340,8 @@ pub fn set_using_item_position(
     let mut transform = using_item_query.single_mut();
     let direction = player_query.single();
 
-    if let Some(item_stack) = selected_item.0 {
-        let position = get_animation_points(item_stack.item)[index.0];
+    if selected_item.is_some() {
+        let position = get_animation_points()[index.0];
 
         transform.translation.x = position.x * f32::from(*direction);
         transform.translation.y = position.y;
@@ -390,10 +375,9 @@ pub fn set_using_item_rotation(
     let mut transform = using_item_query.single_mut();
 
     if selected_item.is_some() {
-        let item_type = selected_item.unwrap().item;
         let direction_f = f32::from(*direction);
 
-        let position = get_animation_points(item_type)[index.0];
+        let position = get_animation_points()[index.0];
 
         if index.0 == 0 && index.is_changed() {
             transform.rotation = get_rotation_by_direction(*direction);

@@ -40,7 +40,7 @@ impl Inventory {
             return true;
         }
 
-        return false;
+        false
     }
 
     pub fn selected_item(&self) -> Option<ItemStack> {

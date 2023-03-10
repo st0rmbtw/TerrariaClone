@@ -49,8 +49,5 @@ impl Plugin for MenuPlugin {
 }
 
 fn in_menu_state(state: Res<CurrentState<GameState>>) -> bool {
-    match &state.0 {
-        GameState::MainMenu | GameState::Settings => true,
-        _ => false
-    }
+    matches!(&state.0, GameState::MainMenu | GameState::Settings)
 }

@@ -136,48 +136,32 @@ impl WorldData {
 
         Neighbors {
             west: SquarePos::from(&pos).offset(&SquareDirection::West).as_tile_pos(&map_size)
-                .map(|pos| self.get_block(pos))
-                .flatten()
-                .map(|block| block),
+                .and_then(|pos| self.get_block(pos)),
 
             east: SquarePos::from(&pos).offset(&SquareDirection::East).as_tile_pos(&map_size)
-                .map(|pos| self.get_block(pos))
-                .flatten()
-                .map(|block| block),
+                .and_then(|pos| self.get_block(pos)),
 
             north: SquarePos::from(&pos).offset(&SquareDirection::South).as_tile_pos(&map_size)
-                .map(|pos| self.get_block(pos))
-                .flatten()
-                .map(|block| block),
+                .and_then(|pos| self.get_block(pos)),
 
             south: SquarePos::from(&pos).offset(&SquareDirection::North).as_tile_pos(&map_size)
-                .map(|pos| self.get_block(pos))
-                .flatten()
-                .map(|block| block),
+                .and_then(|pos| self.get_block(pos)),
 
             north_west: SquarePos::from(&pos).offset(&SquareDirection::SouthWest).as_tile_pos(&map_size)
-                .map(|pos| self.get_block(pos))
-                .flatten()
-                .map(|block| block),
+                .and_then(|pos| self.get_block(pos)),
 
             south_west: SquarePos::from(&pos).offset(&SquareDirection::NorthWest).as_tile_pos(&map_size)
-                .map(|pos| self.get_block(pos))
-                .flatten()
-                .map(|block| block),
+                .and_then(|pos| self.get_block(pos)),
 
             south_east: SquarePos::from(&pos).offset(&SquareDirection::NorthEast).as_tile_pos(&map_size)
-                .map(|pos| self.get_block(pos))
-                .flatten()
-                .map(|block| block),
+                .and_then(|pos| self.get_block(pos)),
             
             north_east: SquarePos::from(&pos).offset(&SquareDirection::SouthEast).as_tile_pos(&map_size)
-                .map(|pos| self.get_block(pos))
-                .flatten()
-                .map(|block| block),   
+                .and_then(|pos| self.get_block(pos)),
         }
     }
 
-    pub fn get_wall_neighbors<Pos: AsTilePos>(&self, tile_pos: Pos) -> Neighbors<Wall> {
+    pub fn get_wall_neighbors<Pos: AsTilePos>(&self, tile_pos: Pos) -> Neighbors<&Wall> {
         let pos = TilePos::new(tile_pos.x() as u32, tile_pos.y() as u32);
         let map_size = TilemapSize {
             x: self.size.width as u32,
@@ -186,44 +170,28 @@ impl WorldData {
 
         Neighbors {
             west: SquarePos::from(&pos).offset(&SquareDirection::West).as_tile_pos(&map_size)
-                .map(|pos| self.get_wall(pos))
-                .flatten()
-                .map(|wall| *wall),
+                .and_then(|pos| self.get_wall(pos)),
 
             east: SquarePos::from(&pos).offset(&SquareDirection::East).as_tile_pos(&map_size)
-                .map(|pos| self.get_wall(pos))
-                .flatten()
-                .map(|wall| *wall),
+                .and_then(|pos| self.get_wall(pos)),
 
             north: SquarePos::from(&pos).offset(&SquareDirection::South).as_tile_pos(&map_size)
-                .map(|pos| self.get_wall(pos))
-                .flatten()
-                .map(|wall| *wall),
+                .and_then(|pos| self.get_wall(pos)),
 
             south: SquarePos::from(&pos).offset(&SquareDirection::North).as_tile_pos(&map_size)
-                .map(|pos| self.get_wall(pos))
-                .flatten()
-                .map(|wall| *wall),
+                .and_then(|pos| self.get_wall(pos)),
 
             north_west: SquarePos::from(&pos).offset(&SquareDirection::SouthWest).as_tile_pos(&map_size)
-                .map(|pos| self.get_wall(pos))
-                .flatten()
-                .map(|wall| *wall),
+                .and_then(|pos| self.get_wall(pos)),
 
             south_west: SquarePos::from(&pos).offset(&SquareDirection::NorthWest).as_tile_pos(&map_size)
-                .map(|pos| self.get_wall(pos))
-                .flatten()
-                .map(|wall| *wall),
+                .and_then(|pos| self.get_wall(pos)),
 
             south_east: SquarePos::from(&pos).offset(&SquareDirection::NorthEast).as_tile_pos(&map_size)
-                .map(|pos| self.get_wall(pos))
-                .flatten()
-                .map(|wall| *wall),
+                .and_then(|pos| self.get_wall(pos)),
             
             north_east: SquarePos::from(&pos).offset(&SquareDirection::SouthEast).as_tile_pos(&map_size)
-                .map(|pos| self.get_wall(pos))
-                .flatten()
-                .map(|wall| *wall),
+                .and_then(|pos| self.get_wall(pos)),
         }
     }
 }

@@ -21,7 +21,7 @@ use bevy_ecs_tilemap::{
 use iyes_loopless::state::NextState;
 use rand::thread_rng;
 
-use crate::{util::{FRect, URect}, plugins::{inventory::Inventory, world::{CHUNK_SIZE, TILE_SIZE, LightMap, light::generate_light_map, WorldSize}, assets::{BlockAssets, WallAssets, SoundAssets}, camera::{MainCamera, UpdateLightEvent}}, state::GameState};
+use crate::{rect::{FRect, URect}, plugins::{inventory::Inventory, world::{CHUNK_SIZE, TILE_SIZE, LightMap, light::generate_light_map, WorldSize}, assets::{BlockAssets, WallAssets, SoundAssets}, camera::{MainCamera, UpdateLightEvent}}, state::GameState};
 
 use super::{get_chunk_pos, CHUNK_SIZE_U, TileChunk, UpdateNeighborsEvent, WallChunk, WALL_SIZE, CHUNKMAP_SIZE, Chunk, get_camera_fov, ChunkManager, ChunkPos, get_chunk_tile_pos, world::WorldData, block::Block, Wall, Size, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent};
 
@@ -126,7 +126,7 @@ pub fn despawn_chunks(
             if (chunk_pos.x < camera_chunk_pos.left || chunk_pos.x > camera_chunk_pos.right) ||
                (chunk_pos.y > camera_chunk_pos.bottom || chunk_pos.y < camera_chunk_pos.top) 
             {
-                chunk_manager.spawned_chunks.remove(&chunk_pos);
+                chunk_manager.spawned_chunks.remove(chunk_pos);
                 commands.entity(entity).despawn_recursive();
             }
         }
@@ -162,14 +162,14 @@ pub fn spawn_chunk(
 
             let map_tile_pos = TilePos {
                 x: (chunk_pos.x as f32 * CHUNK_SIZE) as u32 + x,
-                y: (chunk_pos.y as f32 * CHUNK_SIZE as f32 + y as f32) as u32
+                y: (chunk_pos.y as f32 * CHUNK_SIZE) as u32 + y
             };
 
             if let Some(block) = world_data.get_block(map_tile_pos) {
                 let index = Block::get_sprite_index(
                     &world_data.get_block_neighbors(map_tile_pos).map_ref(|b| b.block_type), 
                     block.block_type
-                );
+                ).to_block_index();
 
                 let tile_entity = spawn_block(commands, *block, chunk_tile_pos, tilemap_entity, index);
 
@@ -179,9 +179,10 @@ pub fn spawn_chunk(
 
             if let Some(wall) = world_data.get_wall(map_tile_pos) {
                 let index = Wall::get_sprite_index(
-                    world_data.get_wall_neighbors(map_tile_pos),
+                    world_data.get_wall_neighbors(map_tile_pos).map_ref(|w| **w),
                     *wall
-                );
+                ).to_wall_index();
+
                 let wall_entity = spawn_wall(commands, chunk_tile_pos, wallmap_entity, index);
 
                 commands.entity(wallmap_entity).add_child(wall_entity);
@@ -346,7 +347,7 @@ pub fn handle_place_block_event(
             let chunk_tile_pos = get_chunk_tile_pos(map_tile_pos);
 
             if let Some((_, mut tile_storage, tilemap_entity)) = chunks.iter_mut().find(|(chunk, _, _)| chunk.pos == chunk_pos) {
-                let index = Block::get_sprite_index(&neighbors, block.block_type);
+                let index = Block::get_sprite_index(&neighbors, block.block_type).to_block_index();
                 let tile_entity = spawn_block(&mut commands, *block, chunk_tile_pos, tilemap_entity, index);
 
                 commands.entity(tilemap_entity).add_child(tile_entity);
@@ -392,7 +393,7 @@ pub fn update_neighbors(
                     .get_block_neighbors(*pos)
                     .map_ref(|b| b.block_type);
 
-                let index = Block::get_sprite_index(&neighbors, block.block_type);
+                let index = Block::get_sprite_index(&neighbors, block.block_type).to_block_index();
 
                 let chunk_pos = get_chunk_pos(*pos);
                 let chunk_tile_pos = get_chunk_tile_pos(*pos);

@@ -71,7 +71,7 @@ pub fn set_spawn_point(world: &mut WorldData) {
     let mut y = world.layer.dirt.from - DIRT_HILL_HEIGHT as usize;
 
     loop {
-        if world.blocks.get((y, x)).map(|b| b).is_some() {
+        if world.blocks.get((y, x)).and_then(|b| *b).is_some() {
             break;
         }
 

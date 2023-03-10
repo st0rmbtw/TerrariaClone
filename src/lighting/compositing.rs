@@ -99,10 +99,10 @@ fn update_light_map_texture(
     tile_x: usize,
     tile_y: usize,
     light_map: &LightMap,
-    texture_data: &mut Vec<u8>,
+    texture_data: &mut [u8],
 ) {
-    for row in (-4 as i32)..=(4 as i32) {
-        for col in (-4 as i32)..=(4 as i32) {
+    for row in -4_i32..=4_i32 {
+        for col in -4_i32..=4_i32 {
             let y = ((tile_y as i32) + row) as usize;
             let x = ((tile_x as i32) + col) as usize;
 

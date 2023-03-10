@@ -1,6 +1,6 @@
 use bevy::{prelude::{Query, With, Component, Vec2, Quat}, sprite::TextureAtlasSprite};
 
-use crate::{state::MovementState, util::FRect};
+use crate::{state::MovementState, rect::FRect};
 
 use super::{Player, AnimationData, PlayerBodySprite, PLAYER_WIDTH, PLAYER_HEIGHT, FaceDirection};
 

@@ -1,4 +1,4 @@
-use std::ops::Mul;
+use std::ops::Add;
 
 use bevy::{
     ecs::system::EntityCommands,
@@ -8,16 +8,6 @@ use bevy::{
 use bevy_ecs_tilemap::tiles::TilePos;
 
 use crate::plugins::world::{TILE_SIZE, Wall, BlockType};
-
-pub trait Lerp<T> {
-    fn lerp(self, other: T, t: f32) -> T;
-}
-
-impl Lerp<f32> for f32 {
-    fn lerp(self, other: f32, t: f32) -> f32 {
-        self * (1. - t) + other * t
-    }
-}
 
 pub trait EntityCommandsExtensions<'w, 's, 'a> {
     fn insert_if(
@@ -39,10 +29,6 @@ impl<'w, 's, 'a> EntityCommandsExtensions<'w, 's, 'a> for EntityCommands<'w, 's,
 
         self
     }
-}
-
-pub fn map_range(from_range: (usize, usize), to_range: (usize, usize), s: usize) -> usize {
-    to_range.0 + (s - from_range.0) * (to_range.1 - to_range.0) / (from_range.1 - from_range.0)
 }
 
 macro_rules! handles{
@@ -76,6 +62,36 @@ macro_rules! handles{
 
 pub(crate) use handles;
 
+#[derive(Debug, Clone, Copy)]
+pub struct TextureAtlasPos {
+    pub x: u32,
+    pub y: u32
+}
+
+impl TextureAtlasPos {
+    pub const ZERO: TextureAtlasPos = TextureAtlasPos::new(0, 0);
+
+    pub const fn new(x: u32, y: u32) -> Self {
+        Self { x, y }
+    }
+
+    pub const fn to_block_index(self) -> u32 {
+        (self.y * 16) + self.x
+    }
+    
+    pub const fn to_wall_index(self) -> u32 {
+        (self.y * 13) + self.x
+    }
+}
+
+impl Add<TextureAtlasPos> for TextureAtlasPos {
+    type Output = TextureAtlasPos;
+
+    fn add(self, rhs: TextureAtlasPos) -> Self::Output {
+        TextureAtlasPos::new(self.x + rhs.x, self.y + rhs.y)
+    }
+}
+
 pub fn on_btn_clicked<B: Component>(
     query: Query<&Interaction, (Changed<Interaction>, With<Button>, With<B>)>,
 ) -> bool {
@@ -88,66 +104,8 @@ pub fn on_btn_clicked<B: Component>(
     false
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, Default)]
-pub struct FRect {
-    pub left: f32,
-    pub right: f32,
-    pub top: f32,
-    pub bottom: f32,
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
-pub struct URect {
-    pub left: u32,
-    pub right: u32,
-    pub top: u32,
-    pub bottom: u32,
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
-pub struct IRect {
-    pub left: i32,
-    pub right: i32,
-    pub top: i32,
-    pub bottom: i32,
-}
-
-impl URect {
-    pub fn to_frect(&self) -> FRect {
-        FRect {
-            left: self.left as f32,
-            right: self.right as f32,
-            top: self.top as f32,
-            bottom: self.bottom as f32,
-        }
-    }
-}
-
-impl FRect {
-    pub fn intersect(&self, rect: FRect) -> bool {
-        self.left < rect.right
-            && self.right > rect.left
-            && self.bottom > rect.top
-            && self.top > rect.bottom
-    }
-
-    
-    pub fn inside(&self, point: (f32, f32)) -> bool {
-        point.0 > self.left && point.0 < self.right && point.1 > self.bottom && point.1 < self.top
-    }
-}
-
-impl Mul<f32> for FRect {
-    type Output = FRect;
-
-    fn mul(self, rhs: f32) -> Self::Output {
-        FRect {
-            left: self.left * rhs,
-            right: self.right * rhs,
-            top: self.top * rhs,
-            bottom: self.bottom * rhs,
-        }
-    }
+pub fn map_range(from_range: (usize, usize), to_range: (usize, usize), s: usize) -> usize {
+    to_range.0 + (s - from_range.0) * (to_range.1 - to_range.0) / (from_range.1 - from_range.0)
 }
 
 pub fn get_tile_coords(world_coords: Vec2) -> Vec2 {
@@ -162,31 +120,31 @@ pub fn move_towards(current: f32, target: f32, max_delta: f32) -> f32 {
     if (target - current).abs() <= max_delta {
         return target;
     }
-    return current + (target - current).signum() * max_delta;
+    current + (target - current).signum() * max_delta
 }
 
 pub fn inverse_lerp(a: f32, b: f32, value: f32) -> f32 {
     if a != b {
-        return ((value - a) / (b - a)).clamp(0., 1.)
+        ((value - a) / (b - a)).clamp(0., 1.)
     } else {
-        return 0.;
+        0.
     }
 }
 
 
-pub fn get_tile_start_index(block: BlockType) -> u32 {
+pub fn get_tile_start_index(block: BlockType) -> TextureAtlasPos {
     match block {
-        BlockType::Dirt => 0,
-        BlockType::Stone => 16 * 15,
-        BlockType::Grass => 16 * 30,
+        BlockType::Dirt => TextureAtlasPos::ZERO,
+        BlockType::Stone => TextureAtlasPos::new(0, 15),
+        BlockType::Grass => TextureAtlasPos::new(0, 30),
         BlockType::Tree(_) => todo!(),
     }
 }
 
-pub fn get_wall_start_index(wall: Wall) -> u32 {
+pub fn get_wall_start_index(wall: Wall) -> TextureAtlasPos {
     match wall {
-        Wall::Stone => 0,
-        Wall::Dirt => 5 * 13,
+        Wall::Stone => TextureAtlasPos::ZERO,
+        Wall::Dirt => TextureAtlasPos::new(0, 5),
     }
 }
 

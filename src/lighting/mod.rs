@@ -181,14 +181,14 @@ impl render_graph::Node for LightPass2DNode {
                     render_context
                         .command_encoder
                         .begin_compute_pass(&ComputePassDescriptor {
-                            label: Some("light_pass_2d".into()),
+                            label: Some("light_pass_2d"),
                         });
 
                 {
                     let grid_w = (primary_w / GI_SCREEN_PROBE_SIZE as u32) / WORKGROUP_SIZE;
                     let grid_h = (primary_h / GI_SCREEN_PROBE_SIZE as u32) / WORKGROUP_SIZE;
                     pass.set_bind_group(0, &pipeline_bind_groups.lighting_bind_group, &[]);
-                    pass.set_pipeline(&lighting_pipeline);
+                    pass.set_pipeline(lighting_pipeline);
                     pass.dispatch_workgroups(grid_w, grid_h, 1);
                 }
             }

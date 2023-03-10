@@ -33,18 +33,18 @@ fn propagate_light(x: usize, y: usize, light_map: &mut Array2<u8>) {
     let light_pass = 50;
 
     if light_map[(y, x - 1)] > light_map[(y, x)] { 
-        light_map[(y, x)] = light_map[(y, x - 1)].checked_sub(light_pass).unwrap_or(0);
+        light_map[(y, x)] = light_map[(y, x - 1)].saturating_sub(light_pass);
     }
 
     if light_map[(y - 1, x)] > light_map[(y, x)] { 
-        light_map[(y, x)] = light_map[(y - 1, x)].checked_sub(light_pass).unwrap_or(0);
+        light_map[(y, x)] = light_map[(y - 1, x)].saturating_sub(light_pass);
     }
 
     if light_map[(y, x + 1)] > light_map[(y, x)] { 
-        light_map[(y, x)] = light_map[(y, x + 1)].checked_sub(light_pass).unwrap_or(0);
+        light_map[(y, x)] = light_map[(y, x + 1)].saturating_sub(light_pass);
     }
 
     if light_map[(y + 1, x)] > light_map[(y, x)] { 
-        light_map[(y, x)] = light_map[(y + 1, x)].checked_sub(light_pass).unwrap_or(0);
+        light_map[(y, x)] = light_map[(y + 1, x)].saturating_sub(light_pass);
     }
 }

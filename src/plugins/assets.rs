@@ -360,7 +360,7 @@ fn setup(
     handles.append(&mut cursor_assets.handles());
 
     for handle in handles.iter() {
-        let mut image = images.get_mut(&handle).unwrap();
+        let mut image = images.get_mut(handle).unwrap();
 
         image.sampler_descriptor = ImageSampler::linear();
     }

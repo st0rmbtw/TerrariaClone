@@ -34,22 +34,15 @@ pub fn setup_camera(
                     scale: 0.9
                 },
                 transform: Transform::from_xyz(spawn_point.x + TILE_SIZE / 2., spawn_point.y + TILE_SIZE / 2., 500.)
-            },
-            // InputManagerBundle::<MouseAction> {
-            //     action_state: ActionState::default(),
-            //     input_map: InputMap::new([
-            //         (KeyCode::Equals, MouseAction::ZoomIn),
-            //         (KeyCode::Minus, MouseAction::ZoomOut),
-            //     ])
-            // },
+            }
         ));
 
     let block_mesh = meshes.add(Mesh::from(shape::Quad::new(Vec2::ZERO)));
 
     commands
         .spawn(MaterialMesh2dBundle {
-            mesh: block_mesh.clone().into(),
-            material: color_materials.add(ColorMaterial::from(Color::YELLOW)).into(),
+            mesh: block_mesh.into(),
+            material: color_materials.add(ColorMaterial::from(Color::YELLOW)),
             transform: Transform {
                 translation: Vec3::new(0.0, 0.0, 1000.0),
                 scale: Vec3::splat(8.0),
@@ -63,8 +56,7 @@ pub fn setup_camera(
             radius: 100.,
             jitter_intensity: 0.7,
             jitter_translation: 0.1,
-            color: Color::rgb_u8(254, 100, 34),
-            ..default()
+            color: Color::rgb_u8(254, 100, 34)
         })
         .insert(MouseLight);
 }
