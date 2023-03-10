@@ -41,8 +41,17 @@ pub fn horizontal_movement(
     axis: Res<InputAxis>,
     mut velocity: ResMut<PlayerVelocity>
 ) {
-    if axis.is_moving() {
-        velocity.x += axis.x * ACCELERATION;
+    if axis.x > 0. {
+        if velocity.x < 0. {
+            velocity.x *= 0.9;
+        }
+        velocity.x += ACCELERATION;
+        velocity.x = velocity.x.clamp(-MAX_RUN_SPEED, MAX_RUN_SPEED);
+    } else if axis.x < 0. {
+        if velocity.x > 0. {
+            velocity.x *= 0.9;
+        }
+        velocity.x -= ACCELERATION;
         velocity.x = velocity.x.clamp(-MAX_RUN_SPEED, MAX_RUN_SPEED);
     } else {
         velocity.x = move_towards(velocity.x, 0., SLOWDOWN);
@@ -57,7 +66,7 @@ pub fn update_jump(
 ) {
     let input = query.single();
 
-    if input.just_pressed(PlayerAction::Jump) && collisions.bottom {
+    if input.pressed(PlayerAction::Jump) && collisions.bottom {
         player_data.jump = JUMP_HEIGHT;
         velocity.y = JUMP_SPEED;
     }
@@ -90,7 +99,7 @@ pub fn update(
 
     // -------- Gravity --------
     if !collisions.bottom {
-        player_data.fall_distance += GRAVITY;
+        player_data.fall_distance += GRAVITY / (time.delta_seconds() * 16.);
         velocity.y -= GRAVITY;
 
         velocity.y = velocity.y.max(MAX_FALL_SPEED);
@@ -131,12 +140,11 @@ pub fn update(
                     if position.y + PLAYER_HALF_HEIGHT <= tile_pos.y - TILE_SIZE / 2. {
                         new_collisions.bottom = true;
 
-                        velocity.y = 0.;
+                        let fall_distance = (player_data.fall_distance / 16.).round();
 
-                        if player_data.fall_distance.round() > 0. {
-                            info!(
-                                target: "fall_distance",
-                                fall_distance = player_data.fall_distance.round()
+                        if fall_distance > 0. {
+                            debug!(
+                                fall_distance = fall_distance
                             );
                         }
                         
@@ -146,27 +154,32 @@ pub fn update(
                             yx = x as i32;
                             yy = y as i32;
                             if yx != xx {
-                                velocity.y = ((tile_pos.y - TILE_SIZE / 2.) - (position.y + PLAYER_HALF_HEIGHT)) * time.delta_seconds();
+                                // velocity.y = ((tile_pos.y - TILE_SIZE / 2.) - (position.y + PLAYER_HALF_HEIGHT));
+                                velocity.y = 0.;
                                 a = tile_pos.y;
                             }
                         }
                     } else if position.x + PLAYER_HALF_WIDTH <= tile_pos.x - TILE_SIZE / 2. {
+                        new_collisions.right = true;
+                        velocity.x = 0.;
                         xx = x as i32;
                         xy = y as i32;
                         if xy != yy {
-                            velocity.x = ((tile_pos.x - TILE_SIZE / 2.) - (position.x + PLAYER_HALF_WIDTH)) * time.delta_seconds();
+                            velocity.x = (tile_pos.x - TILE_SIZE / 2.) - (position.x + PLAYER_HALF_WIDTH);
                         }
                     } else if position.x - PLAYER_HALF_WIDTH >= tile_pos.x + TILE_SIZE / 2. {
+                        new_collisions.left = true;
+                        velocity.x = 0.;
                         xx = x as i32;
                         xy = y as i32;
                         if xy != yy {
-                            velocity.x = ((tile_pos.x + TILE_SIZE / 2.) - (position.x - PLAYER_HALF_WIDTH)) * time.delta_seconds();
+                            velocity.x = (tile_pos.x + TILE_SIZE / 2.) - (position.x - PLAYER_HALF_WIDTH);
                         }
                     } else if position.y >= tile_pos.y + TILE_SIZE / 2. {
                         collisions.top = true;
                         yx = x as i32;
                         yy = y as i32;
-                        velocity.y = ((tile_pos.y + TILE_SIZE / 2.) - (position.y - PLAYER_HALF_HEIGHT) + 0.01) * time.delta_seconds();
+                        velocity.y = ((tile_pos.y + TILE_SIZE / 2.) - (position.y - PLAYER_HALF_HEIGHT)) * time.delta_seconds();
                     }
                 }
             }
@@ -215,7 +228,7 @@ pub fn update_movement_state(
     let mut movement_state = query.single_mut();
 
     *movement_state = match velocity.0 {
-        _ if player_data.fall_distance.round() > 1. || player_data.jump > 0 => MovementState::Flying,
+        _ if (player_data.fall_distance.round() / 16.) > 1. || player_data.jump > 0 => MovementState::Flying,
         Vec2 { x, .. } if x != 0. => MovementState::Walking,
         _ => MovementState::Idle
     };
@@ -433,15 +446,13 @@ pub fn current_speed(
     let velocity_y = velocity.y.abs() as f64 * factor;
 
     if velocity_x > 0. {
-        info!(
-            target: "speed",
+        debug!(
             horizontal = velocity_x,
         );
     }
 
     if velocity_y > 0. {
-        info!(
-            target: "speed",
+        debug!(
             vertical = velocity_y,
         );
     }

@@ -2,7 +2,7 @@
 
 use std::{error::Error, time::Duration};
 
-use bevy::{prelude::*, render::settings::{WgpuSettings, WgpuFeatures}};
+use bevy::{prelude::*, render::settings::{WgpuSettings, WgpuFeatures}, log::{LogPlugin, Level}};
 use bevy_ecs_tilemap::{TilemapPlugin, prelude::TilemapRenderSettings};
 use bevy_hanabi::HanabiPlugin;
 use game::{
@@ -55,6 +55,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             .set(AssetPlugin {
                 watch_for_changes: true,
                 ..default()
+            })
+            .set(LogPlugin {
+                level: Level::WARN,
+                filter: "game=debug".to_string(),
             })
             .set(ImagePlugin::default_nearest())
         )

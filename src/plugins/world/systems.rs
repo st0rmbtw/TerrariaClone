@@ -240,8 +240,8 @@ pub fn get_chunk_position_by_camera_fov(camera_fov: FRect, world_size: Size) -> 
     let mut rect = URect { 
         left: (camera_fov.left / (CHUNK_SIZE * TILE_SIZE)).floor() as u32, 
         right: (camera_fov.right / (CHUNK_SIZE * TILE_SIZE)).ceil() as u32, 
-        bottom: (camera_fov.bottom.abs() / (CHUNK_SIZE * TILE_SIZE).ceil()) as u32, 
-        top: ((camera_fov.top.abs() / (CHUNK_SIZE * TILE_SIZE)).floor()) as u32,
+        bottom: (camera_fov.bottom.abs() / (CHUNK_SIZE * TILE_SIZE)).ceil() as u32, 
+        top: (camera_fov.top.abs() / (CHUNK_SIZE * TILE_SIZE)).floor() as u32,
     };
 
     let max_chunk_x: u32 = world_size.width as u32 / CHUNK_SIZE_U;

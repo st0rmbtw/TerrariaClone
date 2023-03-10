@@ -32,7 +32,7 @@ const MOVEMENT_ANIMATION_LABEL: &str = "movement_animation";
 const USE_ITEM_ANIMATION_LABEL: &str = "use_item_animation";
 
 const GRAVITY: f32 = 0.4;
-const ACCELERATION: f32 = 0.08;
+const ACCELERATION: f32 = 0.1;
 const SLOWDOWN: f32 = 0.2;
 pub const MAX_RUN_SPEED: f32 = 3.;
 
