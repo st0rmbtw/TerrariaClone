@@ -1,6 +1,6 @@
-#define_import_path game::gi_attenuation
+#define_import_path game::attenuation
 
-#import game::gi_math
+#import game::math
 
 fn distance_squared2(a: vec2<f32>, b: vec2<f32>) -> f32 {
     let c = a - b;

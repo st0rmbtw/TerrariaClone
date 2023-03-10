@@ -5,7 +5,7 @@ use bevy::render::Extract;
 use rand::{thread_rng, Rng};
 
 use crate::plugins::camera::MainCamera;
-use super::constants::GI_SCREEN_PROBE_SIZE;
+use super::constants::SCREEN_PROBE_SIZE;
 use super::resource::{ComputedTargetSizes, LightPassParams};
 use super::types::LightSource;
 use super::types_gpu::{GpuCameraParams, GpuLightSourceBuffer, GpuLightSource, GpuLightPassParams};
@@ -28,9 +28,9 @@ impl LightPassPipelineAssets {
 pub(crate) fn system_prepare_pipeline_assets(
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
-    mut gi_compute_assets: ResMut<LightPassPipelineAssets>,
+    mut compute_assets: ResMut<LightPassPipelineAssets>,
 ) {
-    gi_compute_assets.write_buffer(&render_device, &render_queue);
+    compute_assets.write_buffer(&render_device, &render_queue);
 }
 
 pub(crate) fn system_extract_pipeline_assets(
@@ -101,9 +101,9 @@ pub(crate) fn system_extract_pipeline_assets(
     {
         let mut gpu_light_pass_params = gpu_pipeline_assets.light_pass_params.get_mut();
         gpu_light_pass_params.frame_counter = *gpu_frame_counter;
-        gpu_light_pass_params.probe_size = GI_SCREEN_PROBE_SIZE;
+        gpu_light_pass_params.probe_size = SCREEN_PROBE_SIZE;
         gpu_light_pass_params.reservoir_size = res_light_pass_params.reservoir_size;
     }
 
-    *gpu_frame_counter = (*gpu_frame_counter + 1) % (GI_SCREEN_PROBE_SIZE * GI_SCREEN_PROBE_SIZE);
+    *gpu_frame_counter = (*gpu_frame_counter + 1) % (SCREEN_PROBE_SIZE * SCREEN_PROBE_SIZE);
 }

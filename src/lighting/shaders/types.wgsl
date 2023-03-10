@@ -1,4 +1,4 @@
-#define_import_path game::gi_types
+#define_import_path game::types
 
 struct LightSource {
     center: vec2<f32>,
@@ -13,7 +13,7 @@ struct LightSourceBuffer {
 }
 
 struct LightPassParams {
-    frame_counter:          i32,
-    probe_size:             i32,
-    reservoir_size:         u32,
+    frame_counter: i32,
+    probe_size: i32,
+    reservoir_size: u32,
 }

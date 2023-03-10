@@ -11,12 +11,12 @@ use bevy::{
 };
 use iyes_loopless::prelude::IntoConditionalSystem;
 
-use crate::{plugins::{camera::UpdateLightEvent, world::WorldData}, lighting::{compositing::{PostProcessingMaterial, setup_post_processing_camera, update_image_to_window_size, update_lighting_material, update_light_map}, constants::{SHADER_GI_HALTON, SHADER_GI_ATTENUATION, SHADER_GI_MATH}}, state::GameState};
+use crate::{plugins::{camera::UpdateLightEvent, world::WorldData}, lighting::{compositing::{PostProcessingMaterial, setup_post_processing_camera, update_image_to_window_size, update_lighting_material, update_light_map}, constants::{SHADER_HALTON, SHADER_ATTENUATION, SHADER_MATH}}, state::GameState};
 
 use self::{
-    pipeline::{LightPassPipelineBindGroups, PipelineTargetsWrapper, system_setup_gi_pipeline, LightPassPipeline, system_queue_bind_groups}, 
+    pipeline::{LightPassPipelineBindGroups, PipelineTargetsWrapper, system_setup_pipeline, LightPassPipeline, system_queue_bind_groups}, 
     resource::{LightPassParams, ComputedTargetSizes}, 
-    constants::{SHADER_GI_CAMERA, SHADER_GI_TYPES, GI_SCREEN_PROBE_SIZE}, 
+    constants::{SHADER_CAMERA, SHADER_TYPES, SCREEN_PROBE_SIZE}, 
     pipeline_assets::{LightPassPipelineAssets, system_extract_pipeline_assets, system_prepare_pipeline_assets}
 };
 
@@ -45,7 +45,7 @@ impl Plugin for LightingPlugin {
             })
 
             .add_startup_system(detect_target_sizes)
-            .add_startup_system(system_setup_gi_pipeline.after(detect_target_sizes))
+            .add_startup_system(system_setup_pipeline.after(detect_target_sizes))
             .add_system(setup_post_processing_camera.run_if_resource_exists::<WorldData>())
             .add_system(update_image_to_window_size)
             .add_system(update_lighting_material.run_in_state(GameState::InGame))
@@ -54,36 +54,36 @@ impl Plugin for LightingPlugin {
 
         load_internal_asset!(
             app,
-            SHADER_GI_CAMERA,
-            "shaders/gi_camera.wgsl",
+            SHADER_CAMERA,
+            "shaders/camera.wgsl",
             Shader::from_wgsl
         );
 
         load_internal_asset!(
             app,
-            SHADER_GI_TYPES,
-            "shaders/gi_types.wgsl",
+            SHADER_TYPES,
+            "shaders/types.wgsl",
             Shader::from_wgsl
         );
 
         load_internal_asset!(
             app,
-            SHADER_GI_HALTON,
-            "shaders/gi_halton.wgsl",
+            SHADER_HALTON,
+            "shaders/halton.wgsl",
             Shader::from_wgsl
         );
 
          load_internal_asset!(
             app,
-            SHADER_GI_ATTENUATION,
-            "shaders/gi_attenuation.wgsl",
+            SHADER_ATTENUATION,
+            "shaders/attenuation.wgsl",
             Shader::from_wgsl
         );
 
         load_internal_asset!(
             app,
-            SHADER_GI_MATH,
-            "shaders/gi_math.wgsl",
+            SHADER_MATH,
+            "shaders/math.wgsl",
             Shader::from_wgsl
         );
 
@@ -185,8 +185,8 @@ impl render_graph::Node for LightPass2DNode {
                         });
 
                 {
-                    let grid_w = (primary_w / GI_SCREEN_PROBE_SIZE as u32) / WORKGROUP_SIZE;
-                    let grid_h = (primary_h / GI_SCREEN_PROBE_SIZE as u32) / WORKGROUP_SIZE;
+                    let grid_w = (primary_w / SCREEN_PROBE_SIZE as u32) / WORKGROUP_SIZE;
+                    let grid_h = (primary_h / SCREEN_PROBE_SIZE as u32) / WORKGROUP_SIZE;
                     pass.set_bind_group(0, &pipeline_bind_groups.lighting_bind_group, &[]);
                     pass.set_pipeline(lighting_pipeline);
                     pass.dispatch_workgroups(grid_w, grid_h, 1);

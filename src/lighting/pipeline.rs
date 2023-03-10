@@ -61,7 +61,7 @@ fn create_texture_2d(size: Extent3d, format: TextureFormat, filter: FilterMode) 
     image
 }
 
-pub fn system_setup_gi_pipeline(
+pub fn system_setup_pipeline(
     mut images: ResMut<Assets<Image>>,
     mut targets_wrapper: ResMut<PipelineTargetsWrapper>,
     targets_sizes: Res<ComputedTargetSizes>,
@@ -96,7 +96,7 @@ pub(crate) fn system_queue_bind_groups(
     pipeline: Res<LightPassPipeline>,
     gpu_images: Res<RenderAssets<Image>>,
     targets_wrapper: Res<PipelineTargetsWrapper>,
-    gi_compute_assets: Res<LightPassPipelineAssets>,
+    compute_assets: Res<LightPassPipelineAssets>,
     render_device: Res<RenderDevice>,
 ) {
     if let (
@@ -104,9 +104,9 @@ pub(crate) fn system_queue_bind_groups(
         Some(camera_params),
         Some(light_pass_params),
     ) = (
-        gi_compute_assets.light_sources.binding(),
-        gi_compute_assets.camera_params.binding(),
-        gi_compute_assets.light_pass_params.binding(),
+        compute_assets.light_sources.binding(),
+        compute_assets.camera_params.binding(),
+        compute_assets.light_pass_params.binding(),
     ) {
         let targets = targets_wrapper
             .targets

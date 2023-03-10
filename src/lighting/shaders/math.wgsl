@@ -1,5 +1,5 @@
-#define_import_path game::gi_math
-#import game::gi_types
+#define_import_path game::math
+#import game::types
 
 // [Drobot2014a] Low Level Optimizations for GCN
 fn fast_sqrt(x: f32) -> f32 {

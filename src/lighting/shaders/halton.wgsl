@@ -1,4 +1,4 @@
-#define_import_path game::gi_halton
+#define_import_path game::halton
 
 fn radical_inverse_vdc(n: i32) -> f32 {
     var bits = u32(n);

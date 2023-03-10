@@ -1,7 +1,7 @@
-#import game::gi_camera
-#import game::gi_types
-#import game::gi_halton
-#import game::gi_attenuation
+#import game::camera
+#import game::types
+#import game::halton
+#import game::attenuation
 
 @group(0) @binding(0) var<uniform> camera_params:         CameraParams;
 @group(0) @binding(1) var<uniform> cfg:                   LightPassParams;
