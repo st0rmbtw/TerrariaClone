@@ -117,7 +117,8 @@ fn setup_main_menu_background(
                 z: 0.0,
                 transition_factor: 1.,
                 scale: 2.,
-                position: Vec2::NEG_Y * height + 400.
+                position: Vec2::NEG_Y * height + 400.,
+                ..default()
             },
             LayerData {
                 speed: 0.9,
@@ -125,7 +126,8 @@ fn setup_main_menu_background(
                 z: 0.1,
                 transition_factor: 1.,
                 position: Vec2::NEG_Y * height,
-                scale: 1.5
+                scale: 1.5,
+                ..default()
             },
             LayerData {
                 speed: 0.8,
@@ -133,7 +135,8 @@ fn setup_main_menu_background(
                 z: 1.0,
                 transition_factor: 1.,
                 position: Vec2::NEG_Y * height - 200.,
-                scale: 1.5
+                scale: 1.5,
+                ..default()
             },
             LayerData {
                 speed: 0.7,
@@ -141,7 +144,8 @@ fn setup_main_menu_background(
                 z: 2.0,
                 transition_factor: 1.,
                 position: Vec2::NEG_Y * height - 300.,
-                scale: 1.5
+                scale: 1.5,
+                ..default()
             },
             LayerData {
                 speed: 0.6,
@@ -149,7 +153,8 @@ fn setup_main_menu_background(
                 z: 3.0,
                 transition_factor: 1.,
                 position: Vec2::NEG_Y * height - 400.,
-                scale: 1.5
+                scale: 1.5,
+                ..default()
             },
             LayerData {
                 speed: 0.7,
@@ -157,7 +162,8 @@ fn setup_main_menu_background(
                 z: 4.0,
                 transition_factor: 1.,
                 scale: 1.2,
-                position: Vec2::NEG_Y * height + 200.
+                position: Vec2::NEG_Y * height + 200.,
+                ..default()
             },
         ],
         ..default()

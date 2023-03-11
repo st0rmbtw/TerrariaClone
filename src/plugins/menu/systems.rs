@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveExt, Camera2dBundle, ChildBuilder, NodeBundle, BuildChildren, TextBundle, Button, Res, default, Changed, EventWriter, Color, ImageBundle, Transform, Quat, Vec3, Audio}, text::{Text, TextStyle}, ui::{Style, JustifyContent, AlignItems, UiRect, FocusPolicy, PositionType, Interaction, Size, Val, FlexDirection}, app::AppExit};
+use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveExt, Camera2dBundle, ChildBuilder, NodeBundle, BuildChildren, TextBundle, Button, Res, default, Changed, EventWriter, Color, ImageBundle, Transform, Quat, Vec3, Audio}, text::{Text, TextStyle}, ui::{Style, JustifyContent, AlignItems, UiRect, FocusPolicy, PositionType, Interaction, Size, Val, FlexDirection, AlignSelf, UiImage}, app::AppExit};
 use interpolation::EaseFunction;
 use iyes_loopless::state::NextState;
 
@@ -161,28 +161,55 @@ pub fn setup_main_menu(
             ..default()
         })
         .insert(Menu)
-        .with_children(|builder| {
-            menu_button(
-                builder,
-                text_style.clone(),
-                language_content.ui.single_player.clone(),
-                SinglePlayerButton,
-                Some(30.)
-            );
-            menu_button(
-                builder, 
-                text_style.clone(), 
-                language_content.ui.settings.clone(), 
-                SettingsButton,
-                Some(30.)
-            );
-            menu_button(
-                builder, 
-                text_style.clone(), 
-                language_content.ui.exit.clone(), 
-                ExitButton,
-                Some(30.)
-            );
+        .with_children(|children| {
+            children.spawn((
+                ImageBundle {
+                    style: Style {
+                        position_type: PositionType::Absolute,
+                        align_self: AlignSelf::Center,
+                        ..default()
+                    },
+                    image: UiImage(ui_assets.logo.clone()),
+                    ..default()
+                },
+                Animator::new(logo_animation)
+            ));
+
+            children.spawn(NodeBundle {
+                style: Style {
+                    size: Size {
+                        width: Val::Percent(100.),
+                        height: Val::Percent(100.),
+                    },
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    flex_direction: FlexDirection::Column,
+                    ..default()
+                },
+                ..default()
+            }).with_children(|children| {    
+                menu_button(
+                    children,
+                    text_style.clone(),
+                    language_content.ui.single_player.clone(),
+                    SinglePlayerButton,
+                    Some(30.)
+                );
+                menu_button(
+                    children, 
+                    text_style.clone(), 
+                    language_content.ui.settings.clone(), 
+                    SettingsButton,
+                    Some(30.)
+                );
+                menu_button(
+                    children, 
+                    text_style.clone(), 
+                    language_content.ui.exit.clone(), 
+                    ExitButton,
+                    Some(30.)
+                );
+            });
         });
 }
 

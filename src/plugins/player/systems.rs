@@ -10,7 +10,7 @@ use crate::{
         assets::{ItemAssets, SoundAssets}, 
         inventory::{SelectedItem, Inventory},
     }, 
-    util::{move_towards, map_range}, 
+    util::{move_towards, map_range_usize}, 
     items::{get_animation_points, ItemStack, Item}
 };
 
@@ -301,7 +301,7 @@ pub fn walking_animation(
         let walking_anim_offset = anim_data.offset;
         let walking_anim_count = anim_data.count;
 
-        sprite.index = walking_anim_offset + map_range(
+        sprite.index = walking_anim_offset + map_range_usize(
             (0, WALKING_ANIMATION_MAX_INDEX),
             (0, walking_anim_count),
             index.0,

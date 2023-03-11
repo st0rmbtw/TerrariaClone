@@ -6,7 +6,7 @@ pub use components::*;
 pub use systems::*;
 
 use iyes_loopless::{prelude::{ConditionSet, AppLooplessStateExt, IntoConditionalSystem}, state::CurrentState};
-use bevy::prelude::{Plugin, App};
+use bevy::prelude::{Plugin, App, Res};
 
 use crate::{state::GameState, util::on_btn_clicked, parallax::move_background_system};
 
@@ -38,11 +38,11 @@ impl Plugin for MenuPlugin {
                     .with_system(exit_clicked.run_if(on_btn_clicked::<ExitButton>))
                     .into()
             )
-            .add_system(
-                component_animator_system::<Text>
-                    .run_if(in_menu_state)
-                    .label(AnimationSystem::AnimationUpdate)
-            )
+            // .add_system(
+            //     component_animator_system::<Text>
+            //         .run_if(in_menu_state)
+            //         .label(AnimationSystem::AnimationUpdate)
+            // )
             .add_enter_system(GameState::InGame, despawn_with::<MainCamera>)
             .add_exit_system(GameState::MainMenu, despawn_with::<Menu>);
     }

@@ -5,7 +5,7 @@ use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, Wit
 use interpolation::Lerp;
 use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet};
 
-use crate::{plugins::{assets::BackgroundAssets, camera::MainCamera, cursor::CursorPosition, background::Star}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystem, AnimatorState}, state::GameState, util::{screen_to_world, FRect}, parallax::LayerTextureComponent};
+use crate::{plugins::{assets::BackgroundAssets, camera::MainCamera, cursor::CursorPosition, background::Star}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystem, AnimatorState}, state::GameState, util::{screen_to_world, map_range_f32}, rect::FRect, parallax::LayerTextureComponent};
 
 pub(super) struct CelestialBodyPlugin;
 
@@ -29,7 +29,7 @@ impl Plugin for CelestialBodyPlugin {
     }
 }
 
-const LOGO_ANIMATION_COMPLETED: u64 = 1;
+const CELESTIAL_BODY_ANIMATION_COMPLETED: u64 = 1;
 const SUN_SIZE: f32 = 42.;
 const MOON_SIZE: f32 = 50.;
 
@@ -59,7 +59,7 @@ fn setup(
     mut commands: Commands,
     background_assets: Res<BackgroundAssets>
 ) {
-    let logo_animation = Tween::new(
+    let celestial_body_animation = Tween::new(
         EaseMethod::Linear,
         RepeatStrategy::Repeat,
         Duration::from_secs(25),
@@ -69,7 +69,7 @@ fn setup(
         }
     )
     .with_repeat_count(RepeatCount::Infinite)
-    .with_completed_event(LOGO_ANIMATION_COMPLETED);
+    .with_completed_event(CELESTIAL_BODY_ANIMATION_COMPLETED);
 
     commands.spawn((
         SpriteSheetBundle {
@@ -79,7 +79,7 @@ fn setup(
             texture_atlas: background_assets.sun.clone_weak(),
             transform: Transform::IDENTITY,
         },
-        Animator::new(logo_animation),
+        Animator::new(celestial_body_animation),
         CelestialBody::default()
     ));
 }
@@ -94,14 +94,14 @@ fn change_visibility_of_stars(
     let celestial_body_position = celestial_body.position.x.clamp(0., 1.);
     
     if celestial_body_position <= SUNRISE_THRESHOLD {
-        let s = map_range(0., SUNRISE_THRESHOLD, 0., 1., celestial_body_position);
+        let s = map_range_f32(0., SUNRISE_THRESHOLD, 0., 1., celestial_body_position);
 
         *alpha = match *time_type {
             TimeType::Day => alpha.lerp(&0., &s),
             TimeType::Night => alpha.lerp(&1., &s),
         }
     } else if celestial_body_position >= SUNSET_THRESHOLD { 
-        let s = map_range(SUNSET_THRESHOLD, 1., 0., 1., celestial_body_position);
+        let s = map_range_f32(SUNSET_THRESHOLD, 1., 0., 1., celestial_body_position);
 
         *alpha = match *time_type {
             TimeType::Day => 0f32.lerp(&1., &s),
@@ -136,7 +136,7 @@ fn update_time_type(
     mut time_type: ResMut<TimeType>
 ) {
     for event in events.iter() {
-        if event.user_data == LOGO_ANIMATION_COMPLETED {
+        if event.user_data == CELESTIAL_BODY_ANIMATION_COMPLETED {
             *time_type = match *time_type {
                 TimeType::Day => TimeType::Night,
                 TimeType::Night => TimeType::Day,
@@ -223,13 +223,13 @@ fn update_sprites_color(
     if celestial_body_position <= SUNRISE_THRESHOLD {
         let start: Vec4 = Color::rgb_u8(0, 54, 107).into();
         let end: Vec4 = color.into();
-        let s = map_range(0., SUNRISE_THRESHOLD, 0., 1., celestial_body_position);
+        let s = map_range_f32(0., SUNRISE_THRESHOLD, 0., 1., celestial_body_position);
 
         color = start.lerp(end, s).into();
     } else if celestial_body_position >= SUNSET_THRESHOLD {
         let start: Vec4 = color.into();
         let end: Vec4 = Color::rgb(0.3, 0.2, 0.3).into();
-        let s = map_range(SUNSET_THRESHOLD, 1., 0., 1., celestial_body_position);
+        let s = map_range_f32(SUNSET_THRESHOLD, 1., 0., 1., celestial_body_position);
 
         color = start.lerp(end, s).into();
     }
@@ -251,8 +251,4 @@ impl Lens<CelestialBody> for CelestialBodyPositionLens {
 
         target.position.y = self.start.y.lerp(&self.end.y, &y_ratio);
     }
-}
-
-fn map_range(in_min: f32, in_max: f32, out_min: f32, out_max: f32, value: f32) -> f32 {
-    return out_min + (((value - in_min) / (in_max - in_min)) * (out_max - out_min));
 }
