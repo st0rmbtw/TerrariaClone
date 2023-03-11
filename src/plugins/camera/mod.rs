@@ -12,7 +12,7 @@ mod systems;
 mod events;
 
 const MAX_CAMERA_ZOOM: f32 = 2.;
-const MIN_CAMERA_ZOOM: f32 = 0.46;
+const MIN_CAMERA_ZOOM: f32 = 0.2;
 const CAMERA_ZOOM_STEP: f32 = 0.3;
 
 pub struct CameraPlugin;

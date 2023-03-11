@@ -23,7 +23,7 @@ use rand::thread_rng;
 
 use crate::{rect::{FRect, URect}, plugins::{inventory::Inventory, world::{CHUNK_SIZE, TILE_SIZE, LightMap, light::generate_light_map, WorldSize}, assets::{BlockAssets, WallAssets, SoundAssets}, camera::{MainCamera, UpdateLightEvent}}, state::GameState};
 
-use super::{get_chunk_pos, CHUNK_SIZE_U, TileChunk, UpdateNeighborsEvent, WallChunk, WALL_SIZE, CHUNKMAP_SIZE, Chunk, get_camera_fov, ChunkManager, ChunkPos, get_chunk_tile_pos, world::WorldData, block::Block, Wall, Size, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent};
+use super::{get_chunk_pos, CHUNK_SIZE_U, TileChunk, UpdateNeighborsEvent, WallChunk, WALL_SIZE, CHUNKMAP_SIZE, Chunk, get_camera_fov, ChunkManager, ChunkPos, get_chunk_tile_pos, world::WorldData, block::Block, Wall, Size, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent, BlockType, TREE_SIZE, TREE_BRANCHES_SIZE, TreeFrameType, TREE_TOPS_SIZE};
 
 pub fn spawn_terrain(mut commands: Commands) {
     let _current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
@@ -153,6 +153,15 @@ pub fn spawn_chunk(
     let wallmap_entity = commands.spawn_empty().id();
     let mut wall_storage = TileStorage::empty(CHUNKMAP_SIZE);
 
+    let treemap_entity = commands.spawn_empty().id();
+    let mut tree_storage = TileStorage::empty(CHUNKMAP_SIZE);
+
+    let tree_branches_map_entity = commands.spawn_empty().id();
+    let mut tree_branches_storage = TileStorage::empty(CHUNKMAP_SIZE);
+
+    let tree_tops_map_entity = commands.spawn_empty().id();
+    let mut tree_tops_storage = TileStorage::empty(CHUNKMAP_SIZE);
+
     for y in 0..CHUNK_SIZE_U {
         for x in 0..CHUNK_SIZE_U {
             let chunk_tile_pos = TilePos { 
@@ -166,15 +175,37 @@ pub fn spawn_chunk(
             };
 
             if let Some(block) = world_data.get_block(map_tile_pos) {
-                let index = Block::get_sprite_index(
-                    &world_data.get_block_neighbors(map_tile_pos).map_ref(|b| b.block_type), 
-                    block.block_type
-                ).to_block_index();
+                if let BlockType::Tree(tree) = block.block_type {
+                    let index = tree.texture_atlas_pos();
+                    
+                    match tree.frame_type {
+                        TreeFrameType::BranchLeftLeaves | TreeFrameType::BranchRightLeaves => {
+                            let tree_branch_entity = spawn_block(commands, *block, chunk_tile_pos, tree_branches_map_entity, index);
+                            commands.entity(tree_branches_map_entity).add_child(tree_branch_entity);
+                            tree_branches_storage.set(&chunk_tile_pos, tree_branch_entity);
+                        },
+                        TreeFrameType::TopLeaves => {
+                            let tree_top_entity = spawn_block(commands, *block, chunk_tile_pos, tree_tops_map_entity, index);
+                            commands.entity(tree_tops_map_entity).add_child(tree_top_entity);
+                            tree_tops_storage.set(&chunk_tile_pos, tree_top_entity);
+                        },
+                        _ => {
+                            let tree_entity = spawn_block(commands, *block, chunk_tile_pos, treemap_entity, index);
+                            commands.entity(treemap_entity).add_child(tree_entity);
+                            tree_storage.set(&chunk_tile_pos, tree_entity);
+                        }
+                    }
+                } else {
+                    let index = Block::get_sprite_index(
+                        &world_data.get_block_neighbors(map_tile_pos).map_ref(|b| b.block_type), 
+                        block.block_type
+                    ).to_block_index();
 
-                let tile_entity = spawn_block(commands, *block, chunk_tile_pos, tilemap_entity, index);
+                    let tile_entity = spawn_block(commands, *block, chunk_tile_pos, tilemap_entity, index);
 
-                commands.entity(tilemap_entity).add_child(tile_entity);
-                tile_storage.set(&chunk_tile_pos, tile_entity);
+                    commands.entity(tilemap_entity).add_child(tile_entity);
+                    tile_storage.set(&chunk_tile_pos, tile_entity);
+                }
             }
 
             if let Some(wall) = world_data.get_wall(map_tile_pos) {
@@ -233,7 +264,67 @@ pub fn spawn_chunk(
             ..Default::default()
         });
 
-    commands.entity(chunk).push_children(&[tilemap_entity, wallmap_entity]);
+    commands
+        .entity(treemap_entity)
+        .insert(TileChunk { pos: chunk_pos })
+        .insert(TilemapBundle {
+            grid_size: TilemapGridSize {
+                x: TILE_SIZE,
+                y: TILE_SIZE,
+            },
+            size: CHUNKMAP_SIZE,
+            storage: tree_storage,
+            texture: TilemapTexture::Single(block_assets.trees.clone_weak()),
+            tile_size: TREE_SIZE,
+            transform: Transform::from_xyz(0., 0., 1.5),
+            spacing: TilemapSpacing { 
+                x: 2.,
+                y: 2.,
+            },
+            ..Default::default()
+        });
+
+    commands
+        .entity(tree_branches_map_entity)
+        .insert(TileChunk { pos: chunk_pos })
+        .insert(TilemapBundle {
+            grid_size: TilemapGridSize {
+                x: TILE_SIZE,
+                y: TILE_SIZE,
+            },
+            size: CHUNKMAP_SIZE,
+            storage: tree_branches_storage,
+            texture: TilemapTexture::Single(block_assets.tree_branches_forest.clone_weak()),
+            tile_size: TREE_BRANCHES_SIZE,
+            transform: Transform::from_xyz(0., 0., 1.6),
+            spacing: TilemapSpacing { 
+                x: 2.,
+                y: 2.,
+            },
+            ..Default::default()
+        });
+
+    commands
+        .entity(tree_tops_map_entity)
+        .insert(TileChunk { pos: chunk_pos })
+        .insert(TilemapBundle {
+            grid_size: TilemapGridSize {
+                x: TILE_SIZE,
+                y: TILE_SIZE,
+            },
+            size: CHUNKMAP_SIZE,
+            storage: tree_tops_storage,
+            texture: TilemapTexture::Single(block_assets.tree_tops_forest.clone_weak()),
+            tile_size: TREE_TOPS_SIZE,
+            transform: Transform::from_xyz(0., 0., 1.6),
+            ..Default::default()
+        });
+
+    commands
+        .entity(chunk)
+        .push_children(
+            &[tilemap_entity, wallmap_entity, treemap_entity, tree_branches_map_entity, tree_tops_map_entity]
+        );
 }
 
 pub fn get_chunk_position_by_camera_fov(camera_fov: FRect, world_size: Size) -> URect {

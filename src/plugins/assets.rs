@@ -55,6 +55,15 @@ handles! {
 
         #[asset(path = "sprites/tiles/Tiles2.png")]
         pub tiles: Handle<Image>,
+
+        #[asset(path = "sprites/tiles/Tiles_5.png")]
+        pub trees: Handle<Image>,
+
+        #[asset(path = "sprites/tiles/Tree_Branches_0.png")]
+        pub tree_branches_forest: Handle<Image>,
+
+        #[asset(path = "sprites/tiles/Tree_Tops_0.png")]
+        pub tree_tops_forest: Handle<Image>,
     }
 }
 

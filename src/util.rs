@@ -75,12 +75,24 @@ impl TextureAtlasPos {
         Self { x, y }
     }
 
+    #[inline(always)]
     pub const fn to_block_index(self) -> u32 {
-        (self.y * 16) + self.x
+        self.to_2d_index(16)
     }
     
+    #[inline(always)]
     pub const fn to_wall_index(self) -> u32 {
-        (self.y * 13) + self.x
+        self.to_2d_index(13)
+    }
+
+    #[inline(always)]
+    pub const fn to_tree_index(self) -> u32 {
+        self.to_2d_index(64)
+    }
+
+    #[inline(always)]
+    pub const fn to_2d_index(self, width: u32) -> u32 {
+        (self.y * width) + self.x
     }
 }
 

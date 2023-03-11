@@ -22,12 +22,15 @@ pub use wall::*;
 pub use tree::*;
 pub use light::*;
 
-use crate::{state::GameState};
+use crate::state::GameState;
 use bevy::prelude::{Plugin, App};
-use bevy_ecs_tilemap::prelude::TilemapSize;
+use bevy_ecs_tilemap::prelude::{TilemapSize, TilemapTileSize};
 
 pub const TILE_SIZE: f32 = 16.;
 pub const WALL_SIZE: f32 = 32.;
+pub const TREE_SIZE: TilemapTileSize = TilemapTileSize { x: 20., y: 20. };
+pub const TREE_BRANCHES_SIZE: TilemapTileSize = TilemapTileSize { x: 50., y: 40. };
+pub const TREE_TOPS_SIZE: TilemapTileSize = TilemapTileSize { x: 88., y: 148. };
 
 const CHUNK_SIZE: f32 = 25.;
 const CHUNK_SIZE_U: u32 = CHUNK_SIZE as u32;
@@ -66,12 +69,12 @@ impl Plugin for WorldPlugin {
 }
 
 #[derive(Debug, Clone, Copy, Default)]
-pub struct Frame {
+pub struct TerrariaFrame {
     pub x: u16,
     pub y: u16
 }
 
-impl Frame {
+impl TerrariaFrame {
     pub const fn new(x: u16, y: u16) -> Self {
         Self { x, y }
     }

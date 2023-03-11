@@ -4,7 +4,7 @@ use rand::{thread_rng, Rng};
 
 use crate::util::{get_tile_start_index, TextureAtlasPos};
 
-use super::{generator::BlockId, tree::Tree, Frame};
+use super::{generator::BlockId, tree::Tree, TerrariaFrame};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum BlockType {
@@ -24,9 +24,9 @@ impl BlockType {
         }
     }
 
-    pub const fn frame(&self) -> Option<Frame> {
+    pub const fn frame(&self) -> Option<TerrariaFrame> {
         match self {
-            BlockType::Tree(tree) => Some(tree.frame),
+            BlockType::Tree(tree) => Some(tree.terraria_frame()),
             _ => None
         }
     }
@@ -45,6 +45,13 @@ impl BlockType {
             BlockType::Stone => true,
         }
     }
+
+    pub const fn is_solid(&self) -> bool {
+        match self {
+            BlockType::Tree(_) => false,
+            _ => true
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Component)]
@@ -60,7 +67,7 @@ impl Block {
     }
 
     #[inline(always)]
-    pub const fn frame(&self) -> Option<Frame> {
+    pub const fn frame(&self) -> Option<TerrariaFrame> {
         self.block_type.frame()
     }
 
@@ -72,6 +79,11 @@ impl Block {
     #[inline(always)]
     pub const fn dirt_mergable(&self) -> bool {
         self.block_type.dirt_mergable()
+    }
+
+    #[inline(always)]
+    pub const fn is_solid(&self) -> bool {
+        self.block_type.is_solid()
     }
 }
 
