@@ -58,6 +58,7 @@
     ],
 	"Items": {
 		"CopperPickaxe": "Copper Pickaxe",
+		"CopperAxe": "Copper Axe",
 		"DirtBlock": "Dirt Block",
 		"StoneBlock": "Stone Block",
 		"DirtWall": "Dirt Wall",

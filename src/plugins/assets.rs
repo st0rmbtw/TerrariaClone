@@ -13,7 +13,7 @@ use iyes_loopless::prelude::AppLooplessStateExt;
 use rand::RngCore;
 use rand::seq::SliceRandom;
 
-use crate::items::{Item, Pickaxe, Tool};
+use crate::items::{Item, Pickaxe, Tool, Axe};
 use crate::{state::GameState, util::handles};
 
 use super::world::{Wall, BlockType};
@@ -215,6 +215,9 @@ pub struct ItemAssets {
 
     #[asset(path = "sprites/items/Item_3509.png")]
     pub copper_pickaxe: Handle<Image>,
+
+    #[asset(path = "sprites/items/Item_3506.png")]
+    pub copper_axe: Handle<Image>,
 }
 
 handles! {
@@ -336,6 +339,7 @@ impl ItemAssets {
                 }
             }
             Item::Tool(Tool::Pickaxe(Pickaxe::CopperPickaxe)) => self.copper_pickaxe.clone_weak(),
+            Item::Tool(Tool::Axe(Axe::CopperAxe)) => self.copper_axe.clone_weak()
         }
     }
 }

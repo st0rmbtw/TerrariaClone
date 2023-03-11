@@ -55,49 +55,25 @@ impl TreeFrameType {
         }
     }
 
-    pub const fn texture_atlas_pos(&self, tree_type: TreeType) -> [TextureAtlasPos; 3] {
+    pub const fn texture_atlas_pos(&self, tree_type: TreeType, variant: u32) -> TextureAtlasPos {
+        assert!(variant < 3, "Variant of texture must be in range of 0 to 3");
+
         match tree_type {
             TreeType::Forest => {
                 match self {
-                    TreeFrameType::TrunkPlain => [
-                        TextureAtlasPos::new(0, 0), TextureAtlasPos::new(0, 1), TextureAtlasPos::new(0, 2)
-                    ],
-                    TreeFrameType::BasePlainLeft => [
-                        TextureAtlasPos::new(2, 6), TextureAtlasPos::new(2, 7), TextureAtlasPos::new(2, 8)
-                    ],
-                    TreeFrameType::BasePlainRight => [
-                        TextureAtlasPos::new(1, 6), TextureAtlasPos::new(1, 6), TextureAtlasPos::new(1, 6)
-                    ],
-                    TreeFrameType::BasePlainAD => [
-                        TextureAtlasPos::new(4, 6), TextureAtlasPos::new(4, 7), TextureAtlasPos::new(4, 8)
-                    ],
-                    TreeFrameType::BasePlainA => [
-                        TextureAtlasPos::new(3, 6), TextureAtlasPos::new(3, 7), TextureAtlasPos::new(3, 8)
-                    ],
-                    TreeFrameType::BasePlainD => [
-                        TextureAtlasPos::new(0, 6), TextureAtlasPos::new(0, 7), TextureAtlasPos::new(0, 8)
-                    ],
-                    TreeFrameType::BranchLeftBare => [
-                        TextureAtlasPos::new(3, 0), TextureAtlasPos::new(3, 1), TextureAtlasPos::new(3, 2)
-                    ],
-                    TreeFrameType::BranchRightBare => [
-                        TextureAtlasPos::new(4, 3), TextureAtlasPos::new(4, 4), TextureAtlasPos::new(4, 5)
-                    ],
-                    TreeFrameType::BranchLeftLeaves => [
-                        TextureAtlasPos::new(0, 0), TextureAtlasPos::new(0, 1), TextureAtlasPos::new(0, 2)
-                    ],
-                    TreeFrameType::BranchRightLeaves =>[
-                        TextureAtlasPos::new(1, 0), TextureAtlasPos::new(1, 1), TextureAtlasPos::new(1, 2)
-                    ],
-                    TreeFrameType::TopBare => [
-                        TextureAtlasPos::new(5, 0), TextureAtlasPos::new(5, 1), TextureAtlasPos::new(5, 2)
-                    ],
-                    TreeFrameType::TopLeaves => [
-                        TextureAtlasPos::new(0, 0), TextureAtlasPos::new(0, 1), TextureAtlasPos::new(0, 2)
-                    ],
-                    TreeFrameType::TopBareJagged => [
-                        TextureAtlasPos::new(0, 9), TextureAtlasPos::new(0, 10), TextureAtlasPos::new(0, 11)
-                    ]
+                    TreeFrameType::TrunkPlain => TextureAtlasPos::new(0, variant),
+                    TreeFrameType::BasePlainLeft => TextureAtlasPos::new(2, 6 + variant),
+                    TreeFrameType::BasePlainRight => TextureAtlasPos::new(1, 6 + variant),
+                    TreeFrameType::BasePlainAD => TextureAtlasPos::new(4, 6 + variant),
+                    TreeFrameType::BasePlainA => TextureAtlasPos::new(3, 6 + variant),
+                    TreeFrameType::BasePlainD => TextureAtlasPos::new(0, 6 + variant),
+                    TreeFrameType::BranchLeftBare => TextureAtlasPos::new(3, variant),
+                    TreeFrameType::BranchRightBare => TextureAtlasPos::new(4, 3 + variant),
+                    TreeFrameType::BranchLeftLeaves => TextureAtlasPos::new(0, variant),
+                    TreeFrameType::BranchRightLeaves => TextureAtlasPos::new(1, variant),
+                    TreeFrameType::TopBare => TextureAtlasPos::new(5, variant),
+                    TreeFrameType::TopLeaves => TextureAtlasPos::new(0, variant),
+                    TreeFrameType::TopBareJagged => TextureAtlasPos::new(0, 9 + variant)
                 }
             }
         }
@@ -136,10 +112,8 @@ impl Tree {
     }
     
     pub const fn texture_atlas_pos(&self) -> u32 {
-        assert!(self.variant < 3, "Frame variant must be in range of 0 to 3");
-
         self.frame_type
-            .texture_atlas_pos(self.tree_type)[self.variant]
+            .texture_atlas_pos(self.tree_type, self.variant as u32)
             .to_2d_index(self.frame_type.texture_width())
     }
 }

@@ -44,6 +44,7 @@ impl Plugin for PlayerInventoryPlugin {
             .insert_resource({
                 let mut inventory = Inventory::default();
                 inventory.add_item(Items::COPPER_PICKAXE);
+                inventory.add_item(Items::COPPER_AXE);
                 inventory.add_item(Items::DIRT_BLOCK.with_stack(999));
                 inventory.add_item(Items::STONE_BLOCK.with_stack(999));
 

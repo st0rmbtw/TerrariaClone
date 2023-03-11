@@ -2,7 +2,7 @@ use bevy::prelude::Component;
 use bevy_ecs_tilemap::helpers::square_grid::neighbors::Neighbors;
 use rand::{thread_rng, Rng};
 
-use crate::util::{get_tile_start_index, TextureAtlasPos};
+use crate::{util::{get_tile_start_index, TextureAtlasPos}, items::Tool};
 
 use super::{generator::BlockId, tree::Tree, TerrariaFrame};
 
@@ -25,7 +25,7 @@ impl BlockType {
     }
 
     pub const fn frame(&self) -> Option<TerrariaFrame> {
-        match self {
+        match &self {
             BlockType::Tree(tree) => Some(tree.terraria_frame()),
             _ => None
         }
@@ -40,14 +40,25 @@ impl BlockType {
     }
 
     pub const fn dirt_mergable(&self) -> bool {
-        match self {
+        match &self {
             BlockType::Dirt | BlockType::Grass | BlockType::Tree(_) => false,
             BlockType::Stone => true,
         }
     }
 
+    pub const fn check_required_tool(&self, tool: Tool) -> bool {
+        match &self {
+            BlockType::Tree(_) => {
+                matches!(tool, Tool::Axe(_))
+            },
+            _ => {
+                matches!(tool, Tool::Pickaxe(_))
+            }
+        }
+    }
+
     pub const fn is_solid(&self) -> bool {
-        match self {
+        match &self {
             BlockType::Tree(_) => false,
             _ => true
         }
@@ -84,6 +95,11 @@ impl Block {
     #[inline(always)]
     pub const fn is_solid(&self) -> bool {
         self.block_type.is_solid()
+    }
+
+    #[inline(always)]
+    pub const fn check_required_tool(&self, tool: Tool) -> bool {
+        self.block_type.check_required_tool(tool)
     }
 }
 

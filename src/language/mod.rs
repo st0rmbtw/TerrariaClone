@@ -3,7 +3,7 @@ use std::{io::BufReader, fs::File, error::Error};
 use bevy::prelude::Resource;
 use serde::Deserialize;
 
-use crate::{items::{Pickaxe, Tool, Item}, plugins::world::BlockType};
+use crate::{items::{Pickaxe, Tool, Item, Axe}, plugins::world::BlockType};
 
 pub enum Language {
     US
@@ -46,6 +46,7 @@ pub struct UI {
 #[serde(rename_all = "PascalCase")]
 pub struct Items {
     pub copper_pickaxe: String,
+    pub copper_axe: String,
     pub dirt_block: String,
     pub stone_block: String,
     pub dirt_wall: String,
@@ -73,6 +74,7 @@ impl LanguageContent {
     fn tool_name(&self, tool: Tool) -> String {
         match tool {
             Tool::Pickaxe(pickaxe) => self.pickaxe_name(pickaxe),
+            Tool::Axe(axe) => self.axe_name(axe),
         }
     }
 
@@ -87,6 +89,12 @@ impl LanguageContent {
             BlockType::Dirt => self.items.dirt_block.clone(),
             BlockType::Stone => self.items.stone_block.clone(),
             _ => panic!("No such item")
+        }
+    }
+
+    fn axe_name(&self, axe: Axe) -> String {
+        match axe {
+            Axe::CopperAxe => self.items.copper_axe.clone(),
         }
     }
 }

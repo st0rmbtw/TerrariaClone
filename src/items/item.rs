@@ -2,7 +2,7 @@ use bevy::{math::vec2, prelude::Vec2};
 
 use crate::plugins::world::Block;
 
-use super::{Pickaxe, Tool};
+use super::{Pickaxe, Tool, Axe};
 
 pub type ItemId = u16;
 pub type Stack = u16;
@@ -46,6 +46,11 @@ pub struct Items;
 impl Items {
     pub const COPPER_PICKAXE: ItemStack = ItemStack {
         item: Item::Tool(Tool::Pickaxe(Pickaxe::CopperPickaxe)),
+        stack: 1,
+    };
+
+    pub const COPPER_AXE: ItemStack = ItemStack {
+        item: Item::Tool(Tool::Axe(Axe::CopperAxe)),
         stack: 1,
     };
 

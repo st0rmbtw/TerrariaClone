@@ -366,11 +366,16 @@ pub fn handle_break_block_event(
             let chunk_pos = get_chunk_pos(map_tile_pos);
             let chunk_tile_pos = get_chunk_tile_pos(map_tile_pos);
 
-            if let Some((_, mut tile_storage)) = chunks.iter_mut().find(|(chunk, _)| chunk.pos == chunk_pos) {
-                if let Some(tile_entity) = tile_storage.get(&chunk_tile_pos) {
-                    commands.entity(tile_entity).despawn_recursive();
-                    tile_storage.remove(&chunk_tile_pos);
-                }
+            let filtered_chunks = chunks
+                .iter_mut()
+                .find(|(chunk, tile_storage)| {
+                    chunk.pos == chunk_pos && tile_storage.get(&chunk_tile_pos).is_some() 
+                });
+
+            if let Some((_, mut tile_storage)) = filtered_chunks {
+                let tile_entity = tile_storage.get(&chunk_tile_pos).unwrap();
+                commands.entity(tile_entity).despawn_recursive();
+                tile_storage.remove(&chunk_tile_pos);
             }
 
             update_neighbors_ew.send(UpdateNeighborsEvent { 
@@ -396,17 +401,19 @@ pub fn handle_dig_block_event(
 ) {
     let mut rng = thread_rng();
 
-    for DigBlockEvent { tile_pos, pickaxe } in dig_block_events.iter() {
+    for DigBlockEvent { tile_pos, tool } in dig_block_events.iter() {
         let map_tile_pos = TilePos { x: tile_pos.x as u32, y: tile_pos.y as u32 };
 
         if let Some(block) = world_data.get_block_mut(map_tile_pos) {
-            block.hp -= pickaxe.power();
+            if block.check_required_tool(*tool) {
+                block.hp -= tool.power();
 
-            if block.hp <= 0 {
-                break_block_events.send(BreakBlockEvent { tile_pos: *tile_pos });
+                if block.hp <= 0 {
+                    break_block_events.send(BreakBlockEvent { tile_pos: *tile_pos });
+                }
+
+                audio.play(sound_assets.get_by_block(block.block_type, &mut rng));
             }
-
-            audio.play(sound_assets.get_by_block(block.block_type, &mut rng));
         }
     }
 }
@@ -479,7 +486,7 @@ pub fn update_neighbors(
         let neighbor_positions = Neighbors::get_square_neighboring_positions(&tile_pos, &map_size, false);
 
         for pos in neighbor_positions.iter() {
-            if let Some(block) = world_data.get_block(*pos) {
+            if let Some(block) = world_data.get_solid_block(*pos) {
                 let neighbors = world_data
                     .get_block_neighbors(*pos)
                     .map_ref(|b| b.block_type);

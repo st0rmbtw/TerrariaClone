@@ -1,18 +1,18 @@
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Pickaxe {
-    CopperPickaxe
+pub enum Axe {
+    CopperAxe
 }
 
-impl Pickaxe {
+impl Axe {
     pub const fn power(&self) -> i32 {
         match self {
-            Pickaxe::CopperPickaxe => 35,
+            Axe::CopperAxe => 35,
         }
     }
 
     pub const fn cooldown(&self) -> u32 {
         match self {
-            Pickaxe::CopperPickaxe => 15,
+            Axe::CopperAxe => 21,
         }
     }
 }

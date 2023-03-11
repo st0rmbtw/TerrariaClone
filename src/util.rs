@@ -149,7 +149,7 @@ pub fn get_tile_start_index(block: BlockType) -> TextureAtlasPos {
         BlockType::Dirt => TextureAtlasPos::ZERO,
         BlockType::Stone => TextureAtlasPos::new(0, 15),
         BlockType::Grass => TextureAtlasPos::new(0, 30),
-        BlockType::Tree(_) => todo!(),
+        BlockType::Tree(_) => panic!(),
     }
 }
 

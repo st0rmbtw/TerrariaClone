@@ -1,7 +1,7 @@
 use bevy::prelude::Vec2;
 use bevy_ecs_tilemap::tiles::TilePos;
 
-use crate::items::Pickaxe;
+use crate::items::Tool;
 
 use super::{ChunkPos, Block};
 
@@ -11,7 +11,7 @@ pub struct BreakBlockEvent {
 
 pub struct DigBlockEvent {
     pub tile_pos: Vec2,
-    pub pickaxe: Pickaxe
+    pub tool: Tool
 }
 
 pub struct PlaceBlockEvent {
