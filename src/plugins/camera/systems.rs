@@ -90,9 +90,9 @@ pub fn move_camera(
 ) {
     if let Ok((mut camera_transform, projection)) = camera.get_single_mut() {
         if let Ok(player_transform) = player.get_single_mut() {
-            let projection_left = projection.area.min.x * projection.scale;
-            let projection_right = projection.area.max.x * projection.scale;
-            let projection_top = projection.area.max.y * projection.scale;
+            let projection_left = projection.area.min.x;
+            let projection_right = projection.area.max.x;
+            let projection_top = projection.area.max.y;
             
             {
                 let min = projection_left.abs() - TILE_SIZE / 2.;
@@ -161,9 +161,9 @@ pub fn move_camera(
     }
 
     if let Ok((mut camera_transform, projection)) = camera.get_single_mut() {
-        let projection_left = projection.left * projection.scale;
-        let projection_right = projection.right * projection.scale;
-        let projection_top = projection.top * projection.scale;
+        let projection_left = projection.area.min.x;
+        let projection_right = projection.area.max.x;
+        let projection_top = projection.area.max.y;
 
         {
             let velocity = move_direction.x * CAMERA_MOVE_SPEED * time.delta_seconds();

@@ -18,9 +18,9 @@ pub fn get_chunk_tile_pos(map_tile_pos: TilePos) -> TilePos {
 
 pub fn get_camera_fov(camera_pos: Vec2, projection: &OrthographicProjection) -> FRect {
     FRect {
-        left: camera_pos.x + projection.area.min.x * projection.scale,
-        right: camera_pos.x + projection.area.max.x * projection.scale,
-        top: camera_pos.y + projection.area.max.y * projection.scale,
-        bottom: camera_pos.y + projection.area.min.y * projection.scale,
+        left: camera_pos.x + projection.area.min.x,
+        right: camera_pos.x + projection.area.max.x,
+        top: camera_pos.y + projection.area.max.y,
+        bottom: camera_pos.y + projection.area.min.y,
     }
 }
