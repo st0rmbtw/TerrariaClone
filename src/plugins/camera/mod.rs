@@ -20,6 +20,7 @@ impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.add_system(setup_camera.in_schedule(OnEnter(GameState::InGame)));
         app.add_system(zoom.in_set(OnUpdate(GameState::InGame)));
+        app.add_system(control_mouse_light.in_set(OnUpdate(GameState::InGame)));
         app.add_system(
             move_camera
                 .in_base_set(CoreSet::PostUpdate)
