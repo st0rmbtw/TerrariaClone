@@ -22,13 +22,12 @@ impl Plugin for BackgroundPlugin {
             .add_exit_system(GameState::MainMenu, despawn_background)
             .add_enter_system(GameState::InGame, setup_forest_background)
             .add_exit_system(GameState::InGame, despawn_background)
-            .add_system(move_stars.run_in_state(GameState::MainMenu));
-            // .add_system(
-            //     follow_camera_system
-            //         .run_in_state(GameState::InGame)
-            //         .run_if_resource_exists::<ParallaxResource>()
-            //         .label("follow_camera")
-            // );
+            .add_system(move_stars.run_in_state(GameState::MainMenu))
+            .add_system(
+                follow_camera_system
+                    .run_in_state(GameState::InGame)
+                    .label("follow_camera")
+            );
     }
 }
 // endregion
@@ -203,44 +202,46 @@ fn setup_forest_background(
     backgrounds: Res<BackgroundAssets>,
     world_data: Res<WorldData>
 ) {
+    let cavern_layer = world_data.layer.cavern as f32 * TILE_SIZE;
+
     commands.insert_resource(ParallaxResource {
         layer_data: vec![
             LayerData {
-                speed: LayerSpeed::Bidirectional(1., 1.),
+                speed: LayerSpeed::Bidirectional(0.9, 0.6),
                 image: backgrounds.background_55.clone_weak(),
                 z: 0.4,
                 transition_factor: 1.,
-                scale: 1.5,
-                position: Vec2::NEG_Y * (world_data.layer.cavern as f32 * TILE_SIZE),
+                scale: 2.5,
+                position: Vec2::NEG_Y * cavern_layer - 100.,
                 anchor: Anchor::BottomCenter,
                 ..default()
             },
             LayerData {
-                speed: LayerSpeed::Bidirectional(0.9, 0.9),
+                speed: LayerSpeed::Bidirectional(0.6, 0.5),
                 image: backgrounds.background_114.clone_weak(),
                 z: 0.3,
                 transition_factor: 1.,
-                scale: 1.5,
-                position: Vec2::NEG_Y * (world_data.layer.cavern as f32 * TILE_SIZE - 533. / 2.),
+                scale: 2.,
+                position: Vec2::NEG_Y * cavern_layer,
                 anchor: Anchor::BottomCenter,
                 ..default()
             },
             LayerData {
-                speed: LayerSpeed::Bidirectional(0.8, 0.5),
+                speed: LayerSpeed::Bidirectional(0.4, 0.4),
                 image: backgrounds.background_93.clone_weak(),
                 z: 0.2,
                 transition_factor: 1.,
                 scale: 2.,
-                position: Vec2::NEG_Y * (world_data.layer.cavern as f32 * TILE_SIZE - 533. / 2. - 630. / 2.),
+                position: Vec2::NEG_Y * cavern_layer,
                 anchor: Anchor::BottomCenter,
                 ..default()
             },
             LayerData {
-                speed: LayerSpeed::Horizontal(1.),
+                speed: LayerSpeed::Bidirectional(1., 1.),
                 image: backgrounds.background_0.clone_weak(),
                 z: 0.0,
                 transition_factor: 1.,
-                scale: 2.,
+                scale: 1.5,
                 position: Vec2::splat(TILE_SIZE / 2.),
                 anchor: Anchor::TopCenter,
                 ..default()

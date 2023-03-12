@@ -1,3 +1,5 @@
+use std::cmp::max;
+
 use bevy::{prelude::*, window::WindowResized};
 
 mod layer;
@@ -5,8 +7,6 @@ mod layer;
 pub use layer::*;
 
 use crate::plugins::camera::MainCamera;
-
-use self::layer::LayerComponent;
 use iyes_loopless::{condition::ConditionalSystemDescriptor, prelude::*};
 
 pub struct ParallaxPlugin {
@@ -25,6 +25,7 @@ impl Plugin for ParallaxPlugin {
                 .after("follow_camera"),
         )
         .add_system(update_window_size.run_if_resource_exists::<ParallaxResource>());
+        // .add_system(update_texture_scale.run_if_resource_exists::<ParallaxResource>());
     }
 }
 
@@ -100,8 +101,24 @@ impl ParallaxResource {
 
             let texture = images.get(&layer.image).unwrap();
 
-            // Three textures always spawned
-            let mut texture_count = 3.0;
+            let y_max_index = match layer.speed {
+                LayerSpeed::Vertical(_) | LayerSpeed::Bidirectional(..) => max(
+                    (self.window_size.y / (texture.size().y * layer.scale / 2.) + 1.0) as i32,
+                    1,
+                ),
+                LayerSpeed::Horizontal(_) => 0,
+            };
+            let x_max_index = match layer.speed {
+                LayerSpeed::Horizontal(_) | LayerSpeed::Bidirectional(..) => max(
+                    (self.window_size.x / (texture.size().x * layer.scale / 2.) + 1.0) as i32,
+                    1,
+                ),
+                LayerSpeed::Vertical(_) => 0,
+            };
+            let texture_count = Vec2::new(
+                2.0 * x_max_index as f32 + 1.0,
+                2.0 * y_max_index as f32 + 1.0,
+            );
 
             // Spawn parallax layer entity
             let mut entity_commands = commands.spawn_empty();
@@ -116,57 +133,14 @@ impl ParallaxResource {
                     ..default()
                 })
                 .with_children(|parent| {
-                    // Spawn center texture
-                    parent
-                        .spawn(spritesheet_bundle.clone())
-                        .insert(LayerTextureComponent {
-                            width: texture.size().x,
-                        });
-
-                    let mut max_x = (texture.size().x / 2.0) * layer.scale;
-                    let mut adjusted_spritesheet_bundle = spritesheet_bundle.clone();
-
-                    // Spawn right texture
-                    adjusted_spritesheet_bundle.transform.translation.x += texture.size().x;
-                    max_x += texture.size().x * layer.scale;
-                    parent
-                        .spawn(adjusted_spritesheet_bundle.clone())
-                        .insert(LayerTextureComponent {
-                            width: texture.size().x,
-                        });
-
-                    // Spawn left texture
-                    parent
-                        .spawn({
-                            let mut bundle = adjusted_spritesheet_bundle.clone();
-                            bundle.transform.translation.x *= -1.0;
-                            bundle
-                        })
-                        .insert(LayerTextureComponent {
-                            width: texture.size().x,
-                        });
-
-                    // Spawn additional textures to make 2 windows length of background textures
-                    while max_x < self.window_size.x {
-                        adjusted_spritesheet_bundle.transform.translation.x += texture.size().x;
-                        max_x += texture.size().x * layer.scale;
-                        parent
-                            .spawn(adjusted_spritesheet_bundle.clone())
-                            .insert(LayerTextureComponent {
+                    for x in -x_max_index..=x_max_index {
+                        let mut adjusted_spritesheet_bundle = spritesheet_bundle.clone();
+                        adjusted_spritesheet_bundle.transform.translation.x = texture.size().x * x as f32;
+                        parent.spawn(adjusted_spritesheet_bundle).insert(
+                            LayerTextureComponent {
                                 width: texture.size().x,
-                            });
-
-                        parent
-                            .spawn({
-                                let mut bundle = adjusted_spritesheet_bundle.clone();
-                                bundle.transform.translation.x *= -1.0;
-                                bundle
-                            })
-                            .insert(LayerTextureComponent {
-                                width: texture.size().x,
-                            });
-
-                        texture_count += 2.0;
+                            },
+                        );
                     }
                 });
 
@@ -177,8 +151,9 @@ impl ParallaxResource {
                     LayerSpeed::Vertical(vy) => Vec2::new(0.0, vy),
                     LayerSpeed::Bidirectional(vx, vy) => Vec2::new(vx, vy),
                 },
-                texture_count,
+                texture_count: texture_count.x,
                 transition_factor: layer.transition_factor,
+                index: i
             });
 
             // Push parallax layer entity to layer_entities
@@ -226,13 +201,17 @@ fn parallax_animation_system(
 }
 
 pub fn follow_camera_system(
-    camera_query: Query<&Transform, (With<ParallaxCameraComponent>, With<MainCamera>)>,
+    camera_query: Query<&GlobalTransform, (With<ParallaxCameraComponent>, With<MainCamera>)>,
     mut layer_query: Query<(&mut Transform, &LayerComponent), Without<ParallaxCameraComponent>>,
+    res_parallax: Res<ParallaxResource>,
 ) {
     if let Some(camera_transform) = camera_query.iter().next() {
         for (mut layer_transform, layer) in layer_query.iter_mut() {
-            layer_transform.translation.x = camera_transform.translation.x * layer.speed.x /* * time.delta_seconds() */;
-            // layer_transform.translation.y = camera_transform.translation.y * layer.speed.y /* * time.delta_seconds() */;
+            let layer_data = &res_parallax.layer_data[layer.index];
+            let camera_translation = camera_transform.translation();
+
+            layer_transform.translation.x = camera_translation.x + (layer_data.position.x - camera_translation.x) * layer.speed.x;
+            layer_transform.translation.y = camera_translation.y + (layer_data.position.y - camera_translation.y) * layer.speed.y;
         }
     }
 }
@@ -244,35 +223,33 @@ fn update_layer_textures_system(
         (
             &GlobalTransform,
             &mut Transform,
-            &layer::LayerTextureComponent,
+            &LayerTextureComponent,
         ),
         Without<ParallaxCameraComponent>,
     >,
-    camera_query: Query<(&GlobalTransform, &OrthographicProjection), With<ParallaxCameraComponent>>,
-    windows: Res<Windows>,
+    camera_query: Query<&GlobalTransform, With<ParallaxCameraComponent>>,
+    parallax_res: Res<ParallaxResource>
 ) {
-    if let Some((camera_transform, projection)) = camera_query.iter().next() {
-        if let Some(win) = windows.get_primary() {
-            for (layer, children) in layer_query.iter() {
-                for &child in children.iter() {
-                    let (texture_gtransform, mut texture_transform, layer_texture) =
-                        texture_query.get_mut(child).unwrap();
+    if let Some(camera_transform) = camera_query.iter().next() {
+        for (layer, children) in layer_query.iter() {
+            for &child in children.iter() {
+                let (texture_gtransform, mut texture_transform, layer_texture) =
+                    texture_query.get_mut(child).unwrap();
 
-                    let texture_gtransform = texture_gtransform.compute_transform();
+                let texture_gtransform = texture_gtransform.compute_transform();
 
-                    // Move right-most texture to left side of layer when camera is approaching left-most end
-                    if camera_transform.translation().x + (projection.left * projection.scale) - texture_gtransform.translation.x + ((layer_texture.width * texture_gtransform.scale.x) / 2.0) 
-                        < -(win.width() * layer.transition_factor)
-                    {
-                        texture_transform.translation.x -=
-                            layer_texture.width * layer.texture_count;
-                    // Move left-most texture to right side of layer when camera is approaching right-most end
-                    } else if camera_transform.translation().x + (projection.right * projection.scale) - texture_gtransform.translation.x - ((layer_texture.width * texture_gtransform.scale.x) / 2.0) 
-                        > win.width() * layer.transition_factor
-                    {
-                        texture_transform.translation.x +=
-                            layer_texture.width * layer.texture_count;
-                    }
+                // Move right-most texture to left side of layer when camera is approaching left-most end
+                if camera_transform.translation().x - texture_gtransform.translation.x
+                    + ((layer_texture.width * texture_gtransform.scale.x) / 2.0) 
+                    < -(parallax_res.window_size.x * layer.transition_factor)
+                {
+                    texture_transform.translation.x -= layer_texture.width * layer.texture_count;
+                // Move left-most texture to right side of layer when camera is approaching right-most end
+                } else if camera_transform.translation().x - texture_gtransform.translation.x
+                    - ((layer_texture.width * texture_gtransform.scale.x) / 2.0)
+                    > parallax_res.window_size.x * layer.transition_factor
+                {
+                    texture_transform.translation.x += layer_texture.width * layer.texture_count;
                 }
             }
         }
@@ -304,3 +281,17 @@ fn update_window_size(
         }
     }
 }
+
+// fn update_texture_scale(
+//     camera_query: Query<&OrthographicProjection, With<MainCamera>>,
+//     mut layer_query: Query<(&mut Transform), With<LayerComponent>>,
+// ) {
+//     let proj = camera_query.single();
+
+//     for (mut transform) in &mut layer_query {
+//         // transform.scale = Vec3::splat(proj.scale);
+
+//         transform.scale.x = proj.scale;
+//         transform.scale.y = proj.scale;
+//     }
+// }
