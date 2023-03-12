@@ -4,22 +4,10 @@ use bevy_ecs_tilemap::{tiles::TilePos, helpers::square_grid::neighbors::{Neighbo
 use super::{generator::{BlockArray, WallArray}, block::Block, wall::Wall};
 
 #[derive(Clone, Copy)]
-pub struct Level {
-    pub from: usize,
-    pub to: usize
-}
-
-impl Level {
-    pub const fn new(from: usize, to: usize) -> Self {
-        Self { from, to }
-    }
-}
-
-#[derive(Clone, Copy)]
 pub struct Layer {
-    pub sky: Level,
-    pub dirt: Level,
-    pub stone: Level,
+    pub surface: usize,
+    pub underground: usize,
+    pub cavern: usize,
 }
 
 

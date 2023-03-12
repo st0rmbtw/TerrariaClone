@@ -5,7 +5,7 @@ use simdnoise::NoiseBuilder;
 
 use super::{DIRT_HILL_HEIGHT, STONE_HILL_HEIGHT};
 use super::block::{Block, BlockType};
-use super::world::{Layer, Level};
+use super::world::Layer;
 
 use super::Wall;
 use super::tree::{TreeType, TreeFrameType, tree};
@@ -26,9 +26,9 @@ pub fn generate(seed: u32, world_size: WorldSize) -> WorldData {
     let walls = WallArray::default((world_size.height, world_size.width));
 
     let layer = Layer {
-        sky: Level::new(0, world_size.height / 5),
-        dirt: Level::new(world_size.height / 5, world_size.height / 3),
-        stone: Level::new(world_size.height / 3, world_size.height),
+        surface: 0,
+        underground: world_size.height / 5,
+        cavern: world_size.height / 4,
     };
 
 
@@ -67,7 +67,7 @@ pub fn generate(seed: u32, world_size: WorldSize) -> WorldData {
 pub fn set_spawn_point(world: &mut WorldData) {
     let x = world.size.width / 2;
     
-    let mut y = world.layer.dirt.from - DIRT_HILL_HEIGHT as usize;
+    let mut y = world.layer.underground - DIRT_HILL_HEIGHT as usize;
 
     loop {
         if world.blocks.get((y, x)).and_then(|b| *b).is_some() {
@@ -84,15 +84,15 @@ fn spawn_terrain(world: &mut WorldData) {
     println!("Generating terrain...");
 
     for ((y, _), block) in world.blocks.indexed_iter_mut() {
-        if y >= world.layer.sky.from {
+        if y >= world.layer.surface {
             *block = None;
         }
 
-        if y >= world.layer.dirt.from {
+        if y >= world.layer.underground {
             *block = Some(Block::Dirt);
         }
 
-        if y >= world.layer.stone.from {
+        if y >= world.layer.cavern {
             *block = Some(Block::Stone);
         }
     }
@@ -145,16 +145,16 @@ fn make_hills(world: &mut WorldData, seed: u32) {
     }
 
     // Dirt level
-    make_surface_rough(&mut world.blocks, &mut rng, world.layer.dirt.from, None, Some(Block::Dirt), DIRT_HILL_HEIGHT);
+    make_surface_rough(&mut world.blocks, &mut rng, world.layer.underground, None, Some(Block::Dirt), DIRT_HILL_HEIGHT);
 
     // Stone level
-    make_surface_rough(&mut world.blocks, &mut rng, world.layer.stone.from, Some(Block::Dirt), Some(Block::Stone), STONE_HILL_HEIGHT);
+    make_surface_rough(&mut world.blocks, &mut rng, world.layer.cavern, Some(Block::Dirt), Some(Block::Stone), STONE_HILL_HEIGHT);
 }
 
 fn generate_walls(world: &mut WorldData) {
     println!("Generating walls...");
 
-    let dirt_level = world.layer.dirt.from - DIRT_HILL_HEIGHT as usize;
+    let dirt_level = world.layer.underground - DIRT_HILL_HEIGHT as usize;
 
     for ((y, x), wall) in world.walls.slice_mut(s![dirt_level.., ..]).indexed_iter_mut() {
         if y < dirt_level && world.blocks[(dirt_level + y, x)].is_none() {
@@ -204,7 +204,7 @@ fn generate_walls(world: &mut WorldData) {
 fn generate_rocks_in_dirt(world: &mut WorldData, seed: u32) {
     println!("Generating rocks in dirt...");
 
-    let stone_level = world.layer.stone.from + STONE_HILL_HEIGHT as usize;
+    let stone_level = world.layer.cavern + STONE_HILL_HEIGHT as usize;
 
     let noise = NoiseBuilder::fbm_2d(world.size.width, world.size.height - stone_level)
         .with_seed(seed as i32)
@@ -247,7 +247,7 @@ fn generate_rocks_in_dirt(world: &mut WorldData, seed: u32) {
 fn generate_dirt_in_rocks(world: &mut WorldData, seed: u32) {
     println!("Generating dirt in rocks...");
 
-    let stone_level = world.layer.stone.from;
+    let stone_level = world.layer.cavern;
 
     let noise = NoiseBuilder::fbm_2d(world.size.width, world.size.height - stone_level)
         .with_seed(seed as i32)
@@ -272,7 +272,7 @@ fn generate_dirt_in_rocks(world: &mut WorldData, seed: u32) {
 fn generate_small_caves(world: &mut WorldData, seed: u32) {
     println!("Generating small caves...");
 
-    let dirt_level = world.layer.dirt.from;
+    let dirt_level = world.layer.underground;
 
     let mut rng = StdRng::seed_from_u64(seed as u64);
 
@@ -297,7 +297,7 @@ fn generate_small_caves(world: &mut WorldData, seed: u32) {
 fn generate_big_caves(world: &mut WorldData, seed: u32) {
     println!("Generating big caves...");
 
-    let dirt_level = world.layer.dirt.from + DIRT_HILL_HEIGHT as usize;
+    let dirt_level = world.layer.underground + DIRT_HILL_HEIGHT as usize;
 
     let mut rng = StdRng::seed_from_u64(seed as u64);
 
@@ -502,7 +502,7 @@ fn grow_trees(world: &mut WorldData, seed: u32) {
 }
 
 fn get_surface_y(world: &mut WorldData, x: usize) -> usize {
-    let mut y = world.layer.dirt.from - DIRT_HILL_HEIGHT as usize;
+    let mut y = world.layer.underground - DIRT_HILL_HEIGHT as usize;
 
     loop {
         if world.blocks[(y, x)].is_some() {

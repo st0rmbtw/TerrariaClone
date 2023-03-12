@@ -4,6 +4,8 @@ mod layer;
 
 pub use layer::*;
 
+use crate::plugins::camera::MainCamera;
+
 use self::layer::LayerComponent;
 use iyes_loopless::{condition::ConditionalSystemDescriptor, prelude::*};
 
@@ -89,6 +91,7 @@ impl ParallaxResource {
             let spritesheet_bundle = SpriteBundle {
                 sprite: Sprite {
                     custom_size: if layer.fill_screen_height { Some(Vec2::new(texture.size().x, self.window_size.y)) } else { None },
+                    anchor: layer.anchor.clone(),
                     ..default()
                 },
                 texture: layer.image.clone(),
@@ -169,7 +172,11 @@ impl ParallaxResource {
 
             // Add layer component to entity
             entity_commands.insert(LayerComponent {
-                speed: layer.speed,
+                speed: match layer.speed {
+                    LayerSpeed::Horizontal(vx) => Vec2::new(vx, 0.0),
+                    LayerSpeed::Vertical(vy) => Vec2::new(0.0, vy),
+                    LayerSpeed::Bidirectional(vx, vy) => Vec2::new(vx, vy),
+                },
                 texture_count,
                 transition_factor: layer.transition_factor,
             });
@@ -186,7 +193,7 @@ pub struct ParallaxCameraComponent;
 
 #[inline(always)]
 pub fn move_background_system() -> ConditionalSystemDescriptor {
-    follow_camera_system
+    parallax_animation_system
         .run_if_resource_exists::<ParallaxResource>()
         .label("follow_camera")
 }
@@ -204,7 +211,7 @@ fn initialize_parallax_system(
 }
 
 /// Move camera and background layers
-fn follow_camera_system(
+fn parallax_animation_system(
     time: Res<Time>,
     mut camera_query: Query<&mut Transform, With<ParallaxCameraComponent>>,
     mut layer_query: Query<(&mut Transform, &LayerComponent), Without<ParallaxCameraComponent>>,
@@ -213,8 +220,19 @@ fn follow_camera_system(
     if let Some(mut camera_transform) = camera_query.iter_mut().next() {
         camera_transform.translation.x += parallax_speed.speed * time.delta_seconds();
         for (mut layer_transform, layer) in layer_query.iter_mut() {
-            layer_transform.translation.x +=
-                parallax_speed.speed * layer.speed * time.delta_seconds();
+            layer_transform.translation.x += parallax_speed.speed * layer.speed.x * time.delta_seconds();
+        }
+    }
+}
+
+pub fn follow_camera_system(
+    camera_query: Query<&Transform, (With<ParallaxCameraComponent>, With<MainCamera>)>,
+    mut layer_query: Query<(&mut Transform, &LayerComponent), Without<ParallaxCameraComponent>>,
+) {
+    if let Some(camera_transform) = camera_query.iter().next() {
+        for (mut layer_transform, layer) in layer_query.iter_mut() {
+            layer_transform.translation.x = camera_transform.translation.x * layer.speed.x /* * time.delta_seconds() */;
+            // layer_transform.translation.y = camera_transform.translation.y * layer.speed.y /* * time.delta_seconds() */;
         }
     }
 }
@@ -243,18 +261,13 @@ fn update_layer_textures_system(
                     let texture_gtransform = texture_gtransform.compute_transform();
 
                     // Move right-most texture to left side of layer when camera is approaching left-most end
-                    if camera_transform.translation().x + (projection.left/* * projection.scale */)
-                        - texture_gtransform.translation.x
-                        + ((layer_texture.width * texture_gtransform.scale.x) / 2.0)
+                    if camera_transform.translation().x + (projection.left * projection.scale) - texture_gtransform.translation.x + ((layer_texture.width * texture_gtransform.scale.x) / 2.0) 
                         < -(win.width() * layer.transition_factor)
                     {
                         texture_transform.translation.x -=
                             layer_texture.width * layer.texture_count;
                     // Move left-most texture to right side of layer when camera is approaching right-most end
-                    } else if camera_transform.translation().x
-                        + (projection.right/* * projection.scale */)
-                        - texture_gtransform.translation.x
-                        - ((layer_texture.width * texture_gtransform.scale.x) / 2.0)
+                    } else if camera_transform.translation().x + (projection.right * projection.scale) - texture_gtransform.translation.x - ((layer_texture.width * texture_gtransform.scale.x) / 2.0) 
                         > win.width() * layer.transition_factor
                     {
                         texture_transform.translation.x +=

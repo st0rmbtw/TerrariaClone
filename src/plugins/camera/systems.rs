@@ -128,11 +128,10 @@ pub fn control_mouse_light(
 
 #[cfg(feature = "free_camera")]
 pub fn move_camera(
-    mut camera: Query<&mut GlobalTransform, With<MainCamera>>,
-    input: Res<bevy::prelude::Input<KeyCode>>
+    mut camera: Query<(&mut GlobalTransform, &OrthographicProjection), With<MainCamera>>,
+    input: Res<bevy::prelude::Input<KeyCode>>,
+    world_data: Res<WorldData>
 ) {
-    use bevy::prelude::Vec2;
-
     const CAMERA_MOVE_SPEED: f32 = 15.;
 
     let mut move_direction = Vec2::new(0., 0.);
@@ -153,8 +152,22 @@ pub fn move_camera(
         move_direction.y = -1.;
     }
 
-    if let Ok(mut camera_transform) = camera.get_single_mut() {
-        camera_transform.translation_mut().x += move_direction.x * CAMERA_MOVE_SPEED;
-        camera_transform.translation_mut().y += move_direction.y * CAMERA_MOVE_SPEED;
+    if let Ok((mut camera_transform, projection)) = camera.get_single_mut() {
+        let projection_left = projection.left * projection.scale;
+        let projection_right = projection.right * projection.scale;
+        let projection_top = projection.top * projection.scale;
+
+        {
+            let new_position = camera_transform.translation_mut().x + move_direction.x * CAMERA_MOVE_SPEED;
+            let min = projection_left.abs() - TILE_SIZE / 2.;
+            let max = (world_data.size.width as f32 * 16.) - projection_right - TILE_SIZE / 2.;
+            camera_transform.translation_mut().x = new_position.clamp(min, max);
+        }
+        {
+            let new_position = camera_transform.translation_mut().y + move_direction.y * CAMERA_MOVE_SPEED;
+            let max = -(projection_top - TILE_SIZE / 2.);
+            let min = -((world_data.size.height as f32 * 16.) + projection_top + TILE_SIZE / 2.);
+            camera_transform.translation_mut().y = new_position.clamp(min, max);
+        }
     }
 }

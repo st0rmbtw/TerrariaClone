@@ -34,7 +34,8 @@ impl Plugin for AssetsPlugin {
                 .with_collection::<BackgroundAssets>()
                 .with_collection::<WallAssets>()
                 .with_collection::<SoundAssets>()
-                .with_collection::<ShaderAssets>(),
+                .with_collection::<ShaderAssets>()
+                .with_collection::<CelestialBodyAssets>(),
         )
         .add_exit_system(GameState::AssetLoading, setup);
     }
@@ -232,48 +233,69 @@ handles! {
     }
 }
 
-#[derive(Resource, AssetCollection)]
-pub struct BackgroundAssets {
-    #[asset(path = "sprites/backgrounds/Background_0.png")]
-    pub background_0: Handle<Image>,
+handles! {
+    Handle<Image>,
+    #[derive(Resource, AssetCollection)]
+    pub struct BackgroundAssets {
+        #[asset(path = "sprites/backgrounds/Background_0.png")]
+        pub background_0: Handle<Image>,
 
-    #[asset(path = "sprites/backgrounds/Background_7.png")]
-    pub background_7: Handle<Image>,
+        #[asset(path = "sprites/backgrounds/Background_7.png")]
+        pub background_7: Handle<Image>,
 
-    #[asset(path = "sprites/backgrounds/Background_90.png")]
-    pub background_90: Handle<Image>,
+        #[asset(path = "sprites/backgrounds/Background_74.png")]
+        pub background_74: Handle<Image>,
 
-    #[asset(path = "sprites/backgrounds/Background_91.png")]
-    pub background_91: Handle<Image>,
+        #[asset(path = "sprites/backgrounds/Background_55.png")]
+        pub background_55: Handle<Image>,
 
-    #[asset(path = "sprites/backgrounds/Background_92.png")]
-    pub background_92: Handle<Image>,
+        #[asset(path = "sprites/backgrounds/Background_90.png")]
+        pub background_90: Handle<Image>,
 
-    #[asset(path = "sprites/backgrounds/Background_112.png")]
-    pub background_112: Handle<Image>,
+        #[asset(path = "sprites/backgrounds/Background_91.png")]
+        pub background_91: Handle<Image>,
 
-    #[asset(texture_atlas(tile_size_x = 114., tile_size_y = 114., columns = 1, rows = 1, padding_x = 0., padding_y = 0.))]
-    #[asset(path = "sprites/backgrounds/Sun.png")]
-    pub sun: Handle<TextureAtlas>,
+        #[asset(path = "sprites/backgrounds/Background_92.png")]
+        pub background_92: Handle<Image>,
 
-    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 7, padding_x = 0., padding_y = 0.))]
-    #[asset(path = "sprites/backgrounds/Moon_0.png")]
-    pub moon_0: Handle<TextureAtlas>,
+        #[asset(path = "sprites/backgrounds/Background_93.png")]
+        pub background_93: Handle<Image>,
 
-    #[asset(path = "sprites/backgrounds/Star_0.png")]
-    pub star_0: Handle<Image>,
+        #[asset(path = "sprites/backgrounds/Background_112.png")]
+        pub background_112: Handle<Image>,
 
-    #[asset(path = "sprites/backgrounds/Star_1.png")]
-    pub star_1: Handle<Image>,
+        #[asset(path = "sprites/backgrounds/Background_114.png")]
+        pub background_114: Handle<Image>,
 
-    #[asset(path = "sprites/backgrounds/Star_2.png")]
-    pub star_2: Handle<Image>,
+        #[asset(path = "sprites/backgrounds/Star_0.png")]
+        pub star_0: Handle<Image>,
 
-    #[asset(path = "sprites/backgrounds/Star_3.png")]
-    pub star_3: Handle<Image>,
+        #[asset(path = "sprites/backgrounds/Star_1.png")]
+        pub star_1: Handle<Image>,
 
-    #[asset(path = "sprites/backgrounds/Star_4.png")]
-    pub star_4: Handle<Image>,
+        #[asset(path = "sprites/backgrounds/Star_2.png")]
+        pub star_2: Handle<Image>,
+
+        #[asset(path = "sprites/backgrounds/Star_3.png")]
+        pub star_3: Handle<Image>,
+
+        #[asset(path = "sprites/backgrounds/Star_4.png")]
+        pub star_4: Handle<Image>,
+    }
+}
+
+handles! {
+    Handle<TextureAtlas>,
+    #[derive(Resource, AssetCollection)]
+    pub struct CelestialBodyAssets {
+        #[asset(texture_atlas(tile_size_x = 114., tile_size_y = 114., columns = 1, rows = 1, padding_x = 0., padding_y = 0.))]
+        #[asset(path = "sprites/backgrounds/Sun.png")]
+        pub sun: Handle<TextureAtlas>,
+
+        #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 7, padding_x = 0., padding_y = 0.))]
+        #[asset(path = "sprites/backgrounds/Moon_0.png")]
+        pub moon_0: Handle<TextureAtlas>,
+    }
 }
 
 handles! {
@@ -368,9 +390,11 @@ fn setup(
     mut images: ResMut<Assets<Image>>,
     ui_assets: Res<UiAssets>,
     cursor_assets: Res<CursorAssets>,
+    background_assets: Res<BackgroundAssets>,
 ) {
     let mut handles = ui_assets.handles();
     handles.append(&mut cursor_assets.handles());
+    handles.append(&mut background_assets.handles());
 
     for handle in handles.iter() {
         let mut image = images.get_mut(handle).unwrap();

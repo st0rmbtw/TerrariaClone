@@ -57,7 +57,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 ..default()
             })
             .set(LogPlugin {
-                level: Level::WARN,
+                level: Level::ERROR,
                 filter: "game=debug".to_string(),
             })
             .set(ImagePlugin::default_nearest())
@@ -67,11 +67,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         })
         .insert_resource(language_content.clone())
         .insert_resource(Msaa { samples: 1 })
-        .insert_resource(ClearColor(Color::rgb(
-            110. / 255.,
-            151. / 255.,
-            244. / 255.,
-        )))
+        .insert_resource(ClearColor(Color::BLACK))
         .add_loopless_state(GameState::AssetLoading)
         .add_loopless_state(SettingsMenuState::None)
         .add_fixed_timestep(Duration::from_secs_f32(1. / 60.), "fixed_update")

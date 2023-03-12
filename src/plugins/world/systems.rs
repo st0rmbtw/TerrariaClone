@@ -369,7 +369,7 @@ pub fn handle_break_block_event(
             let filtered_chunks = chunks
                 .iter_mut()
                 .find(|(chunk, tile_storage)| {
-                    chunk.pos == chunk_pos && tile_storage.get(&chunk_tile_pos).is_some() 
+                    chunk.pos == chunk_pos && tile_storage.get(&chunk_tile_pos).is_some()
                 });
 
             if let Some((_, mut tile_storage)) = filtered_chunks {
@@ -496,11 +496,17 @@ pub fn update_neighbors(
                 let chunk_pos = get_chunk_pos(*pos);
                 let chunk_tile_pos = get_chunk_tile_pos(*pos);
 
-                if let Some((_, tile_storage)) = chunks.iter().find(|(chunk, _)| chunk.pos == chunk_pos) {
-                    if let Some(entity) = tile_storage.get(&chunk_tile_pos) {
-                        if let Ok(mut tile_texture) = tiles.get_mut(entity) {
-                            tile_texture.0 = index;   
-                        }
+                let filtered_chunks = chunks
+                    .iter()
+                    .find(|(chunk, tile_storage)| { 
+                        chunk.pos == chunk_pos && tile_storage.get(&chunk_tile_pos).is_some()
+                    });
+
+                if let Some((_, tile_storage)) = filtered_chunks {
+                    let entity = tile_storage.get(&chunk_tile_pos).unwrap();
+                    
+                    if let Ok(mut tile_texture) = tiles.get_mut(entity) {
+                        tile_texture.0 = index;   
                     }
                 }
             }

@@ -1,11 +1,11 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, IntoSystemDescriptor, Local, Input, MouseButton, Color, Vec4}, sprite::{SpriteSheetBundle, TextureAtlasSprite, TextureAtlas, Sprite}, window::Windows};
+use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, IntoSystemDescriptor, Local, Input, MouseButton, Color, Vec4}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas}, window::Windows};
 use interpolation::Lerp;
 use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet};
 
-use crate::{plugins::{assets::BackgroundAssets, camera::MainCamera, cursor::CursorPosition, background::Star}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystem, AnimatorState}, state::GameState, util::{screen_to_world, map_range_f32}, rect::FRect, parallax::LayerTextureComponent};
+use crate::{plugins::{assets::{CelestialBodyAssets}, camera::MainCamera, cursor::CursorPosition, background::Star}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystem, AnimatorState}, state::GameState, util::{screen_to_world, map_range_f32}, rect::FRect, parallax::LayerTextureComponent};
 
 pub(super) struct CelestialBodyPlugin;
 
@@ -57,7 +57,7 @@ const SUNSET_THRESHOLD: f32 = 0.8;
 #[autodefault(except(CelestialBodyPositionLens))]
 fn setup(
     mut commands: Commands,
-    background_assets: Res<BackgroundAssets>
+    celestial_body_assets: Res<CelestialBodyAssets>
 ) {
     let celestial_body_animation = Tween::new(
         EaseMethod::Linear,
@@ -76,7 +76,7 @@ fn setup(
             sprite: TextureAtlasSprite {
                 index: 0
             },
-            texture_atlas: background_assets.sun.clone_weak(),
+            texture_atlas: celestial_body_assets.sun.clone_weak(),
             transform: Transform::IDENTITY,
         },
         Animator::new(celestial_body_animation),
@@ -190,18 +190,18 @@ fn drag_celestial_body(
 
 fn update_celestial_type(
     time_type: Res<TimeType>,
-    background_assets: Res<BackgroundAssets>,
+    celestial_body_assets: Res<CelestialBodyAssets>,
     mut query: Query<&mut Handle<TextureAtlas>, With<CelestialBody>>,
 ) {
     if time_type.is_changed() {
         match *time_type {
             TimeType::Day => {
                 let mut sprite = query.single_mut();
-                *sprite = background_assets.sun.clone_weak();
+                *sprite = celestial_body_assets.sun.clone_weak();
             },
             TimeType::Night => {
                 let mut sprite = query.single_mut();
-                *sprite = background_assets.moon_0.clone_weak();
+                *sprite = celestial_body_assets.moon_0.clone_weak();
             },
         }
     }

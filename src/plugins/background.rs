@@ -1,15 +1,15 @@
 use crate::{
-    parallax::{LayerData, ParallaxResource},
+    parallax::{LayerData, ParallaxResource, LayerSpeed, follow_camera_system},
     state::GameState, util::screen_to_world,
 };
 use bevy::{
     prelude::{default, App, Commands, Plugin, Res, ResMut, Vec2, Transform, Component, Query, Camera, GlobalTransform, With},
-    window::Windows, sprite::SpriteBundle,
+    window::Windows, sprite::{SpriteBundle, Anchor},
 };
 use iyes_loopless::prelude::*;
 use rand::{thread_rng, Rng, seq::SliceRandom};
 
-use super::{assets::BackgroundAssets, camera::MainCamera};
+use super::{assets::BackgroundAssets, camera::MainCamera, world::{WorldData, TILE_SIZE}};
 
 // region: Plugin
 pub struct BackgroundPlugin;
@@ -18,10 +18,17 @@ impl Plugin for BackgroundPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_enter_system(GameState::MainMenu, setup_main_menu_background)
-            .add_enter_system(GameState::InGame, despawn_background)
-            .add_exit_system(GameState::InGame, despawn_background)
             .add_enter_system(GameState::MainMenu, spawn_stars)
+            .add_exit_system(GameState::MainMenu, despawn_background)
+            .add_enter_system(GameState::InGame, setup_forest_background)
+            .add_exit_system(GameState::InGame, despawn_background)
             .add_system(move_stars.run_in_state(GameState::MainMenu));
+            // .add_system(
+            //     follow_camera_system
+            //         .run_in_state(GameState::InGame)
+            //         .run_if_resource_exists::<ParallaxResource>()
+            //         .label("follow_camera")
+            // );
     }
 }
 // endregion
@@ -91,11 +98,11 @@ fn move_stars(
 // region: Main menu background
 
 fn setup_main_menu_background(
-    wnds: Res<Windows>,
+    windows: Res<Windows>,
     mut commands: Commands,
     backgrounds: Res<BackgroundAssets>,
 ) {
-    let window = wnds.get_primary().unwrap();
+    let window = windows.get_primary().unwrap();
 
     // 600 is the background image height
     let height = window.height() - 600.;
@@ -103,7 +110,7 @@ fn setup_main_menu_background(
     commands.insert_resource(ParallaxResource {
         layer_data: vec![
             LayerData {
-                speed: 1.,
+                speed: LayerSpeed::Horizontal(1.),
                 scale: 1.,
                 z: 0.0,
                 image: backgrounds.background_0.clone(),
@@ -112,7 +119,7 @@ fn setup_main_menu_background(
                 ..default()
             },
             LayerData {
-                speed: 0.9,
+                speed: LayerSpeed::Horizontal(0.9),
                 image: backgrounds.background_112.clone_weak(),
                 z: 0.0,
                 transition_factor: 1.,
@@ -121,7 +128,7 @@ fn setup_main_menu_background(
                 ..default()
             },
             LayerData {
-                speed: 0.9,
+                speed: LayerSpeed::Horizontal(0.9),
                 image: backgrounds.background_7.clone_weak(),
                 z: 0.1,
                 transition_factor: 1.,
@@ -130,7 +137,7 @@ fn setup_main_menu_background(
                 ..default()
             },
             LayerData {
-                speed: 0.8,
+                speed: LayerSpeed::Horizontal(0.8),
                 image: backgrounds.background_90.clone_weak(),
                 z: 1.0,
                 transition_factor: 1.,
@@ -139,7 +146,7 @@ fn setup_main_menu_background(
                 ..default()
             },
             LayerData {
-                speed: 0.7,
+                speed: LayerSpeed::Horizontal(0.7),
                 image: backgrounds.background_91.clone_weak(),
                 z: 2.0,
                 transition_factor: 1.,
@@ -148,7 +155,7 @@ fn setup_main_menu_background(
                 ..default()
             },
             LayerData {
-                speed: 0.6,
+                speed: LayerSpeed::Horizontal(0.6),
                 image: backgrounds.background_92.clone_weak(),
                 z: 3.0,
                 transition_factor: 1.,
@@ -157,12 +164,85 @@ fn setup_main_menu_background(
                 ..default()
             },
             LayerData {
-                speed: 0.7,
+                speed: LayerSpeed::Horizontal(0.7),
                 image: backgrounds.background_112.clone_weak(),
                 z: 4.0,
                 transition_factor: 1.,
                 scale: 1.2,
                 position: Vec2::NEG_Y * height + 200.,
+                ..default()
+            },
+        ],
+        ..default()
+    });
+}
+
+// fn setup_ingame_background(
+//     mut commands: Commands,
+//     backgrounds: Res<BackgroundAssets>,
+//     world_data: Res<WorldData>
+// ) {
+//     let underground_level = world_data.layer.underground as f32 * TILE_SIZE;
+//     let cavern_level = world_data.layer.cavern as f32 * TILE_SIZE;
+
+//     let tiles_count = (cavern_level - underground_level) / 96.;
+
+//     let layer_entity = commands.spawn_empty();
+
+//     for y in 0..tiles_count as i32 {
+//         layer_entity.insert(SpriteBundle {
+//             transform: Transform::from_translation(),
+//             texture: backgrounds.background_74.clone_weak(),
+//             ..default()
+//         })
+//     }
+// }
+
+fn setup_forest_background(
+    mut commands: Commands,
+    backgrounds: Res<BackgroundAssets>,
+    world_data: Res<WorldData>
+) {
+    commands.insert_resource(ParallaxResource {
+        layer_data: vec![
+            LayerData {
+                speed: LayerSpeed::Bidirectional(1., 1.),
+                image: backgrounds.background_55.clone_weak(),
+                z: 0.4,
+                transition_factor: 1.,
+                scale: 1.5,
+                position: Vec2::NEG_Y * (world_data.layer.cavern as f32 * TILE_SIZE),
+                anchor: Anchor::BottomCenter,
+                ..default()
+            },
+            LayerData {
+                speed: LayerSpeed::Bidirectional(0.9, 0.9),
+                image: backgrounds.background_114.clone_weak(),
+                z: 0.3,
+                transition_factor: 1.,
+                scale: 1.5,
+                position: Vec2::NEG_Y * (world_data.layer.cavern as f32 * TILE_SIZE - 533. / 2.),
+                anchor: Anchor::BottomCenter,
+                ..default()
+            },
+            LayerData {
+                speed: LayerSpeed::Bidirectional(0.8, 0.5),
+                image: backgrounds.background_93.clone_weak(),
+                z: 0.2,
+                transition_factor: 1.,
+                scale: 2.,
+                position: Vec2::NEG_Y * (world_data.layer.cavern as f32 * TILE_SIZE - 533. / 2. - 630. / 2.),
+                anchor: Anchor::BottomCenter,
+                ..default()
+            },
+            LayerData {
+                speed: LayerSpeed::Horizontal(1.),
+                image: backgrounds.background_0.clone_weak(),
+                z: 0.0,
+                transition_factor: 1.,
+                scale: 2.,
+                position: Vec2::splat(TILE_SIZE / 2.),
+                anchor: Anchor::TopCenter,
                 ..default()
             },
         ],

@@ -1,10 +1,20 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, sprite::Anchor};
+
+/// Layer speed type.
+/// Layers with horizontal or vertical speed are only able to travel in one direction,
+/// while bidirectional layers can be scrolled endlessly in both directions.
+#[derive(Debug)]
+pub enum LayerSpeed {
+    Horizontal(f32),
+    Vertical(f32),
+    Bidirectional(f32, f32),
+}
 
 /// Layer initialization data
 #[derive(Debug)]
 pub struct LayerData {
     /// Relative speed of layer to the camera movement
-    pub speed: f32,
+    pub speed: LayerSpeed,
 
     pub image: Handle<Image>,
     /// Scale of the texture
@@ -16,19 +26,22 @@ pub struct LayerData {
     /// Number used to determine when textures are moved to opposite side of camera
     pub transition_factor: f32,
 
+    pub anchor: Anchor,
+
     pub fill_screen_height: bool
 }
 
 impl Default for LayerData {
     fn default() -> Self {
         Self {
-            speed: 1.0,
+            speed: LayerSpeed::Horizontal(1.),
             image: Handle::default(),
             scale: 1.0,
             z: 0.0,
             position: Vec2::ZERO,
             transition_factor: 1.2,
-            fill_screen_height: false
+            fill_screen_height: false,
+            anchor: Anchor::default()
         }
     }
 }
@@ -37,7 +50,7 @@ impl Default for LayerData {
 #[derive(Component)]
 pub struct LayerComponent {
     /// Relative speed of layer to the camera movement
-    pub speed: f32,
+    pub speed: Vec2,
     /// Number of textures in the layer
     pub texture_count: f32,
     /// Number used to determine when textures are moved to opposite side of camera
