@@ -1,6 +1,6 @@
 use std::cmp::max;
 
-use bevy::{prelude::*, window::WindowResized};
+use bevy::{prelude::*, window::{WindowResized, PrimaryWindow}};
 
 mod layer;
 
@@ -184,7 +184,7 @@ pub fn move_background_system() -> impl IntoSystemConfig<()> {
 /// Initialize the parallax resource
 fn initialize_parallax_system(
     mut commands: Commands,
-    query_window: Query<&Window>,
+    query_window: Query<&Window, With<PrimaryWindow>>,
     images: Res<Assets<Image>>,
     mut parallax_res: ResMut<ParallaxResource>,
 ) {

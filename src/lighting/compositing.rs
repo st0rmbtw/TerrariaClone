@@ -13,7 +13,7 @@ use bevy::{
         view::RenderLayers,
     },
     sprite::{Material2d, MaterialMesh2dBundle},
-    window::{WindowResized},
+    window::{WindowResized, PrimaryWindow},
 };
 
 use crate::{
@@ -68,14 +68,14 @@ pub struct LightMapCamera;
 
 /// Update image size to fit window
 pub fn update_image_to_window_size(
-    query_windows: Query<&Window>,
+    query_windows: Query<&Window, With<PrimaryWindow>>,
     mut images: ResMut<Assets<Image>>,
     mut resize_events: EventReader<WindowResized>,
     fit_to_window_size: Query<&FitToWindowSize>,
 ) {
-    for resize_event in resize_events.iter() {
+    for _ in resize_events.iter() {
         for fit_to_window in fit_to_window_size.iter() {
-            let window = query_windows.single();
+            let window = query_windows.get_single().expect("No primary window");
 
             let size = {
                 Extent3d {
@@ -163,7 +163,7 @@ pub fn update_light_map(
 
 pub fn setup_post_processing_camera(
     mut commands: Commands,
-    query_windows: Query<&Window>,
+    query_windows: Query<&Window, With<PrimaryWindow>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut shadow_map_meterials: ResMut<Assets<PostProcessingMaterial>>,
     mut images: ResMut<Assets<Image>>,
@@ -178,7 +178,7 @@ pub fn setup_post_processing_camera(
 
         // Get the size the camera is rendering to
         let size = match &camera.target {
-            RenderTarget::Window(window_id) => {
+            RenderTarget::Window(_) => {
                 Extent3d {
                     width: window.width() as u32,
                     height: window.height() as u32,

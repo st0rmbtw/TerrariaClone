@@ -4,7 +4,7 @@ use crate::{
 };
 use bevy::{
     prelude::{default, App, Commands, Plugin, Res, ResMut, Vec2, Transform, Component, Query, Camera, GlobalTransform, With, OnEnter, OnExit, IntoSystemAppConfig, OnUpdate, IntoSystemConfig},
-    sprite::{SpriteBundle, Anchor}, window::Window,
+    sprite::{SpriteBundle, Anchor}, window::{Window, PrimaryWindow},
 };
 use rand::{thread_rng, Rng, seq::SliceRandom};
 
@@ -41,7 +41,7 @@ fn despawn_background(mut commands: Commands, mut parallax: ResMut<ParallaxResou
 
 fn spawn_stars(
     mut commands: Commands,
-    query_windows: Query<&Window>,
+    query_windows: Query<&Window, With<PrimaryWindow>>,
     background_assets: Res<BackgroundAssets>
 ) {
     let mut rng = thread_rng();
@@ -90,7 +90,7 @@ fn move_stars(
 // region: Main menu background
 
 fn setup_main_menu_background(
-    query_windows: Query<&Window>,
+    query_windows: Query<&Window, With<PrimaryWindow>>,
     mut commands: Commands,
     backgrounds: Res<BackgroundAssets>,
 ) {

@@ -4,7 +4,7 @@ use autodefault::autodefault;
 use bevy::{
     prelude::{
         Res, Commands, Vec3, Color, NodeBundle, default, TextBundle, Name, ImageBundle, Transform, 
-        Component, GlobalTransform, Query, With, ResMut, Camera, Vec2, Visibility, 
+        Component, GlobalTransform, Query, With, ResMut, Camera, Visibility, 
         BuildChildren, DetectChanges
     }, 
     ui::{
@@ -12,7 +12,7 @@ use bevy::{
     }, 
     text::{Text, TextStyle}, 
     sprite::{SpriteBundle, Sprite}, 
-    window::Window
+    window::{Window, PrimaryWindow}
 };
 use interpolation::EaseFunction;
 
@@ -146,7 +146,7 @@ pub fn spawn_tile_grid(
 }
 
 pub fn update_cursor_position(
-    query_windows: Query<&Window>,
+    query_windows: Query<&Window, With<PrimaryWindow>>,
     mut cursor: ResMut<CursorPosition>,
     camera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
     mut cursor_query: Query<&mut Style, With<CursorContainer>>,
@@ -159,8 +159,6 @@ pub fn update_cursor_position(
                 style.position.left = Val::Px(screen_pos.x);
                 style.position.top = Val::Px(window.height() - screen_pos.y);
             }
-
-            let window_size = Vec2::new(window.width(), window.height());
 
             if let Some(world_pos) = camera.viewport_to_world_2d(camera_transform, screen_pos) {
                 cursor.position = screen_pos;
