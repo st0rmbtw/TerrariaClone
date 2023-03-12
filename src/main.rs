@@ -1,8 +1,8 @@
 // #![windows_subsystem = "windows"]
 
-use std::{error::Error, time::Duration};
+use std::{error::Error};
 
-use bevy::{prelude::*, render::settings::{WgpuSettings, WgpuFeatures}, log::{LogPlugin, Level}};
+use bevy::{prelude::*, log::{LogPlugin, Level}, window::{Cursor, WindowResolution}};
 use bevy_ecs_tilemap::{TilemapPlugin, prelude::TilemapRenderSettings};
 use bevy_hanabi::HanabiPlugin;
 use game::{
@@ -12,11 +12,10 @@ use game::{
     plugins::{
         assets::AssetsPlugin, cursor::CursorPlugin, camera::CameraPlugin, background::BackgroundPlugin, 
         ui::PlayerUiPlugin, settings::{SettingsPlugin, Resolution, VSync, FullScreen}, menu::MenuPlugin, world::WorldPlugin, 
-        inventory::PlayerInventoryPlugin, fps::FpsPlugin, settings_menu::{SettingsMenuState, SettingsMenuPlugin}
+        inventory::PlayerInventoryPlugin, fps::FpsPlugin, settings_menu::SettingsMenuPlugin
     }, 
     language::{load_language, Language}, lighting::LightingPlugin,
 };
-use iyes_loopless::prelude::{AppLooplessStateExt, AppLooplessFixedTimestepExt};
 use rand::seq::SliceRandom;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -28,11 +27,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     app.add_plugin(SettingsPlugin);
 
-    let mut wgpu_settings = WgpuSettings::default();
-    wgpu_settings.features.set(WgpuFeatures::ADDRESS_MODE_CLAMP_TO_BORDER, true);
-
-    app.insert_resource(wgpu_settings);
-
     let resolution = app.world.resource::<Resolution>().data();
     let vsync = app.world.resource::<VSync>();
     let fullscreen = app.world.resource::<FullScreen>();
@@ -40,16 +34,18 @@ fn main() -> Result<(), Box<dyn Error>> {
     app
         .add_plugins(DefaultPlugins
             .set(WindowPlugin {
-                window: WindowDescriptor {
-                    width: resolution.width,
-                    height: resolution.height,
-                    title: title.to_owned(),
+                primary_window: Some(Window { 
+                    cursor: Cursor {
+                        visible: false,
+                        ..default()
+                    },
                     present_mode: vsync.as_present_mode(),
-                    cursor_visible: false,
-                    position: WindowPosition::Centered,
                     mode: fullscreen.as_window_mode(),
+                    resolution: WindowResolution::new(resolution.width, resolution.height),
+                    title: title.to_owned(),
+                    position: WindowPosition::Centered(MonitorSelection::Current),
                     ..default()
-                },
+                }),
                 ..default()
             })
             .set(AssetPlugin {
@@ -66,11 +62,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             render_chunk_size: UVec2::new(100, 100),
         })
         .insert_resource(language_content.clone())
-        .insert_resource(Msaa { samples: 1 })
+        .insert_resource(Msaa::Off)
         .insert_resource(ClearColor(Color::BLACK))
-        .add_loopless_state(GameState::AssetLoading)
-        .add_loopless_state(SettingsMenuState::None)
-        .add_fixed_timestep(Duration::from_secs_f32(1. / 60.), "fixed_update")
+        .add_state::<GameState>()
+        .insert_resource(FixedTime::new_from_secs(1. / 60.))
         .add_plugin(TweeningPlugin)
         .add_plugin(TilemapPlugin)
         .add_plugin(AssetsPlugin)

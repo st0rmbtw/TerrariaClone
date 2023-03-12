@@ -1,15 +1,12 @@
-use bevy::ecs::world::Mut;
-use bevy::prelude::{Resource, AudioSource, Shader};
+use bevy::prelude::{Resource, AudioSource, Shader, IntoSystemAppConfig, OnExit};
 use bevy::{
-    asset::HandleUntyped,
     math::Vec2,
-    prelude::{App, AssetServer, Assets, Handle, Image, Plugin, Res, ResMut, World},
+    prelude::{App, AssetServer, Assets, Handle, Image, Plugin, Res, ResMut},
     render::texture::ImageSampler,
     sprite::TextureAtlas,
     text::Font,
 };
 use bevy_asset_loader::prelude::{AssetCollection, LoadingState, LoadingStateAppExt};
-use iyes_loopless::prelude::AppLooplessStateExt;
 use rand::RngCore;
 use rand::seq::SliceRandom;
 
@@ -25,19 +22,21 @@ impl Plugin for AssetsPlugin {
         app.add_loading_state(
             LoadingState::new(GameState::AssetLoading)
                 .continue_to_state(GameState::MainMenu)
-                .with_collection::<BlockAssets>()
-                .with_collection::<UiAssets>()
-                .with_collection::<PlayerAssets>()
-                .with_collection::<FontAssets>()
-                .with_collection::<ItemAssets>()
-                .with_collection::<CursorAssets>()
-                .with_collection::<BackgroundAssets>()
-                .with_collection::<WallAssets>()
-                .with_collection::<SoundAssets>()
-                .with_collection::<ShaderAssets>()
-                .with_collection::<CelestialBodyAssets>(),
-        )
-        .add_exit_system(GameState::AssetLoading, setup);
+        );
+
+        app.add_collection_to_loading_state::<_, BlockAssets>(GameState::AssetLoading);
+        app.add_collection_to_loading_state::<_, WallAssets>(GameState::AssetLoading);
+        app.add_collection_to_loading_state::<_, UiAssets>(GameState::AssetLoading);
+        app.add_collection_to_loading_state::<_, SoundAssets>(GameState::AssetLoading);
+        app.add_collection_to_loading_state::<_, ShaderAssets>(GameState::AssetLoading);
+        app.add_collection_to_loading_state::<_, PlayerAssets>(GameState::AssetLoading);
+        app.add_collection_to_loading_state::<_, FontAssets>(GameState::AssetLoading);
+        app.add_collection_to_loading_state::<_, ItemAssets>(GameState::AssetLoading);
+        app.add_collection_to_loading_state::<_, CursorAssets>(GameState::AssetLoading);
+        app.add_collection_to_loading_state::<_, BackgroundAssets>(GameState::AssetLoading);
+        app.add_collection_to_loading_state::<_, CelestialBodyAssets>(GameState::AssetLoading);
+        
+        app.add_system(setup.in_schedule(OnExit(GameState::AssetLoading)));
     }
 }
 

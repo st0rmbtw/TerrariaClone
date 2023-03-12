@@ -8,9 +8,8 @@ pub use resources::*;
 pub use systems::*;
 pub use utils::*;
 
-use crate::{state::GameState, labels::PlayerLabel, util::tile_to_world_coords};
+use crate::{state::GameState, util::tile_to_world_coords};
 use std::time::Duration;
-use iyes_loopless::prelude::*;
 use bevy_hanabi::prelude::*;
 use bevy::{prelude::*, time::{Timer, TimerMode}, sprite::Anchor};
 use autodefault::autodefault;
@@ -40,100 +39,86 @@ const JUMP_HEIGHT: i32 = 15;
 const JUMP_SPEED: f32 = 5.01;
 pub const MAX_FALL_SPEED: f32 = -10.;
 
+#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
+enum PhysicsSet {
+    Movement,
+    CollisionDetection,
+    UseItem
+}
+
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_plugin(InputManagerPlugin::<PlayerAction>::default())
-            .insert_resource(InputAxis::default())
-            .insert_resource(MovementAnimationIndex::default())
-            .insert_resource(UseItemAnimationIndex::default())
-            .insert_resource(AnimationTimer(Timer::new(Duration::from_millis(80), TimerMode::Repeating)))
-            .insert_resource(UseItemAnimation(false))
-            .insert_resource(UseItemAnimationTimer(Timer::new(
-                Duration::from_millis(100),
-                TimerMode::Repeating
-            )))
-            .init_resource::<PlayerVelocity>()
-            .init_resource::<PlayerData>()
-            .init_resource::<Collisions>()
+        app.add_plugin(InputManagerPlugin::<PlayerAction>::default());
+        app.insert_resource(InputAxis::default());
+        app.insert_resource(MovementAnimationIndex::default());
+        app.insert_resource(UseItemAnimationIndex::default());
+        app.insert_resource(AnimationTimer(Timer::new(Duration::from_millis(80), TimerMode::Repeating)));
+        app.insert_resource(UseItemAnimation(false));
+        app.insert_resource(UseItemAnimationTimer(Timer::new(
+            Duration::from_millis(100),
+            TimerMode::Repeating
+        )));
 
-            .add_enter_system(GameState::InGame, spawn_player)
+        app.init_resource::<PlayerVelocity>();
+        app.init_resource::<PlayerData>();
+        app.init_resource::<Collisions>();
 
-            .add_system_set_to_stage(
-                CoreStage::PostUpdate, 
-                ConditionSet::new()
-                    .run_in_state(GameState::InGame)
-                    .with_system(update_movement_state)
-                    .with_system(update_face_direction)
-                    .with_system(flip_player)
-                    .with_system(spawn_particles)
-                    .into()
-            )
-            .add_system_set_to_stage(
-                CoreStage::PostUpdate,
-                ConditionSet::new()
-                    .run_in_state(GameState::InGame)
-                    .label(MOVEMENT_ANIMATION_LABEL)
-                    .before(USE_ITEM_ANIMATION_LABEL)
-                    .with_system(update_movement_animation_timer_duration)
-                    .with_system(update_movement_animation_index)
-                    
-                    .with_system(walking_animation.run_if(is_walking))
-                    .with_system(simple_animation::<IdleAnimationData>.run_if(is_idle))
-                    .with_system(simple_animation::<FlyingAnimationData>.run_if(is_flying))
+        app.add_system(spawn_player.in_schedule(OnEnter(GameState::InGame)));
 
-                    .into(),
+        app.add_systems(
+            (
+                update_movement_state,
+                update_face_direction,
+                flip_player,
+                spawn_particles,
+            ).chain().in_base_set(CoreSet::PostUpdate)
+        );
+
+        app.add_systems(
+            (
+                update_movement_animation_timer_duration,
+                update_movement_animation_index,
+                walking_animation.run_if(is_walking),
+                simple_animation::<IdleAnimationData>.run_if(is_idle),
+                simple_animation::<FlyingAnimationData>.run_if(is_flying)
+            ).chain().in_set(OnUpdate(GameState::InGame))
+        );
+
+        app.add_systems(
+            (
+                set_using_item_image,
+                set_using_item_position,
+                set_using_item_rotation,
+                update_use_item_animation_index,
+                set_using_item_rotation_on_player_direction_change,
+                use_item_animation
             )
-            .add_system_set_to_stage(
-                CoreStage::PostUpdate,
-                ConditionSet::new()
-                    .run_in_state(GameState::InGame)
-                    .label(USE_ITEM_ANIMATION_LABEL)
-                    .after(MOVEMENT_ANIMATION_LABEL)
-                    .run_if_resource_equals::<UseItemAnimation>(UseItemAnimation(true))
-                    .with_system(set_using_item_image)
-                    .with_system(set_using_item_position)
-                    .with_system(set_using_item_rotation)
-                    .with_system(update_use_item_animation_index)
-                    .with_system(set_using_item_rotation_on_player_direction_change)
-                    .with_system(use_item_animation)
-                    .into(),
+            .chain()
+            .distributive_run_if(|res: Res<UseItemAnimation>| *res == UseItemAnimation(true))
+            .in_set(PhysicsSet::UseItem)
+            .in_set(OnUpdate(GameState::InGame))
+        );
+
+        app.add_systems(
+            (
+                update_axis,
+                player_using_item,
+                set_using_item_visibility,
             )
-            
-            .add_system_set(
-                ConditionSet::new()
-                    .run_in_state(GameState::InGame)
-                    .with_system(update_axis)
-                    .with_system(player_using_item)
-                    .with_system(set_using_item_visibility)
-                    .into()
-            );
+            .chain()
+            .in_set(OnUpdate(GameState::InGame))
+        );
 
         #[cfg(not(feature = "debug_movement"))] {
-            app
-            .add_fixed_timestep_system(
-                "fixed_update",
-                0,
-                horizontal_movement
-                    .run_in_state(GameState::InGame)
-                    .label(PlayerLabel::HorizontalMovement)
-            )
-            .add_fixed_timestep_system(
-                "fixed_update",
-                0,
-                update_jump
-                    .run_in_state(GameState::InGame)
-                    .label(PlayerLabel::Jump)
-                    .after(PlayerLabel::HorizontalMovement)
-            )
-            .add_fixed_timestep_system(
-                "fixed_update",
-                0,
-                update
-                    .run_in_state(GameState::InGame)
-                    .label(PlayerLabel::Update)
-                    .after(PlayerLabel::Jump)
+            app.add_systems(
+                (
+                    horizontal_movement,
+                    update_jump,
+                    update
+                )
+                .chain()
+                .in_set(PhysicsSet::Movement)
             );
         }
 
@@ -365,9 +350,7 @@ pub fn spawn_player(
                     sprite: Sprite {
                         anchor: Anchor::BottomLeft,
                     },
-                    visibility: Visibility {
-                        is_visible: false
-                    },
+                    visibility: Visibility::Hidden,
                     transform: Transform::from_xyz(0., 0., 0.15),
                 }
             ));
@@ -430,15 +413,13 @@ pub fn spawn_player(
             dimension: ShapeDimension::Volume,
             speed: 10.0.into(),
         })
-        .update(AccelModifier {
-            accel: Vec3::new(0., 0., 0.),
-        })
+        .update(AccelModifier::constant(Vec3::new(0., 0., 0.)))
         // Render the particles with a color gradient over their
         // lifetime.
         .render(SizeOverLifetimeModifier {
             gradient: Gradient::constant(Vec2::splat(3.)),
         })
-        .init(ParticleLifetimeModifier { lifetime: 0.1 })
+        .init(InitLifetimeModifier { lifetime: 1_f32.into() })
         .render(ColorOverLifetimeModifier { gradient }),
     );
 

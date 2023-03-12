@@ -13,7 +13,7 @@ use bevy::{
         view::RenderLayers,
     },
     sprite::{Material2d, MaterialMesh2dBundle},
-    window::{WindowId, WindowResized},
+    window::{WindowResized},
 };
 
 use crate::{
@@ -30,7 +30,6 @@ use super::pipeline::PipelineTargetsWrapper;
 #[derive(Component)]
 pub struct FitToWindowSize {
     image: Handle<Image>,
-    window_id: WindowId,
 }
 
 #[derive(AsBindGroup, TypeUuid, Clone)]
@@ -69,28 +68,27 @@ pub struct LightMapCamera;
 
 /// Update image size to fit window
 pub fn update_image_to_window_size(
-    windows: Res<Windows>,
+    query_windows: Query<&Window>,
     mut images: ResMut<Assets<Image>>,
     mut resize_events: EventReader<WindowResized>,
     fit_to_window_size: Query<&FitToWindowSize>,
 ) {
     for resize_event in resize_events.iter() {
         for fit_to_window in fit_to_window_size.iter() {
-            if resize_event.id == fit_to_window.window_id {
-                let size = {
-                    let window = windows.get(fit_to_window.window_id).expect("PostProcessingCamera is rendering to a window, but this window could not be found");
-                    Extent3d {
-                        width: window.width() as u32,
-                        height: window.height() as u32,
-                        ..Default::default()
-                    }
-                };
-                let image = images.get_mut(&fit_to_window.image).expect(
-                    "FitToWindowSize is referring to an Image, but this Image could not be found",
-                );
-                info!("resize to {:?}", size);
-                image.resize(size);
-            }
+            let window = query_windows.single();
+
+            let size = {
+                Extent3d {
+                    width: window.width() as u32,
+                    height: window.height() as u32,
+                    ..Default::default()
+                }
+            };
+            let image = images.get_mut(&fit_to_window.image).expect(
+                "FitToWindowSize is referring to an Image, but this Image could not be found",
+            );
+            info!("resize to {:?}", size);
+            image.resize(size);
         }
     }
 }
@@ -165,7 +163,7 @@ pub fn update_light_map(
 
 pub fn setup_post_processing_camera(
     mut commands: Commands,
-    windows: Res<Windows>,
+    query_windows: Query<&Window>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut shadow_map_meterials: ResMut<Assets<PostProcessingMaterial>>,
     mut images: ResMut<Assets<Image>>,
@@ -176,15 +174,11 @@ pub fn setup_post_processing_camera(
     for (entity, mut camera, proj) in &mut cameras {
         let original_target = camera.target.clone();
 
-        let mut option_window_id: Option<WindowId> = None;
+        let window = query_windows.single();
 
         // Get the size the camera is rendering to
         let size = match &camera.target {
             RenderTarget::Window(window_id) => {
-                let window = windows.get(*window_id).expect(
-                    "PostProcessingCamera is rendering to a window, but this window could not be found"
-                );
-                option_window_id = Some(*window_id);
                 Extent3d {
                     width: window.width() as u32,
                     height: window.height() as u32,
@@ -232,6 +226,7 @@ pub fn setup_post_processing_camera(
                 usage: TextureUsages::TEXTURE_BINDING
                     | TextureUsages::COPY_DST
                     | TextureUsages::RENDER_ATTACHMENT,
+                view_formats: &[]
             },
             sampler_descriptor: ImageSampler::Descriptor(SamplerDescriptor {
                 address_mode_u: AddressMode::ClampToBorder,
@@ -295,12 +290,9 @@ pub fn setup_post_processing_camera(
             // also disable show_ui so UI elements don't get rendered twice
             .insert(UiCameraConfig { show_ui: false });
 
-        if let Some(window_id) = option_window_id {
-            commands.entity(entity).insert(FitToWindowSize {
-                image: image_handle.clone(),
-                window_id,
-            });
-        }
+        commands.entity(entity).insert(FitToWindowSize {
+            image: image_handle.clone(),
+        });
         camera.target = RenderTarget::Image(image_handle);
 
         commands.spawn((
@@ -321,7 +313,7 @@ pub fn setup_post_processing_camera(
             Camera2dBundle {
                 camera: Camera {
                     // renders after the first main camera which has default value: 0.
-                    priority: camera.priority + 10,
+                    order: camera.order + 10,
                     // set this new camera to render to where the other camera was rendering
                     target: original_target,
                     ..default()

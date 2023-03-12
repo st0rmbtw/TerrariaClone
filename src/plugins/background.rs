@@ -1,12 +1,11 @@
 use crate::{
     parallax::{LayerData, ParallaxResource, LayerSpeed, follow_camera_system},
-    state::GameState, util::screen_to_world,
+    state::GameState,
 };
 use bevy::{
-    prelude::{default, App, Commands, Plugin, Res, ResMut, Vec2, Transform, Component, Query, Camera, GlobalTransform, With},
-    window::Windows, sprite::{SpriteBundle, Anchor},
+    prelude::{default, App, Commands, Plugin, Res, ResMut, Vec2, Transform, Component, Query, Camera, GlobalTransform, With, OnEnter, OnExit, IntoSystemAppConfig, OnUpdate, IntoSystemConfig},
+    sprite::{SpriteBundle, Anchor}, window::Window,
 };
-use iyes_loopless::prelude::*;
 use rand::{thread_rng, Rng, seq::SliceRandom};
 
 use super::{assets::BackgroundAssets, camera::MainCamera, world::{WorldData, TILE_SIZE}};
@@ -16,18 +15,16 @@ pub struct BackgroundPlugin;
 
 impl Plugin for BackgroundPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_enter_system(GameState::MainMenu, setup_main_menu_background)
-            .add_enter_system(GameState::MainMenu, spawn_stars)
-            .add_exit_system(GameState::MainMenu, despawn_background)
-            .add_enter_system(GameState::InGame, setup_forest_background)
-            .add_exit_system(GameState::InGame, despawn_background)
-            .add_system(move_stars.run_in_state(GameState::MainMenu))
-            .add_system(
-                follow_camera_system
-                    .run_in_state(GameState::InGame)
-                    .label("follow_camera")
-            );
+        app.add_system(setup_main_menu_background.in_schedule(OnEnter(GameState::MainMenu)));
+        app.add_system(spawn_stars.in_schedule(OnEnter(GameState::MainMenu)));
+
+        app.add_system(despawn_background.in_schedule(OnExit(GameState::MainMenu)));
+        app.add_system(setup_forest_background.in_schedule(OnEnter(GameState::InGame)));
+        app.add_system(despawn_background.in_schedule(OnExit(GameState::InGame)));
+        app.add_system(despawn_background.in_schedule(OnExit(GameState::InGame)));
+
+        app.add_system(move_stars.in_set(OnUpdate(GameState::MainMenu)));
+        app.add_system(follow_camera_system.in_set(OnUpdate(GameState::InGame)));
     }
 }
 // endregion
@@ -44,11 +41,11 @@ fn despawn_background(mut commands: Commands, mut parallax: ResMut<ParallaxResou
 
 fn spawn_stars(
     mut commands: Commands,
-    windows: Res<Windows>,
+    query_windows: Query<&Window>,
     background_assets: Res<BackgroundAssets>
 ) {
     let mut rng = thread_rng();
-    let window = windows.primary();
+    let window = query_windows.single();
 
     let star_images = [
         background_assets.star_0.clone_weak(),
@@ -77,31 +74,27 @@ fn spawn_stars(
 }
 
 fn move_stars(
-    windows: Res<Windows>,
     query_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
     mut query_stars: Query<(&mut Transform, &Star)>
 ) {
-    let window = windows.primary();
-    let window_size = Vec2::new(window.width(), window.height());
-
     let (camera, camera_transform) = query_camera.single();
 
     for (mut star_transform, star) in &mut query_stars {
-        let star_world_position = screen_to_world(star.screen_position, window_size, camera, camera_transform);
-
-        star_transform.translation.x = star_world_position.x;
-        star_transform.translation.y = star_world_position.y;
+        if let Some(world_position) = camera.viewport_to_world_2d(camera_transform, star.screen_position) {
+            star_transform.translation.x = world_position.x;
+            star_transform.translation.y = world_position.y;
+        }
     }
 }
 
 // region: Main menu background
 
 fn setup_main_menu_background(
-    windows: Res<Windows>,
+    query_windows: Query<&Window>,
     mut commands: Commands,
     backgrounds: Res<BackgroundAssets>,
 ) {
-    let window = windows.get_primary().unwrap();
+    let window = query_windows.single();
 
     // 600 is the background image height
     let height = window.height() - 600.;

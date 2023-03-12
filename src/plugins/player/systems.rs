@@ -328,7 +328,11 @@ pub fn set_using_item_visibility(
     mut using_item_query: Query<&mut Visibility, With<UsedItem>>,
 ) {
     if let Ok(mut visibility) = using_item_query.get_single_mut() {
-        visibility.is_visible = anim.0;
+        if anim.0 {
+            *visibility = Visibility::Inherited;
+        } else {
+            *visibility = Visibility::Hidden;
+        }
     }
 }
 

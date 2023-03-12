@@ -149,7 +149,7 @@ use interpolation::Ease as IEase;
 pub use interpolation::{EaseFunction, Lerp};
 
 pub use lens::Lens;
-pub use plugin::{component_animator_system, AnimationSystem, TweeningPlugin};
+pub use plugin::{component_animator_system, AnimationSystemSet, TweeningPlugin};
 pub use tweenable::{
     BoxedTweenable, Targetable, TotalDuration, Tracks, Tween, TweenCompleted,
     TweenState, Tweenable,

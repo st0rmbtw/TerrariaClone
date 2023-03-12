@@ -5,15 +5,14 @@ use bevy::{
     prelude::{
         Res, Commands, Vec3, Color, NodeBundle, default, TextBundle, Name, ImageBundle, Transform, 
         Component, GlobalTransform, Query, With, ResMut, Camera, Vec2, Visibility, 
-        BuildChildren
+        BuildChildren, DetectChanges
     }, 
     ui::{
         Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Size, Val, AlignSelf, ZIndex, FlexDirection, UiRect
     }, 
     text::{Text, TextStyle}, 
     sprite::{SpriteBundle, Sprite}, 
-    window::Windows, 
-    render::camera::RenderTarget
+    window::Window
 };
 use interpolation::EaseFunction;
 
@@ -26,7 +25,6 @@ use crate::{
     }, 
     animation::{Tween, lens::TransformScaleLens, Animator, RepeatStrategy, RepeatCount}, 
     lens::BackgroundColorLens,
-    util::{screen_to_world},
 };
 
 #[cfg(not(feature = "free_camera"))]
@@ -142,35 +140,29 @@ pub fn spawn_tile_grid(
             },
             texture: ui_assets.radial.clone_weak(),
             transform: Transform::from_xyz(0., 0., 5.),
-            visibility: Visibility::INVISIBLE
+            visibility: Visibility::Hidden
         })
         .insert(TileGrid);
 }
 
 pub fn update_cursor_position(
-    wnds: Res<Windows>,
+    query_windows: Query<&Window>,
     mut cursor: ResMut<CursorPosition>,
-    cemera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
+    camera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
     mut cursor_query: Query<&mut Style, With<CursorContainer>>,
 ) {
-    if let Ok((camera, camera_transform)) = cemera_query.get_single() {
-        let wnd = if let RenderTarget::Window(id) = camera.target {
-            wnds.get(id)
-        } else {
-            wnds.get_primary()
-        };
+    if let Ok((camera, camera_transform)) = camera_query.get_single() {
+        let window = query_windows.single();
 
-        if let Some(wnd) = wnd {
-            if let Some(screen_pos) = wnd.cursor_position() {
-                if let Ok(mut style) = cursor_query.get_single_mut() {
-                    style.position.left = Val::Px(screen_pos.x);
-                    style.position.top = Val::Px(wnd.height() - screen_pos.y);
-                }
+        if let Some(screen_pos) = window.cursor_position() {
+            if let Ok(mut style) = cursor_query.get_single_mut() {
+                style.position.left = Val::Px(screen_pos.x);
+                style.position.top = Val::Px(window.height() - screen_pos.y);
+            }
 
-                let window_size = Vec2::new(wnd.width(), wnd.height());
+            let window_size = Vec2::new(window.width(), window.height());
 
-                let world_pos = screen_to_world(screen_pos, window_size, camera, camera_transform);
-
+            if let Some(world_pos) = camera.viewport_to_world_2d(camera_transform, screen_pos) {
                 cursor.position = screen_pos;
                 cursor.world_position = world_pos;
             }
@@ -184,7 +176,11 @@ pub fn set_visibility<C: Component>(
 ) {
     if ui_visibility.is_changed() {
         for mut visibility in &mut query {
-            visibility.is_visible = ui_visibility.0;
+            if ui_visibility.0 {
+                *visibility = Visibility::Inherited;
+            } else {
+                *visibility = Visibility::Hidden;
+            }
         }
     }
 }
@@ -238,5 +234,9 @@ pub fn update_tile_grid_visibility(
 ) {
     let mut visibility = tile_grid.single_mut();
 
-    visibility.is_visible = show_tile_grid.0;
+    if show_tile_grid.0 {
+        *visibility = Visibility::Inherited;
+    } else {
+        *visibility = Visibility::Hidden;
+    }
 }

@@ -1,5 +1,4 @@
-use bevy::prelude::{Plugin, App, Component, CoreStage};
-use iyes_loopless::prelude::{AppLooplessStateExt, IntoConditionalSystem};
+use bevy::prelude::{Plugin, App, Component, OnUpdate, IntoSystemConfig, CoreSet};
 
 use crate::state::GameState;
 
@@ -19,15 +18,9 @@ pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_enter_system(GameState::InGame, setup_camera)
-            .add_system(zoom.run_in_state(GameState::InGame))
-            .add_system(control_mouse_light.run_in_state(GameState::InGame))
-            .add_system_to_stage(
-                CoreStage::PostUpdate,
-                move_camera
-                    .run_in_state(GameState::InGame)
-            );
+        app.add_system(setup_camera.in_set(OnUpdate(GameState::InGame)));
+        app.add_system(zoom.in_set(OnUpdate(GameState::InGame)));
+        app.add_system(move_camera.in_set(OnUpdate(GameState::InGame)).in_base_set(CoreSet::PostUpdate));
     }
 }
 #[derive(Component)]

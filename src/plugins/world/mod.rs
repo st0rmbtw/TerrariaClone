@@ -12,7 +12,6 @@ mod light;
 
 pub use components::*;
 pub use events::*;
-use iyes_loopless::prelude::{ConditionSet, AppLooplessStateExt};
 pub use resources::*;
 pub use systems::*;
 pub use utils::*;
@@ -23,7 +22,7 @@ pub use tree::*;
 pub use light::*;
 
 use crate::state::GameState;
-use bevy::prelude::{Plugin, App};
+use bevy::prelude::{Plugin, App, IntoSystemAppConfig, OnEnter, IntoSystemConfigs, OnUpdate};
 use bevy_ecs_tilemap::prelude::{TilemapSize, TilemapTileSize};
 
 pub const TILE_SIZE: f32 = 16.;
@@ -47,24 +46,24 @@ pub struct WorldPlugin;
 
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .init_resource::<ChunkManager>()
-            .add_event::<BreakBlockEvent>()
-            .add_event::<DigBlockEvent>()
-            .add_event::<PlaceBlockEvent>()
-            .add_event::<UpdateNeighborsEvent>()
-            .add_enter_system(GameState::WorldLoading, spawn_terrain)
-            .add_system_set(
-                ConditionSet::new()
-                    .run_in_state(GameState::InGame)
-                    .with_system(spawn_chunks)
-                    .with_system(despawn_chunks)
-                    .with_system(handle_dig_block_event)
-                    .with_system(handle_place_block_event)
-                    .with_system(handle_break_block_event)
-                    .with_system(update_neighbors)
-                    .into(),
-            );
+        app.init_resource::<ChunkManager>();
+        app.add_event::<BreakBlockEvent>();
+        app.add_event::<DigBlockEvent>();
+        app.add_event::<PlaceBlockEvent>();
+        app.add_event::<UpdateNeighborsEvent>();
+
+        app.add_system(spawn_terrain.in_schedule(OnEnter(GameState::WorldLoading)));
+
+        app.add_systems(
+            (
+                spawn_chunks,
+                despawn_chunks,
+                handle_dig_block_event,
+                handle_place_block_event,
+                handle_break_block_event,
+                update_neighbors,
+            ).chain().in_set(OnUpdate(GameState::InGame))
+        );
     }
 }
 

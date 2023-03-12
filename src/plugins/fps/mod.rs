@@ -1,7 +1,6 @@
-use bevy::{prelude::Plugin, diagnostic::FrameTimeDiagnosticsPlugin};
+use bevy::{prelude::{Plugin, IntoSystemConfigs, OnUpdate}, diagnostic::FrameTimeDiagnosticsPlugin};
 
 pub use components::*;
-use iyes_loopless::prelude::ConditionSet;
 pub use resources::*;
 pub use systems::*;
 
@@ -15,15 +14,17 @@ pub struct FpsPlugin;
 
 impl Plugin for FpsPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.init_resource::<FpsTextVisibility>()
-            .add_plugin(FrameTimeDiagnosticsPlugin)
-            .add_system_set(
-                ConditionSet::new()
-                    .run_in_state(GameState::InGame)
-                    .with_system(toggle_fps_text_visibility)
-                    .with_system(set_fps_text_visibility)
-                    .with_system(update_fps_text)
-                    .into(),
-            );
+        app.init_resource::<FpsTextVisibility>();
+        app.add_plugin(FrameTimeDiagnosticsPlugin);
+
+        app.add_systems(
+            (
+                toggle_fps_text_visibility,
+                set_fps_text_visibility,
+                update_fps_text,
+            )
+            .chain()
+            .in_set(OnUpdate(GameState::InGame))
+        );
     }
 }

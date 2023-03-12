@@ -8,8 +8,7 @@ pub use resources::*;
 pub use systems::*;
 pub use events::*;
 
-use bevy::prelude::{Plugin, App};
-use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet};
+use bevy::prelude::{Plugin, App, IntoSystemAppConfig, OnEnter, IntoSystemConfigs, OnUpdate};
 use crate::state::GameState;
 
 pub const SPAWN_UI_CONTAINER_LABEL: &str = "spawn_ui_container";
@@ -18,17 +17,18 @@ pub struct PlayerUiPlugin;
 
 impl Plugin for PlayerUiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<ToggleExtraUiEvent>()
-            .init_resource::<ExtraUiVisibility>()
-            .init_resource::<UiVisibility>()
-            .add_enter_system(GameState::InGame, spawn_ui_container)
-            .add_system_set(
-                ConditionSet::new()
-                    .run_in_state(GameState::InGame)
-                    .with_system(toggle_extra_ui)
-                    .with_system(toggle_ui)
-                    .with_system(set_main_container_visibility)
-                    .into(),
-            );
+        app.add_event::<ToggleExtraUiEvent>();
+        app.init_resource::<ExtraUiVisibility>();
+        app.init_resource::<UiVisibility>();
+        app.add_system(spawn_ui_container.in_schedule(OnEnter(GameState::InGame)));
+        app.add_systems(
+            (
+                toggle_extra_ui,
+                toggle_ui,
+                set_main_container_visibility,
+            )
+            .chain()
+            .in_set(OnUpdate(GameState::InGame))
+        );
     }
 }

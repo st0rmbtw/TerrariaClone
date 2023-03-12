@@ -35,7 +35,7 @@ pub fn spawn_ingame_settings_button(
                     height: Val::Px(38.),
                 },
             },
-            visibility: Visibility { is_visible: false },
+            visibility: Visibility::Hidden,
         })
         .insert(SettingsButtonContainer)
         .with_children(|c| {
@@ -52,7 +52,7 @@ pub fn spawn_ingame_settings_button(
                         color: Color::WHITE,
                     },
                 )
-                .with_alignment(TextAlignment::CENTER),
+                .with_alignment(TextAlignment::Center),
             })
             .insert(Name::new("Settings button"))
             .insert(Interaction::default())
@@ -68,7 +68,11 @@ pub fn set_btn_visibility(
 ) {
     for event in events.iter() {
         for mut visibility in &mut query {
-            visibility.is_visible = event.0;
+            if event.0 {
+                *visibility = Visibility::Inherited;
+            } else {
+                *visibility = Visibility::Visible;
+            }
         }
     }
 }

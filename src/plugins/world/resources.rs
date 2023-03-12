@@ -5,8 +5,6 @@ use super::ChunkPos;
 
 #[derive(Resource)]
 pub struct LightMap {
-    pub width: u16,
-    pub height: u16,
     pub colors: Array2<u8>,
 }
 

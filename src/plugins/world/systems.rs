@@ -4,7 +4,7 @@ use bevy::{
     prelude::{
         EventReader, ResMut, Query, Commands, EventWriter, Entity, BuildChildren, Transform, 
         default, SpatialBundle, DespawnRecursiveExt, OrthographicProjection, Changed, 
-        GlobalTransform, With, Res, UVec2, Audio
+        GlobalTransform, With, Res, UVec2, Audio, NextState
     }, 
     math::Vec3Swizzles
 };
@@ -18,7 +18,6 @@ use bevy_ecs_tilemap::{
     }, 
     TilemapBundle, helpers::square_grid::neighbors::Neighbors
 };
-use iyes_loopless::state::NextState;
 use rand::thread_rng;
 
 use crate::{rect::{FRect, URect}, plugins::{inventory::Inventory, world::{CHUNK_SIZE, TILE_SIZE, LightMap, light::generate_light_map, WorldSize}, assets::{BlockAssets, WallAssets, SoundAssets}, camera::{MainCamera, UpdateLightEvent}}, state::GameState};
@@ -39,12 +38,10 @@ pub fn spawn_terrain(mut commands: Commands) {
     commands.insert_resource(world);
 
     commands.insert_resource(LightMap {
-        width: light_map.ncols() as u16,
-        height: light_map.nrows() as u16,
         colors: light_map
     });
 
-    commands.insert_resource(NextState(GameState::InGame));
+    commands.insert_resource(NextState(Some(GameState::InGame)));
 }
 
 pub fn spawn_block(

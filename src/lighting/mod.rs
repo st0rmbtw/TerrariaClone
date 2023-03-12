@@ -1,15 +1,14 @@
 use bevy::{
     render::{
-        extract_resource::ExtractResourcePlugin, RenderApp, RenderStage, 
+        extract_resource::ExtractResourcePlugin, RenderApp,
         render_graph::{RenderGraph, self}, 
         renderer::RenderContext, 
-        render_resource::{PipelineCache, ComputePassDescriptor, Extent3d}
+        render_resource::{PipelineCache, ComputePassDescriptor, Extent3d}, ExtractSchedule, RenderSet
     }, 
-    prelude::{Shader, Vec2, ResMut, Res, World, Plugin, App, IntoSystemDescriptor, default, EventReader, Assets, Image, warn},
-    window::{Windows, WindowResized},
+    prelude::{Shader, Vec2, ResMut, Res, World, Plugin, App, default, EventReader, Assets, Image, warn, IntoSystemConfig, resource_exists, Query, OnUpdate, With, IntoSystemAppConfig},
+    window::{WindowResized, Window, PrimaryWindow},
     asset::load_internal_asset, sprite::Material2dPlugin,
 };
-use iyes_loopless::prelude::IntoConditionalSystem;
 
 use crate::{plugins::{camera::UpdateLightEvent, world::WorldData}, lighting::{compositing::{PostProcessingMaterial, setup_post_processing_camera, update_image_to_window_size, update_lighting_material, update_light_map}, constants::{SHADER_HALTON, SHADER_ATTENUATION, SHADER_MATH}}, state::GameState};
 
@@ -36,8 +35,10 @@ impl Plugin for LightingPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_event::<UpdateLightEvent>()
+
             .add_plugin(ExtractResourcePlugin::<PipelineTargetsWrapper>::default())
             .add_plugin(Material2dPlugin::<PostProcessingMaterial>::default())
+            
             .init_resource::<PipelineTargetsWrapper>()
             .init_resource::<ComputedTargetSizes>()
             .insert_resource(LightPassParams {
@@ -46,10 +47,11 @@ impl Plugin for LightingPlugin {
 
             .add_startup_system(detect_target_sizes)
             .add_startup_system(system_setup_pipeline.after(detect_target_sizes))
-            .add_system(setup_post_processing_camera.run_if_resource_exists::<WorldData>())
+
+            .add_system(setup_post_processing_camera.run_if(resource_exists::<WorldData>()))
             .add_system(update_image_to_window_size)
-            .add_system(update_lighting_material.run_in_state(GameState::InGame))
-            .add_system(update_light_map.run_in_state(GameState::InGame))
+            .add_system(update_lighting_material.in_set(OnUpdate(GameState::InGame)))
+            .add_system(update_light_map.in_set(OnUpdate(GameState::InGame)))
             .add_system(resize_primary_target);
 
         load_internal_asset!(
@@ -92,9 +94,9 @@ impl Plugin for LightingPlugin {
             .init_resource::<LightPassPipeline>()
             .init_resource::<LightPassPipelineAssets>()
             .init_resource::<ComputedTargetSizes>()
-            .add_system_to_stage(RenderStage::Extract, system_extract_pipeline_assets)
-            .add_system_to_stage(RenderStage::Prepare, system_prepare_pipeline_assets)
-            .add_system_to_stage(RenderStage::Queue, system_queue_bind_groups);
+            .add_system(system_extract_pipeline_assets.in_schedule(ExtractSchedule))
+            .add_system(system_prepare_pipeline_assets.in_set(RenderSet::Prepare))
+            .add_system(system_queue_bind_groups.in_set(RenderSet::Queue));
 
         let mut render_graph = render_app.world.resource_mut::<RenderGraph>();
         render_graph.add_node("light_pass_2d", LightPass2DNode::default());
@@ -102,8 +104,7 @@ impl Plugin for LightingPlugin {
             .add_node_edge(
                 "light_pass_2d",
                 bevy::render::main_graph::node::CAMERA_DRIVER,
-            )
-            .unwrap();
+            );
     }
 }
 
@@ -111,11 +112,11 @@ impl Plugin for LightingPlugin {
 struct LightPass2DNode {}
 
 pub fn detect_target_sizes(
-    windows: Res<Windows>,
+    query_windows: Query<&Window, With<PrimaryWindow>>,
     mut target_sizes: ResMut<ComputedTargetSizes>
 ) {
 
-    let window = windows.get_primary().expect("No primary window");
+    let window = query_windows.get_single().expect("No primary window");
     let primary_size = Vec2::new(
         window.width(),
         window.height()
@@ -125,13 +126,13 @@ pub fn detect_target_sizes(
 }
 
 pub fn resize_primary_target(
-    windows: Res<Windows>,
+    query_windows: Query<&Window, With<PrimaryWindow>>,
     mut resize_events: EventReader<WindowResized>,
     mut target_sizes: ResMut<ComputedTargetSizes>,
     mut images: ResMut<Assets<Image>>,
     targets_wrapper: Res<PipelineTargetsWrapper>,
 ) {
-    let window = windows.get_primary().expect("No primary window");
+    let window = query_windows.get_single().expect("No primary window");
 
     for _ in resize_events.iter() {
         target_sizes.primary_target_size = Vec2::new(
@@ -179,7 +180,7 @@ impl render_graph::Node for LightPass2DNode {
 
                 let mut pass =
                     render_context
-                        .command_encoder
+                        .command_encoder()
                         .begin_compute_pass(&ComputePassDescriptor {
                             label: Some("light_pass_2d"),
                         });

@@ -2,7 +2,7 @@ use autodefault::autodefault;
 use bevy::{
     prelude::{
         Commands, Camera2dBundle, OrthographicProjection, Transform, Res, KeyCode, Query, 
-        With, GlobalTransform, default,ResMut, Assets, Vec3, Mesh, shape, Input, Color, Name, MouseButton, Vec2, Visibility,
+        With, default,ResMut, Assets, Vec3, Mesh, shape, Input, Color, Name, MouseButton, Vec2, Visibility,
     }, 
     time::Time, sprite::{MaterialMesh2dBundle, ColorMaterial}
 };
@@ -84,27 +84,25 @@ pub fn zoom(
 #[cfg(not(feature = "free_camera"))]
 pub fn move_camera(
     mut player: Query<&Transform, With<Player>>,
-    mut camera: Query<(&mut GlobalTransform, &OrthographicProjection), With<MainCamera>>,
+    mut camera: Query<(&mut Transform, &OrthographicProjection), With<MainCamera>>,
     world_data: Res<WorldData>
 ) {
     if let Ok((mut camera_transform, projection)) = camera.get_single_mut() {
         if let Ok(player_transform) = player.get_single_mut() {
-            let camera_translation = camera_transform.translation_mut();
-
-            let projection_left = projection.left * projection.scale;
-            let projection_right = projection.right * projection.scale;
-            let projection_top = projection.top * projection.scale;
+            let projection_left = projection.area.min.x * projection.scale;
+            let projection_right = projection.area.max.x * projection.scale;
+            let projection_top = projection.area.max.y * projection.scale;
             
             {
                 let min = projection_left.abs() - TILE_SIZE / 2.;
                 let max = (world_data.size.width as f32 * 16.) - projection_right - TILE_SIZE / 2.;
-                camera_translation.x = player_transform.translation.x.clamp(min, max);
+                camera_transform.translation.x = player_transform.translation.x.clamp(min, max);
             }
 
             {
                 let max = -(projection_top - TILE_SIZE / 2.);
                 let min = -((world_data.size.height as f32 * 16.) + projection_top + TILE_SIZE / 2.);
-                camera_translation.y = player_transform.translation.y.clamp(min, max);
+                camera_transform.translation.y = player_transform.translation.y.clamp(min, max);
             }
         }
     }
@@ -124,7 +122,10 @@ pub fn control_mouse_light(
 
     if input_mouse.just_pressed(MouseButton::Right) {
         if input_keyboard.pressed(KeyCode::LShift) {
-            visibility.is_visible = !visibility.is_visible;
+            *visibility = match *visibility {
+                Visibility::Inherited | Visibility::Visible => Visibility::Hidden,
+                Visibility::Hidden => Visibility::Inherited,
+            };
         } else {
             light_source.color = Color::rgba(rng.gen(), rng.gen(), rng.gen(), 1.0);
         }

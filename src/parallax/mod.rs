@@ -7,25 +7,32 @@ mod layer;
 pub use layer::*;
 
 use crate::plugins::camera::MainCamera;
-use iyes_loopless::{condition::ConditionalSystemDescriptor, prelude::*};
 
 pub struct ParallaxPlugin {
     pub initial_speed: f32,
+}
+
+#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
+enum ParallaxSet {
+    FollowCamera
 }
 
 impl Plugin for ParallaxPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ParallaxMoveSpeed {
             speed: self.initial_speed * 1000.,
-        })
-        .add_system(initialize_parallax_system.run_if_resource_added::<ParallaxResource>())
-        .add_system(
+        });
+
+        app.add_system(initialize_parallax_system.run_if(resource_added::<ParallaxResource>()));
+
+        app.add_system(
             update_layer_textures_system
-                .run_if_resource_exists::<ParallaxResource>()
-                .after("follow_camera"),
-        )
-        .add_system(update_window_size.run_if_resource_exists::<ParallaxResource>());
-        // .add_system(update_texture_scale.run_if_resource_exists::<ParallaxResource>());
+                .run_if(resource_exists::<ParallaxResource>())
+                .after(ParallaxSet::FollowCamera),
+        );
+
+        app.add_system(update_window_size.run_if(resource_exists::<ParallaxResource>()));
+        // app.add_system(update_texture_scale.run_if_resource_exists::<ParallaxResource>());
     }
 }
 
@@ -167,20 +174,21 @@ impl ParallaxResource {
 pub struct ParallaxCameraComponent;
 
 #[inline(always)]
-pub fn move_background_system() -> ConditionalSystemDescriptor {
+pub fn move_background_system() -> impl IntoSystemConfig<()> {
     parallax_animation_system
-        .run_if_resource_exists::<ParallaxResource>()
-        .label("follow_camera")
+        .run_if(resource_exists::<ParallaxResource>())
+        .in_set(ParallaxSet::FollowCamera)
+        // .label("follow_camera")
 }
-
+    
 /// Initialize the parallax resource
 fn initialize_parallax_system(
     mut commands: Commands,
-    windows: Res<Windows>,
+    query_window: Query<&Window>,
     images: Res<Assets<Image>>,
     mut parallax_res: ResMut<ParallaxResource>,
 ) {
-    let window = windows.get_primary().unwrap();
+    let window = query_window.single();
     parallax_res.window_size = Vec2::new(window.width(), window.height());
     parallax_res.create_layers(&mut commands, &images);
 }

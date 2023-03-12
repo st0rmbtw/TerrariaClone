@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use autodefault::autodefault;
-use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color, MouseButton, EventWriter, Audio, Local}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, Size, PositionType, AlignContent, Interaction, BackgroundColor, ZIndex}, text::{Text, TextStyle, TextAlignment}};
+use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color, MouseButton, EventWriter, Audio, Local, DetectChanges}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, Size, PositionType, AlignContent, Interaction, BackgroundColor, ZIndex}, text::{Text, TextStyle, TextAlignment}};
 
 use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets, SoundAssets}, cursor::{HoveredInfo, CursorPosition}, world::{DigBlockEvent, PlaceBlockEvent}}, util::{EntityCommandsExtensions, get_tile_coords}, language::LanguageContent, items::Item};
 
@@ -44,7 +44,7 @@ pub fn spawn_inventory_ui(
                             color: Color::WHITE,
                         },
                     )
-                    .with_alignment(TextAlignment::CENTER),
+                    .with_alignment(TextAlignment::Center),
                 })
                 .insert(Name::new("Selected Item Name"))
                 .insert(SelectedItemNameMarker);
@@ -85,7 +85,7 @@ pub fn spawn_inventory_ui(
                         align_items: AlignItems::Center,
                         justify_content: JustifyContent::Center,
                     },
-                    visibility: Visibility { is_visible: false },
+                    visibility: Visibility::Hidden,
                 })
                 .with_children(|children| {
                     for j in 0..INVENTORY_ROWS_COUNT {
@@ -217,7 +217,11 @@ pub fn update_inventory_visibility(
 ) {
     for event in events.iter() {
         for mut visibility in &mut query {
-            visibility.is_visible = event.0;
+            if event.0 {
+                *visibility = Visibility::Inherited;
+            } else {
+                *visibility = Visibility::Hidden;
+            }
         }
     }
 }
@@ -245,7 +249,7 @@ pub fn update_selected_cell_image(
     for (cell_index, mut image) in hotbar_cells.iter_mut() {
         let selected = cell_index.0 == inventory.selected_slot;
 
-        image.0 = if selected {
+        image.texture = if selected {
             ui_assets.selected_inventory_background.clone_weak()
         } else {
             ui_assets.inventory_background.clone_weak()
@@ -353,7 +357,7 @@ pub fn update_cell_image(
     >,
 ) {
     for (mut image, item_image) in &mut item_images {
-        image.0 = item_image.0.clone();
+        image.texture = item_image.0.clone();
     }
 }
 
@@ -376,12 +380,12 @@ pub fn update_item_amount(
 pub fn update_item_amount_text(
     mut query: Query<(&mut Text, &mut Visibility, &InventoryItemAmount), Changed<InventoryItemAmount>>,
 ) {
-    for (mut text, mut visiblity, item_stack) in &mut query {
+    for (mut text, mut visibility, item_stack) in &mut query {
         if item_stack.0 > 1 {
-            text.sections[0].value = item_stack.0.to_string();
-            visiblity.is_visible = true;
+            text.sections[0].value = item_stack.0.to_string();  
+            *visibility = Visibility::Inherited;
         } else {
-            visiblity.is_visible = false;
+            *visibility = Visibility::Hidden;
         }
     }
 }

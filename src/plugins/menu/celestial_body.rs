@@ -1,31 +1,31 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, IntoSystemDescriptor, Local, Input, MouseButton, Color, Vec4}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas}, window::Windows};
+use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, Local, Input, MouseButton, Color, Vec4, IntoSystemConfig, OnUpdate, DetectChanges, IntoSystemConfigs}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas}, window::Window};
 use interpolation::Lerp;
-use iyes_loopless::prelude::{AppLooplessStateExt, ConditionSet};
 
-use crate::{plugins::{assets::{CelestialBodyAssets}, camera::MainCamera, cursor::CursorPosition, background::Star}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystem, AnimatorState}, state::GameState, util::{screen_to_world, map_range_f32}, rect::FRect, parallax::LayerTextureComponent};
+use crate::{plugins::{assets::{CelestialBodyAssets}, camera::MainCamera, cursor::CursorPosition, background::Star}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystemSet, AnimatorState}, state::GameState, util::{map_range_f32}, rect::FRect, parallax::LayerTextureComponent};
 
 pub(super) struct CelestialBodyPlugin;
 
 impl Plugin for CelestialBodyPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .init_resource::<TimeType>()
-            .add_enter_system(GameState::MainMenu, setup)
-            .add_system(component_animator_system::<CelestialBody>.label(AnimationSystem::AnimationUpdate))
-            .add_system_set(
-                ConditionSet::new()
-                    .run_in_state(GameState::MainMenu)
-                    .with_system(update_celestial_type)
-                    .with_system(update_time_type)
-                    .with_system(move_celestial_body)
-                    .with_system(drag_celestial_body)
-                    .with_system(update_sprites_color)
-                    .with_system(change_visibility_of_stars)
-                    .into()
-            );
+        app.init_resource::<TimeType>();
+        app.add_system(setup.in_set(OnUpdate(GameState::MainMenu)));
+        app.add_system(component_animator_system::<CelestialBody>.in_set(AnimationSystemSet::AnimationUpdate));
+
+        app.add_systems(
+            (
+                update_celestial_type,
+                update_time_type,
+                move_celestial_body,
+                drag_celestial_body,
+                update_sprites_color,
+                change_visibility_of_stars,
+            )
+            .chain()
+            .in_set(OnUpdate(GameState::MainMenu))
+        );
     }
 }
 
@@ -115,20 +115,20 @@ fn change_visibility_of_stars(
 }
 
 fn move_celestial_body(
-    windows: Res<Windows>,
+    query_windows: Query<&Window>,
     query_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
     mut query_celestial_body: Query<(&mut Transform, &CelestialBody)>
 ) {
-    let window = windows.primary();
+    let window = query_windows.single();
     let window_size = Vec2::new(window.width(), window.height());
 
     let (camera, camera_transform) = query_camera.single();
     let (mut celestial_body_transform, celestial_body) = query_celestial_body.single_mut();
 
-    let world_pos = screen_to_world(celestial_body.position * window_size, window_size, camera, camera_transform);
-
-    celestial_body_transform.translation.x = world_pos.x;
-    celestial_body_transform.translation.y = world_pos.y;
+    if let Some(world_pos) = camera.viewport_to_world_2d(camera_transform, celestial_body.position * window_size) {
+        celestial_body_transform.translation.x = world_pos.x;
+        celestial_body_transform.translation.y = world_pos.y;    
+    }
 }
 
 fn update_time_type(
@@ -146,14 +146,14 @@ fn update_time_type(
 }
 
 fn drag_celestial_body(
-    windows: Res<Windows>,
+    query_windows: Query<&Window>,
     input: Res<Input<MouseButton>>,
     cursor_position: Res<CursorPosition>,
     time_type: Res<TimeType>,
     mut query_celestial_body: Query<(&mut Transform, &mut Animator<CelestialBody>, &mut CelestialBody)>,
     mut dragging: Local<bool>,
 ) {
-    let window = windows.primary();
+    let window = query_windows.single();
 
     let (mut celestial_body_transform, mut animator, mut celestial_body) = query_celestial_body.single_mut();
 

@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Res, Input, KeyCode, ResMut, Visibility, With, Query, Name, TextBundle, Color, Commands, Entity}, time::{Time, Timer, TimerMode}, diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin}, text::{Text, TextSection, TextAlignment, TextStyle}, ui::{Style, UiRect, Val}};
+use bevy::{prelude::{Res, Input, KeyCode, ResMut, Visibility, With, Query, Name, TextBundle, Color, Commands, Entity, DetectChanges}, time::{Time, Timer, TimerMode}, diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin}, text::{Text, TextSection, TextAlignment, TextStyle}, ui::{Style, UiRect, Val}};
 
 use crate::plugins::assets::FontAssets;
 
@@ -28,9 +28,9 @@ pub fn spawn_fps_text(commands: &mut Commands, fonts: &FontAssets) -> Entity {
                     value: "".to_string(),
                     style: text_style,
                 }],
-                alignment: TextAlignment::CENTER,
+                alignment: TextAlignment::Center,
             },
-            visibility: Visibility { is_visible: false },
+            visibility: Visibility::Hidden,
         })
         .insert(FpsText)
         .insert(FpsTextTimer(Timer::new(Duration::from_secs(1), TimerMode::Repeating)))
@@ -53,7 +53,11 @@ pub fn set_fps_text_visibility(
 ) {
     if fps_text_visibility.is_changed() {
         for mut visibility in query.iter_mut() {
-            visibility.is_visible = fps_text_visibility.0;
+            if fps_text_visibility.0 {
+                *visibility = Visibility::Inherited;
+            } else {
+                *visibility = Visibility::Visible;
+            }
         }
     }
 }

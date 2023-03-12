@@ -37,15 +37,15 @@ impl Plugin for TweeningPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<TweenCompleted>();
         
-        app.add_system(component_animator_system::<Transform>.label(AnimationSystem::AnimationUpdate));
-        app.add_system(component_animator_system::<Style>.label(AnimationSystem::AnimationUpdate));
-        app.add_system(component_animator_system::<Text>.label(AnimationSystem::AnimationUpdate));
+        app.add_system(component_animator_system::<Transform>.in_set(AnimationSystemSet::AnimationUpdate));
+        app.add_system(component_animator_system::<Style>.in_set(AnimationSystemSet::AnimationUpdate));
+        app.add_system(component_animator_system::<Text>.in_set(AnimationSystemSet::AnimationUpdate));
     }
 }
 
 /// Label enum for the systems relating to animations
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, SystemLabel)]
-pub enum AnimationSystem {
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, SystemSet)]
+pub enum AnimationSystemSet {
     /// Ticks animations
     AnimationUpdate,
 }

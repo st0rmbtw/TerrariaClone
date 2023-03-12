@@ -206,10 +206,11 @@ impl FromWorld for LightPassPipeline {
 
         let lighting_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
             label: Some("lighting_pipeline".into()),
-            layout: Some(vec![lighting_bind_group_layout.clone()]),
+            layout: vec![lighting_bind_group_layout.clone()],
             shader: lighting,
             shader_defs: vec![],
             entry_point: LIGHTING_PIPELINE_ENTRY.into(),
+            push_constant_ranges: vec![]
         });
 
         LightPassPipeline {

@@ -1,11 +1,10 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveExt, Camera2dBundle, ChildBuilder, NodeBundle, BuildChildren, TextBundle, Button, Res, default, Changed, EventWriter, Color, ImageBundle, Transform, Quat, Vec3, Audio}, text::{Text, TextStyle}, ui::{Style, JustifyContent, AlignItems, UiRect, FocusPolicy, PositionType, Interaction, Size, Val, FlexDirection, AlignSelf, UiImage}, app::AppExit};
+use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveExt, Camera2dBundle, ChildBuilder, NodeBundle, BuildChildren, TextBundle, Button, Res, default, Changed, EventWriter, Color, ImageBundle, Transform, Quat, Vec3, Audio, NextState}, text::{Text, TextStyle}, ui::{Style, JustifyContent, AlignItems, UiRect, FocusPolicy, PositionType, Interaction, Size, Val, FlexDirection, AlignSelf, UiImage}, app::AppExit};
 use interpolation::EaseFunction;
-use iyes_loopless::state::NextState;
 
-use crate::{animation::{Tween, Animator, AnimatorState, TweeningDirection, RepeatStrategy, Tweenable, EaseMethod, RepeatCount}, lens::{TextFontSizeLens, TransformLens}, parallax::ParallaxCameraComponent, plugins::{camera::MainCamera, assets::{FontAssets, UiAssets, SoundAssets}, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor}}, TEXT_COLOR, state::GameState, language::LanguageContent};
+use crate::{animation::{Tween, Animator, AnimatorState, TweeningDirection, RepeatStrategy, Tweenable, EaseMethod, RepeatCount}, lens::{TextFontSizeLens, TransformLens}, parallax::ParallaxCameraComponent, plugins::{camera::MainCamera, assets::{FontAssets, UiAssets, SoundAssets}, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor}, settings_menu::SettingsMenuState}, TEXT_COLOR, state::GameState, language::LanguageContent};
 
 use super::{Menu, SinglePlayerButton, SettingsButton, ExitButton};
 
@@ -169,7 +168,10 @@ pub fn setup_main_menu(
                         align_self: AlignSelf::Center,
                         ..default()
                     },
-                    image: UiImage(ui_assets.logo.clone()),
+                    image: UiImage {
+                        texture: ui_assets.logo.clone_weak(),
+                        ..default()
+                    },
                     ..default()
                 },
                 Animator::new(logo_animation)
@@ -248,11 +250,11 @@ pub fn update_buttons(
 }
 
 pub fn single_player_clicked(mut commands: Commands) {
-    commands.insert_resource(NextState(GameState::WorldLoading));
+    commands.insert_resource(NextState(Some(GameState::WorldLoading)));
 }
 
 pub fn settings_clicked(mut commands: Commands) {
-    commands.insert_resource(NextState(GameState::Settings));
+    commands.insert_resource(NextState(Some(GameState::Settings(SettingsMenuState::None))));
 }
 
 pub fn exit_clicked(

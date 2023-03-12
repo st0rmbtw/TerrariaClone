@@ -1,10 +1,9 @@
 use std::{fs::OpenOptions, io::{BufReader, Write}};
 
-use bevy::{prelude::{Plugin, App}, text::Text};
-use iyes_loopless::prelude::{ConditionSet, IntoConditionalSystem};
+use bevy::{prelude::{Plugin, App, OnUpdate, IntoSystemConfigs, IntoSystemConfig}, text::Text};
 use serde::{Deserialize, Serialize};
 
-use crate::{state::GameState, animation::{component_animator_system, AnimationSystem}};
+use crate::{state::GameState, animation::{component_animator_system, AnimationSystemSet}};
 
 mod components;
 mod systems;
@@ -70,24 +69,25 @@ impl Plugin for SettingsPlugin {
     fn build(&self, app: &mut App) {
         let settings = load_settings();
 
-        app
-            .add_system_set(
-                ConditionSet::new()
-                    .run_in_state(GameState::InGame)
-                    .with_system(update)
-                    .with_system(set_btn_visibility)
-                    .into(),
+        app.add_systems(
+            (
+                update,
+                set_btn_visibility
             )
-            .add_system(
-                component_animator_system::<Text>
-                    .run_in_state(GameState::InGame)
-                    .label(AnimationSystem::AnimationUpdate)
-            )
+            .chain()
+            .in_set(OnUpdate(GameState::InGame))
+        );
 
-            .insert_resource(FullScreen(settings.full_screen))
-            .insert_resource(ShowTileGrid(settings.show_tile_grid))
-            .insert_resource(VSync(settings.vsync))
-            .insert_resource(settings.cursor_color)
-            .insert_resource(settings.resolution);
+        app.add_system(
+            component_animator_system::<Text>
+                .in_set(OnUpdate(GameState::InGame))
+                .in_set(AnimationSystemSet::AnimationUpdate)
+        );
+
+        app.insert_resource(FullScreen(settings.full_screen));
+        app.insert_resource(ShowTileGrid(settings.show_tile_grid));
+        app.insert_resource(VSync(settings.vsync));
+        app.insert_resource(settings.cursor_color);
+        app.insert_resource(settings.resolution);
     }
 }

@@ -22,14 +22,3 @@ pub const TRANSPARENT: Color = Color::rgba(0., 0., 0., 0.);
 pub const TEXT_COLOR: Color = Color::rgb(156. / 255., 156. / 255., 156. / 255.);
 
 pub type Velocity = Vec2;
-
-pub mod labels {
-    use bevy::prelude::SystemLabel;
-
-    #[derive(Debug, SystemLabel)]
-    pub enum PlayerLabel {
-        HorizontalMovement,
-        Jump,
-        Update
-    }
-}
