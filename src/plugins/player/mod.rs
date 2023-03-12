@@ -70,7 +70,10 @@ impl Plugin for PlayerPlugin {
                 update_face_direction,
                 flip_player,
                 spawn_particles,
-            ).chain().in_base_set(CoreSet::PostUpdate)
+            )
+            .chain()
+            .after(PhysicsSet::Movement)
+            .distributive_run_if(|current_state: Res<State<GameState>>| current_state.0 == GameState::InGame)
         );
 
         app.add_systems(
@@ -116,13 +119,15 @@ impl Plugin for PlayerPlugin {
                     gravity
                 )
                 .chain()
-                .before(PhysicsSet::CollisionDetection)
+                .distributive_run_if(|current_state: Res<State<GameState>>| current_state.0 == GameState::InGame)
                 .in_set(PhysicsSet::SetVelocity)
+                .before(PhysicsSet::CollisionDetection)
                 .in_schedule(CoreSchedule::FixedUpdate)
             );
 
             app.add_system(
                 detect_collisions
+                    .run_if(in_state(GameState::InGame))
                     .in_schedule(CoreSchedule::FixedUpdate)
                     .in_set(PhysicsSet::CollisionDetection)
                     .after(PhysicsSet::SetVelocity)
@@ -131,6 +136,7 @@ impl Plugin for PlayerPlugin {
 
             app.add_system(
                 move_player
+                    .run_if(in_state(GameState::InGame))
                     .in_schedule(CoreSchedule::FixedUpdate)
                     .in_set(PhysicsSet::Movement)
                     .after(PhysicsSet::CollisionDetection)

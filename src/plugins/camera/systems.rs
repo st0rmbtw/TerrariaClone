@@ -2,7 +2,8 @@ use autodefault::autodefault;
 use bevy::{
     prelude::{
         Commands, Camera2dBundle, OrthographicProjection, Transform, Res, KeyCode, Query, 
-        With, default,ResMut, Assets, Vec3, Mesh, shape, Input, Color, Name, MouseButton, Vec2, Visibility,
+        With, default, ResMut, Assets, Vec3, Mesh, shape, Input, Color, Name, MouseButton, Vec2, Visibility,
+        Without
     }, 
     time::Time, sprite::{MaterialMesh2dBundle, ColorMaterial}
 };
@@ -83,8 +84,8 @@ pub fn zoom(
 
 #[cfg(not(feature = "free_camera"))]
 pub fn move_camera(
-    mut player: Query<&Transform, With<Player>>,
-    mut camera: Query<(&mut Transform, &OrthographicProjection), With<MainCamera>>,
+    mut player: Query<&Transform, (With<Player>, Without<MainCamera>)>,
+    mut camera: Query<(&mut Transform, &OrthographicProjection), (With<MainCamera>, Without<Player>)>,
     world_data: Res<WorldData>
 ) {
     if let Ok((mut camera_transform, projection)) = camera.get_single_mut() {
@@ -135,7 +136,7 @@ pub fn control_mouse_light(
 #[cfg(feature = "free_camera")]
 pub fn move_camera(
     time: Res<Time>,
-    mut camera: Query<(&mut GlobalTransform, &OrthographicProjection), With<MainCamera>>,
+    mut camera: Query<(&mut Transform, &OrthographicProjection), With<MainCamera>>,
     input: Res<bevy::prelude::Input<KeyCode>>,
     world_data: Res<WorldData>
 ) {
@@ -166,17 +167,21 @@ pub fn move_camera(
 
         {
             let velocity = move_direction.x * CAMERA_MOVE_SPEED * time.delta_seconds();
-            let new_position = camera_transform.translation_mut().x + velocity;
+            let new_position = camera_transform.translation.x + velocity;
+
             let min = projection_left.abs() - TILE_SIZE / 2.;
             let max = (world_data.size.width as f32 * 16.) - projection_right - TILE_SIZE / 2.;
-            camera_transform.translation_mut().x = new_position.clamp(min, max);
+
+            camera_transform.translation.x = new_position.clamp(min, max);
         }
         {
             let velocity = move_direction.y * CAMERA_MOVE_SPEED * time.delta_seconds();
-            let new_position = camera_transform.translation_mut().y + velocity;
-            let max = -(projection_top - TILE_SIZE / 2.);
+            let new_position = camera_transform.translation.y + velocity;
+
             let min = -((world_data.size.height as f32 * 16.) + projection_top + TILE_SIZE / 2.);
-            camera_transform.translation_mut().y = new_position.clamp(min, max);
+            let max = -(projection_top - TILE_SIZE / 2.);
+
+            camera_transform.translation.y = new_position.clamp(min, max);
         }
     }
 }

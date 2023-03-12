@@ -1,4 +1,4 @@
-use bevy::prelude::{Plugin, App, Component, OnUpdate, IntoSystemConfig, CoreSet};
+use bevy::prelude::{Plugin, App, Component, OnUpdate, IntoSystemConfig, CoreSet, in_state, IntoSystemAppConfig, OnEnter};
 
 use crate::state::GameState;
 
@@ -18,9 +18,13 @@ pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(setup_camera.in_set(OnUpdate(GameState::InGame)));
+        app.add_system(setup_camera.in_schedule(OnEnter(GameState::InGame)));
         app.add_system(zoom.in_set(OnUpdate(GameState::InGame)));
-        app.add_system(move_camera.in_set(OnUpdate(GameState::InGame)).in_base_set(CoreSet::PostUpdate));
+        app.add_system(
+            move_camera
+                .in_base_set(CoreSet::PostUpdate)
+                .run_if(in_state(GameState::InGame))
+        );
     }
 }
 #[derive(Component)]

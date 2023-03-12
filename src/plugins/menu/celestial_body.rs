@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, Local, Input, MouseButton, Color, Vec4, IntoSystemConfig, OnUpdate, DetectChanges, IntoSystemConfigs}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas}, window::{Window, PrimaryWindow}};
+use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, Local, Input, MouseButton, Color, Vec4, IntoSystemConfig, OnUpdate, DetectChanges, IntoSystemConfigs, IntoSystemAppConfig, OnEnter}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas}, window::{Window, PrimaryWindow}};
 use interpolation::Lerp;
 
 use crate::{plugins::{assets::{CelestialBodyAssets}, camera::MainCamera, cursor::CursorPosition, background::Star}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystemSet, AnimatorState}, state::GameState, util::{map_range_f32}, rect::FRect, parallax::LayerTextureComponent};
@@ -11,7 +11,7 @@ pub(super) struct CelestialBodyPlugin;
 impl Plugin for CelestialBodyPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<TimeType>();
-        app.add_system(setup.in_set(OnUpdate(GameState::MainMenu)));
+        app.add_system(setup.in_schedule(OnEnter(GameState::MainMenu)));
         app.add_system(component_animator_system::<CelestialBody>.in_set(AnimationSystemSet::AnimationUpdate));
 
         app.add_systems(

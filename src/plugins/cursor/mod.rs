@@ -6,7 +6,7 @@ pub use components::*;
 pub use resources::*;
 pub use systems::*;
 
-use bevy::{prelude::{Plugin, App, IntoSystemConfig, OnExit, OnEnter, IntoSystemConfigs, not, IntoSystemAppConfig, resource_equals, OnUpdate, in_state, Res}, ui::BackgroundColor};
+use bevy::{prelude::{Plugin, App, IntoSystemConfig, OnExit, OnEnter, IntoSystemConfigs, not, IntoSystemAppConfig, resource_equals, OnUpdate, in_state, Res, State}, ui::BackgroundColor};
 use crate::{state::GameState, animation::{AnimationSystemSet, component_animator_system}};
 use super::{ui::UiVisibility, settings::ShowTileGrid};
 
@@ -30,6 +30,7 @@ impl Plugin for CursorPlugin {
             )
             .chain()
             .distributive_run_if(|res: Res<UiVisibility>| *res == UiVisibility(true))
+            .distributive_run_if(|current_state: Res<State<GameState>>| current_state.0 != GameState::AssetLoading)
         );
 
         app.add_system(
@@ -41,13 +42,8 @@ impl Plugin for CursorPlugin {
 
         app.add_system(
             component_animator_system::<BackgroundColor>
-                .in_set(OnUpdate(GameState::InGame))
-                .run_if(resource_equals(UiVisibility(true)))
-        );
-
-        app.add_system(
-            component_animator_system::<BackgroundColor>
                 .run_if(not(in_state(GameState::AssetLoading)))
+                .run_if(resource_equals(UiVisibility(true)))
                 .in_set(AnimationSystemSet::AnimationUpdate),
         );
 
@@ -59,7 +55,9 @@ impl Plugin for CursorPlugin {
 
                 #[cfg(not(feature = "free_camera"))]
                 update_tile_grid_opacity
-            ).chain().in_set(OnUpdate(GameState::InGame))
+            )
+            .chain()
+            .in_set(OnUpdate(GameState::InGame))
         );
     }
 }

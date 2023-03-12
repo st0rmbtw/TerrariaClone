@@ -202,7 +202,7 @@ impl FromWorld for LightPassPipeline {
         
         let lighting = assets_server.load("shaders/lighting.wgsl");
 
-        let mut pipeline_cache = world.resource_mut::<PipelineCache>();
+        let pipeline_cache = world.resource::<PipelineCache>();
 
         let lighting_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
             label: Some("lighting_pipeline".into()),
