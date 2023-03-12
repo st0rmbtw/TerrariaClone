@@ -27,9 +27,6 @@ const WALKING_ANIMATION_MAX_INDEX: usize = 13;
 
 const USE_ITEM_ANIMATION_FRAMES_COUNT: usize = 3;
 
-const MOVEMENT_ANIMATION_LABEL: &str = "movement_animation";
-const USE_ITEM_ANIMATION_LABEL: &str = "use_item_animation";
-
 const GRAVITY: f32 = 0.4;
 const ACCELERATION: f32 = 0.1;
 const SLOWDOWN: f32 = 0.2;
@@ -41,6 +38,7 @@ pub const MAX_FALL_SPEED: f32 = -10.;
 
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
 enum PhysicsSet {
+    SetVelocity,
     Movement,
     CollisionDetection,
     UseItem
@@ -115,10 +113,27 @@ impl Plugin for PlayerPlugin {
                 (
                     horizontal_movement,
                     update_jump,
-                    update
+                    gravity
                 )
                 .chain()
-                .in_set(PhysicsSet::Movement)
+                .before(PhysicsSet::CollisionDetection)
+                .in_set(PhysicsSet::SetVelocity)
+                .in_schedule(CoreSchedule::FixedUpdate)
+            );
+
+            app.add_system(
+                detect_collisions
+                    .in_schedule(CoreSchedule::FixedUpdate)
+                    .in_set(PhysicsSet::CollisionDetection)
+                    .after(PhysicsSet::SetVelocity)
+                    .before(PhysicsSet::Movement)
+            );
+
+            app.add_system(
+                move_player
+                    .in_schedule(CoreSchedule::FixedUpdate)
+                    .in_set(PhysicsSet::Movement)
+                    .after(PhysicsSet::CollisionDetection)
             );
         }
 

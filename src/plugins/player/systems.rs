@@ -86,26 +86,30 @@ pub fn update_jump(
     }
 }
 
-#[allow(non_upper_case_globals)]
-pub fn update(
+pub fn gravity(
     time: Res<Time>,
-    mut player_query: Query<&mut Transform, With<Player>>,
-    world_data: Res<WorldData>,
-    mut velocity: ResMut<PlayerVelocity>,
-    mut collisions: ResMut<Collisions>,
+    collisions: Res<Collisions>,
     mut player_data: ResMut<PlayerData>,
+    mut velocity: ResMut<PlayerVelocity>,
 ) {
-    let mut transform = player_query.single_mut();
-
-    // -------- Gravity --------
     if !collisions.bottom {
         player_data.fall_distance += GRAVITY / (time.delta_seconds() * 16.);
         velocity.y -= GRAVITY;
 
         velocity.y = velocity.y.max(MAX_FALL_SPEED);
     }
+}
 
-    // ------- Collisions -------
+pub fn detect_collisions(
+    time: Res<Time>,
+    world_data: Res<WorldData>,
+    mut collisions: ResMut<Collisions>,
+    mut velocity: ResMut<PlayerVelocity>,
+    mut player_data: ResMut<PlayerData>,
+    player_query: Query<&Transform, With<Player>>,
+) {
+    let transform = player_query.single();
+
     let position = (transform.translation.xy()).abs();
     let next_position = (transform.translation.xy() + velocity.0).abs();
 
@@ -187,8 +191,16 @@ pub fn update(
     }
 
     *collisions = new_collisions;
+}
 
-    // -------- Move player --------
+#[allow(non_upper_case_globals)]
+pub fn move_player(
+    world_data: Res<WorldData>,
+    velocity: Res<PlayerVelocity>,
+    mut player_query: Query<&mut Transform, With<Player>>,
+) {
+    let mut transform = player_query.single_mut();
+
     let raw = transform.translation.xy() + velocity.0;
 
     const min_x: f32 = PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
