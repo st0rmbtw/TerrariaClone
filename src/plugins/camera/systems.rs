@@ -2,7 +2,7 @@ use autodefault::autodefault;
 use bevy::{
     prelude::{
         Commands, Camera2dBundle, OrthographicProjection, Transform, Res, KeyCode, Query, 
-        With, GlobalTransform, default,ResMut, Assets, Vec3, Mesh, shape, Input, Color, Name, MouseButton, Vec2,
+        With, GlobalTransform, default,ResMut, Assets, Vec3, Mesh, shape, Input, Color, Name, MouseButton, Vec2, Visibility,
     }, 
     time::Time, sprite::{MaterialMesh2dBundle, ColorMaterial}
 };
@@ -111,28 +111,34 @@ pub fn move_camera(
 }
 
 pub fn control_mouse_light(
-    mut query: Query<(&mut Transform, &mut LightSource), With<MouseLight>>,
+    mut query: Query<(&mut Transform, &mut LightSource, &mut Visibility), With<MouseLight>>,
     cursor_position: Res<CursorPosition>,
-    mouse: Res<Input<MouseButton>>,
+    input_keyboard: Res<Input<KeyCode>>,
+    input_mouse: Res<Input<MouseButton>>,
 ) {
     let mut rng = thread_rng();
 
-    let (mut transform, mut light_source) = query.single_mut();
+    let (mut transform, mut light_source, mut visibility) = query.single_mut();
 
     transform.translation = cursor_position.world_position.extend(10.);
 
-    if mouse.just_pressed(MouseButton::Right) {
-        light_source.color = Color::rgba(rng.gen(), rng.gen(), rng.gen(), 1.0);
+    if input_mouse.just_pressed(MouseButton::Right) {
+        if input_keyboard.pressed(KeyCode::LShift) {
+            visibility.is_visible = !visibility.is_visible;
+        } else {
+            light_source.color = Color::rgba(rng.gen(), rng.gen(), rng.gen(), 1.0);
+        }
     }
 }
 
 #[cfg(feature = "free_camera")]
 pub fn move_camera(
+    time: Res<Time>,
     mut camera: Query<(&mut GlobalTransform, &OrthographicProjection), With<MainCamera>>,
     input: Res<bevy::prelude::Input<KeyCode>>,
     world_data: Res<WorldData>
 ) {
-    const CAMERA_MOVE_SPEED: f32 = 15.;
+    const CAMERA_MOVE_SPEED: f32 = 1500.;
 
     let mut move_direction = Vec2::new(0., 0.);
 
@@ -158,13 +164,15 @@ pub fn move_camera(
         let projection_top = projection.top * projection.scale;
 
         {
-            let new_position = camera_transform.translation_mut().x + move_direction.x * CAMERA_MOVE_SPEED;
+            let velocity = move_direction.x * CAMERA_MOVE_SPEED * time.delta_seconds();
+            let new_position = camera_transform.translation_mut().x + velocity;
             let min = projection_left.abs() - TILE_SIZE / 2.;
             let max = (world_data.size.width as f32 * 16.) - projection_right - TILE_SIZE / 2.;
             camera_transform.translation_mut().x = new_position.clamp(min, max);
         }
         {
-            let new_position = camera_transform.translation_mut().y + move_direction.y * CAMERA_MOVE_SPEED;
+            let velocity = move_direction.y * CAMERA_MOVE_SPEED * time.delta_seconds();
+            let new_position = camera_transform.translation_mut().y + velocity;
             let max = -(projection_top - TILE_SIZE / 2.);
             let min = -((world_data.size.height as f32 * 16.) + projection_top + TILE_SIZE / 2.);
             camera_transform.translation_mut().y = new_position.clamp(min, max);
