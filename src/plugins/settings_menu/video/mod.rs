@@ -6,7 +6,7 @@ pub use buttons::*;
 use autodefault::autodefault;
 use bevy::{prelude::{Commands, Res, NodeBundle, BuildChildren, Component, ResMut, Query, With, NextState}, text::{TextStyle, Text}, ui::{Style, Size, Val, JustifyContent, AlignItems, FlexDirection}, window::Window};
 
-use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button}, settings::VSync}, language::LanguageContent, TEXT_COLOR, state::GameState};
+use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button}, settings::VSync}, language::LanguageContent, TEXT_COLOR, state::{GameState, MenuState}};
 
 use super::{SettingsMenuState, MENU_BUTTON_FONT_SIZE, BackButton};
 
@@ -48,11 +48,11 @@ pub fn setup_video_menu(
 }
 
 pub fn resolution_clicked(mut commands: Commands) {
-    commands.insert_resource(NextState(Some(GameState::Settings(SettingsMenuState::Resolution))));
+    commands.insert_resource(NextState(Some(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution)))));
 }
 
 pub fn back_clicked(mut commands: Commands) {
-    commands.insert_resource(NextState(Some(GameState::Settings(SettingsMenuState::None))));
+    commands.insert_resource(NextState(Some(GameState::Menu(MenuState::Settings(SettingsMenuState::Main)))));
 }
 
 pub fn vsync_clicked(mut window: Query<&mut Window>, mut vsync: ResMut<VSync>) {

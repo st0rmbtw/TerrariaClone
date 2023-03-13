@@ -1,17 +1,19 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, Local, Input, MouseButton, Color, Vec4, IntoSystemConfig, OnUpdate, DetectChanges, IntoSystemConfigs, IntoSystemAppConfig, OnEnter}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas}, window::{Window, PrimaryWindow}};
+use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, Local, Input, MouseButton, Color, Vec4, IntoSystemConfig, DetectChanges, IntoSystemConfigs, IntoSystemAppConfig, OnExit}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas}, window::{Window, PrimaryWindow}};
 use interpolation::Lerp;
 
-use crate::{plugins::{assets::{CelestialBodyAssets}, camera::MainCamera, cursor::CursorPosition, background::Star}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystemSet, AnimatorState}, state::GameState, util::{map_range_f32}, rect::FRect, parallax::LayerTextureComponent};
+use crate::{plugins::{assets::{CelestialBodyAssets}, camera::MainCamera, cursor::CursorPosition, background::Star}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystemSet, AnimatorState}, state::GameState, util::map_range_f32, rect::FRect, parallax::LayerTextureComponent};
+
+use super::in_menu_state;
 
 pub(super) struct CelestialBodyPlugin;
 
 impl Plugin for CelestialBodyPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<TimeType>();
-        app.add_system(setup.in_schedule(OnEnter(GameState::MainMenu)));
+        app.add_system(setup.in_schedule(OnExit(GameState::AssetLoading)));
         app.add_system(component_animator_system::<CelestialBody>.in_set(AnimationSystemSet::AnimationUpdate));
 
         app.add_systems(
@@ -24,7 +26,7 @@ impl Plugin for CelestialBodyPlugin {
                 change_visibility_of_stars,
             )
             .chain()
-            .in_set(OnUpdate(GameState::MainMenu))
+            .distributive_run_if(in_menu_state)
         );
     }
 }

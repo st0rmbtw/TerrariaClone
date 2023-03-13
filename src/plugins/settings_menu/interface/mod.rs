@@ -5,7 +5,7 @@ pub use buttons::*;
 use autodefault::autodefault;
 use bevy::{prelude::{Commands, Res, NodeBundle, BuildChildren, With, Query, ResMut, Component, NextState}, text::{TextStyle, Text}, ui::{Style, Size, Val, JustifyContent, AlignItems, FlexDirection}};
 
-use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button}, settings::ShowTileGrid}, language::LanguageContent, TEXT_COLOR, state::GameState};
+use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button}, settings::ShowTileGrid}, language::LanguageContent, TEXT_COLOR, state::{GameState, MenuState}};
 
 use super::{SettingsMenuState, MENU_BUTTON_FONT_SIZE, BackButton};
 
@@ -50,7 +50,7 @@ pub fn toggle_tile_grid_clicked(mut show_tile_grid: ResMut<ShowTileGrid>) {
 }
 
 pub fn back_clicked(mut commands: Commands) {
-    commands.insert_resource(NextState(Some(GameState::Settings(SettingsMenuState::None))));
+    commands.insert_resource(NextState(Some(GameState::Menu(MenuState::Settings(SettingsMenuState::Main)))));
 }
 
 pub fn update_toggle_tile_grid_button_text(

@@ -5,9 +5,9 @@ mod celestial_body;
 pub use components::*;
 pub use systems::*;
 
-use bevy::prelude::{Plugin, App, Res, IntoSystemAppConfig, OnUpdate, State, IntoSystemConfigs, IntoSystemConfig, OnEnter, OnExit};
+use bevy::prelude::{Plugin, App, IntoSystemAppConfig, IntoSystemConfigs, IntoSystemConfig, OnEnter, OnExit};
 
-use crate::{state::GameState, util::on_btn_clicked, parallax::move_background_system};
+use crate::{state::{GameState, MenuState}, util::{on_btn_clicked, in_menu_state}, parallax::move_background_system};
 
 use self::celestial_body::CelestialBodyPlugin;
 
@@ -20,10 +20,10 @@ impl Plugin for MenuPlugin {
         app.add_plugin(CelestialBodyPlugin);
 
         app.add_system(setup_camera.on_startup());
-        app.add_system(setup_main_menu.in_schedule(OnEnter(GameState::MainMenu)));
+        app.add_system(setup_main_menu.in_schedule(OnEnter(GameState::Menu(MenuState::Main))));
 
         app.add_system(despawn_with::<MainCamera>.in_schedule(OnEnter(GameState::InGame)));
-        app.add_system(despawn_with::<Menu>.in_schedule(OnExit(GameState::MainMenu)));
+        app.add_system(despawn_with::<Menu>.in_schedule(OnExit(GameState::Menu(MenuState::Main))));
 
         app.add_systems(
             (
@@ -39,11 +39,9 @@ impl Plugin for MenuPlugin {
                 single_player_clicked.run_if(on_btn_clicked::<SinglePlayerButton>),
                 settings_clicked.run_if(on_btn_clicked::<SettingsButton>),
                 exit_clicked.run_if(on_btn_clicked::<ExitButton>),
-            ).chain().in_set(OnUpdate(GameState::MainMenu))
+            )
+            .chain()
+            .distributive_run_if(in_menu_state)
         );
     }
-}
-
-fn in_menu_state(state: Res<State<GameState>>) -> bool {
-    matches!(&state.0, GameState::MainMenu | GameState::Settings(_))
 }

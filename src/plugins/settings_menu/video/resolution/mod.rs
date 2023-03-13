@@ -5,7 +5,7 @@ use autodefault::autodefault;
 use bevy::{prelude::{Component, Commands, Res, NodeBundle, BuildChildren, ResMut, Query, With, Local, NextState}, text::{TextStyle, Text}, ui::{Style, Size, Val, JustifyContent, AlignItems, FlexDirection}, window::{Window, WindowResolution}};
 use strum::EnumCount;
 
-use crate::{plugins::{assets::FontAssets, settings_menu::{MENU_BUTTON_FONT_SIZE, BackButton, ApplyButton, SettingsMenuState}, menu::{menu_button, control_buttons_layout, control_button}, settings::{FullScreen, Resolution}}, language::LanguageContent, TEXT_COLOR, state::GameState};
+use crate::{plugins::{assets::FontAssets, settings_menu::{MENU_BUTTON_FONT_SIZE, BackButton, ApplyButton, SettingsMenuState}, menu::{menu_button, control_buttons_layout, control_button}, settings::{FullScreen, Resolution}}, language::LanguageContent, TEXT_COLOR, state::{GameState, MenuState}};
 
 #[derive(Component)]
 pub struct ResolutionMenu;
@@ -59,7 +59,7 @@ pub fn fullscreen_clicked(mut fullscreen: ResMut<FullScreen>) {
 }
 
 pub fn back_clicked(mut commands: Commands) {
-    commands.insert_resource(NextState(Some(GameState::Settings(SettingsMenuState::Video))));
+    commands.insert_resource(NextState(Some(GameState::Menu(MenuState::Settings(SettingsMenuState::Video)))));
 }
 
 pub fn apply_clicked(

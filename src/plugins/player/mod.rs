@@ -40,8 +40,7 @@ pub const MAX_FALL_SPEED: f32 = -10.;
 enum PhysicsSet {
     SetVelocity,
     Movement,
-    CollisionDetection,
-    UseItem
+    CollisionDetection
 }
 
 pub struct PlayerPlugin;
@@ -59,7 +58,6 @@ impl Plugin for PlayerPlugin {
         )));
 
         app.init_resource::<PlayerVelocity>();
-        app.init_resource::<PlayerData>();
         app.init_resource::<Collisions>();
 
         app.add_system(spawn_player.in_schedule(OnEnter(GameState::InGame)));
@@ -73,7 +71,7 @@ impl Plugin for PlayerPlugin {
             )
             .chain()
             .after(PhysicsSet::Movement)
-            .distributive_run_if(|current_state: Res<State<GameState>>| current_state.0 == GameState::InGame)
+            .distributive_run_if(in_state(GameState::InGame))
         );
 
         app.add_systems(
@@ -83,7 +81,9 @@ impl Plugin for PlayerPlugin {
                 walking_animation.run_if(is_walking),
                 simple_animation::<IdleAnimationData>.run_if(is_idle),
                 simple_animation::<FlyingAnimationData>.run_if(is_flying)
-            ).chain().in_set(OnUpdate(GameState::InGame))
+            )
+            .chain()
+            .in_set(OnUpdate(GameState::InGame))
         );
 
         app.add_systems(
@@ -97,7 +97,6 @@ impl Plugin for PlayerPlugin {
             )
             .chain()
             .distributive_run_if(|res: Res<UseItemAnimation>| *res == UseItemAnimation(true))
-            .in_set(PhysicsSet::UseItem)
             .in_set(OnUpdate(GameState::InGame))
         );
 
@@ -119,7 +118,7 @@ impl Plugin for PlayerPlugin {
                     gravity
                 )
                 .chain()
-                .distributive_run_if(|current_state: Res<State<GameState>>| current_state.0 == GameState::InGame)
+                .distributive_run_if(in_state(GameState::InGame))
                 .in_set(PhysicsSet::SetVelocity)
                 .before(PhysicsSet::CollisionDetection)
                 .in_schedule(CoreSchedule::FixedUpdate)
@@ -140,6 +139,13 @@ impl Plugin for PlayerPlugin {
                     .in_schedule(CoreSchedule::FixedUpdate)
                     .in_set(PhysicsSet::Movement)
                     .after(PhysicsSet::CollisionDetection)
+            );
+
+            app.add_system(
+                interpolate_player_transform
+                    .run_if(in_state(GameState::InGame))
+                    .in_set(PhysicsSet::Movement)
+                    .after(move_player)
             );
         }
 
@@ -173,11 +179,19 @@ pub fn spawn_player(
     mut effects: ResMut<Assets<EffectAsset>>,
     world_data: Res<WorldData>
 ) {
-    let spawn_point = tile_to_world_coords(world_data.spawn_point);
+    let player_spawn_point = {
+        let spawn_point = tile_to_world_coords(world_data.spawn_point) + TILE_SIZE / 2.;
+
+        Vec2::new(spawn_point.x + PLAYER_HALF_WIDTH, spawn_point.y + PLAYER_HALF_HEIGHT)
+    };
+
+    commands.insert_resource(PlayerData {
+        prev_position: player_spawn_point
+    });
 
     let player = commands
         .spawn(PlayerBundle::new(
-            Transform::from_xyz(spawn_point.x + TILE_SIZE / 2. + PLAYER_HALF_WIDTH, spawn_point.y + TILE_SIZE / 2. + PLAYER_HALF_HEIGHT, 3.)
+            Transform::from_xyz(player_spawn_point.x, player_spawn_point.y, 3.)
         ))
         .with_children(|cmd| {
             // region: Hair

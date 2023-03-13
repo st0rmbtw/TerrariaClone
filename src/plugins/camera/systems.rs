@@ -9,7 +9,7 @@ use bevy::{
 };
 use rand::{thread_rng, Rng};
 
-use crate::{parallax::ParallaxCameraComponent, plugins::{world::{TILE_SIZE, WorldData}, cursor::CursorPosition}, util::tile_to_world_coords, lighting::{compositing::LightMapCamera, types::LightSource}};
+use crate::{parallax::ParallaxCameraComponent, plugins::{world::{TILE_SIZE, WorldData}, cursor::CursorPosition}, lighting::{compositing::LightMapCamera, types::LightSource}, util::tile_to_world_coords};
 
 #[cfg(not(feature = "free_camera"))]
 use crate::plugins::player::Player;
@@ -23,7 +23,7 @@ pub fn setup_camera(
     mut meshes: ResMut<Assets<Mesh>>,
     world_data: Res<WorldData>
 ) {
-    let spawn_point = tile_to_world_coords(world_data.spawn_point);
+    let player_spawn_point = tile_to_world_coords(world_data.spawn_point);
 
     commands
         .spawn((
@@ -34,7 +34,7 @@ pub fn setup_camera(
                 projection: OrthographicProjection { 
                     scale: 0.9
                 },
-                transform: Transform::from_xyz(spawn_point.x + TILE_SIZE / 2., spawn_point.y + TILE_SIZE / 2., 500.)
+                transform: Transform::from_xyz(player_spawn_point.x, player_spawn_point.y, 500.)
             }
         ));
 
@@ -140,7 +140,7 @@ pub fn move_camera(
     input: Res<bevy::prelude::Input<KeyCode>>,
     world_data: Res<WorldData>
 ) {
-    const CAMERA_MOVE_SPEED: f32 = 1500.;
+    const CAMERA_MOVE_SPEED: f32 = 1000.;
 
     let mut move_direction = Vec2::new(0., 0.);
 

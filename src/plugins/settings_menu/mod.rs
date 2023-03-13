@@ -5,7 +5,7 @@ pub mod video;
 use autodefault::autodefault;
 use bevy::{prelude::{Commands, Res, NodeBundle, BuildChildren, Plugin, App, Component, IntoSystemAppConfig, OnEnter, OnExit, OnUpdate, IntoSystemConfig, IntoSystemConfigs, NextState}, text::TextStyle, ui::{Style, Size, Val, JustifyContent, AlignItems, FlexDirection}};
 
-use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button}}, language::LanguageContent, TEXT_COLOR, state::GameState, util::on_btn_clicked};
+use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button}}, language::LanguageContent, TEXT_COLOR, state::{GameState, MenuState}, util::on_btn_clicked};
 
 use self::buttons::{InterfaceButton, VideoButton, CursorButton};
 
@@ -18,7 +18,7 @@ pub enum SettingsMenuState {
     Cursor,
     Resolution,
     #[default]
-    None
+    Main
 }
 
 #[derive(Component)]
@@ -36,8 +36,8 @@ pub const MENU_BUTTON_FONT_SIZE: f32 = 42.;
 
 impl Plugin for SettingsMenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(setup_settings_menu.in_schedule(OnEnter(GameState::Settings(SettingsMenuState::None))));
-        app.add_system(despawn_with::<SettingsMenu>.in_schedule(OnExit(GameState::Settings(SettingsMenuState::None))));
+        app.add_system(setup_settings_menu.in_schedule(OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Main)))));
+        app.add_system(despawn_with::<SettingsMenu>.in_schedule(OnExit(GameState::Menu(MenuState::Settings(SettingsMenuState::Main)))));
 
         app.add_systems(
             (
@@ -47,12 +47,12 @@ impl Plugin for SettingsMenuPlugin {
                 back_clicked.run_if(on_btn_clicked::<BackButton>),
             )
             .chain()
-            .in_set(OnUpdate(GameState::Settings(SettingsMenuState::None)))
+            .in_set(OnUpdate(GameState::Menu(MenuState::Settings(SettingsMenuState::Main))))
         );
             
         // ---- Interface -----
-        app.add_system(interface::setup_interface_menu.in_schedule(OnEnter(GameState::Settings(SettingsMenuState::Interface))));
-        app.add_system(despawn_with::<interface::InterfaceMenu>.in_schedule(OnExit(GameState::Settings(SettingsMenuState::Interface))));
+        app.add_system(interface::setup_interface_menu.in_schedule(OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface)))));
+        app.add_system(despawn_with::<interface::InterfaceMenu>.in_schedule(OnExit(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface)))));
 
         app.add_systems(
             (
@@ -61,12 +61,12 @@ impl Plugin for SettingsMenuPlugin {
                 interface::back_clicked.run_if(on_btn_clicked::<BackButton>),
             )
             .chain()
-            .in_set(OnUpdate(GameState::Settings(SettingsMenuState::Interface)))
+            .in_set(OnUpdate(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface))))
         );
             
         // ------ Video -------
-        app.add_system(video::setup_video_menu.in_schedule(OnEnter(GameState::Settings(SettingsMenuState::Video))));
-        app.add_system(despawn_with::<video::VideoMenu>.in_schedule(OnExit(GameState::Settings(SettingsMenuState::Video))));
+        app.add_system(video::setup_video_menu.in_schedule(OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Video)))));
+        app.add_system(despawn_with::<video::VideoMenu>.in_schedule(OnExit(GameState::Menu(MenuState::Settings(SettingsMenuState::Video)))));
 
         app.add_systems(
             (
@@ -76,12 +76,12 @@ impl Plugin for SettingsMenuPlugin {
                 video::back_clicked.run_if(on_btn_clicked::<BackButton>),
             )
             .chain()
-            .in_set(OnUpdate(GameState::Settings(SettingsMenuState::Video)))
+            .in_set(OnUpdate(GameState::Menu(MenuState::Settings(SettingsMenuState::Video))))
         );
             
         // ----- Resolution -----
-        app.add_system(video::resolution::setup_resolution_menu.in_schedule(OnEnter(GameState::Settings(SettingsMenuState::Resolution))));
-        app.add_system(despawn_with::<video::resolution::ResolutionMenu>.in_schedule(OnExit(GameState::Settings(SettingsMenuState::Resolution))));
+        app.add_system(video::resolution::setup_resolution_menu.in_schedule(OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution)))));
+        app.add_system(despawn_with::<video::resolution::ResolutionMenu>.in_schedule(OnExit(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution)))));
 
         app.add_systems(
             (
@@ -93,8 +93,8 @@ impl Plugin for SettingsMenuPlugin {
                 video::resolution::back_clicked.run_if(on_btn_clicked::<BackButton>),
             )
             .chain()
-            .in_set(OnUpdate(GameState::Settings(SettingsMenuState::Resolution)))
-        );  
+            .in_set(OnUpdate(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution))))
+        );
     }
 }
 
@@ -136,11 +136,11 @@ pub fn setup_settings_menu(
 
 
 pub fn interface_clicked(mut commands: Commands) {
-    commands.insert_resource(NextState(Some(GameState::Settings(SettingsMenuState::Interface))));
+    commands.insert_resource(NextState(Some(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface)))));
 }
 
 pub fn video_clicked(mut commands: Commands) {
-    commands.insert_resource(NextState(Some(GameState::Settings(SettingsMenuState::Video))));
+    commands.insert_resource(NextState(Some(GameState::Menu(MenuState::Settings(SettingsMenuState::Video)))));
 }
 
 pub fn cursor_clicked(/* mut commands: Commands */) {
@@ -149,5 +149,5 @@ pub fn cursor_clicked(/* mut commands: Commands */) {
 }
 
 pub fn back_clicked(mut commands: Commands) {
-    commands.insert_resource(NextState(Some(GameState::MainMenu)));
+    commands.insert_resource(NextState(Some(GameState::Menu(MenuState::Main))));
 }

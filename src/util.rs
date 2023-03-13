@@ -2,12 +2,12 @@ use std::ops::Add;
 
 use bevy::{
     ecs::system::EntityCommands,
-    prelude::{Button, Changed, Component, Query, With, Vec2},
+    prelude::{Button, Changed, Component, Query, With, Vec2, Res, State},
     ui::Interaction,
 };
 use bevy_ecs_tilemap::tiles::TilePos;
 
-use crate::plugins::world::{TILE_SIZE, Wall, BlockType};
+use crate::{plugins::world::{TILE_SIZE, Wall, BlockType}, state::GameState};
 
 pub trait EntityCommandsExtensions<'w, 's, 'a> {
     fn insert_if(
@@ -162,4 +162,8 @@ pub fn get_wall_start_index(wall: Wall) -> TextureAtlasPos {
         Wall::Stone => TextureAtlasPos::ZERO,
         Wall::Dirt => TextureAtlasPos::new(0, 5),
     }
+}
+
+pub fn in_menu_state(state: Res<State<GameState>>) -> bool {
+    matches!(&state.0, GameState::Menu(_))
 }

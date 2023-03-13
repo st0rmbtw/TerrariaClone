@@ -198,19 +198,41 @@ pub fn move_player(
     world_data: Res<WorldData>,
     velocity: Res<PlayerVelocity>,
     mut player_query: Query<&mut Transform, With<Player>>,
+    mut player_data: ResMut<PlayerData>
 ) {
     let mut transform = player_query.single_mut();
 
-    let raw = transform.translation.xy() + velocity.0;
-
     const min_x: f32 = PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
-    let max_x = world_data.size.width as f32 * TILE_SIZE - PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
-
     let min_y: f32 = -(world_data.size.height as f32) * TILE_SIZE + PLAYER_HALF_HEIGHT;
+
+    let max_x = world_data.size.width as f32 * TILE_SIZE - PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
     const max_y: f32 = -PLAYER_HALF_HEIGHT;
 
-    transform.translation.x = raw.x.clamp(min_x, max_x);
-    transform.translation.y = raw.y.clamp(min_y, max_y);
+    let new_position = (transform.translation.xy() + velocity.0).clamp(Vec2::new(min_x, min_y), Vec2::new(max_x, max_y));
+    
+    transform.translation.x = new_position.x;
+    transform.translation.y = new_position.y;
+
+    player_data.prev_position = new_position;
+}
+
+pub fn interpolate_player_transform(
+    time: Res<Time>,
+    player_data: Res<PlayerData>,
+    fixed_time: Res<FixedTime>,
+    mut player_query: Query<&mut Transform, With<Player>>,
+) {
+    let mut transform = player_query.single_mut();
+
+    let fixed_elapsed = fixed_time.accumulated().as_secs_f32();
+    let fixed_delta_time = fixed_time.period.as_secs_f32();
+    
+    let interpolation = (time.elapsed_seconds() - fixed_elapsed) / fixed_delta_time;
+
+    let interpolated = player_data.prev_position.lerp(transform.translation.xy(), interpolation);
+    
+    transform.translation.x = interpolated.x;
+    transform.translation.y = interpolated.y;
 }
 
 pub fn spawn_particles(

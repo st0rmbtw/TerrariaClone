@@ -3,15 +3,20 @@ use bevy_inspector_egui::InspectorOptions;
 
 use crate::plugins::settings_menu::SettingsMenuState;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum MenuState {
+    Main,
+    Settings(SettingsMenuState)
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum GameState {
     #[default]
     AssetLoading,
-    MainMenu,
+    Menu(MenuState),
     WorldLoading,
     InGame,
-    Paused,
-    Settings(SettingsMenuState)
+    Paused
 }
 
 impl States for GameState {
@@ -19,10 +24,13 @@ impl States for GameState {
 
     fn variants() -> Self::Iter {
         [
-            GameState::AssetLoading, GameState::MainMenu, GameState::WorldLoading, 
-            GameState::InGame, GameState::Paused, GameState::Settings(SettingsMenuState::None),
-            GameState::Settings(SettingsMenuState::Cursor), GameState::Settings(SettingsMenuState::Video),
-            GameState::Settings(SettingsMenuState::Interface), GameState::Settings(SettingsMenuState::Resolution)
+            GameState::AssetLoading, GameState::WorldLoading, GameState::InGame, GameState::Paused,
+            GameState::Menu(MenuState::Main),
+            GameState::Menu(MenuState::Settings(SettingsMenuState::Main)),
+            GameState::Menu(MenuState::Settings(SettingsMenuState::Cursor)),
+            GameState::Menu(MenuState::Settings(SettingsMenuState::Video)),
+            GameState::Menu(MenuState::Settings(SettingsMenuState::Interface)),
+            GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution)),
         ].into_iter()
     }
 }

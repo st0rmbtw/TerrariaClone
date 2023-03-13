@@ -1,9 +1,9 @@
 use crate::{
     parallax::{LayerData, ParallaxResource, LayerSpeed, follow_camera_system},
-    state::GameState,
+    state::GameState, util::in_menu_state,
 };
 use bevy::{
-    prelude::{default, App, Commands, Plugin, Res, ResMut, Vec2, Transform, Component, Query, Camera, GlobalTransform, With, OnEnter, OnExit, IntoSystemAppConfig, OnUpdate, IntoSystemConfig},
+    prelude::{default, App, Commands, Plugin, Res, ResMut, Vec2, Transform, Component, Query, Camera, GlobalTransform, With, OnEnter, OnExit, IntoSystemAppConfig, OnUpdate, IntoSystemConfig, IntoSystemConfigs, IntoSystemAppConfigs},
     sprite::{SpriteBundle, Anchor}, window::{Window, PrimaryWindow},
 };
 use rand::{thread_rng, Rng, seq::SliceRandom};
@@ -15,15 +15,21 @@ pub struct BackgroundPlugin;
 
 impl Plugin for BackgroundPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(setup_main_menu_background.in_schedule(OnEnter(GameState::MainMenu)));
-        app.add_system(spawn_stars.in_schedule(OnEnter(GameState::MainMenu)));
+        app.add_system(setup_main_menu_background.in_schedule(OnExit(GameState::AssetLoading)));
+        app.add_system(spawn_stars.in_schedule(OnExit(GameState::AssetLoading)));
 
-        app.add_system(despawn_background.in_schedule(OnExit(GameState::MainMenu)));
-        app.add_system(setup_forest_background.in_schedule(OnEnter(GameState::InGame)));
-        app.add_system(despawn_background.in_schedule(OnExit(GameState::InGame)));
+        app.add_systems(
+            (
+                despawn_background,
+                setup_forest_background
+            )
+            .chain()
+            .in_schedule(OnEnter(GameState::InGame))
+        );
+
         app.add_system(despawn_background.in_schedule(OnExit(GameState::InGame)));
 
-        app.add_system(move_stars.in_set(OnUpdate(GameState::MainMenu)));
+        app.add_system(move_stars.run_if(in_menu_state));
         app.add_system(follow_camera_system.in_set(OnUpdate(GameState::InGame)));
     }
 }

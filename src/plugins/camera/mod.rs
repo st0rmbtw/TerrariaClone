@@ -23,8 +23,8 @@ impl Plugin for CameraPlugin {
         app.add_system(control_mouse_light.in_set(OnUpdate(GameState::InGame)));
         app.add_system(
             move_camera
-                .in_base_set(CoreSet::PostUpdate)
-                .run_if(in_state(GameState::InGame))
+                .in_base_set(CoreSet::Update)
+                .run_if(in_state(GameState::InGame)),
         );
     }
 }

@@ -25,14 +25,15 @@ impl Plugin for ParallaxPlugin {
 
         app.add_system(initialize_parallax_system.run_if(resource_added::<ParallaxResource>()));
 
-        app.add_system(
-            update_layer_textures_system
-                .run_if(resource_exists::<ParallaxResource>())
-                .after(ParallaxSet::FollowCamera),
+        app.add_systems(
+            (
+                update_window_size,
+                update_layer_textures_system.after(ParallaxSet::FollowCamera),
+                // update_texture_scale
+            )
+            .chain()
+            .distributive_run_if(resource_exists::<ParallaxResource>())
         );
-
-        app.add_system(update_window_size.run_if(resource_exists::<ParallaxResource>()));
-        // app.add_system(update_texture_scale.run_if_resource_exists::<ParallaxResource>());
     }
 }
 
@@ -99,7 +100,7 @@ impl ParallaxResource {
             let spritesheet_bundle = SpriteBundle {
                 sprite: Sprite {
                     custom_size: if layer.fill_screen_height { Some(Vec2::new(texture.size().x, self.window_size.y)) } else { None },
-                    anchor: layer.anchor.clone(),
+                    // anchor: layer.anchor.clone(),
                     ..default()
                 },
                 texture: layer.image.clone(),
@@ -178,7 +179,6 @@ pub fn move_background_system() -> impl IntoSystemConfig<()> {
     parallax_animation_system
         .run_if(resource_exists::<ParallaxResource>())
         .in_set(ParallaxSet::FollowCamera)
-        // .label("follow_camera")
 }
     
 /// Initialize the parallax resource
@@ -235,10 +235,10 @@ fn update_layer_textures_system(
         ),
         Without<ParallaxCameraComponent>,
     >,
-    camera_query: Query<&GlobalTransform, With<ParallaxCameraComponent>>,
+    camera_query: Query<(&GlobalTransform, &OrthographicProjection), With<ParallaxCameraComponent>>,
     parallax_res: Res<ParallaxResource>
 ) {
-    if let Some(camera_transform) = camera_query.iter().next() {
+    if let Some((camera_transform, proj)) = camera_query.iter().next() {
         for (layer, children) in layer_query.iter() {
             for &child in children.iter() {
                 let (texture_gtransform, mut texture_transform, layer_texture) =
@@ -290,16 +290,22 @@ fn update_window_size(
     }
 }
 
-// fn update_texture_scale(
-//     camera_query: Query<&OrthographicProjection, With<MainCamera>>,
-//     mut layer_query: Query<(&mut Transform), With<LayerComponent>>,
-// ) {
-//     let proj = camera_query.single();
+fn update_texture_scale(
+    res_parallax: Res<ParallaxResource>,
+    camera_query: Query<(&Camera, &GlobalTransform, &OrthographicProjection), With<MainCamera>>,
+    mut layer_query: Query<(&mut Transform, &LayerComponent), Without<LayerTextureComponent>>,
+) {
+    let (camera, camera_transform, proj) = camera_query.single();
 
-//     for (mut transform) in &mut layer_query {
-//         // transform.scale = Vec3::splat(proj.scale);
+    for (mut layer_transform, layer) in &mut layer_query {
+        let layer_data = &res_parallax.layer_data[layer.index];
+        // let orig_pos = camera.world_to_viewport(camera_transform, layer_transform.translation).unwrap();
 
-//         transform.scale.x = proj.scale;
-//         transform.scale.y = proj.scale;
-//     }
-// }
+        layer_transform.scale = Vec3::splat(layer_data.scale * proj.scale);
+
+        // let new_pos = camera.viewport_to_world_2d(camera_transform, orig_pos).unwrap();
+
+        // layer_transform.translation.x = new_pos.x;
+        // layer_transform.translation.y = new_pos.y;
+    }
+}

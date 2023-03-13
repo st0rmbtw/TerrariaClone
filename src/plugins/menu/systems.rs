@@ -4,7 +4,7 @@ use autodefault::autodefault;
 use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveExt, Camera2dBundle, ChildBuilder, NodeBundle, BuildChildren, TextBundle, Button, Res, default, Changed, EventWriter, Color, ImageBundle, Transform, Quat, Vec3, Audio, NextState}, text::{Text, TextStyle}, ui::{Style, JustifyContent, AlignItems, UiRect, FocusPolicy, PositionType, Interaction, Size, Val, FlexDirection, AlignSelf, UiImage}, app::AppExit};
 use interpolation::EaseFunction;
 
-use crate::{animation::{Tween, Animator, AnimatorState, TweeningDirection, RepeatStrategy, Tweenable, EaseMethod, RepeatCount}, lens::{TextFontSizeLens, TransformLens}, parallax::ParallaxCameraComponent, plugins::{camera::MainCamera, assets::{FontAssets, UiAssets, SoundAssets}, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor}, settings_menu::SettingsMenuState}, TEXT_COLOR, state::GameState, language::LanguageContent};
+use crate::{animation::{Tween, Animator, AnimatorState, TweeningDirection, RepeatStrategy, Tweenable, EaseMethod, RepeatCount}, lens::{TextFontSizeLens, TransformLens}, parallax::ParallaxCameraComponent, plugins::{camera::MainCamera, assets::{FontAssets, UiAssets, SoundAssets}, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor}, settings_menu::SettingsMenuState}, TEXT_COLOR, state::{GameState, MenuState}, language::LanguageContent};
 
 use super::{Menu, SinglePlayerButton, SettingsButton, ExitButton};
 
@@ -254,7 +254,7 @@ pub fn single_player_clicked(mut commands: Commands) {
 }
 
 pub fn settings_clicked(mut commands: Commands) {
-    commands.insert_resource(NextState(Some(GameState::Settings(SettingsMenuState::None))));
+    commands.insert_resource(NextState(Some(GameState::Menu(MenuState::Settings(SettingsMenuState::Main)))));
 }
 
 pub fn exit_clicked(
