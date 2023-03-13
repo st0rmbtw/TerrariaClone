@@ -1,4 +1,4 @@
-mod components;
+mod chunk;
 mod events;
 mod resources;
 mod systems;
@@ -10,7 +10,7 @@ mod wall;
 mod tree;
 mod light;
 
-pub use components::*;
+pub use chunk::*;
 pub use events::*;
 pub use resources::*;
 pub use systems::*;

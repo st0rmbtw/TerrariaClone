@@ -22,7 +22,7 @@ use rand::thread_rng;
 
 use crate::{rect::{FRect, URect}, plugins::{inventory::Inventory, world::{CHUNK_SIZE, TILE_SIZE, LightMap, light::generate_light_map, WorldSize}, assets::{BlockAssets, WallAssets, SoundAssets}, camera::{MainCamera, UpdateLightEvent}}, state::GameState};
 
-use super::{get_chunk_pos, CHUNK_SIZE_U, TileChunk, UpdateNeighborsEvent, WallChunk, WALL_SIZE, CHUNKMAP_SIZE, Chunk, get_camera_fov, ChunkManager, ChunkPos, get_chunk_tile_pos, world::WorldData, block::Block, Wall, Size, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent, BlockType, TREE_SIZE, TREE_BRANCHES_SIZE, TreeFrameType, TREE_TOPS_SIZE};
+use super::{get_chunk_pos, CHUNK_SIZE_U, UpdateNeighborsEvent, WALL_SIZE, CHUNKMAP_SIZE, ChunkContainer, get_camera_fov, ChunkManager, ChunkPos, get_chunk_tile_pos, world::WorldData, block::Block, Wall, Size, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent, BlockType, TREE_SIZE, TREE_BRANCHES_SIZE, TreeFrameType, TREE_TOPS_SIZE, ChunkType, Chunk};
 
 pub fn spawn_terrain(mut commands: Commands) {
     let _current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
@@ -107,7 +107,7 @@ pub fn spawn_chunks(
 
 pub fn despawn_chunks(
     mut commands: Commands,
-    chunks: Query<(Entity, &Chunk)>,
+    chunks: Query<(Entity, &ChunkContainer)>,
     mut chunk_manager: ResMut<ChunkManager>,
     camera_query: Query<
         (&GlobalTransform, &OrthographicProjection),
@@ -119,7 +119,7 @@ pub fn despawn_chunks(
         let camera_fov = get_camera_fov(camera_transform.translation().xy(), projection);
         let camera_chunk_pos = get_chunk_position_by_camera_fov(camera_fov, world_data.size);
 
-        for (entity, Chunk { pos: chunk_pos }) in chunks.iter() {
+        for (entity, ChunkContainer { pos: chunk_pos }) in chunks.iter() {
             if (chunk_pos.x < camera_chunk_pos.left || chunk_pos.x > camera_chunk_pos.right) ||
                (chunk_pos.y > camera_chunk_pos.bottom || chunk_pos.y < camera_chunk_pos.top) 
             {
@@ -141,7 +141,7 @@ pub fn spawn_chunk(
         transform: Transform::from_xyz(chunk_pos.x as f32 * CHUNK_SIZE * TILE_SIZE, -(chunk_pos.y as f32 + 1.) * CHUNK_SIZE * TILE_SIZE + TILE_SIZE, 0.),
         ..default()
         })
-        .insert(Chunk { pos: chunk_pos })
+        .insert(ChunkContainer { pos: chunk_pos })
         .id();
 
     let tilemap_entity = commands.spawn_empty().id();
@@ -221,7 +221,7 @@ pub fn spawn_chunk(
 
     commands
         .entity(tilemap_entity)
-        .insert(TileChunk { pos: chunk_pos })
+        .insert(Chunk::new(chunk_pos, ChunkType::Tile))
         .insert(TilemapBundle {
             grid_size: TilemapGridSize {
                 x: TILE_SIZE,
@@ -244,7 +244,7 @@ pub fn spawn_chunk(
 
     commands
         .entity(wallmap_entity)
-        .insert(WallChunk { pos: chunk_pos })
+        .insert(Chunk::new(chunk_pos, ChunkType::Wall))
         .insert(TilemapBundle {
             grid_size: TilemapGridSize {
                 x: TILE_SIZE,
@@ -263,7 +263,7 @@ pub fn spawn_chunk(
 
     commands
         .entity(treemap_entity)
-        .insert(TileChunk { pos: chunk_pos })
+        .insert(Chunk::new(chunk_pos, ChunkType::Tree))
         .insert(TilemapBundle {
             grid_size: TilemapGridSize {
                 x: TILE_SIZE,
@@ -283,7 +283,7 @@ pub fn spawn_chunk(
 
     commands
         .entity(tree_branches_map_entity)
-        .insert(TileChunk { pos: chunk_pos })
+        .insert(Chunk::new(chunk_pos, ChunkType::TreeBranch))
         .insert(TilemapBundle {
             grid_size: TilemapGridSize {
                 x: TILE_SIZE,
@@ -303,7 +303,7 @@ pub fn spawn_chunk(
 
     commands
         .entity(tree_tops_map_entity)
-        .insert(TileChunk { pos: chunk_pos })
+        .insert(Chunk::new(chunk_pos, ChunkType::TreeTop))
         .insert(TilemapBundle {
             grid_size: TilemapGridSize {
                 x: TILE_SIZE,
@@ -352,7 +352,7 @@ pub fn handle_break_block_event(
     mut break_block_events: EventReader<BreakBlockEvent>,
     mut update_light_events: EventWriter<UpdateLightEvent>,
     mut update_neighbors_ew: EventWriter<UpdateNeighborsEvent>,
-    mut chunks: Query<(&TileChunk, &mut TileStorage)>,
+    mut chunks: Query<(&Chunk, &mut TileStorage)>,
 ) {
     for BreakBlockEvent { tile_pos } in break_block_events.iter() {
         let map_tile_pos = TilePos { x: tile_pos.x as u32, y: tile_pos.y as u32 };
@@ -422,7 +422,7 @@ pub fn handle_place_block_event(
     mut update_light_events: EventWriter<UpdateLightEvent>,
     mut update_neighbors_ew: EventWriter<UpdateNeighborsEvent>,
     mut inventory: ResMut<Inventory>,
-    mut chunks: Query<(&TileChunk, &mut TileStorage, Entity)>,
+    mut chunks: Query<(&Chunk, &mut TileStorage, Entity)>,
     sound_assets: Res<SoundAssets>,
     audio: Res<Audio>
 ) {
@@ -441,7 +441,13 @@ pub fn handle_place_block_event(
             let chunk_pos = get_chunk_pos(map_tile_pos);
             let chunk_tile_pos = get_chunk_tile_pos(map_tile_pos);
 
-            if let Some((_, mut tile_storage, tilemap_entity)) = chunks.iter_mut().find(|(chunk, _, _)| chunk.pos == chunk_pos) {
+            let filtered_chunks = chunks
+                .iter_mut()
+                .find(|(chunk, _, _)| {
+                    chunk.pos == chunk_pos && chunk.chunk_type == block.chunk_type()
+                });
+
+            if let Some((_, mut tile_storage, tilemap_entity)) = filtered_chunks {
                 let index = Block::get_sprite_index(&neighbors, block.block_type).to_block_index();
                 let tile_entity = spawn_block(&mut commands, *block, chunk_tile_pos, tilemap_entity, index);
 
@@ -471,7 +477,7 @@ pub fn update_neighbors(
     world_data: Res<WorldData>,
     mut events: EventReader<UpdateNeighborsEvent>,
     mut tiles: Query<&mut TileTextureIndex>,
-    chunks: Query<(&TileChunk, &TileStorage)>
+    chunks: Query<(&Chunk, &TileStorage)>
 ) {
     for event in events.iter() {
         let tile_pos = event.tile_pos;
@@ -495,8 +501,8 @@ pub fn update_neighbors(
 
                 let filtered_chunks = chunks
                     .iter()
-                    .find(|(chunk, tile_storage)| { 
-                        chunk.pos == chunk_pos && tile_storage.get(&chunk_tile_pos).is_some()
+                    .find(|(chunk, _)| { 
+                        chunk.pos == chunk_pos && chunk.chunk_type == block.chunk_type()
                     });
 
                 if let Some((_, tile_storage)) = filtered_chunks {
