@@ -28,8 +28,8 @@ impl Plugin for ParallaxPlugin {
         app.add_systems(
             (
                 update_window_size,
+                update_texture_scale,
                 update_layer_textures_system.after(ParallaxSet::FollowCamera),
-                // update_texture_scale
             )
             .chain()
             .distributive_run_if(resource_exists::<ParallaxResource>())
@@ -100,7 +100,6 @@ impl ParallaxResource {
             let spritesheet_bundle = SpriteBundle {
                 sprite: Sprite {
                     custom_size: if layer.fill_screen_height { Some(Vec2::new(texture.size().x, self.window_size.y)) } else { None },
-                    // anchor: layer.anchor.clone(),
                     ..default()
                 },
                 texture: layer.image.clone(),
@@ -109,13 +108,6 @@ impl ParallaxResource {
 
             let texture = images.get(&layer.image).unwrap();
 
-            let y_max_index = match layer.speed {
-                LayerSpeed::Vertical(_) | LayerSpeed::Bidirectional(..) => max(
-                    (self.window_size.y / (texture.size().y * layer.scale / 2.) + 1.0) as i32,
-                    1,
-                ),
-                LayerSpeed::Horizontal(_) => 0,
-            };
             let x_max_index = match layer.speed {
                 LayerSpeed::Horizontal(_) | LayerSpeed::Bidirectional(..) => max(
                     (self.window_size.x / (texture.size().x * layer.scale / 2.) + 1.0) as i32,
@@ -123,19 +115,16 @@ impl ParallaxResource {
                 ),
                 LayerSpeed::Vertical(_) => 0,
             };
-            let texture_count = Vec2::new(
-                2.0 * x_max_index as f32 + 1.0,
-                2.0 * y_max_index as f32 + 1.0,
-            );
 
-            // Spawn parallax layer entity
+            let texture_count = 2.0 * x_max_index as f32 + 1.0;
+
             let mut entity_commands = commands.spawn_empty();
             entity_commands
                 .insert(Name::new(format!("Parallax Layer ({})", i)))
                 .insert(SpatialBundle {
                     transform: Transform {
                         translation: Vec3::new(layer.position.x, layer.position.y, layer.z),
-                        scale: Vec3::new(layer.scale, layer.scale, 1.0),
+                        scale: Vec3::new(layer.scale, layer.scale, layer.scale),
                         ..default()
                     },
                     ..default()
@@ -159,18 +148,15 @@ impl ParallaxResource {
                     LayerSpeed::Vertical(vy) => Vec2::new(0.0, vy),
                     LayerSpeed::Bidirectional(vx, vy) => Vec2::new(vx, vy),
                 },
-                texture_count: texture_count.x,
+                texture_count,
                 transition_factor: layer.transition_factor,
                 index: i
             });
-
-            // Push parallax layer entity to layer_entities
             self.layer_entities.push(entity_commands.id());
         }
     }
 }
 
-/// Attach to a single camera to be used with parallax
 #[derive(Component)]
 pub struct ParallaxCameraComponent;
 
@@ -292,20 +278,18 @@ fn update_window_size(
 
 fn update_texture_scale(
     res_parallax: Res<ParallaxResource>,
-    camera_query: Query<(&Camera, &GlobalTransform, &OrthographicProjection), With<MainCamera>>,
-    mut layer_query: Query<(&mut Transform, &LayerComponent), Without<LayerTextureComponent>>,
+    query_camera: Query<&OrthographicProjection, With<MainCamera>>,
+    mut query_layer: Query<(&LayerComponent, &Children)>,
+    mut query_layer_texture: Query<&mut Transform, With<LayerTextureComponent>>,
 ) {
-    let (camera, camera_transform, proj) = camera_query.single();
+    let proj = query_camera.single();
 
-    for (mut layer_transform, layer) in &mut layer_query {
-        let layer_data = &res_parallax.layer_data[layer.index];
-        // let orig_pos = camera.world_to_viewport(camera_transform, layer_transform.translation).unwrap();
-
-        layer_transform.scale = Vec3::splat(layer_data.scale * proj.scale);
-
-        // let new_pos = camera.viewport_to_world_2d(camera_transform, orig_pos).unwrap();
-
-        // layer_transform.translation.x = new_pos.x;
-        // layer_transform.translation.y = new_pos.y;
+    for (layer, children) in &mut query_layer {
+        for &child in children.iter() {
+            let mut transform = query_layer_texture.get_mut(child).unwrap();
+            let layer_data = &res_parallax.layer_data[layer.index];
+            
+            transform.scale = Vec3::splat(layer_data.scale * proj.scale);
+        }
     }
 }

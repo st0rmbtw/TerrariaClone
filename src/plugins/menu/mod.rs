@@ -25,14 +25,8 @@ impl Plugin for MenuPlugin {
         app.add_system(despawn_with::<MainCamera>.in_schedule(OnEnter(GameState::InGame)));
         app.add_system(despawn_with::<Menu>.in_schedule(OnExit(GameState::Menu(MenuState::Main))));
 
-        app.add_systems(
-            (
-                move_background_system(),
-                update_buttons
-            )
-            .chain()
-            .distributive_run_if(in_menu_state)
-        );
+        app.add_system(move_background_system().run_if(in_menu_state));
+        app.add_system(update_buttons.run_if(in_menu_state));
 
         app.add_systems(
             (

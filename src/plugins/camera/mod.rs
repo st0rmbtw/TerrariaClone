@@ -21,11 +21,7 @@ impl Plugin for CameraPlugin {
         app.add_system(setup_camera.in_schedule(OnEnter(GameState::InGame)));
         app.add_system(zoom.in_set(OnUpdate(GameState::InGame)));
         app.add_system(control_mouse_light.in_set(OnUpdate(GameState::InGame)));
-        app.add_system(
-            move_camera
-                .in_base_set(CoreSet::Update)
-                .run_if(in_state(GameState::InGame)),
-        );
+        app.add_system(move_camera.in_set(OnUpdate(GameState::InGame)));
     }
 }
 #[derive(Component)]
