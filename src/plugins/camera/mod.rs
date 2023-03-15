@@ -1,10 +1,12 @@
-use bevy::prelude::{Plugin, App, Component, OnUpdate, IntoSystemConfig, CoreSet, in_state, IntoSystemAppConfig, OnEnter};
+use bevy::{prelude::{Plugin, App, Component, OnUpdate, IntoSystemConfig, IntoSystemAppConfig, OnEnter, Res, KeyCode}, input::common_conditions::input_just_pressed};
 
-use crate::state::GameState;
+use crate::{state::GameState, util::toggle_visibility};
 
 pub use components::*;
 pub use systems::*;
 pub use events::*;
+
+use super::debug::DebugConfiguration;
 
 mod components;
 mod systems;
@@ -21,8 +23,24 @@ impl Plugin for CameraPlugin {
         app.add_system(setup_camera.in_schedule(OnEnter(GameState::InGame)));
         app.add_system(zoom.in_set(OnUpdate(GameState::InGame)));
         app.add_system(control_mouse_light.in_set(OnUpdate(GameState::InGame)));
-        app.add_system(move_camera.in_set(OnUpdate(GameState::InGame)));
+        app.add_system(
+            toggle_visibility::<MouseLight>
+                .run_if(input_just_pressed(KeyCode::F1))
+                .in_set(OnUpdate(GameState::InGame))
+        );
+
+        app.add_system(
+            follow_player
+                .in_set(OnUpdate(GameState::InGame))
+                .run_if(|debug_config: Res<DebugConfiguration>| !debug_config.free_camera)
+        );
+        app.add_system(
+            free_camera
+                .in_set(OnUpdate(GameState::InGame))
+                .run_if(|debug_config: Res<DebugConfiguration>| debug_config.free_camera)
+        );
     }
 }
+
 #[derive(Component)]
 pub struct MouseLight;

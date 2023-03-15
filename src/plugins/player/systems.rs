@@ -16,26 +16,8 @@ use crate::{
 
 use super::*;
 
-#[cfg(feature = "debug_movement")]
-pub fn debug_horizontal_movement(
-    axis: Res<InputAxis>,
-    mut velocity: ResMut<PlayerVelocity>
-) {
-    velocity.x = axis.x * 10.;
-}
-
-#[cfg(feature = "debug_movement")]
-pub fn debug_vertical_movement(
-    input: Res<Input<KeyCode>>,
-    mut velocity: ResMut<PlayerVelocity>
-) {
-    let up = input.pressed(KeyCode::W);
-    let down = input.pressed(KeyCode::S);
-
-    let y = -(down as i8) + up as i8;
-
-    velocity.y = y as f32 * 10.;
-}
+#[cfg(feature = "debug")]
+use bevy_prototype_debug_lines::DebugLines;
 
 pub fn horizontal_movement(
     axis: Res<InputAxis>,
@@ -426,9 +408,8 @@ pub fn set_using_item_rotation(
     let mut transform = using_item_query.single_mut();
 
     if selected_item.is_some() {
-        let direction_f = f32::from(*direction);
-
         let position = get_animation_points()[index.0];
+        let direction_f = f32::from(*direction);
 
         if index.0 == 0 && index.is_changed() {
             transform.rotation = get_rotation_by_direction(*direction);
@@ -454,7 +435,6 @@ pub fn update_use_item_animation_index(
         if index.0 == 0 {
             if let Some(ItemStack { item: Item::Tool(_), .. }) = inventory.selected_item() {
                 let sound = sound_assets.swing.choose(&mut rand::thread_rng()).unwrap();
-
                 audio.play(sound.clone_weak());
             }
         }
@@ -496,27 +476,43 @@ pub fn current_speed(
     }
 }
 
-// TODO: Debug function, remove in feature
-#[cfg(feature = "debug")]
-pub fn set_sprite_index(
-    input: Res<Input<KeyCode>>,
-    mut query: Query<(&mut TextureAtlasSprite, &WalkingAnimationData), With<PlayerBodySprite>>,
+pub fn draw_hitbox(
+    query_player: Query<&Transform, With<Player>>,
+    mut debug_lines: ResMut<DebugLines>,
 ) {
-    query.for_each_mut(|(mut sprite, animation_data)| {
-        let anim_offset = animation_data.offset;
+    let transform = query_player.single();
 
-        let mut new_sprite_index = sprite.index;
+    let left = transform.translation.x - PLAYER_HALF_WIDTH;
+    let right = transform.translation.x + PLAYER_HALF_WIDTH;
 
-        if input.just_pressed(KeyCode::J) {
-            new_sprite_index = sprite.index.checked_sub(1).unwrap_or(0);
-        }
+    let top = transform.translation.y - PLAYER_HALF_HEIGHT;
+    let bottom = transform.translation.y + PLAYER_HALF_HEIGHT;
 
-        if input.just_pressed(KeyCode::L) {
-            new_sprite_index = sprite.index + 1;
-        }
+    debug_lines.line_colored(
+        Vec3::new(left, top, 10.0),
+        Vec3::new(right, top, 10.0),
+        0.,
+        Color::RED
+    );
 
-        new_sprite_index = new_sprite_index.checked_sub(anim_offset).unwrap_or(0);
+    debug_lines.line_colored(
+        Vec3::new(left, bottom, 10.0),
+        Vec3::new(right, bottom, 10.0),
+        0.,
+        Color::RED
+    );
 
-        sprite.index = anim_offset + (new_sprite_index % WALKING_ANIMATION_MAX_INDEX);
-    });
+    debug_lines.line_colored(
+        Vec3::new(left, top, 10.0),
+        Vec3::new(left, bottom, 10.0),
+        0.,
+        Color::RED
+    );
+
+    debug_lines.line_colored(
+        Vec3::new(right, top, 10.0),
+        Vec3::new(right, bottom, 10.0),
+        0.,
+        Color::RED
+    );
 }

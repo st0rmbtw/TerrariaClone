@@ -12,7 +12,7 @@ use game::{
     plugins::{
         assets::AssetsPlugin, cursor::CursorPlugin, camera::CameraPlugin, background::BackgroundPlugin, 
         ui::PlayerUiPlugin, settings::{SettingsPlugin, Resolution, VSync, FullScreen}, menu::MenuPlugin, world::WorldPlugin, 
-        inventory::PlayerInventoryPlugin, fps::FpsPlugin, settings_menu::SettingsMenuPlugin
+        inventory::PlayerInventoryPlugin, fps::FpsPlugin, settings_menu::SettingsMenuPlugin, player::PlayerPlugin
     }, 
     language::{load_language, Language}, lighting::LightingPlugin,
 };
@@ -64,28 +64,26 @@ fn main() -> Result<(), Box<dyn Error>> {
         .insert_resource(language_content.clone())
         .insert_resource(Msaa::Off)
         .insert_resource(ClearColor(Color::BLACK))
-        .add_state::<GameState>()
         .insert_resource(FixedTime::new_from_secs(1. / 60.))
+        .add_state::<GameState>()
+
         .add_plugin(TweeningPlugin)
         .add_plugin(TilemapPlugin)
         .add_plugin(AssetsPlugin)
+        .add_plugin(HanabiPlugin)
+
         .add_plugin(CursorPlugin)
         .add_plugin(SettingsMenuPlugin)
         .add_plugin(CameraPlugin)
         .add_plugin(LightingPlugin)
-        .add_plugin(ParallaxPlugin { initial_speed: 0.2 })
-        .add_plugin(HanabiPlugin)
+        .add_plugin(ParallaxPlugin { initial_speed: 0.15 })
         .add_plugin(BackgroundPlugin)
         .add_plugin(PlayerUiPlugin)
         .add_plugin(MenuPlugin)
         .add_plugin(WorldPlugin)
         .add_plugin(PlayerInventoryPlugin)
-        .add_plugin(FpsPlugin);
-
-    #[cfg(not(feature = "free_camera"))] {
-        use game::plugins::player::PlayerPlugin;
-        app.add_plugin(PlayerPlugin);
-    }
+        .add_plugin(FpsPlugin)
+        .add_plugin(PlayerPlugin);
 
     #[cfg(feature = "debug")] {
         use game::plugins::debug::DebugPlugin;

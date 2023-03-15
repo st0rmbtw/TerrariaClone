@@ -1,5 +1,4 @@
 use bevy::{prelude::{Component, Entity, Bundle, Resource, Name, SpatialBundle, KeyCode, MouseButton, Transform}, utils::default};
-use bevy_inspector_egui::InspectorOptions;
 use leafwing_input_manager::{InputManagerBundle, prelude::{ActionState, InputMap}};
 
 use crate::state::MovementState;
@@ -9,7 +8,8 @@ use super::{InputAxis, WALKING_ANIMATION_MAX_INDEX, PlayerAction};
 #[derive(Component, Default)]
 pub struct Player;
 
-#[derive(Default, PartialEq, Eq, Clone, Copy, Component, InspectorOptions)]
+#[derive(Default, PartialEq, Eq, Clone, Copy, Component)]
+#[cfg_attr(feature = "debug", derive(bevy_inspector_egui::InspectorOptions))]
 pub enum FaceDirection {
     LEFT,
     #[default]

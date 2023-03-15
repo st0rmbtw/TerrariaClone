@@ -99,6 +99,7 @@ impl ParallaxResource {
             let spritesheet_bundle = SpriteBundle {
                 sprite: Sprite {
                     custom_size: if layer.fill_screen_height { Some(Vec2::new(texture.size().x, self.window_size.y)) } else { None },
+                    anchor: layer.anchor.clone(),
                     ..default()
                 },
                 texture: layer.image.clone(),
@@ -271,24 +272,6 @@ fn update_window_size(
                     }
                 }
             }
-        }
-    }
-}
-
-fn update_texture_scale(
-    res_parallax: Res<ParallaxResource>,
-    query_camera: Query<&OrthographicProjection, With<MainCamera>>,
-    mut query_layer: Query<(&LayerComponent, &Children)>,
-    mut query_layer_texture: Query<&mut Transform, With<LayerTextureComponent>>,
-) {
-    let proj = query_camera.single();
-
-    for (layer, children) in &mut query_layer {
-        for &child in children.iter() {
-            let mut transform = query_layer_texture.get_mut(child).unwrap();
-            let layer_data = &res_parallax.layer_data[layer.index];
-            
-            transform.scale = Vec3::splat(layer_data.scale * proj.scale);
         }
     }
 }

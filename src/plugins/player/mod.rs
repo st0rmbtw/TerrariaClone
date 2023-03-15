@@ -15,7 +15,7 @@ use bevy::{prelude::*, time::{Timer, TimerMode}, sprite::Anchor};
 use autodefault::autodefault;
 use leafwing_input_manager::prelude::InputManagerPlugin;
 
-use super::{assets::PlayerAssets, world::{WorldData, TILE_SIZE}};
+use super::{assets::PlayerAssets, world::{WorldData, TILE_SIZE}, debug::DebugConfiguration};
 
 pub const PLAYER_WIDTH: f32 = 22. /* 2. * TILE_SIZE */;
 pub const PLAYER_HEIGHT: f32 = 42.5 /* 3. * TILE_SIZE */;
@@ -62,16 +62,16 @@ impl Plugin for PlayerPlugin {
 
         app.add_system(spawn_player.in_schedule(OnEnter(GameState::InGame)));
 
+        app.add_system(update_face_direction.in_set(OnUpdate(GameState::InGame)));
+        app.add_system(flip_player.in_set(OnUpdate(GameState::InGame)));
         app.add_systems(
             (
                 update_movement_state,
-                update_face_direction,
-                flip_player,
-                spawn_particles,
+                spawn_particles
             )
             .chain()
             .after(PhysicsSet::Movement)
-            .distributive_run_if(in_state(GameState::InGame))
+            .in_set(OnUpdate(GameState::InGame))
         );
 
         app.add_systems(
@@ -110,65 +110,54 @@ impl Plugin for PlayerPlugin {
             .in_set(OnUpdate(GameState::InGame))
         );
 
-        #[cfg(not(feature = "debug_movement"))] {
-            app.add_systems(
-                (
-                    horizontal_movement,
-                    update_jump,
-                    gravity
-                )
-                .chain()
-                .distributive_run_if(in_state(GameState::InGame))
-                .in_set(PhysicsSet::SetVelocity)
-                .before(PhysicsSet::CollisionDetection)
+        app.add_systems(
+            (
+                horizontal_movement,
+                update_jump,
+                gravity
+            )
+            .chain()
+            .distributive_run_if(in_state(GameState::InGame))
+            .distributive_run_if(|config: Res<DebugConfiguration>| !config.free_camera)
+            .in_set(PhysicsSet::SetVelocity)
+            .before(PhysicsSet::CollisionDetection)
+            .in_schedule(CoreSchedule::FixedUpdate)
+        );
+
+        app.add_system(
+            detect_collisions
+                .run_if(in_state(GameState::InGame))
+                .run_if(|config: Res<DebugConfiguration>| !config.free_camera)
                 .in_schedule(CoreSchedule::FixedUpdate)
-            );
+                .in_set(PhysicsSet::CollisionDetection)
+                .after(PhysicsSet::SetVelocity)
+                .before(PhysicsSet::Movement)
+        );
 
-            app.add_system(
-                detect_collisions
-                    .run_if(in_state(GameState::InGame))
-                    .in_schedule(CoreSchedule::FixedUpdate)
-                    .in_set(PhysicsSet::CollisionDetection)
-                    .after(PhysicsSet::SetVelocity)
-                    .before(PhysicsSet::Movement)
-            );
+        app.add_system(
+            move_player
+                .run_if(in_state(GameState::InGame))
+                .run_if(|config: Res<DebugConfiguration>| !config.free_camera)
+                .in_schedule(CoreSchedule::FixedUpdate)
+                .in_set(PhysicsSet::Movement)
+                .after(PhysicsSet::CollisionDetection)
+        );
 
-            app.add_system(
-                move_player
-                    .run_if(in_state(GameState::InGame))
-                    .in_schedule(CoreSchedule::FixedUpdate)
-                    .in_set(PhysicsSet::Movement)
-                    .after(PhysicsSet::CollisionDetection)
-            );
+        // app.add_system(
+        //     interpolate_player_transform
+        //         .run_if(in_state(GameState::InGame))
+        //         .run_if(|config: Res<DebugConfiguration>| !config.free_camera)
+        //         .in_set(PhysicsSet::Movement)
+        // );
 
-            app.add_system(
-                interpolate_player_transform
-                    .run_if(in_state(GameState::InGame))
-                    .in_set(PhysicsSet::Movement)
-                    .after(move_player)
-            );
-        }
+        #[cfg(feature = "debug")]
+        app.add_system(
+            draw_hitbox
+                .run_if(|config: Res<DebugConfiguration>| config.show_hitboxes)
+                .in_set(OnUpdate(GameState::InGame))
+        );
 
         // app.add_system(current_speed);
-
-        #[cfg(feature = "debug_movement")] {
-            app
-            .add_fixed_timestep_system_set(
-                "fixed_update",
-                0,
-                debug_horizontal_movement
-                    .run_in_state(GameState::InGame)
-                    .label(PlayerLabel::HorizontalMovement)
-            )
-            .add_fixed_timestep_system_set(
-                "fixed_update",
-                0,
-                debug_horizontal_movement
-                    .run_in_state(GameState::InGame)
-                    .label(PlayerLabel::Update)
-                    .after(PlayerLabel::HorizontalMovement)
-            );
-        }
     }
 }
 
@@ -391,40 +380,6 @@ pub fn spawn_player(
             ));
 
             // endregion
-
-            #[cfg(feature = "debug")] {
-                cmd.spawn(SpriteBundle {
-                    sprite: Sprite {
-                        color: Color::RED,
-                        custom_size: Some(Vec2::new(PLAYER_WIDTH, 1.))
-                    },
-                    transform: Transform::from_xyz(0., -PLAYER_HEIGHT / 2., 0.5),
-                });
-
-                cmd.spawn(SpriteBundle {
-                    sprite: Sprite {
-                        color: Color::RED,
-                        custom_size: Some(Vec2::new(PLAYER_WIDTH, 1.))
-                    },
-                    transform: Transform::from_xyz(0., PLAYER_HEIGHT / 2., 0.5),
-                });
-
-                cmd.spawn(SpriteBundle {
-                    sprite: Sprite {
-                        color: Color::RED,
-                        custom_size: Some(Vec2::new(1., PLAYER_HEIGHT))
-                    },
-                    transform: Transform::from_xyz(-PLAYER_WIDTH / 2., 0., 0.5),
-                });
-
-                cmd.spawn(SpriteBundle {
-                    sprite: Sprite {
-                        color: Color::RED,
-                        custom_size: Some(Vec2::new(1., PLAYER_HEIGHT))
-                    },
-                    transform: Transform::from_xyz(PLAYER_WIDTH / 2., 0., 0.5),
-                });
-            }
         })
         .id();
 

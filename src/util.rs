@@ -2,7 +2,7 @@ use std::ops::Add;
 
 use bevy::{
     ecs::system::EntityCommands,
-    prelude::{Button, Changed, Component, Query, With, Vec2, Res, State},
+    prelude::{Button, Changed, Component, Query, With, Vec2, Res, State, Visibility},
     ui::Interaction,
 };
 use bevy_ecs_tilemap::tiles::TilePos;
@@ -166,4 +166,15 @@ pub fn get_wall_start_index(wall: Wall) -> TextureAtlasPos {
 
 pub fn in_menu_state(state: Res<State<GameState>>) -> bool {
     matches!(&state.0, GameState::Menu(_))
+}
+
+pub fn toggle_visibility<C: Component>(
+    mut query: Query<&mut Visibility, With<C>>
+) {
+    for mut visibility in &mut query {
+        *visibility = match *visibility {
+            Visibility::Inherited | Visibility::Visible => Visibility::Hidden,
+            Visibility::Hidden => Visibility::Inherited,
+        };
+    }
 }

@@ -8,7 +8,7 @@ pub use systems::*;
 
 use bevy::{prelude::{Plugin, App, IntoSystemConfig, OnExit, OnEnter, IntoSystemConfigs, not, IntoSystemAppConfig, resource_equals, OnUpdate, in_state, Res, State}, ui::BackgroundColor};
 use crate::{state::GameState, animation::{AnimationSystemSet, component_animator_system}};
-use super::{ui::UiVisibility, settings::ShowTileGrid};
+use super::{ui::UiVisibility, settings::ShowTileGrid, debug::DebugConfiguration};
 
 const MAX_TILE_GRID_OPACITY: f32 = 0.8;
 const MIN_TILE_GRID_OPACITY: f32 = 0.2;
@@ -52,9 +52,7 @@ impl Plugin for CursorPlugin {
                 set_visibility::<TileGrid>,
                 set_visibility::<CursorBackground>,
                 update_tile_grid_visibility,
-
-                #[cfg(not(feature = "free_camera"))]
-                update_tile_grid_opacity
+                update_tile_grid_opacity.run_if(|config: Res<DebugConfiguration>| !config.free_camera)
             )
             .chain()
             .in_set(OnUpdate(GameState::InGame))

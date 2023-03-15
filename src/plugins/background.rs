@@ -113,16 +113,6 @@ fn setup_main_menu_background(
                 z: 0.0,
                 image: backgrounds.background_0.clone(),
                 fill_screen_height: true,
-                // position: Vec2::NEG_Y * (window.height() - 1400. / 2.),
-                ..default()
-            },
-            LayerData {
-                speed: LayerSpeed::Horizontal(0.9),
-                image: backgrounds.background_112.clone_weak(),
-                z: 0.0,
-                transition_factor: 1.,
-                scale: 2.,
-                position: Vec2::NEG_Y * height + 400.,
                 ..default()
             },
             LayerData {
@@ -206,12 +196,12 @@ fn setup_forest_background(
     commands.insert_resource(ParallaxResource {
         layer_data: vec![
             LayerData {
-                speed: LayerSpeed::Bidirectional(0.9, 0.6),
+                speed: LayerSpeed::Bidirectional(0.9, 0.7),
                 image: backgrounds.background_55.clone_weak(),
                 z: 0.4,
                 transition_factor: 1.,
                 scale: 2.5,
-                position: Vec2::NEG_Y * cavern_layer - 100.,
+                position: Vec2::NEG_Y * cavern_layer,
                 anchor: Anchor::BottomCenter,
                 ..default()
             },

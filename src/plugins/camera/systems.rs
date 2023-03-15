@@ -2,7 +2,7 @@ use autodefault::autodefault;
 use bevy::{
     prelude::{
         Commands, Camera2dBundle, OrthographicProjection, Transform, Res, KeyCode, Query, 
-        With, default, ResMut, Assets, Vec3, Mesh, shape, Input, Color, Name, MouseButton, Vec2, Visibility,
+        With, default, ResMut, Assets, Vec3, Mesh, shape, Input, Color, Name, MouseButton, Vec2,
         Without
     }, 
     time::Time, sprite::{MaterialMesh2dBundle, ColorMaterial}
@@ -11,7 +11,6 @@ use rand::{thread_rng, Rng};
 
 use crate::{parallax::ParallaxCameraComponent, plugins::{world::{TILE_SIZE, WorldData}, cursor::CursorPosition}, lighting::{compositing::LightMapCamera, types::LightSource}, util::tile_to_world_coords};
 
-#[cfg(not(feature = "free_camera"))]
 use crate::plugins::player::Player;
 
 use super::{MainCamera, CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, MouseLight};
@@ -82,8 +81,7 @@ pub fn zoom(
     }
 }
 
-#[cfg(not(feature = "free_camera"))]
-pub fn move_camera(
+pub fn follow_player(
     mut player: Query<&Transform, (With<Player>, Without<MainCamera>)>,
     mut camera: Query<(&mut Transform, &OrthographicProjection), (With<MainCamera>, Without<Player>)>,
     world_data: Res<WorldData>
@@ -110,31 +108,23 @@ pub fn move_camera(
 }
 
 pub fn control_mouse_light(
-    mut query: Query<(&mut Transform, &mut LightSource, &mut Visibility), With<MouseLight>>,
+    mut query: Query<(&mut Transform, &mut LightSource), With<MouseLight>>,
     cursor_position: Res<CursorPosition>,
     input_keyboard: Res<Input<KeyCode>>,
     input_mouse: Res<Input<MouseButton>>,
 ) {
     let mut rng = thread_rng();
 
-    let (mut transform, mut light_source, mut visibility) = query.single_mut();
+    let (mut transform, mut light_source) = query.single_mut();
 
     transform.translation = cursor_position.world_position.extend(10.);
 
-    if input_mouse.just_pressed(MouseButton::Right) {
-        if input_keyboard.pressed(KeyCode::LShift) {
-            *visibility = match *visibility {
-                Visibility::Inherited | Visibility::Visible => Visibility::Hidden,
-                Visibility::Hidden => Visibility::Inherited,
-            };
-        } else {
-            light_source.color = Color::rgba(rng.gen(), rng.gen(), rng.gen(), 1.0);
-        }
+    if input_mouse.just_pressed(MouseButton::Right) && input_keyboard.pressed(KeyCode::LShift) {
+        light_source.color = Color::rgba(rng.gen(), rng.gen(), rng.gen(), 1.0);
     }
 }
 
-#[cfg(feature = "free_camera")]
-pub fn move_camera(
+pub fn free_camera(
     time: Res<Time>,
     mut camera: Query<(&mut Transform, &OrthographicProjection), With<MainCamera>>,
     input: Res<bevy::prelude::Input<KeyCode>>,

@@ -1,5 +1,4 @@
 use bevy::prelude::{Component, States};
-use bevy_inspector_egui::InspectorOptions;
 
 use crate::plugins::settings_menu::SettingsMenuState;
 
@@ -35,7 +34,8 @@ impl States for GameState {
     }
 }
 
-#[derive(Default, Clone, Copy, PartialEq, Eq, Component, InspectorOptions)]
+#[derive(Default, Clone, Copy, PartialEq, Eq, Component)]
+#[cfg_attr(feature = "debug", derive(bevy_inspector_egui::InspectorOptions))]
 pub enum MovementState {
     #[default]
     Idle,
