@@ -28,7 +28,6 @@ impl Plugin for ParallaxPlugin {
         app.add_systems(
             (
                 update_window_size,
-                update_texture_scale,
                 update_layer_textures_system.after(ParallaxSet::FollowCamera),
             )
             .chain()
