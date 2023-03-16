@@ -34,12 +34,13 @@ pub fn setup_video_menu(
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
             flex_direction: FlexDirection::Column,
+            gap: Size::new(Val::Px(0.), Val::Px(50.)),
         }
     })
     .insert(VideoMenu)
     .with_children(|builder| {
-        menu_button(builder, text_style.clone(), language_content.ui.resolution.clone(), ResolutionButton, None);
-        menu_button(builder, text_style.clone(), language_content.ui.vsync.clone(), VSyncButton, None);
+        menu_button(builder, text_style.clone(), language_content.ui.resolution.clone(), ResolutionButton);
+        menu_button(builder, text_style.clone(), language_content.ui.vsync.clone(), VSyncButton);
 
         control_buttons_layout(builder, |control_button_builder| {
             control_button(control_button_builder, text_style.clone(), language_content.ui.back.clone(), BackButton);
@@ -47,12 +48,12 @@ pub fn setup_video_menu(
     });
 }
 
-pub fn resolution_clicked(mut commands: Commands) {
-    commands.insert_resource(NextState(Some(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution)))));
+pub fn resolution_clicked(mut next_state: ResMut<NextState<GameState>>) {
+    next_state.set(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution)));
 }
 
-pub fn back_clicked(mut commands: Commands) {
-    commands.insert_resource(NextState(Some(GameState::Menu(MenuState::Settings(SettingsMenuState::Main)))));
+pub fn back_clicked(mut next_state: ResMut<NextState<GameState>>) {
+    next_state.set(GameState::Menu(MenuState::Settings(SettingsMenuState::Main)));
 }
 
 pub fn vsync_clicked(mut window: Query<&mut Window>, mut vsync: ResMut<VSync>) {

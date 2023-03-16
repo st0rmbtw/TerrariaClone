@@ -10,7 +10,7 @@ use game::{
     parallax::ParallaxPlugin,
     state::GameState, 
     plugins::{
-        assets::AssetsPlugin, cursor::CursorPlugin, camera::CameraPlugin, background::BackgroundPlugin, 
+        assets::AssetsPlugin, cursor::CursorPlugin, camera::{CameraPlugin, UpdateLightEvent}, background::BackgroundPlugin, 
         ui::PlayerUiPlugin, settings::{SettingsPlugin, Resolution, VSync, FullScreen}, menu::MenuPlugin, world::WorldPlugin, 
         inventory::PlayerInventoryPlugin, fps::FpsPlugin, settings_menu::SettingsMenuPlugin, player::PlayerPlugin
     }, 
@@ -65,6 +65,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         .insert_resource(Msaa::Off)
         .insert_resource(ClearColor(Color::BLACK))
         .insert_resource(FixedTime::new_from_secs(1. / 60.))
+
+        .add_event::<UpdateLightEvent>()
+
         .add_state::<GameState>()
 
         .add_plugin(TweeningPlugin)

@@ -1,7 +1,4 @@
-use bevy::{prelude::{Component, Deref, DerefMut}, time::Timer};
+use bevy::prelude::Component;
 
 #[derive(Component)]
 pub struct FpsText;
-
-#[derive(Component, Deref, DerefMut)]
-pub struct FpsTextTimer(pub Timer);

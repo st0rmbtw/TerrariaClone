@@ -31,12 +31,13 @@ pub fn setup_resolution_menu(
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
             flex_direction: FlexDirection::Column,
+            gap: Size::new(Val::Px(0.), Val::Px(50.)),
         }
     })
     .insert(ResolutionMenu)
     .with_children(|builder| {
-        menu_button(builder, text_style.clone(), language_content.ui.full_screen_resolution.clone(), FullScreenResolutionButton, None);
-        menu_button(builder, text_style.clone(), language_content.ui.full_screen.clone(), FullScreenButton, None);
+        menu_button(builder, text_style.clone(), language_content.ui.full_screen_resolution.clone(), FullScreenResolutionButton);
+        menu_button(builder, text_style.clone(), language_content.ui.full_screen.clone(), FullScreenButton);
 
         control_buttons_layout(builder, |control_button_builder| {
             control_button(control_button_builder, text_style.clone(), language_content.ui.apply.clone(), ApplyButton);
@@ -58,8 +59,8 @@ pub fn fullscreen_clicked(mut fullscreen: ResMut<FullScreen>) {
     fullscreen.0 = !fullscreen.0;
 }
 
-pub fn back_clicked(mut commands: Commands) {
-    commands.insert_resource(NextState(Some(GameState::Menu(MenuState::Settings(SettingsMenuState::Video)))));
+pub fn back_clicked(mut next_state: ResMut<NextState<GameState>>) {
+    next_state.set(GameState::Menu(MenuState::Settings(SettingsMenuState::Video)));
 }
 
 pub fn apply_clicked(

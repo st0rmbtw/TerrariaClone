@@ -1,5 +1,5 @@
-use bevy::{prelude::{App, Plugin,IntoSystemConfig, OnUpdate, Resource, ResMut}};
-use bevy_inspector_egui::{quick::{WorldInspectorPlugin}, bevy_egui::{EguiPlugin, egui, EguiContexts}};
+use bevy::prelude::{App, Plugin,IntoSystemConfig, OnUpdate, Resource, ResMut};
+use bevy_inspector_egui::{bevy_egui::{EguiPlugin, egui, EguiContexts}, egui::Align2, quick::WorldInspectorPlugin};
 
 use crate::state::GameState;
 use bevy_prototype_debug_lines::DebugLinesPlugin;
@@ -25,8 +25,11 @@ pub struct DebugConfiguration {
 fn debug_gui(mut contexts: EguiContexts, mut debug_config: ResMut<DebugConfiguration>) {
     let egui_context = contexts.ctx_mut();
 
-    egui::Window::new("Debug Menu").show(egui_context, |ui| {
-        ui.checkbox(&mut debug_config.free_camera, "Free Camera");
-        ui.checkbox(&mut debug_config.show_hitboxes, "Show Hitboxes");
-    });
+    egui::Window::new("Debug Menu")
+        .anchor(Align2::RIGHT_TOP, (-10., 10.))
+        .resizable(false)
+        .show(egui_context, |ui| {
+            ui.checkbox(&mut debug_config.free_camera, "Free Camera");
+            ui.checkbox(&mut debug_config.show_hitboxes, "Show Hitboxes");
+        });
 }

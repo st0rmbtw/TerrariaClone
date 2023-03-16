@@ -10,7 +10,7 @@ use crate::{
         assets::{ItemAssets, SoundAssets}, 
         inventory::{SelectedItem, Inventory},
     }, 
-    util::{move_towards, map_range_usize}, 
+    util::{move_towards, map_range_usize, self}, 
     items::{get_animation_points, ItemStack, Item}
 };
 
@@ -103,10 +103,10 @@ pub fn detect_collisions(
     bottom = bottom.clamp(0., world_data.size.height as f32);
     top = top.max(0.);
 
-    let uleft = left as u32;
-    let uright = right as u32;
-    let utop = top as u32;
-    let ubottom = bottom as u32;
+    let left_u32 = left as u32;
+    let right_u32 = right as u32;
+    let top_u32 = top as u32;
+    let bottom_u32 = bottom as u32;
 
     let mut new_collisions = Collisions::default();
 
@@ -117,8 +117,8 @@ pub fn detect_collisions(
 
     let mut a = (bottom + 3.) * TILE_SIZE;
 
-    for x in uleft..uright {
-        for y in utop..ubottom {
+    for x in left_u32..right_u32 {
+        for y in top_u32..bottom_u32 {
             if world_data.solid_block_exists((x, y)) {
                 let tile_pos = Vec2::new(x as f32 * TILE_SIZE, y as f32 * TILE_SIZE);
 
@@ -343,12 +343,8 @@ pub fn set_using_item_visibility(
     anim: Res<UseItemAnimation>,
     mut using_item_query: Query<&mut Visibility, With<UsedItem>>,
 ) {
-    if let Ok(mut visibility) = using_item_query.get_single_mut() {
-        if anim.0 {
-            *visibility = Visibility::Inherited;
-        } else {
-            *visibility = Visibility::Hidden;
-        }
+    if let Ok(visibility) = using_item_query.get_single_mut() {
+        util::set_visibility(visibility, anim.0);
     }
 }
 
@@ -411,14 +407,14 @@ pub fn set_using_item_rotation(
         let position = get_animation_points()[index.0];
         let direction_f = f32::from(*direction);
 
-        if index.0 == 0 && index.is_changed() {
-            transform.rotation = get_rotation_by_direction(*direction);
-        }
-
         transform.rotate_around(
             position.extend(0.15),
             Quat::from_rotation_z(ROTATION_STEP * direction_f * time.delta_seconds()),
         );
+
+        if index.0 == 0 && index.is_changed() {
+            transform.rotation = get_rotation_by_direction(*direction);
+        }
     }
 }
 
@@ -459,7 +455,9 @@ pub fn use_item_animation(
 pub fn current_speed(
     velocity: Res<PlayerVelocity>
 ) {
+    // https://terraria.fandom.com/wiki/Stopwatch
     let factor = (60. * 3600.) / 42240.;
+
     let velocity_x = velocity.x.abs() as f64 * factor;
     let velocity_y = velocity.y.abs() as f64 * factor;
 

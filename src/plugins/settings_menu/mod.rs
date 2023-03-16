@@ -3,7 +3,7 @@ pub mod interface;
 pub mod video;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Res, NodeBundle, BuildChildren, Plugin, App, Component, IntoSystemAppConfig, OnEnter, OnExit, OnUpdate, IntoSystemConfig, IntoSystemConfigs, NextState}, text::TextStyle, ui::{Style, Size, Val, JustifyContent, AlignItems, FlexDirection}};
+use bevy::{prelude::{Commands, Res, NodeBundle, BuildChildren, Plugin, App, Component, IntoSystemAppConfig, OnEnter, OnExit, OnUpdate, IntoSystemConfig, IntoSystemConfigs, NextState, ResMut}, text::TextStyle, ui::{Style, Size, Val, JustifyContent, AlignItems, FlexDirection}};
 
 use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button}}, language::LanguageContent, TEXT_COLOR, state::{GameState, MenuState}, util::on_btn_clicked};
 
@@ -119,14 +119,15 @@ pub fn setup_settings_menu(
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
             flex_direction: FlexDirection::Column,
+            gap: Size::new(Val::Px(0.), Val::Px(50.)),
         }
     })
     .insert(SettingsMenu)
     .with_children(|builder| {
         use buttons::*;
-        menu_button(builder, text_style.clone(), language_content.ui.interface.clone(), InterfaceButton, None);
-        menu_button(builder, text_style.clone(), language_content.ui.video.clone(), VideoButton, None);
-        menu_button(builder, text_style.clone(), language_content.ui.cursor.clone(), CursorButton, None);
+        menu_button(builder, text_style.clone(), language_content.ui.interface.clone(), InterfaceButton);
+        menu_button(builder, text_style.clone(), language_content.ui.video.clone(), VideoButton);
+        menu_button(builder, text_style.clone(), language_content.ui.cursor.clone(), CursorButton);
 
         control_buttons_layout(builder, |control_button_builder| {
             control_button(control_button_builder, text_style.clone(), language_content.ui.back.clone(), BackButton);
@@ -135,19 +136,18 @@ pub fn setup_settings_menu(
 }
 
 
-pub fn interface_clicked(mut commands: Commands) {
-    commands.insert_resource(NextState(Some(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface)))));
+pub fn interface_clicked(mut next_state: ResMut<NextState<GameState>>) {
+    next_state.set(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface)));
 }
 
-pub fn video_clicked(mut commands: Commands) {
-    commands.insert_resource(NextState(Some(GameState::Menu(MenuState::Settings(SettingsMenuState::Video)))));
+pub fn video_clicked(mut next_state: ResMut<NextState<GameState>>) {
+    next_state.set(GameState::Menu(MenuState::Settings(SettingsMenuState::Video)));
 }
 
 pub fn cursor_clicked(/* mut commands: Commands */) {
     // TODO: Implement Cursor menu
-    // commands.insert_resource(NextState(SettingsMenuState::Cursor));
 }
 
-pub fn back_clicked(mut commands: Commands) {
-    commands.insert_resource(NextState(Some(GameState::Menu(MenuState::Main))));
+pub fn back_clicked(mut next_state: ResMut<NextState<GameState>>) {
+    next_state.set(GameState::Menu(MenuState::Main));
 }

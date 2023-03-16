@@ -10,7 +10,7 @@ use bevy::{
     asset::load_internal_asset, sprite::Material2dPlugin,
 };
 
-use crate::{plugins::{camera::UpdateLightEvent, world::WorldData}, lighting::{compositing::{PostProcessingMaterial, setup_post_processing_camera, update_image_to_window_size, update_lighting_material, update_light_map}, constants::{SHADER_HALTON, SHADER_ATTENUATION, SHADER_MATH}}, state::GameState};
+use crate::{plugins::world::WorldData, lighting::{compositing::{PostProcessingMaterial, setup_post_processing_camera, update_image_to_window_size, update_lighting_material, update_light_map}, constants::{SHADER_HALTON, SHADER_ATTENUATION, SHADER_MATH}}, state::GameState};
 
 use self::{
     pipeline::{LightPassPipelineBindGroups, PipelineTargetsWrapper, system_setup_pipeline, LightPassPipeline, system_queue_bind_groups}, 
@@ -34,8 +34,6 @@ pub struct LightingPlugin;
 impl Plugin for LightingPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_event::<UpdateLightEvent>()
-
             .add_plugin(ExtractResourcePlugin::<PipelineTargetsWrapper>::default())
             .add_plugin(Material2dPlugin::<PostProcessingMaterial>::default())
             

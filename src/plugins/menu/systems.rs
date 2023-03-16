@@ -1,10 +1,10 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveExt, Camera2dBundle, ChildBuilder, NodeBundle, BuildChildren, TextBundle, Button, Res, default, Changed, EventWriter, Color, ImageBundle, Transform, Quat, Vec3, Audio, NextState}, text::{Text, TextStyle}, ui::{Style, JustifyContent, AlignItems, UiRect, FocusPolicy, PositionType, Interaction, Size, Val, FlexDirection, AlignSelf, UiImage}, app::AppExit};
+use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveExt, Camera2dBundle, ChildBuilder, NodeBundle, BuildChildren, TextBundle, Button, Res, default, Changed, EventWriter, Color, ImageBundle, Transform, Quat, Vec3, Audio, NextState, ResMut}, text::{Text, TextStyle}, ui::{Style, JustifyContent, AlignItems, UiRect, FocusPolicy, PositionType, Interaction, Size, Val, FlexDirection, AlignSelf, UiImage}, app::AppExit};
 use interpolation::EaseFunction;
 
-use crate::{animation::{Tween, Animator, AnimatorState, TweeningDirection, RepeatStrategy, Tweenable, EaseMethod, RepeatCount}, lens::{TextFontSizeLens, TransformLens}, parallax::ParallaxCameraComponent, plugins::{camera::MainCamera, assets::{FontAssets, UiAssets, SoundAssets}, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor}, settings_menu::SettingsMenuState}, TEXT_COLOR, state::{GameState, MenuState}, language::LanguageContent};
+use crate::{animation::{Tween, Animator, AnimatorState, TweeningDirection, RepeatStrategy, Tweenable, EaseMethod, RepeatCount}, lens::{TextFontSizeLens, TransformLens}, parallax::ParallaxCameraComponent, plugins::{camera::MainCamera, assets::{FontAssets, UiAssets, SoundAssets}, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor}, settings_menu::{SettingsMenuState, MENU_BUTTON_FONT_SIZE}}, TEXT_COLOR, state::{GameState, MenuState}, language::LanguageContent};
 
 use super::{Menu, SinglePlayerButton, SettingsButton, ExitButton};
 
@@ -40,16 +40,12 @@ pub fn menu_button(
     text_style: TextStyle,
     button_name: String,
     marker: impl Component,
-    margin: Option<f32>
 ) {
-    let margin = margin.unwrap_or(25.);
-
     builder
         .spawn(NodeBundle {
             style: Style {
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
-                margin: UiRect::vertical(Val::Px(margin)),
             },
             focus_policy: FocusPolicy::Pass
         })
@@ -78,7 +74,8 @@ pub fn control_buttons_layout(
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 flex_direction: FlexDirection::Column,
-                margin: UiRect::top(Val::Px(10.)),
+                margin: UiRect::vertical(Val::Px(40.)),
+                gap: Size::new(Val::Px(0.), Val::Px(50.)),
             },
             focus_policy: FocusPolicy::Pass
         }).with_children(spawn_builder);
@@ -91,14 +88,11 @@ pub fn control_button(
     name: String,
     marker: impl Component
 ) {
-    const FONT_SIZE: f32 = 52.;
-
     builder
         .spawn(NodeBundle {
             style: Style {
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
-                margin: UiRect::vertical(Val::Px(40.)),
             },
             focus_policy: FocusPolicy::Pass
         })
@@ -107,11 +101,11 @@ pub fn control_button(
                 style: Style {
                     position_type: PositionType::Absolute,
                 },
-                text: Text::from_section(name, TextStyle { font_size: FONT_SIZE, ..text_style }),
+                text: Text::from_section(name, TextStyle { font_size: MENU_BUTTON_FONT_SIZE, ..text_style }),
             })
             .insert(Button)
             .insert(Interaction::default())
-            .insert(Animator::new(text_tween(FONT_SIZE)).with_state(AnimatorState::Paused))
+            .insert(Animator::new(text_tween(MENU_BUTTON_FONT_SIZE)).with_state(AnimatorState::Paused))
             .insert(marker);
         });
 }
@@ -186,6 +180,7 @@ pub fn setup_main_menu(
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
                     flex_direction: FlexDirection::Column,
+                    gap: Size::new(Val::Px(0.), Val::Px(65.)),
                     ..default()
                 },
                 ..default()
@@ -195,21 +190,18 @@ pub fn setup_main_menu(
                     text_style.clone(),
                     language_content.ui.single_player.clone(),
                     SinglePlayerButton,
-                    Some(30.)
                 );
                 menu_button(
                     children, 
                     text_style.clone(), 
                     language_content.ui.settings.clone(), 
                     SettingsButton,
-                    Some(30.)
                 );
                 menu_button(
                     children, 
                     text_style.clone(), 
                     language_content.ui.exit.clone(), 
                     ExitButton,
-                    Some(30.)
                 );
             });
         });
@@ -249,12 +241,12 @@ pub fn update_buttons(
     }
 }
 
-pub fn single_player_clicked(mut commands: Commands) {
-    commands.insert_resource(NextState(Some(GameState::WorldLoading)));
+pub fn single_player_clicked(mut next_state: ResMut<NextState<GameState>>) {
+    next_state.set(GameState::WorldLoading);
 }
 
-pub fn settings_clicked(mut commands: Commands) {
-    commands.insert_resource(NextState(Some(GameState::Menu(MenuState::Settings(SettingsMenuState::Main)))));
+pub fn settings_clicked(mut next_state: ResMut<NextState<GameState>>) {
+    next_state.set(GameState::Menu(MenuState::Settings(SettingsMenuState::Main)));
 }
 
 pub fn exit_clicked(

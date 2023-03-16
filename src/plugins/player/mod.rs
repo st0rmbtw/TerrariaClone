@@ -18,7 +18,7 @@ use leafwing_input_manager::prelude::InputManagerPlugin;
 use super::{assets::PlayerAssets, world::{WorldData, TILE_SIZE}, debug::DebugConfiguration};
 
 pub const PLAYER_WIDTH: f32 = 22. /* 2. * TILE_SIZE */;
-pub const PLAYER_HEIGHT: f32 = 42.5 /* 3. * TILE_SIZE */;
+pub const PLAYER_HEIGHT: f32 = 42. /* 3. * TILE_SIZE */;
 
 pub const PLAYER_HALF_WIDTH: f32 = PLAYER_WIDTH / 2.;
 pub const PLAYER_HALF_HEIGHT: f32 = PLAYER_HEIGHT / 2.;

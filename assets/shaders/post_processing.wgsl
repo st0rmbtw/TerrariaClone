@@ -1,6 +1,7 @@
 #import bevy_sprite::mesh2d_view_bindings
 #import bevy_pbr::utils
 #import game::math
+#import bevy_core_pipeline::fullscreen_vertex_shader
 
 @group(1) @binding(0)
 var texture: texture_2d<f32>;
@@ -65,11 +66,10 @@ fn lin_to_srgb(color: vec3<f32>) -> vec3<f32> {
 @fragment
 fn fragment(
     @builtin(position) position: vec4<f32>,
-    #import bevy_sprite::mesh2d_vertex_output
+    @location(0) uv: vec2<f32>,
 ) -> @location(0) vec4<f32> {
     let pixelate = 10.;
 
-    let uv = coords_to_viewport_uv(position.xy, view.viewport);
     let player_uv = player_position.xy / (vec2(1750. * 16., 900. * 16.) - vec2(16., 32.));
 
     let texture_diffuse = textureSample(texture, texture_sampler, uv);

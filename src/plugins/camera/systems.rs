@@ -3,7 +3,7 @@ use bevy::{
     prelude::{
         Commands, Camera2dBundle, OrthographicProjection, Transform, Res, KeyCode, Query, 
         With, default, ResMut, Assets, Vec3, Mesh, shape, Input, Color, Name, MouseButton, Vec2,
-        Without
+        Without, Changed
     }, 
     time::Time, sprite::{MaterialMesh2dBundle, ColorMaterial}
 };
@@ -82,7 +82,7 @@ pub fn zoom(
 }
 
 pub fn follow_player(
-    mut player: Query<&Transform, (With<Player>, Without<MainCamera>)>,
+    mut player: Query<&Transform, (With<Player>, Without<MainCamera>, Changed<Transform>)>,
     mut camera: Query<(&mut Transform, &OrthographicProjection), (With<MainCamera>, Without<Player>)>,
     world_data: Res<WorldData>
 ) {

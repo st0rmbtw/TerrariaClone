@@ -51,6 +51,7 @@ pub fn is_flying(
     false
 }
 
+#[inline(always)]
 pub fn get_player_rect(position: Vec2, x_multiplier: f32) -> FRect {
     FRect {
         left: position.x - (PLAYER_WIDTH * x_multiplier) / 2.,

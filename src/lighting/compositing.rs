@@ -1,19 +1,19 @@
 use bevy::{
     math::Vec3Swizzles,
-    prelude::*,
+    prelude::{*, shape::Quad},
     reflect::TypeUuid,
     render::{
         camera::RenderTarget,
-        mesh::Indices,
+        mesh::{InnerMeshVertexBufferLayout},
         render_resource::{
-            AddressMode, AsBindGroup, Extent3d, PrimitiveTopology, SamplerDescriptor, ShaderRef,
-            TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+            AddressMode, AsBindGroup, Extent3d, SamplerDescriptor, ShaderRef,
+            TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, SpecializedMeshPipelineError, RenderPipelineDescriptor, PrimitiveState,
         },
         texture::{BevyDefault, ImageSampler},
         view::RenderLayers,
     },
-    sprite::{Material2d, MaterialMesh2dBundle},
-    window::{WindowResized, PrimaryWindow},
+    sprite::{Material2d, MaterialMesh2dBundle, Material2dKey},
+    window::{WindowResized, PrimaryWindow}, core_pipeline::fullscreen_vertex_shader::FULLSCREEN_SHADER_HANDLE, utils::Hashed,
 };
 
 use crate::{
@@ -59,7 +59,17 @@ impl Material2d for PostProcessingMaterial {
         "shaders/post_processing.wgsl".into()
     }
     fn vertex_shader() -> ShaderRef {
-        "shaders/screen_vertex.wgsl".into()
+        FULLSCREEN_SHADER_HANDLE.typed().into()
+    }
+
+    fn specialize(
+        descriptor: &mut RenderPipelineDescriptor,
+        _: &Hashed<InnerMeshVertexBufferLayout>,
+        _: Material2dKey<Self>,
+    ) -> Result<(), SpecializedMeshPipelineError> {
+        descriptor.primitive = PrimitiveState::default();
+        descriptor.vertex.entry_point = "fullscreen_vertex_shader".into();
+        Ok(())
     }
 }
 
@@ -123,7 +133,7 @@ pub fn update_lighting_material(
             &OrthographicProjection,
             &Handle<PostProcessingMaterial>,
         ),
-        With<MainCamera>,
+        (With<MainCamera>, Or<(Changed<GlobalTransform>, Changed<OrthographicProjection>)>)
     >,
     mut post_processing_materials: ResMut<Assets<PostProcessingMaterial>>,
 ) {
@@ -141,22 +151,24 @@ pub fn update_lighting_material(
 pub fn update_light_map(
     cameras: Query<&Handle<PostProcessingMaterial>, With<MainCamera>>,
     mut update_light_events: EventReader<UpdateLightEvent>,
+    post_processing_materials: Res<Assets<PostProcessingMaterial>>,
     mut images: ResMut<Assets<Image>>,
-    mut post_processing_materials: ResMut<Assets<PostProcessingMaterial>>,
     mut light_map: ResMut<LightMap>
 ) {
     if let Ok(lighting_material_handle) = cameras.get_single() {
-        let lighting_material = post_processing_materials
-            .get_mut(lighting_material_handle)
-            .unwrap();
-        let light_map_texture = images.get_mut(&lighting_material.shadow_map_image).unwrap();
+        if !update_light_events.is_empty() {
+            let lighting_material = post_processing_materials
+                .get(lighting_material_handle)
+                .unwrap();
+            let light_map_texture = images.get_mut(&lighting_material.shadow_map_image).unwrap();
 
-        for UpdateLightEvent { tile_pos, color } in update_light_events.iter() {
-            let x = tile_pos.x as usize;
-            let y = tile_pos.y as usize;
-            
-            light_map.colors[(y, x)] = *color;
-            update_light_map_texture(x, y, &light_map, &mut light_map_texture.data);
+            for UpdateLightEvent { tile_pos, color } in update_light_events.iter() {
+                let x = tile_pos.x as usize;
+                let y = tile_pos.y as usize;
+                
+                light_map.colors[(y, x)] = *color;
+                update_light_map_texture(x, y, &light_map, &mut light_map_texture.data);
+            }
         }
     }
 }       
@@ -164,14 +176,14 @@ pub fn update_light_map(
 pub fn setup_post_processing_camera(
     mut commands: Commands,
     query_windows: Query<&Window, With<PrimaryWindow>>,
+    mut query_camera: Query<(Entity, &mut Camera, &OrthographicProjection), Added<LightMapCamera>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut shadow_map_meterials: ResMut<Assets<PostProcessingMaterial>>,
     mut images: ResMut<Assets<Image>>,
-    mut cameras: Query<(Entity, &mut Camera, &OrthographicProjection), Added<LightMapCamera>>,
     light_map: Res<LightMap>,
     gpu_targets_wrapper: Res<PipelineTargetsWrapper>,
 ) {
-    for (entity, mut camera, proj) in &mut cameras {
+    for (entity, mut camera, proj) in &mut query_camera {
         let original_target = camera.target.clone();
 
         let window = query_windows.single();
@@ -245,30 +257,6 @@ pub fn setup_post_processing_camera(
         // This specifies the layer used for the post processing camera, which will be attached to the post processing camera and 2d fullscreen triangle.
         let post_processing_pass_layer = RenderLayers::layer((RenderLayers::TOTAL_LAYERS - 1) as u8);
 
-        let half_extents = Vec2::new(size.width as f32 / 2f32, size.height as f32 / 2f32);
-        let mut triangle_mesh = Mesh::new(PrimitiveTopology::TriangleList);
-        // NOTE: positions are actually not used because the vertex shader maps UV and clip space.
-        triangle_mesh.insert_attribute(
-            Mesh::ATTRIBUTE_POSITION,
-            vec![
-                [-half_extents.x, half_extents.y, 0.],
-                [half_extents.x * 3., half_extents.y, 0.0],
-                [-half_extents.x, half_extents.y * 3., 0.0],
-            ],
-        );
-        triangle_mesh.set_indices(Some(Indices::U32(vec![0, 1, 2])));
-        triangle_mesh.insert_attribute(
-            Mesh::ATTRIBUTE_NORMAL,
-            vec![[0.0, 0.0, 1.0], [0.0, 0.0, 1.0], [0.0, 0.0, 1.0]],
-        );
-
-        triangle_mesh.insert_attribute(
-            Mesh::ATTRIBUTE_UV_0,
-            vec![[2.0, 0.0], [0.0, 2.0], [0.0, 0.0]],
-        );
-
-        let triangle_handle = meshes.add(triangle_mesh);
-
         // This material has the texture that has been rendered.
         let material_handle = shadow_map_meterials.add(PostProcessingMaterial {
             player_position: Vec2::default(),
@@ -288,16 +276,16 @@ pub fn setup_post_processing_camera(
             // add the handle to the camera so we can access it and change its properties
             .insert(material_handle.clone())
             // also disable show_ui so UI elements don't get rendered twice
-            .insert(UiCameraConfig { show_ui: false });
-
-        commands.entity(entity).insert(FitToWindowSize {
-            image: image_handle.clone(),
-        });
+            .insert(UiCameraConfig { show_ui: false })
+            .insert(FitToWindowSize {
+                image: image_handle.clone(),
+            });
+        
         camera.target = RenderTarget::Image(image_handle);
 
         commands.spawn((
             MaterialMesh2dBundle {
-                mesh: triangle_handle.into(),
+                mesh: meshes.add(Mesh::from(Quad::new(Vec2::new(1., 1.)))).into(),
                 material: material_handle,
                 transform: Transform {
                     translation: Vec3::new(0.0, 0.0, 1.5),

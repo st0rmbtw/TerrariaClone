@@ -33,11 +33,12 @@ pub fn setup_interface_menu(
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
             flex_direction: FlexDirection::Column,
+            gap: Size::new(Val::Px(0.), Val::Px(50.)),
         }
     })
     .insert(InterfaceMenu)
     .with_children(|builder| {
-        menu_button(builder, text_style.clone(), language_content.ui.tile_grid.clone(), ToggleTileGridButton, None);
+        menu_button(builder, text_style.clone(), language_content.ui.tile_grid.clone(), ToggleTileGridButton);
 
         control_buttons_layout(builder, |control_button_builder| {
             control_button(control_button_builder, text_style.clone(), language_content.ui.back.clone(), BackButton);
@@ -49,8 +50,8 @@ pub fn toggle_tile_grid_clicked(mut show_tile_grid: ResMut<ShowTileGrid>) {
     show_tile_grid.0 = !show_tile_grid.0;
 }
 
-pub fn back_clicked(mut commands: Commands) {
-    commands.insert_resource(NextState(Some(GameState::Menu(MenuState::Settings(SettingsMenuState::Main)))));
+pub fn back_clicked(mut next_state: ResMut<NextState<GameState>>) {
+    next_state.set(GameState::Menu(MenuState::Settings(SettingsMenuState::Main)));
 }
 
 pub fn update_toggle_tile_grid_button_text(

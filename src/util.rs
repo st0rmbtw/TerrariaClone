@@ -2,7 +2,7 @@ use std::ops::Add;
 
 use bevy::{
     ecs::system::EntityCommands,
-    prelude::{Button, Changed, Component, Query, With, Vec2, Res, State, Visibility},
+    prelude::{Button, Changed, Component, Query, With, Vec2, Res, State, Visibility, Mut},
     ui::Interaction,
 };
 use bevy_ecs_tilemap::tiles::TilePos;
@@ -176,5 +176,14 @@ pub fn toggle_visibility<C: Component>(
             Visibility::Inherited | Visibility::Visible => Visibility::Hidden,
             Visibility::Hidden => Visibility::Inherited,
         };
+    }
+}
+
+#[inline(always)]
+pub fn set_visibility(mut visibility: Mut<Visibility>, visible: bool) {
+    if visible {
+        *visibility = Visibility::Inherited;
+    } else {
+        *visibility = Visibility::Hidden;
     }
 }

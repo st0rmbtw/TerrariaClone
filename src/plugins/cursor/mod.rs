@@ -6,7 +6,7 @@ pub use components::*;
 pub use resources::*;
 pub use systems::*;
 
-use bevy::{prelude::{Plugin, App, IntoSystemConfig, OnExit, OnEnter, IntoSystemConfigs, not, IntoSystemAppConfig, resource_equals, OnUpdate, in_state, Res, State}, ui::BackgroundColor};
+use bevy::{prelude::{Plugin, App, IntoSystemConfig, OnExit, OnEnter, IntoSystemConfigs, not, IntoSystemAppConfig, resource_equals, OnUpdate, in_state, Res, State, Condition}, ui::BackgroundColor};
 use crate::{state::GameState, animation::{AnimationSystemSet, component_animator_system}};
 use super::{ui::UiVisibility, settings::ShowTileGrid, debug::DebugConfiguration};
 
@@ -29,15 +29,13 @@ impl Plugin for CursorPlugin {
                 update_hovered_info,
             )
             .chain()
-            .distributive_run_if(|res: Res<UiVisibility>| *res == UiVisibility(true))
             .distributive_run_if(|current_state: Res<State<GameState>>| current_state.0 != GameState::AssetLoading)
         );
 
         app.add_system(
             update_tile_grid_position
                 .in_set(OnUpdate(GameState::InGame))
-                .run_if(resource_equals(UiVisibility(true)))
-                .run_if(resource_equals(ShowTileGrid(true)))
+                .run_if(resource_equals(UiVisibility(true)).and_then(resource_equals(ShowTileGrid(true))))
         );
 
         app.add_system(

@@ -24,7 +24,7 @@ use crate::{
         world::TILE_SIZE, settings::{ShowTileGrid, CursorColor}
     }, 
     animation::{Tween, lens::TransformScaleLens, Animator, RepeatStrategy, RepeatCount}, 
-    lens::BackgroundColorLens,
+    lens::BackgroundColorLens, util,
 };
 
 use crate::plugins::player::{PlayerVelocity, MAX_RUN_SPEED, MAX_FALL_SPEED};
@@ -68,7 +68,7 @@ pub fn setup(
                 ..default()
             },
             focus_policy: FocusPolicy::Pass,
-            z_index: ZIndex::Global(10),
+            z_index: ZIndex::Global(i32::MAX),
             ..default()
         })
         .with_children(|c| {
@@ -172,12 +172,8 @@ pub fn set_visibility<C: Component>(
     mut query: Query<&mut Visibility, With<C>>,
 ) {
     if ui_visibility.is_changed() {
-        for mut visibility in &mut query {
-            if ui_visibility.0 {
-                *visibility = Visibility::Inherited;
-            } else {
-                *visibility = Visibility::Hidden;
-            }
+        for visibility in &mut query {
+            util::set_visibility(visibility, ui_visibility.0);
         }
     }
 }
@@ -188,7 +184,6 @@ pub fn update_hovered_info(
 ) {
     if hovered_info.is_changed() {
         let mut text = query.single_mut();
-
         text.sections[0].value = hovered_info.0.clone();
     }
 }
@@ -200,7 +195,6 @@ pub fn update_tile_grid_position(
     let mut transform = query.single_mut();
     
     let tile_coords = (cursor.world_position / TILE_SIZE).round();
-
     transform.translation.x = tile_coords.x * TILE_SIZE;
     transform.translation.y = tile_coords.y * TILE_SIZE;
 }
@@ -228,11 +222,6 @@ pub fn update_tile_grid_visibility(
     mut tile_grid: Query<&mut Visibility, With<TileGrid>>,
     show_tile_grid: Res<ShowTileGrid>
 ) {
-    let mut visibility = tile_grid.single_mut();
-
-    if show_tile_grid.0 {
-        *visibility = Visibility::Inherited;
-    } else {
-        *visibility = Visibility::Hidden;
-    }
+    let visibility = tile_grid.single_mut();
+    util::set_visibility(visibility, show_tile_grid.0);
 }

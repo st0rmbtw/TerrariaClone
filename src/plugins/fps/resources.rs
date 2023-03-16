@@ -1,4 +1,4 @@
 use bevy::prelude::Resource;
 
-#[derive(Resource, Clone, Copy, Default)]
+#[derive(Default, Resource, Clone, Copy, PartialEq, Eq)]
 pub struct FpsTextVisibility(pub bool);
