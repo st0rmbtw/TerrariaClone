@@ -8,14 +8,13 @@ pub use resources::*;
 pub use systems::*;
 pub use utils::*;
 
-use crate::{state::GameState, util::tile_to_world_coords};
+use crate::{state::GameState, util::tile_to_world_coords, DebugConfiguration};
 use std::time::Duration;
 use bevy_hanabi::prelude::*;
 use bevy::{prelude::*, time::{Timer, TimerMode}, sprite::Anchor};
 use autodefault::autodefault;
-use leafwing_input_manager::prelude::InputManagerPlugin;
 
-use super::{assets::PlayerAssets, world::{WorldData, TILE_SIZE}, debug::DebugConfiguration};
+use super::{assets::PlayerAssets, world::{WorldData, TILE_SIZE}};
 
 pub const PLAYER_WIDTH: f32 = 22. /* 2. * TILE_SIZE */;
 pub const PLAYER_HEIGHT: f32 = 42. /* 3. * TILE_SIZE */;
@@ -46,7 +45,6 @@ enum PhysicsSet {
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugin(InputManagerPlugin::<PlayerAction>::default());
         app.insert_resource(InputAxis::default());
         app.insert_resource(MovementAnimationIndex::default());
         app.insert_resource(UseItemAnimationIndex::default());

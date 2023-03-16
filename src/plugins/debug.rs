@@ -1,7 +1,7 @@
-use bevy::prelude::{App, Plugin,IntoSystemConfig, OnUpdate, Resource, ResMut};
+use bevy::prelude::{App, Plugin,IntoSystemConfig, OnUpdate, ResMut};
 use bevy_inspector_egui::{bevy_egui::{EguiPlugin, egui, EguiContexts}, egui::Align2, quick::WorldInspectorPlugin};
 
-use crate::state::GameState;
+use crate::{state::GameState, DebugConfiguration};
 use bevy_prototype_debug_lines::DebugLinesPlugin;
 
 pub struct DebugPlugin;
@@ -9,17 +9,10 @@ pub struct DebugPlugin;
 impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(EguiPlugin);
-        app.init_resource::<DebugConfiguration>();
         app.add_plugin(DebugLinesPlugin::default());
         app.add_plugin(WorldInspectorPlugin::new());
         app.add_system(debug_gui.in_set(OnUpdate(GameState::InGame)));
     }
-}
-
-#[derive(Default, Resource)]
-pub struct DebugConfiguration {
-    pub free_camera: bool,
-    pub show_hitboxes: bool
 }
 
 fn debug_gui(mut contexts: EguiContexts, mut debug_config: ResMut<DebugConfiguration>) {

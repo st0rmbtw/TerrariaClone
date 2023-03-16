@@ -1,12 +1,10 @@
 use bevy::{prelude::{Plugin, App, Component, OnUpdate, IntoSystemConfig, IntoSystemAppConfig, OnEnter, Res, KeyCode}, input::common_conditions::input_just_pressed};
 
-use crate::{state::GameState, util::toggle_visibility};
+use crate::{state::GameState, util::toggle_visibility, DebugConfiguration};
 
 pub use components::*;
 pub use systems::*;
 pub use events::*;
-
-use super::debug::DebugConfiguration;
 
 mod components;
 mod systems;
@@ -34,6 +32,8 @@ impl Plugin for CameraPlugin {
                 .in_set(OnUpdate(GameState::InGame))
                 .run_if(|debug_config: Res<DebugConfiguration>| !debug_config.free_camera)
         );
+
+        #[cfg(feature = "debug")]
         app.add_system(
             free_camera
                 .in_set(OnUpdate(GameState::InGame))

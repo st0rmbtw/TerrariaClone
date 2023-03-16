@@ -7,8 +7,8 @@ pub use resources::*;
 pub use systems::*;
 
 use bevy::{prelude::{Plugin, App, IntoSystemConfig, OnExit, OnEnter, IntoSystemConfigs, not, IntoSystemAppConfig, resource_equals, OnUpdate, in_state, Res, State, Condition}, ui::BackgroundColor};
-use crate::{state::GameState, animation::{AnimationSystemSet, component_animator_system}};
-use super::{ui::UiVisibility, settings::ShowTileGrid, debug::DebugConfiguration};
+use crate::{state::GameState, animation::{AnimationSystemSet, component_animator_system}, DebugConfiguration};
+use super::{ui::UiVisibility, settings::ShowTileGrid};
 
 const MAX_TILE_GRID_OPACITY: f32 = 0.8;
 const MIN_TILE_GRID_OPACITY: f32 = 0.2;

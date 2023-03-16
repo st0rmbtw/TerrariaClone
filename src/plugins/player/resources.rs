@@ -1,7 +1,4 @@
 use bevy::{prelude::{Deref, DerefMut, Resource, Vec2}, time::Timer};
-use leafwing_input_manager::Actionlike;
-
-use crate::Velocity;
 
 #[derive(Resource, Default, Clone, Copy)]
 pub struct InputAxis {
@@ -27,7 +24,7 @@ pub struct MovementAnimationIndex(pub usize);
 pub struct UseItemAnimationIndex(pub usize);
 
 #[derive(Resource, Clone, Copy, Default, Deref, DerefMut)]
-pub struct PlayerVelocity(pub Velocity);
+pub struct PlayerVelocity(pub Vec2);
 
 #[derive(Resource, Clone, Copy, Default)]
 pub struct PlayerData {
@@ -36,14 +33,6 @@ pub struct PlayerData {
     pub fall_distance: f32,
 
     pub prev_position: Vec2
-}
-
-#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug)]
-pub enum PlayerAction {
-    RunLeft,
-    RunRight,
-    Jump,
-    UseItem,
 }
 
 #[derive(Debug, Resource, Clone, Copy, Default)]

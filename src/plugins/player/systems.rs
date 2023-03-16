@@ -1,6 +1,5 @@
 use bevy::{prelude::*, math::Vec3Swizzles};
 use bevy_hanabi::prelude::*;
-use leafwing_input_manager::prelude::ActionState;
 use rand::seq::SliceRandom;
 
 use crate::{
@@ -41,19 +40,17 @@ pub fn horizontal_movement(
 }
 
 pub fn update_jump(
-    query: Query<&ActionState<PlayerAction>, With<Player>>,
+    input: Res<Input<KeyCode>>,
     collisions: Res<Collisions>,
     mut velocity: ResMut<PlayerVelocity>,
     mut player_data: ResMut<PlayerData>,
 ) {
-    let input = query.single();
-
-    if input.pressed(PlayerAction::Jump) && collisions.bottom {
+    if input.pressed(KeyCode::Space) && collisions.bottom {
         player_data.jump = JUMP_HEIGHT;
         velocity.y = JUMP_SPEED;
     }
 
-    if input.pressed(PlayerAction::Jump) {
+    if input.pressed(KeyCode::Space) {
         if player_data.jump > 0 {
             if velocity.y == 0. {
                 player_data.jump = 0;
@@ -261,11 +258,9 @@ pub fn update_face_direction(axis: Res<InputAxis>, mut query: Query<&mut FaceDir
     }
 }
 
-pub fn update_axis(query: Query<&ActionState<PlayerAction>, With<Player>>, mut axis: ResMut<InputAxis>) {
-    let input = query.single();
-
-    let left = input.pressed(PlayerAction::RunLeft);
-    let right = input.pressed(PlayerAction::RunRight);
+pub fn update_axis(input: Res<Input<KeyCode>>, mut axis: ResMut<InputAxis>) {
+    let left = input.pressed(KeyCode::A);
+    let right = input.pressed(KeyCode::D);
 
     let x = -(left as i8) + right as i8;
 
@@ -326,13 +321,11 @@ pub fn walking_animation(
 }
 
 pub fn player_using_item(
-    query: Query<&ActionState<PlayerAction>, With<Player>>,
+    input: Res<Input<MouseButton>>,
     selected_item: Res<SelectedItem>,
     mut anim: ResMut<UseItemAnimation>,
 ) {
-    let input = query.single();
-
-    let using_item = input.pressed(PlayerAction::UseItem) && selected_item.is_some();
+    let using_item = input.pressed(MouseButton::Left) && selected_item.is_some();
 
     if using_item {
         anim.0 = true;
@@ -474,6 +467,7 @@ pub fn current_speed(
     }
 }
 
+#[cfg(feature = "debug")]
 pub fn draw_hitbox(
     query_player: Query<&Transform, With<Player>>,
     mut debug_lines: ResMut<DebugLines>,

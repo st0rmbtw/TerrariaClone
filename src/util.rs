@@ -7,7 +7,7 @@ use bevy::{
 };
 use bevy_ecs_tilemap::tiles::TilePos;
 
-use crate::{plugins::world::{TILE_SIZE, Wall, BlockType}, state::GameState};
+use crate::{plugins::{world::{TILE_SIZE, Wall, BlockType}}, state::GameState};
 
 pub trait EntityCommandsExtensions<'w, 's, 'a> {
     fn insert_if(
