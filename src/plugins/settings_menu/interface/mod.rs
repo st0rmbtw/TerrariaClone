@@ -3,11 +3,11 @@ mod buttons;
 pub use buttons::*;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Res, NodeBundle, BuildChildren, With, Query, ResMut, Component, NextState}, text::{TextStyle, Text}, ui::{Style, Size, Val, JustifyContent, AlignItems, FlexDirection}};
+use bevy::{prelude::{Commands, Res, With, Query, ResMut, Component, NextState, Entity}, text::{TextStyle, Text}};
 
-use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button}, settings::ShowTileGrid}, language::LanguageContent, TEXT_COLOR, state::{GameState, MenuState}};
+use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button, menu, MenuContainer}, settings::ShowTileGrid}, language::LanguageContent, TEXT_COLOR, state::{SettingsMenuState, GameState, MenuState}};
 
-use super::{SettingsMenuState, MENU_BUTTON_FONT_SIZE, BackButton};
+use super::{MENU_BUTTON_FONT_SIZE, BackButton};
 
 #[derive(Component)]
 pub struct InterfaceMenu;
@@ -16,7 +16,8 @@ pub struct InterfaceMenu;
 pub fn setup_interface_menu(
     mut commands: Commands,
     fonts: Res<FontAssets>,
-    language_content: Res<LanguageContent>
+    language_content: Res<LanguageContent>,
+    query_container: Query<Entity, With<MenuContainer>>
 ) {
     let text_style = TextStyle {
         font: fonts.andy_bold.clone_weak(),
@@ -24,20 +25,9 @@ pub fn setup_interface_menu(
         color: TEXT_COLOR,
     };
 
-    commands.spawn(NodeBundle {
-        style: Style {
-            size: Size {
-                width: Val::Percent(100.),
-                height: Val::Percent(100.),
-            },
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center,
-            flex_direction: FlexDirection::Column,
-            gap: Size::new(Val::Px(0.), Val::Px(50.)),
-        }
-    })
-    .insert(InterfaceMenu)
-    .with_children(|builder| {
+    let container = query_container.single();
+
+    menu(InterfaceMenu, &mut commands, container, 50., |builder| {
         menu_button(builder, text_style.clone(), language_content.ui.tile_grid.clone(), ToggleTileGridButton);
 
         control_buttons_layout(builder, |control_button_builder| {

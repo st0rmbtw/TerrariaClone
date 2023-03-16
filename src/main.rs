@@ -27,7 +27,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     app.add_plugin(SettingsPlugin);
 
-    let resolution = app.world.resource::<Resolution>().data();
+    let resolution = app.world.resource::<Resolution>();
     let vsync = app.world.resource::<VSync>();
     let fullscreen = app.world.resource::<FullScreen>();
 

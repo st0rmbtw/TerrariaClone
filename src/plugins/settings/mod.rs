@@ -31,7 +31,7 @@ impl Default for Settings {
             full_screen: false,
             show_tile_grid: false,
             vsync: true,
-            resolution: Resolution::default(),
+            resolution: Resolution::new(1920., 1080.),
             cursor_color: CursorColor::default()
         }
     }
@@ -91,3 +91,22 @@ impl Plugin for SettingsPlugin {
         app.insert_resource(settings.resolution);
     }
 }
+
+pub const RESOLUTIONS: [Resolution; 16] = [
+    Resolution::new(800., 600.),
+    Resolution::new(1024., 768.),
+    Resolution::new(1152., 864.),
+    Resolution::new(1176., 664.),
+    Resolution::new(1280., 720.),
+    Resolution::new(1280., 768.),
+    Resolution::new(1280., 800.),
+    Resolution::new(1280., 960.),
+    Resolution::new(1280., 1024.),
+    Resolution::new(1360., 768.),
+    Resolution::new(1366., 768.),
+    Resolution::new(1440., 900.),
+    Resolution::new(1600., 900.),
+    Resolution::new(1600., 1024.),
+    Resolution::new(1680., 1050.),
+    Resolution::new(1920., 1080.),
+];

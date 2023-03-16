@@ -1,13 +1,5 @@
 use bevy::prelude::{Component, States};
 
-use crate::plugins::settings_menu::SettingsMenuState;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum MenuState {
-    Main,
-    Settings(SettingsMenuState)
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum GameState {
     #[default]
@@ -16,6 +8,23 @@ pub enum GameState {
     WorldLoading,
     InGame,
     Paused
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum MenuState {
+    Main,
+    Settings(SettingsMenuState)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum SettingsMenuState {
+    #[default]
+    None,
+    Interface,
+    Video,
+    Cursor,
+    Resolution,
+    Main
 }
 
 impl States for GameState {
@@ -33,6 +42,7 @@ impl States for GameState {
         ].into_iter()
     }
 }
+
 
 #[derive(Default, Clone, Copy, PartialEq, Eq, Component)]
 #[cfg_attr(feature = "debug", derive(bevy_inspector_egui::InspectorOptions))]

@@ -102,8 +102,7 @@ fn setup_main_menu_background(
 ) {
     let window = query_windows.single();
 
-    // 600 is the background image height
-    let height = window.height() - 600.;
+    let height = 150.;
 
     commands.insert_resource(ParallaxResource {
         layer_data: vec![

@@ -4,9 +4,9 @@ use autodefault::autodefault;
 use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveExt, Camera2dBundle, ChildBuilder, NodeBundle, BuildChildren, TextBundle, Button, Res, default, Changed, EventWriter, Color, ImageBundle, Transform, Quat, Vec3, Audio, NextState, ResMut}, text::{Text, TextStyle}, ui::{Style, JustifyContent, AlignItems, UiRect, FocusPolicy, PositionType, Interaction, Size, Val, FlexDirection, AlignSelf, UiImage}, app::AppExit};
 use interpolation::EaseFunction;
 
-use crate::{animation::{Tween, Animator, AnimatorState, TweeningDirection, RepeatStrategy, Tweenable, EaseMethod, RepeatCount}, lens::{TextFontSizeLens, TransformLens}, parallax::ParallaxCameraComponent, plugins::{camera::MainCamera, assets::{FontAssets, UiAssets, SoundAssets}, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor}, settings_menu::{SettingsMenuState, MENU_BUTTON_FONT_SIZE}}, TEXT_COLOR, state::{GameState, MenuState}, language::LanguageContent};
+use crate::{animation::{Tween, Animator, AnimatorState, TweeningDirection, RepeatStrategy, Tweenable, EaseMethod, RepeatCount}, lens::{TextFontSizeLens, TransformLens}, parallax::ParallaxCameraComponent, plugins::{camera::MainCamera, assets::{FontAssets, UiAssets, SoundAssets}, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor}, settings_menu::{MENU_BUTTON_FONT_SIZE}}, TEXT_COLOR, state::{GameState, SettingsMenuState, MenuState}, language::LanguageContent};
 
-use super::{Menu, SinglePlayerButton, SettingsButton, ExitButton};
+use super::{Menu, SinglePlayerButton, SettingsButton, ExitButton, MenuContainer};
 
 pub fn despawn_with<C: Component>(query: Query<Entity, With<C>>, mut commands: Commands) {
     for entity in &query {
@@ -110,18 +110,36 @@ pub fn control_button(
         });
 }
 
-pub fn setup_main_menu(
-    mut commands: Commands, 
-    fonts: Res<FontAssets>,
-    language_content: Res<LanguageContent>,
+pub fn menu(marker: impl Component, commands: &mut Commands, container: Entity, gap: f32, spawn_children: impl FnOnce(&mut ChildBuilder)) {
+    let menu = commands.spawn((
+        NodeBundle {
+            style: Style {
+                size: Size {
+                    width: Val::Percent(100.),
+                    height: Val::Percent(100.),
+                },
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                flex_direction: FlexDirection::Column,
+                gap: Size::new(Val::Px(0.), Val::Px(gap)),
+                ..default()
+            },
+            ..default()
+        },
+        Menu
+    ))
+    .insert(marker)
+    .with_children(spawn_children)
+    .id();
+
+    commands.entity(container)
+        .add_child(menu);
+}
+
+pub fn spawn_menu_container(
+    mut commands: Commands,
     ui_assets: Res<UiAssets>
 ) {
-    let text_style = TextStyle {
-        font: fonts.andy_bold.clone_weak(),
-        font_size: 54.,
-        color: TEXT_COLOR,
-    };
-
     let logo_animation = Tween::new(
         EaseFunction::SineInOut,
         RepeatStrategy::MirroredRepeat,
@@ -141,19 +159,21 @@ pub fn setup_main_menu(
     ).with_repeat_count(RepeatCount::Infinite);
 
     commands
-        .spawn(NodeBundle {
-            style: Style {
-                size: Size {
-                    width: Val::Percent(100.),
-                    height: Val::Percent(100.),
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    size: Size {
+                        width: Val::Percent(100.),
+                        height: Val::Percent(100.),
+                    },
+                    padding: UiRect::all(Val::Px(50.)),
+                    flex_direction: FlexDirection::Column,
+                    ..default()
                 },
-                padding: UiRect::all(Val::Px(50.)),
-                flex_direction: FlexDirection::Column,
                 ..default()
             },
-            ..default()
-        })
-        .insert(Menu)
+            MenuContainer
+        ))
         .with_children(|children| {
             children.spawn((
                 ImageBundle {
@@ -170,41 +190,43 @@ pub fn setup_main_menu(
                 },
                 Animator::new(logo_animation)
             ));
-
-            children.spawn(NodeBundle {
-                style: Style {
-                    size: Size {
-                        width: Val::Percent(100.),
-                        height: Val::Percent(100.),
-                    },
-                    justify_content: JustifyContent::Center,
-                    align_items: AlignItems::Center,
-                    flex_direction: FlexDirection::Column,
-                    gap: Size::new(Val::Px(0.), Val::Px(65.)),
-                    ..default()
-                },
-                ..default()
-            }).with_children(|children| {    
-                menu_button(
-                    children,
-                    text_style.clone(),
-                    language_content.ui.single_player.clone(),
-                    SinglePlayerButton,
-                );
-                menu_button(
-                    children, 
-                    text_style.clone(), 
-                    language_content.ui.settings.clone(), 
-                    SettingsButton,
-                );
-                menu_button(
-                    children, 
-                    text_style.clone(), 
-                    language_content.ui.exit.clone(), 
-                    ExitButton,
-                );
-            });
         });
+}
+
+pub fn setup_main_menu(
+    mut commands: Commands, 
+    fonts: Res<FontAssets>,
+    language_content: Res<LanguageContent>,
+    query_container: Query<Entity, With<MenuContainer>>
+) {
+    let text_style = TextStyle {
+        font: fonts.andy_bold.clone_weak(),
+        font_size: 54.,
+        color: TEXT_COLOR,
+    };
+
+    let container = query_container.single();
+
+    menu(Menu, &mut commands, container, 65., |builder| {
+        menu_button(
+            builder,
+            text_style.clone(),
+            language_content.ui.single_player.clone(),
+            SinglePlayerButton,
+        );
+        menu_button(
+            builder, 
+            text_style.clone(), 
+            language_content.ui.settings.clone(), 
+            SettingsButton,
+        );
+        menu_button(
+            builder, 
+            text_style.clone(), 
+            language_content.ui.exit.clone(), 
+            ExitButton,
+        );
+    });
 }
 
 pub fn update_buttons(

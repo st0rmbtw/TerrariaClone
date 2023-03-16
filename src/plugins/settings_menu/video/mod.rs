@@ -4,11 +4,11 @@ mod buttons;
 pub use buttons::*;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Res, NodeBundle, BuildChildren, Component, ResMut, Query, With, NextState}, text::{TextStyle, Text}, ui::{Style, Size, Val, JustifyContent, AlignItems, FlexDirection}, window::Window};
+use bevy::{prelude::{Commands, Res, Component, ResMut, Query, With, NextState, Entity}, text::{TextStyle, Text}, window::Window};
 
-use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button}, settings::VSync}, language::LanguageContent, TEXT_COLOR, state::{GameState, MenuState}};
+use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button, menu, MenuContainer}, settings::VSync}, language::LanguageContent, TEXT_COLOR, state::{SettingsMenuState, MenuState, GameState}};
 
-use super::{SettingsMenuState, MENU_BUTTON_FONT_SIZE, BackButton};
+use super::{MENU_BUTTON_FONT_SIZE, BackButton};
 
 #[derive(Component)]
 pub struct VideoMenu;
@@ -17,7 +17,8 @@ pub struct VideoMenu;
 pub fn setup_video_menu(
     mut commands: Commands,
     fonts: Res<FontAssets>,
-    language_content: Res<LanguageContent>
+    language_content: Res<LanguageContent>,
+    query_container: Query<Entity, With<MenuContainer>>
 ) {
     let text_style = TextStyle {
         font: fonts.andy_bold.clone_weak(),
@@ -25,20 +26,9 @@ pub fn setup_video_menu(
         color: TEXT_COLOR,
     };
 
-    commands.spawn(NodeBundle {
-        style: Style {
-            size: Size {
-                width: Val::Percent(100.),
-                height: Val::Percent(100.),
-            },
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center,
-            flex_direction: FlexDirection::Column,
-            gap: Size::new(Val::Px(0.), Val::Px(50.)),
-        }
-    })
-    .insert(VideoMenu)
-    .with_children(|builder| {
+    let container = query_container.single();
+
+    menu(VideoMenu, &mut commands, container, 50., |builder| {
         menu_button(builder, text_style.clone(), language_content.ui.resolution.clone(), ResolutionButton);
         menu_button(builder, text_style.clone(), language_content.ui.vsync.clone(), VSyncButton);
 

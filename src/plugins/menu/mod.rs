@@ -20,9 +20,11 @@ impl Plugin for MenuPlugin {
         app.add_plugin(CelestialBodyPlugin);
 
         app.add_system(setup_camera.on_startup());
+        app.add_system(spawn_menu_container.in_schedule(OnExit(GameState::AssetLoading)));
         app.add_system(setup_main_menu.in_schedule(OnEnter(GameState::Menu(MenuState::Main))));
 
         app.add_system(despawn_with::<MainCamera>.in_schedule(OnEnter(GameState::InGame)));
+        app.add_system(despawn_with::<MenuContainer>.in_schedule(OnEnter(GameState::InGame)));
         app.add_system(despawn_with::<Menu>.in_schedule(OnExit(GameState::Menu(MenuState::Main))));
 
         app.add_system(move_background_system().run_if(in_menu_state));

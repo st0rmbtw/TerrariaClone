@@ -3,23 +3,13 @@ pub mod interface;
 pub mod video;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Res, NodeBundle, BuildChildren, Plugin, App, Component, IntoSystemAppConfig, OnEnter, OnExit, OnUpdate, IntoSystemConfig, IntoSystemConfigs, NextState, ResMut}, text::TextStyle, ui::{Style, Size, Val, JustifyContent, AlignItems, FlexDirection}};
+use bevy::{prelude::{Commands, Res, Plugin, App, Component, IntoSystemAppConfig, OnEnter, OnExit, OnUpdate, IntoSystemConfig, IntoSystemConfigs, NextState, ResMut, Query, Entity, With}, text::TextStyle};
 
-use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button}}, language::LanguageContent, TEXT_COLOR, state::{GameState, MenuState}, util::on_btn_clicked};
+use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button}}, language::LanguageContent, TEXT_COLOR, state::{SettingsMenuState, GameState, MenuState}, util::on_btn_clicked};
 
 use self::buttons::{InterfaceButton, VideoButton, CursorButton};
 
-use super::menu::despawn_with;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum SettingsMenuState {
-    Interface,
-    Video,
-    Cursor,
-    Resolution,
-    #[default]
-    Main
-}
+use super::menu::{despawn_with, menu, MenuContainer};
 
 #[derive(Component)]
 pub struct SettingsMenu;
@@ -102,7 +92,8 @@ impl Plugin for SettingsMenuPlugin {
 pub fn setup_settings_menu(
     mut commands: Commands,
     fonts: Res<FontAssets>,
-    language_content: Res<LanguageContent>
+    language_content: Res<LanguageContent>,
+    query_container: Query<Entity, With<MenuContainer>>
 ) {
     let text_style = TextStyle {
         font: fonts.andy_bold.clone_weak(),
@@ -110,20 +101,9 @@ pub fn setup_settings_menu(
         color: TEXT_COLOR,
     };
 
-    commands.spawn(NodeBundle {
-        style: Style {
-            size: Size {
-                width: Val::Percent(100.),
-                height: Val::Percent(100.),
-            },
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center,
-            flex_direction: FlexDirection::Column,
-            gap: Size::new(Val::Px(0.), Val::Px(50.)),
-        }
-    })
-    .insert(SettingsMenu)
-    .with_children(|builder| {
+    let container = query_container.single();
+
+    menu(SettingsMenu, &mut commands, container, 50., |builder| {
         use buttons::*;
         menu_button(builder, text_style.clone(), language_content.ui.interface.clone(), InterfaceButton);
         menu_button(builder, text_style.clone(), language_content.ui.video.clone(), VideoButton);
