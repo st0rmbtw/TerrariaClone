@@ -5,7 +5,7 @@ use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query
 
 use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets, SoundAssets}, cursor::{HoveredInfo, CursorPosition}, world::{DigBlockEvent, PlaceBlockEvent}}, common::{extensions::EntityCommandsExtensions, helpers}, language::LanguageContent, items::Item};
 
-use super::{Inventory, HOTBAR_LENGTH, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, KEYCODE_TO_DIGIT, CELL_COUNT_IN_ROW, INVENTORY_ROWS_COUNT, HotbarUi};
+use super::{Inventory, HOTBAR_LENGTH, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, CELL_COUNT_IN_ROW, INVENTORY_ROWS_COUNT, HotbarUi, util::keycode_to_digit};
 
 #[autodefault]
 pub fn spawn_inventory_ui(
@@ -261,10 +261,10 @@ pub fn select_inventory_cell(
 ) {
     let digit = input
         .get_just_pressed()
-        .find_map(|k| KEYCODE_TO_DIGIT.get(k));
+        .find_map(|k| keycode_to_digit(k));
 
     if let Some(index) = digit {
-        if inventory.select_item(*index) {
+        if inventory.select_item(index) {
             audio.play(sounds.menu_tick.clone_weak());
         }
     }

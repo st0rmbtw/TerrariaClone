@@ -4,9 +4,6 @@
 
 use bevy::prelude::{Color, Resource};
 
-#[macro_use]
-extern crate lazy_static;
-
 pub mod animation;
 pub mod common;
 pub mod items;

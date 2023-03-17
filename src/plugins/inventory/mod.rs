@@ -1,8 +1,9 @@
 mod components;
 mod resources;
 mod systems;
+mod util;
 
-use bevy::{ui::{Val, Size}, prelude::{KeyCode, Plugin, App, OnUpdate, IntoSystemConfigs, IntoSystemAppConfig, CoreSchedule, IntoSystemConfig, Res}, utils::HashMap};
+use bevy::{ui::{Val, Size}, prelude::{Plugin, App, OnUpdate, IntoSystemConfigs, IntoSystemAppConfig, CoreSchedule, IntoSystemConfig, Res}};
 pub use components::*;
 pub use resources::*;
 pub use systems::*;
@@ -81,19 +82,4 @@ impl Plugin for PlayerInventoryPlugin {
             .distributive_run_if(|res: Res<UiVisibility>| *res == UiVisibility::default())
         );
     }
-}
-
-lazy_static! {
-    static ref KEYCODE_TO_DIGIT: HashMap<KeyCode, usize> = HashMap::from([
-        (KeyCode::Key1, 0),
-        (KeyCode::Key2, 1),
-        (KeyCode::Key3, 2),
-        (KeyCode::Key4, 3),
-        (KeyCode::Key5, 4),
-        (KeyCode::Key6, 5),
-        (KeyCode::Key7, 6),
-        (KeyCode::Key8, 7),
-        (KeyCode::Key9, 8),
-        (KeyCode::Key0, 9)
-    ]);
 }
