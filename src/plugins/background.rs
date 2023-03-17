@@ -1,6 +1,6 @@
 use crate::{
     parallax::{LayerData, ParallaxResource, LayerSpeed, follow_camera_system, ParallaxSet},
-    state::GameState, util::in_menu_state,
+    common::{state::GameState, conditions::in_menu_state},
 };
 use bevy::{
     prelude::{default, App, Commands, Plugin, Res, ResMut, Vec2, Transform, Component, Query, Camera, GlobalTransform, With, OnEnter, OnExit, IntoSystemAppConfig, OnUpdate, IntoSystemConfig, IntoSystemConfigs, IntoSystemAppConfigs},

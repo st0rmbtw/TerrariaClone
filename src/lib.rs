@@ -8,15 +8,12 @@ use bevy::prelude::{Color, Resource};
 extern crate lazy_static;
 
 pub mod animation;
+pub mod common;
 pub mod items;
-pub mod lens;
-pub mod parallax;
-pub mod plugins;
-pub mod state;
-pub mod util;
 pub mod language;
 pub mod lighting;
-pub mod rect;
+pub mod parallax;
+pub mod plugins;
 
 pub const TEXT_COLOR: Color = Color::rgb(156. / 255., 156. / 255., 156. / 255.);
 

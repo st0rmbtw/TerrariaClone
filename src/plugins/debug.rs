@@ -1,7 +1,7 @@
 use bevy::prelude::{App, Plugin,IntoSystemConfig, OnUpdate, ResMut};
 use bevy_inspector_egui::{bevy_egui::{EguiPlugin, egui, EguiContexts}, egui::Align2, quick::{WorldInspectorPlugin}};
 
-use crate::{state::GameState, DebugConfiguration};
+use crate::{common::state::GameState, DebugConfiguration};
 use bevy_prototype_debug_lines::DebugLinesPlugin;
 
 use super::cursor::CursorPosition;

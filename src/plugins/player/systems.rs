@@ -3,13 +3,12 @@ use bevy_hanabi::prelude::*;
 use rand::seq::SliceRandom;
 
 use crate::{
-    state::MovementState,
     plugins::{
         world::{WorldData, TILE_SIZE}, 
         assets::{ItemAssets, SoundAssets}, 
         inventory::{SelectedItem, Inventory},
     }, 
-    util::{move_towards, map_range_usize, self}, 
+    common::{math::{move_towards, map_range_usize}, state::MovementState, helpers}, 
     items::{get_animation_points, ItemStack, Item}
 };
 
@@ -337,7 +336,7 @@ pub fn set_using_item_visibility(
     mut using_item_query: Query<&mut Visibility, With<UsedItem>>,
 ) {
     if let Ok(visibility) = using_item_query.get_single_mut() {
-        util::set_visibility(visibility, anim.0);
+        helpers::set_visibility(visibility, anim.0);
     }
 }
 

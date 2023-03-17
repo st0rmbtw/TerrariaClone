@@ -1,6 +1,6 @@
 use bevy::{prelude::{Plugin, App, Component, OnUpdate, IntoSystemConfig, IntoSystemAppConfig, OnEnter, Res, KeyCode}, input::common_conditions::input_just_pressed};
 
-use crate::{state::GameState, util::toggle_visibility, DebugConfiguration};
+use crate::{common::{state::GameState, helpers::toggle_visibility}, DebugConfiguration};
 
 pub use components::*;
 pub use systems::*;

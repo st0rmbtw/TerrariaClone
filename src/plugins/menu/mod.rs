@@ -7,7 +7,7 @@ pub use systems::*;
 
 use bevy::prelude::{Plugin, App, IntoSystemAppConfig, IntoSystemConfigs, IntoSystemConfig, OnEnter, OnExit};
 
-use crate::{state::{GameState, MenuState}, util::{on_btn_clicked, in_menu_state}, parallax::move_background_system};
+use crate::{common::{state::{GameState, MenuState}, conditions::{on_btn_clicked, in_menu_state}}, parallax::move_background_system};
 
 use self::celestial_body::CelestialBodyPlugin;
 

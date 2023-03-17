@@ -8,7 +8,7 @@ use bevy_hanabi::HanabiPlugin;
 use game::{
     animation::TweeningPlugin,
     parallax::ParallaxPlugin,
-    state::GameState, 
+    common::state::GameState, 
     plugins::{
         assets::AssetsPlugin, cursor::CursorPlugin, camera::{CameraPlugin, UpdateLightEvent}, background::BackgroundPlugin, 
         ui::PlayerUiPlugin, settings::{SettingsPlugin, Resolution, VSync, FullScreen}, menu::MenuPlugin, world::WorldPlugin, 

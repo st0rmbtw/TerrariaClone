@@ -9,7 +9,7 @@ pub use systems::*;
 pub use events::*;
 
 use bevy::{prelude::{Plugin, App, IntoSystemAppConfig, OnEnter, OnUpdate, IntoSystemConfig, KeyCode}, input::common_conditions::input_just_pressed};
-use crate::state::GameState;
+use crate::common::state::GameState;
 
 pub const SPAWN_UI_CONTAINER_LABEL: &str = "spawn_ui_container";
 

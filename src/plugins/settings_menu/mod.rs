@@ -5,7 +5,7 @@ pub mod video;
 use autodefault::autodefault;
 use bevy::{prelude::{Commands, Res, Plugin, App, Component, IntoSystemAppConfig, OnEnter, OnExit, OnUpdate, IntoSystemConfig, IntoSystemConfigs, NextState, ResMut, Query, Entity, With}, text::TextStyle};
 
-use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button}}, language::LanguageContent, TEXT_COLOR, state::{SettingsMenuState, GameState, MenuState}, util::on_btn_clicked};
+use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button}}, language::LanguageContent, TEXT_COLOR, common::{conditions::on_btn_clicked, state::{SettingsMenuState, GameState, MenuState}}};
 
 use self::buttons::{InterfaceButton, VideoButton, CursorButton};
 

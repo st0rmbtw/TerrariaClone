@@ -9,7 +9,7 @@ use bevy::{
 };
 use rand::{thread_rng, Rng};
 
-use crate::{parallax::ParallaxCameraComponent, plugins::{world::{TILE_SIZE, WorldData}, cursor::CursorPosition}, lighting::{compositing::LightMapCamera, types::LightSource}, util::tile_to_world_coords};
+use crate::{parallax::ParallaxCameraComponent, plugins::{world::{TILE_SIZE, WorldData}, cursor::CursorPosition}, lighting::{compositing::LightMapCamera, types::LightSource}, common::helpers::tile_to_world_coords};
 
 use crate::plugins::player::Player;
 

@@ -24,7 +24,7 @@ use crate::{
         world::TILE_SIZE, settings::{ShowTileGrid, CursorColor}
     }, 
     animation::{Tween, lens::TransformScaleLens, Animator, RepeatStrategy, RepeatCount}, 
-    lens::BackgroundColorLens, util,
+    common::{lens::BackgroundColorLens, helpers},
 };
 
 use crate::plugins::player::{PlayerVelocity, MAX_RUN_SPEED, MAX_FALL_SPEED};
@@ -173,7 +173,7 @@ pub fn set_visibility<C: Component>(
 ) {
     if ui_visibility.is_changed() {
         for visibility in &mut query {
-            util::set_visibility(visibility, ui_visibility.0);
+            helpers::set_visibility(visibility, ui_visibility.0);
         }
     }
 }
@@ -223,5 +223,5 @@ pub fn update_tile_grid_visibility(
     show_tile_grid: Res<ShowTileGrid>
 ) {
     let visibility = tile_grid.single_mut();
-    util::set_visibility(visibility, show_tile_grid.0);
+    helpers::set_visibility(visibility, show_tile_grid.0);
 }

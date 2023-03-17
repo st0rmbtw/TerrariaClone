@@ -1,7 +1,7 @@
 use bevy_ecs_tilemap::helpers::square_grid::neighbors::Neighbors;
 use rand::{thread_rng, Rng};
 
-use crate::util::{get_wall_start_index, TextureAtlasPos};
+use crate::common::{helpers::get_wall_start_index, TextureAtlasPos};
 
 use super::generator::WallId;
 

@@ -2,7 +2,7 @@ use bevy::prelude::Component;
 use bevy_ecs_tilemap::helpers::square_grid::neighbors::Neighbors;
 use rand::{thread_rng, Rng};
 
-use crate::{util::{get_tile_start_index, TextureAtlasPos}, items::Tool};
+use crate::{common::{helpers::get_tile_start_index, TextureAtlasPos}, items::Tool};
 
 use super::{generator::BlockId, tree::Tree, TerrariaFrame};
 

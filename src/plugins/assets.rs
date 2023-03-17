@@ -11,10 +11,38 @@ use rand::RngCore;
 use rand::seq::SliceRandom;
 
 use crate::items::{Item, Pickaxe, Tool, Axe};
-use crate::state::MenuState;
-use crate::{state::GameState, util::handles};
+use crate::common::state::{GameState, MenuState};
 
 use super::world::{Wall, BlockType};
+
+macro_rules! handles {
+    (
+     $field_type:ty,
+     // meta data about struct
+     $(#[$meta:meta])*
+     $vis:vis struct $struct_name:ident {
+        $(
+        // meta data about field
+        $(#[$field_meta:meta])*
+        $field_vis:vis $field_name:ident : $field_t:ty
+        ),*$(,)+
+    }
+    ) => {
+        $(#[$meta])*
+        pub struct $struct_name {
+            $(
+            $(#[$field_meta])*
+            pub $field_name : $field_type,
+            )*
+        }
+
+        impl $struct_name {
+            pub fn handles(&self) -> Vec<$field_type> {
+                vec![$(self.$field_name.clone()),*]
+            }
+        }
+    }
+}
 
 pub struct AssetsPlugin;
 

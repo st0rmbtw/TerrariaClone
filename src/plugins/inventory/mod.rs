@@ -7,7 +7,7 @@ pub use components::*;
 pub use resources::*;
 pub use systems::*;
 
-use crate::{state::GameState, items::Items};
+use crate::{common::state::GameState, items::Items};
 
 use super::ui::UiVisibility;
 

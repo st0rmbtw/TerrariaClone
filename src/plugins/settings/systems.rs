@@ -4,7 +4,7 @@ use autodefault::autodefault;
 use bevy::{prelude::{Query, Visibility, With, EventReader, Name, Color, TextBundle, Entity, Commands, NodeBundle, BuildChildren, Changed, Res, Audio}, ui::{Interaction, Style, UiRect, Val, AlignItems, JustifyContent, Size}, text::{TextAlignment, TextStyle, Text}};
 use interpolation::EaseFunction;
 
-use crate::{plugins::{ui::ToggleExtraUiEvent, assets::{FontAssets, SoundAssets}}, animation::{Animator, Tween, TweeningDirection, RepeatStrategy, Tweenable}, lens::TextFontSizeLens, language::LanguageContent, util};
+use crate::{plugins::{ui::ToggleExtraUiEvent, assets::{FontAssets, SoundAssets}}, animation::{Animator, Tween, TweeningDirection, RepeatStrategy, Tweenable}, language::LanguageContent, common::{lens::TextFontSizeLens, helpers}};
 
 use super::{SettingsButtonContainer, SettingsButtonText};
 
@@ -68,7 +68,7 @@ pub fn set_btn_visibility(
 ) {
     for event in events.iter() {
         for visibility in &mut query {
-            util::set_visibility(visibility, event.0);
+            helpers::set_visibility(visibility, event.0);
         }
     }
 }

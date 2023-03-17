@@ -1,7 +1,7 @@
 use autodefault::autodefault;
 use bevy::{prelude::{Res, Input, KeyCode, ResMut, Visibility, With, Query, Name, TextBundle, Color, Commands, Entity, DetectChanges}, time::Time, text::{Text, TextSection, TextAlignment, TextStyle}, ui::{Style, UiRect, Val}};
 
-use crate::{plugins::assets::FontAssets, util};
+use crate::{plugins::assets::FontAssets, common::helpers};
 
 use super::{FpsTextVisibility, FpsText};
 
@@ -50,7 +50,7 @@ pub fn set_fps_text_visibility(
 ) {
     if fps_text_visibility.is_changed() {
         let visibility = query_fps_text.single_mut();
-        util::set_visibility(visibility, fps_text_visibility.0);
+        helpers::set_visibility(visibility, fps_text_visibility.0);
     }
 }
 

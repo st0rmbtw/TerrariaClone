@@ -1,6 +1,6 @@
 use bevy::{prelude::{Component, Entity, Bundle, Resource, Name, SpatialBundle, Transform}, utils::default};
 
-use crate::state::MovementState;
+use crate::common::state::MovementState;
 
 use super::{InputAxis, WALKING_ANIMATION_MAX_INDEX};
 

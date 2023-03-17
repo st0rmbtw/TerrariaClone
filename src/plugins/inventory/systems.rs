@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use autodefault::autodefault;
 use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color, MouseButton, EventWriter, Audio, Local, DetectChanges}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, Size, PositionType, AlignContent, Interaction, BackgroundColor, ZIndex}, text::{Text, TextStyle, TextAlignment}};
 
-use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets, SoundAssets}, cursor::{HoveredInfo, CursorPosition}, world::{DigBlockEvent, PlaceBlockEvent}}, util::{EntityCommandsExtensions, get_tile_coords, self}, language::LanguageContent, items::Item};
+use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets, SoundAssets}, cursor::{HoveredInfo, CursorPosition}, world::{DigBlockEvent, PlaceBlockEvent}}, common::{extensions::EntityCommandsExtensions, helpers}, language::LanguageContent, items::Item};
 
 use super::{Inventory, HOTBAR_LENGTH, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, KEYCODE_TO_DIGIT, CELL_COUNT_IN_ROW, INVENTORY_ROWS_COUNT, HotbarUi};
 
@@ -217,7 +217,7 @@ pub fn update_inventory_visibility(
 ) {
     for event in events.iter() {
         for visibility in &mut query {
-            util::set_visibility(visibility, event.0);
+            helpers::set_visibility(visibility, event.0);
         }
     }
 }
@@ -427,7 +427,7 @@ pub fn use_item(
         let selected_item_index = inventory.selected_slot;
 
         if let Some(item_stack) = inventory.selected_item() {
-            let tile_pos = get_tile_coords(cursor.world_position);
+            let tile_pos = helpers::get_tile_coords(cursor.world_position);
 
             match item_stack.item {
                 Item::Tool(tool) => {

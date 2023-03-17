@@ -1,4 +1,4 @@
-use crate::util::TextureAtlasPos;
+use crate::common::TextureAtlasPos;
 
 use super::TerrariaFrame;
 

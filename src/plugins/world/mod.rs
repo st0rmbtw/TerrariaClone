@@ -21,7 +21,7 @@ pub use wall::*;
 pub use tree::*;
 pub use light::*;
 
-use crate::state::GameState;
+use crate::common::state::GameState;
 use bevy::prelude::{Plugin, App, IntoSystemAppConfig, OnEnter, IntoSystemConfigs, OnUpdate};
 use bevy_ecs_tilemap::prelude::{TilemapSize, TilemapTileSize};
 

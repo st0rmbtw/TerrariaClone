@@ -1,7 +1,7 @@
 use autodefault::autodefault;
 use bevy::{prelude::{Commands, Res, NodeBundle, Name, BuildChildren, EventWriter, ResMut, Visibility, With, Audio, DetectChanges, Query}, ui::{Style, Size, FlexDirection, Val, JustifyContent, AlignItems, UiRect}};
 
-use crate::{plugins::{assets::{FontAssets, UiAssets, SoundAssets}, fps::spawn_fps_text, inventory::spawn_inventory_ui, settings::spawn_ingame_settings_button}, language::LanguageContent, util};
+use crate::{plugins::{assets::{FontAssets, UiAssets, SoundAssets}, fps::spawn_fps_text, inventory::spawn_inventory_ui, settings::spawn_ingame_settings_button}, language::LanguageContent, common::helpers};
 
 use super::{MainUiContainer, ToggleExtraUiEvent, ExtraUiVisibility, UiVisibility};
 
@@ -117,7 +117,7 @@ pub fn set_main_container_visibility(
 ) {
     if ui_visibility.is_changed() {
         for visibility in &mut query {
-            util::set_visibility(visibility, ui_visibility.0);
+            helpers::set_visibility(visibility, ui_visibility.0);
         }
     }
 }

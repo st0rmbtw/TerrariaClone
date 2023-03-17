@@ -6,7 +6,7 @@ pub use components::*;
 pub use resources::*;
 pub use systems::*;
 
-use crate::state::GameState;
+use crate::common::state::GameState;
 
 mod components;
 mod resources;

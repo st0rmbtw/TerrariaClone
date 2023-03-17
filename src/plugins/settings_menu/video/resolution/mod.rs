@@ -4,7 +4,7 @@ pub use buttons::*;
 use autodefault::autodefault;
 use bevy::{prelude::{Component, Commands, Res, ResMut, Query, With, Local, NextState, Entity}, text::{TextStyle, Text}, window::{Window, WindowResolution}};
 
-use crate::{plugins::{assets::FontAssets, settings_menu::{MENU_BUTTON_FONT_SIZE, BackButton, ApplyButton}, menu::{menu_button, control_buttons_layout, control_button, menu, MenuContainer}, settings::{FullScreen, Resolution, RESOLUTIONS}}, language::LanguageContent, TEXT_COLOR, state::{SettingsMenuState, GameState, MenuState}};
+use crate::{plugins::{assets::FontAssets, settings_menu::{MENU_BUTTON_FONT_SIZE, BackButton, ApplyButton}, menu::{menu_button, control_buttons_layout, control_button, menu, MenuContainer}, settings::{FullScreen, Resolution, RESOLUTIONS}}, language::LanguageContent, TEXT_COLOR, common::state::{SettingsMenuState, GameState, MenuState}};
 
 #[derive(Component)]
 pub struct ResolutionMenu;

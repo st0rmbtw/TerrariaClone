@@ -5,7 +5,7 @@ pub use buttons::*;
 use autodefault::autodefault;
 use bevy::{prelude::{Commands, Res, With, Query, ResMut, Component, NextState, Entity}, text::{TextStyle, Text}};
 
-use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button, menu, MenuContainer}, settings::ShowTileGrid}, language::LanguageContent, TEXT_COLOR, state::{SettingsMenuState, GameState, MenuState}};
+use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button, menu, MenuContainer}, settings::ShowTileGrid}, language::LanguageContent, TEXT_COLOR, common::state::{SettingsMenuState, GameState, MenuState}};
 
 use super::{MENU_BUTTON_FONT_SIZE, BackButton};
 
