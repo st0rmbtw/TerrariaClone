@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, Local, Input, MouseButton, Color, Vec4, IntoSystemConfig, DetectChanges, IntoSystemConfigs, IntoSystemAppConfig, OnExit}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas}, window::{Window, PrimaryWindow}};
+use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, Local, Input, MouseButton, Color, Vec4, IntoSystemConfig, DetectChanges, IntoSystemConfigs, IntoSystemAppConfig, OnExit, Name}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas}, window::{Window, PrimaryWindow}};
 use interpolation::Lerp;
 
 use crate::{plugins::{assets::{CelestialBodyAssets}, camera::MainCamera, cursor::CursorPosition, background::Star}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystemSet, AnimatorState}, state::GameState, util::map_range_f32, rect::FRect, parallax::LayerTextureComponent};
@@ -82,7 +82,8 @@ fn setup(
             transform: Transform::IDENTITY,
         },
         Animator::new(celestial_body_animation),
-        CelestialBody::default()
+        CelestialBody::default(),
+        Name::new("Celestial Body")
     ));
 }
 
@@ -182,8 +183,8 @@ fn drag_celestial_body(
         let tween = animator.tweenable_mut();
         tween.set_progress(cursor_position.position.x / window.width());
 
-        animator.state = AnimatorState::Paused;
         *dragging = true;
+        animator.state = AnimatorState::Paused;
     } else {
         *dragging = false;
         animator.state = AnimatorState::Playing;

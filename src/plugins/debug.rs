@@ -1,13 +1,16 @@
 use bevy::prelude::{App, Plugin,IntoSystemConfig, OnUpdate, ResMut};
-use bevy_inspector_egui::{bevy_egui::{EguiPlugin, egui, EguiContexts}, egui::Align2, quick::WorldInspectorPlugin};
+use bevy_inspector_egui::{bevy_egui::{EguiPlugin, egui, EguiContexts}, egui::Align2, quick::{WorldInspectorPlugin}};
 
 use crate::{state::GameState, DebugConfiguration};
 use bevy_prototype_debug_lines::DebugLinesPlugin;
+
+use super::cursor::CursorPosition;
 
 pub struct DebugPlugin;
 
 impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
+        app.register_type::<CursorPosition>();
         app.add_plugin(EguiPlugin);
         app.add_plugin(DebugLinesPlugin::default());
         app.add_plugin(WorldInspectorPlugin::new());

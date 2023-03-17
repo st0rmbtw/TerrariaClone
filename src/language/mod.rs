@@ -6,13 +6,13 @@ use serde::Deserialize;
 use crate::{items::{Pickaxe, Tool, Item, Axe}, plugins::world::BlockType};
 
 pub enum Language {
-    US
+    English
 }
 
 impl Language {
     pub fn file_name(&self) -> String {
         let name = match self {
-            Language::US => "en_US",
+            Language::English => "en_US",
         };
 
         name.to_string() + ".json"

@@ -19,7 +19,7 @@ use game::{
 use rand::seq::SliceRandom;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let language_content = load_language(Language::US)?;
+    let language_content = load_language(Language::English)?;
 
     let title = language_content.titles.choose(&mut rand::thread_rng()).unwrap();
 

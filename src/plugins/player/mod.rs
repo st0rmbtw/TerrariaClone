@@ -394,12 +394,14 @@ pub fn spawn_player(
             capacity: 30,
             spawner,
         }
-        .init(PositionCone3dModifier {
+        .init(InitPositionCone3dModifier {
             base_radius: 0.5,
             top_radius: 0.,
             height: 1.,
             dimension: ShapeDimension::Volume,
-            speed: 10.0.into(),
+        })
+        .init(InitVelocitySphereModifier {
+            speed: 10.0.into()
         })
         .update(AccelModifier::constant(Vec3::new(0., 0., 0.)))
         // Render the particles with a color gradient over their

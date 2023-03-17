@@ -13,7 +13,7 @@ pub struct ParallaxPlugin {
 }
 
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
-enum ParallaxSet {
+pub enum ParallaxSet {
     FollowCamera
 }
 

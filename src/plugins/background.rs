@@ -1,5 +1,5 @@
 use crate::{
-    parallax::{LayerData, ParallaxResource, LayerSpeed, follow_camera_system},
+    parallax::{LayerData, ParallaxResource, LayerSpeed, follow_camera_system, ParallaxSet},
     state::GameState, util::in_menu_state,
 };
 use bevy::{
@@ -29,7 +29,11 @@ impl Plugin for BackgroundPlugin {
 
         app.add_system(despawn_background.in_schedule(OnExit(GameState::InGame)));
 
-        app.add_system(move_stars.run_if(in_menu_state));
+        app.add_system(
+            move_stars
+                .run_if(in_menu_state)
+                .before(ParallaxSet::FollowCamera)
+        );
         app.add_system(follow_camera_system.in_set(OnUpdate(GameState::InGame)));
     }
 }
@@ -86,23 +90,19 @@ fn move_stars(
     let (camera, camera_transform) = query_camera.single();
 
     for (mut star_transform, star) in &mut query_stars {
-        if let Some(world_position) = camera.viewport_to_world_2d(camera_transform, star.screen_position) {
-            star_transform.translation.x = world_position.x;
-            star_transform.translation.y = world_position.y;
-        }
+        let world_position = camera.viewport_to_world_2d(camera_transform, star.screen_position).unwrap();
+        star_transform.translation.x = world_position.x;
+        star_transform.translation.y = world_position.y;
     }
 }
 
 // region: Main menu background
 
 fn setup_main_menu_background(
-    query_windows: Query<&Window, With<PrimaryWindow>>,
     mut commands: Commands,
     backgrounds: Res<BackgroundAssets>,
 ) {
-    let window = query_windows.single();
-
-    let height = 150.;
+    let pos = 150.;
 
     commands.insert_resource(ParallaxResource {
         layer_data: vec![
@@ -119,7 +119,7 @@ fn setup_main_menu_background(
                 image: backgrounds.background_7.clone_weak(),
                 z: 0.1,
                 transition_factor: 1.,
-                position: Vec2::NEG_Y * height,
+                position: Vec2::NEG_Y * pos,
                 scale: 1.5,
                 ..default()
             },
@@ -128,7 +128,7 @@ fn setup_main_menu_background(
                 image: backgrounds.background_90.clone_weak(),
                 z: 1.0,
                 transition_factor: 1.,
-                position: Vec2::NEG_Y * height - 200.,
+                position: Vec2::NEG_Y * pos - 200.,
                 scale: 1.5,
                 ..default()
             },
@@ -137,7 +137,7 @@ fn setup_main_menu_background(
                 image: backgrounds.background_91.clone_weak(),
                 z: 2.0,
                 transition_factor: 1.,
-                position: Vec2::NEG_Y * height - 300.,
+                position: Vec2::NEG_Y * pos - 300.,
                 scale: 1.5,
                 ..default()
             },
@@ -146,7 +146,7 @@ fn setup_main_menu_background(
                 image: backgrounds.background_92.clone_weak(),
                 z: 3.0,
                 transition_factor: 1.,
-                position: Vec2::NEG_Y * height - 400.,
+                position: Vec2::NEG_Y * pos - 400.,
                 scale: 1.5,
                 ..default()
             },
@@ -156,7 +156,7 @@ fn setup_main_menu_background(
                 z: 4.0,
                 transition_factor: 1.,
                 scale: 1.2,
-                position: Vec2::NEG_Y * height + 200.,
+                position: Vec2::NEG_Y * pos + 200.,
                 ..default()
             },
         ],

@@ -45,7 +45,7 @@ impl FRect {
 
     
     pub fn inside(&self, point: (f32, f32)) -> bool {
-        point.0 < self.bottom && point.0 > self.top && point.1 > self.left && point.1 < self.right
+        point.0 > self.left && point.0 < self.right && point.1 > self.bottom && point.1 < self.top
     }
 }
 
