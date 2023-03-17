@@ -1,4 +1,4 @@
-use bevy::{prelude::{Component, Entity, Bundle, Resource, Name, SpatialBundle, Transform}, utils::default};
+use bevy::{prelude::{Component, Entity, Bundle, Resource, Name, SpatialBundle}, utils::default};
 
 use crate::common::state::MovementState;
 
@@ -42,23 +42,23 @@ impl FaceDirection {
 }
 
 #[derive(Resource, Component, PartialEq, Clone, Copy)]
-pub struct UseItemAnimation(pub bool);
+pub(super) struct UseItemAnimation(pub bool);
 
 #[derive(Component)]
-pub struct ChangeFlip;
+pub(super) struct ChangeFlip;
 
 #[derive(Component)]
-pub struct PlayerBodySprite;
+pub(super) struct PlayerBodySprite;
 
 #[derive(Component)]
-pub struct UsedItem;
+pub(super) struct UsedItem;
 
-pub trait AnimationData {
+pub(super) trait AnimationData {
     fn index(&self) -> usize;
 }
 
 #[derive(Component, Clone, Copy)]
-pub struct WalkingAnimationData {
+pub(super) struct WalkingAnimationData {
     pub offset: usize,
     pub count: usize,
 }
@@ -79,13 +79,13 @@ pub struct PlayerParticleEffects {
 
 
 #[derive(Component, Clone, Copy, Default)]
-pub struct IdleAnimationData(pub usize);
+pub(super) struct IdleAnimationData(pub usize);
 
 #[derive(Component, Clone, Copy, Default)]
-pub struct FlyingAnimationData(pub usize);
+pub(super) struct FlyingAnimationData(pub usize);
 
 #[derive(Component, Clone, Copy, Default)]
-pub struct UseItemAnimationData(pub usize);
+pub(super) struct UseItemAnimationData(pub usize);
 
 impl AnimationData for IdleAnimationData {
     fn index(&self) -> usize { self.0 }
@@ -96,31 +96,30 @@ impl AnimationData for FlyingAnimationData {
 }
 
 #[derive(Bundle, Default)]
-pub struct MovementAnimationBundle {
+pub(super) struct MovementAnimationBundle {
     pub walking: WalkingAnimationData,
     pub idle: IdleAnimationData,
     pub flying: FlyingAnimationData
 }
 
-#[derive(Bundle, Default)]
-pub struct PlayerBundle {
-    player: Player,
-    name: Name,
-    movement_state: MovementState,
-    face_direction: FaceDirection,
+#[derive(Bundle)]
+pub(super) struct PlayerBundle {
+    pub(super) player: Player,
+    pub(super) name: Name,
+    pub(super) movement_state: MovementState,
+    pub(super) face_direction: FaceDirection,
     #[bundle]
-    spatial: SpatialBundle
+    pub(super) spatial: SpatialBundle
 }
 
-impl PlayerBundle {
-    pub fn new(transform: Transform) -> Self {
-        Self {
+impl Default for PlayerBundle {
+    fn default() -> Self {
+        Self { 
             name: Name::new("Player"),
-            spatial: SpatialBundle {
-                transform,
-                ..default()
-            },
-            ..default()
+            player: default(),
+            movement_state: default(),
+            face_direction: default(),
+            spatial: default()
         }
     }
 }

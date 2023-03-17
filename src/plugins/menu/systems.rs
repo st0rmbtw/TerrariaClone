@@ -22,7 +22,7 @@ pub fn text_tween(initial_font_size: f32) -> Tween<Text> {
         Duration::from_millis(200),
         TextFontSizeLens {
             start: initial_font_size,
-            end: initial_font_size * 1.1,
+            end: initial_font_size * 1.2,
         },
     )
 }
@@ -201,7 +201,7 @@ pub fn setup_main_menu(
 ) {
     let text_style = TextStyle {
         font: fonts.andy_bold.clone_weak(),
-        font_size: 54.,
+        font_size: 56.,
         color: TEXT_COLOR,
     };
 

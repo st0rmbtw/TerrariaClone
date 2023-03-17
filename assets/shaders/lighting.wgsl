@@ -11,7 +11,7 @@
 
 @compute @workgroup_size(10, 10, 1)
 fn main(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
-    let tile_xy      = vec2<i32>(invocation_id.xy);
+    let tile_xy = vec2<i32>(invocation_id.xy);
 
     // Screen-space position of the probe.
     let probe_tile_origin_screen = tile_xy * cfg.probe_size;
@@ -36,11 +36,11 @@ fn main(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
         probe_irradiance += light.color * att * light.intensity;
     }
 
-    let reservoir_size = i32(cfg.reservoir_size);
-    let frame_index = cfg.frame_counter % reservoir_size;
-    let halton_jitter = hammersley2d(frame_index, reservoir_size);
-    let out_halton_jitter = pack2x16float(halton_jitter);
-    var out_color = vec4<f32>(probe_irradiance, bitcast<f32>(out_halton_jitter));
+    // let reservoir_size = i32(cfg.reservoir_size);
+    // let frame_index = cfg.frame_counter % reservoir_size;
+    // let halton_jitter = hammersley2d(frame_index, reservoir_size);
+    // let out_halton_jitter = pack2x16float(halton_jitter);
+    // var out_color = vec4<f32>(probe_irradiance, bitcast<f32>(out_halton_jitter));
 
-    textureStore(ss_probe_out, tile_xy, out_color);
+    textureStore(ss_probe_out, tile_xy, vec4(probe_irradiance, 1.));
 }

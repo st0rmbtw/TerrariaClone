@@ -357,11 +357,57 @@ pub fn handle_break_block_event(
     for BreakBlockEvent { tile_pos } in break_block_events.iter() {
         let map_tile_pos = TilePos { x: tile_pos.x as u32, y: tile_pos.y as u32 };
 
-        if world_data.block_exists(map_tile_pos) {
-            world_data.remove_block(map_tile_pos);
+        let block = world_data.get_block(map_tile_pos);
+        if block.is_some() {
+            let block = block.unwrap();
 
-            let chunk_pos = get_chunk_pos(map_tile_pos);
-            let chunk_tile_pos = get_chunk_tile_pos(map_tile_pos);
+            if matches!(block.block_type, BlockType::Tree(_)) {
+                break_tree(&mut commands, &mut chunks, map_tile_pos, &mut world_data);
+            } else {
+                world_data.remove_block(map_tile_pos);
+
+                let chunk_pos = get_chunk_pos(map_tile_pos);
+                let chunk_tile_pos = get_chunk_tile_pos(map_tile_pos);
+
+                let filtered_chunks = chunks
+                    .iter_mut()
+                    .find(|(chunk, tile_storage)| {
+                        chunk.pos == chunk_pos && tile_storage.get(&chunk_tile_pos).is_some()
+                    });
+
+                if let Some((_, mut tile_storage)) = filtered_chunks {
+                    let tile_entity = tile_storage.get(&chunk_tile_pos).unwrap();
+                    commands.entity(tile_entity).despawn_recursive();
+                    tile_storage.remove(&chunk_tile_pos);
+                }
+
+                update_neighbors_ew.send(UpdateNeighborsEvent { 
+                    tile_pos: map_tile_pos,
+                    chunk_tile_pos,
+                    chunk_pos
+                });
+
+                update_light_events.send(UpdateLightEvent {
+                    tile_pos: map_tile_pos,
+                    color: 0xFF
+                });
+            }
+        }
+    }
+}
+
+fn break_tree(
+    commands: &mut Commands, 
+    chunks: &mut Query<(&Chunk, &mut TileStorage)>, 
+    pos: TilePos, 
+    world_data: &mut ResMut<WorldData>
+) {
+    if let Some(block) = world_data.get_block(pos) {
+        if matches!(block.block_type, BlockType::Tree(_)) {
+            world_data.remove_block(pos);
+
+            let chunk_pos = get_chunk_pos(pos);
+            let chunk_tile_pos = get_chunk_tile_pos(pos);
 
             let filtered_chunks = chunks
                 .iter_mut()
@@ -375,16 +421,9 @@ pub fn handle_break_block_event(
                 tile_storage.remove(&chunk_tile_pos);
             }
 
-            update_neighbors_ew.send(UpdateNeighborsEvent { 
-                tile_pos: map_tile_pos,
-                chunk_tile_pos,
-                chunk_pos
-            });
-
-            update_light_events.send(UpdateLightEvent {
-                tile_pos: map_tile_pos,
-                color: 0xFF
-            });
+            break_tree(commands, chunks, TilePos::new(pos.x + 1, pos.y), world_data);
+            break_tree(commands, chunks, TilePos::new(pos.x - 1, pos.y), world_data);
+            break_tree(commands, chunks, TilePos::new(pos.x, pos.y - 1), world_data);
         }
     }
 }

@@ -17,7 +17,7 @@ use super::*;
 #[cfg(feature = "debug")]
 use bevy_prototype_debug_lines::DebugLines;
 
-pub fn horizontal_movement(
+pub(super) fn horizontal_movement(
     axis: Res<InputAxis>,
     mut velocity: ResMut<PlayerVelocity>
 ) {
@@ -38,7 +38,7 @@ pub fn horizontal_movement(
     } 
 }
 
-pub fn update_jump(
+pub(super) fn update_jump(
     input: Res<Input<KeyCode>>,
     collisions: Res<Collisions>,
     mut velocity: ResMut<PlayerVelocity>,
@@ -64,7 +64,7 @@ pub fn update_jump(
     }
 }
 
-pub fn gravity(
+pub(super) fn gravity(
     time: Res<Time>,
     collisions: Res<Collisions>,
     mut player_data: ResMut<PlayerData>,
@@ -78,7 +78,7 @@ pub fn gravity(
     }
 }
 
-pub fn detect_collisions(
+pub(super) fn detect_collisions(
     time: Res<Time>,
     world_data: Res<WorldData>,
     mut collisions: ResMut<Collisions>,
@@ -172,7 +172,7 @@ pub fn detect_collisions(
 }
 
 #[allow(non_upper_case_globals)]
-pub fn move_player(
+pub(super) fn move_player(
     world_data: Res<WorldData>,
     velocity: Res<PlayerVelocity>,
     mut player_query: Query<&mut Transform, With<Player>>,
@@ -194,7 +194,7 @@ pub fn move_player(
     player_data.prev_position = new_position;
 }
 
-pub fn interpolate_player_transform(
+pub(super) fn interpolate_player_transform(
     time: Res<Time>,
     player_data: Res<PlayerData>,
     fixed_time: Res<FixedTime>,
@@ -213,7 +213,7 @@ pub fn interpolate_player_transform(
     transform.translation.y = interpolated.y;
 }
 
-pub fn spawn_particles(
+pub(super) fn spawn_particles(
     player: Query<(&MovementState, &FaceDirection, &PlayerParticleEffects), With<Player>>,
     mut effects: Query<(&mut ParticleEffect, &mut Transform)>,
 ) {
@@ -232,7 +232,7 @@ pub fn spawn_particles(
     }
 }
 
-pub fn update_movement_state(
+pub(super) fn update_movement_state(
     player_data: Res<PlayerData>,
     velocity: Res<PlayerVelocity>,
     mut query: Query<&mut MovementState, With<Player>>,
@@ -246,7 +246,7 @@ pub fn update_movement_state(
     };
 }
 
-pub fn update_face_direction(axis: Res<InputAxis>, mut query: Query<&mut FaceDirection>) {
+pub(super) fn update_face_direction(axis: Res<InputAxis>, mut query: Query<&mut FaceDirection>) {
     let mut direction = query.single_mut();
     let axis: &InputAxis = &axis;
 
@@ -257,7 +257,7 @@ pub fn update_face_direction(axis: Res<InputAxis>, mut query: Query<&mut FaceDir
     }
 }
 
-pub fn update_axis(input: Res<Input<KeyCode>>, mut axis: ResMut<InputAxis>) {
+pub(super) fn update_axis(input: Res<Input<KeyCode>>, mut axis: ResMut<InputAxis>) {
     let left = input.pressed(KeyCode::A);
     let right = input.pressed(KeyCode::D);
 
@@ -266,7 +266,7 @@ pub fn update_axis(input: Res<Input<KeyCode>>, mut axis: ResMut<InputAxis>) {
     axis.x = x as f32;
 }
 
-pub fn update_movement_animation_timer_duration(
+pub(super) fn update_movement_animation_timer_duration(
     velocity: Res<PlayerVelocity>,
     mut timer: ResMut<AnimationTimer>,
 ) {
@@ -277,7 +277,7 @@ pub fn update_movement_animation_timer_duration(
     }
 }
 
-pub fn update_movement_animation_index(
+pub(super) fn update_movement_animation_index(
     time: Res<Time>,
     mut timer: ResMut<AnimationTimer>,
     mut index: ResMut<MovementAnimationIndex>,
@@ -287,7 +287,7 @@ pub fn update_movement_animation_index(
     }
 }
 
-pub fn flip_player(
+pub(super) fn flip_player(
     player_query: Query<&FaceDirection, (With<Player>, Changed<FaceDirection>)>,
     mut sprite_query: Query<&mut TextureAtlasSprite, With<ChangeFlip>>,
 ) {
@@ -300,7 +300,7 @@ pub fn flip_player(
     }
 }
 
-pub fn walking_animation(
+pub(super) fn walking_animation(
     index: Res<MovementAnimationIndex>,
     mut query: Query<
         (&mut TextureAtlasSprite, &WalkingAnimationData),
@@ -319,7 +319,7 @@ pub fn walking_animation(
     });
 }
 
-pub fn player_using_item(
+pub(super) fn player_using_item(
     input: Res<Input<MouseButton>>,
     selected_item: Res<SelectedItem>,
     mut anim: ResMut<UseItemAnimation>,
@@ -331,7 +331,7 @@ pub fn player_using_item(
     }
 }
 
-pub fn set_using_item_visibility(
+pub(super) fn set_using_item_visibility(
     anim: Res<UseItemAnimation>,
     mut using_item_query: Query<&mut Visibility, With<UsedItem>>,
 ) {
@@ -340,7 +340,7 @@ pub fn set_using_item_visibility(
     }
 }
 
-pub fn set_using_item_image(
+pub(super) fn set_using_item_image(
     item_assets: Res<ItemAssets>,
     selected_item: Res<SelectedItem>,
     mut using_item_query: Query<&mut Handle<Image>, With<UsedItem>>,
@@ -352,7 +352,7 @@ pub fn set_using_item_image(
     }
 }
 
-pub fn set_using_item_position(
+pub(super) fn set_using_item_position(
     index: Res<UseItemAnimationIndex>,
     selected_item: Res<SelectedItem>,
     mut using_item_query: Query<&mut Transform, With<UsedItem>>,
@@ -369,12 +369,12 @@ pub fn set_using_item_position(
     }
 }
 
-pub fn set_using_item_rotation_on_player_direction_change(
-    player_query: Query<&FaceDirection, (With<Player>, Changed<FaceDirection>)>,
-    mut using_item_query: Query<&mut Transform, With<UsedItem>>,
+pub(super) fn set_using_item_rotation_on_player_direction_change(
+    query_player: Query<&FaceDirection, (With<Player>, Changed<FaceDirection>)>,
+    mut query_using_item: Query<&mut Transform, With<UsedItem>>,
 ) {
-    let player_query_result = player_query.get_single();
-    let using_item_query_result = using_item_query.get_single_mut();
+    let player_query_result = query_player.get_single();
+    let using_item_query_result = query_using_item.get_single_mut();
 
     if let Ok(mut transform) = using_item_query_result {
         if let Ok(direction) = player_query_result {
@@ -383,7 +383,7 @@ pub fn set_using_item_rotation_on_player_direction_change(
     }
 }
 
-pub fn set_using_item_rotation(
+pub(super) fn set_using_item_rotation(
     time: Res<Time>,
     index: Res<UseItemAnimationIndex>,
     selected_item: Res<SelectedItem>,
@@ -410,7 +410,7 @@ pub fn set_using_item_rotation(
     }
 }
 
-pub fn update_use_item_animation_index(
+pub(super) fn update_use_item_animation_index(
     time: Res<Time>,
     mut index: ResMut<UseItemAnimationIndex>,
     mut timer: ResMut<UseItemAnimationTimer>,
@@ -435,7 +435,7 @@ pub fn update_use_item_animation_index(
     }
 }
 
-pub fn use_item_animation(
+pub(super) fn use_item_animation(
     index: Res<UseItemAnimationIndex>,
     mut query: Query<(&mut TextureAtlasSprite, &UseItemAnimationData), With<PlayerBodySprite>>,
 ) {
@@ -444,7 +444,7 @@ pub fn use_item_animation(
     });
 }
 
-pub fn current_speed(
+pub(super) fn current_speed(
     velocity: Res<PlayerVelocity>
 ) {
     // https://terraria.fandom.com/wiki/Stopwatch
@@ -467,7 +467,7 @@ pub fn current_speed(
 }
 
 #[cfg(feature = "debug")]
-pub fn draw_hitbox(
+pub(super) fn draw_hitbox(
     query_player: Query<&Transform, With<Player>>,
     mut debug_lines: ResMut<DebugLines>,
 ) {

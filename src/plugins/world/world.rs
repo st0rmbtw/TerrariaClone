@@ -17,6 +17,12 @@ pub struct Size {
     pub height: usize
 }
 
+impl Size {
+    pub fn as_tilemap_size(&self) -> TilemapSize {
+        TilemapSize { x: self.width as u32, y: self.height as u32 }
+    }
+}
+
 #[derive(Clone, Copy)]
 pub enum WorldSize {
     Tiny,
@@ -118,6 +124,11 @@ impl WorldData {
     #[inline]
     pub fn block_exists<Pos: AsTilePos>(&self, tile_pos: Pos) -> bool {
         self.get_block(tile_pos).is_some()
+    }
+
+    #[inline]
+    pub fn wall_exists<Pos: AsTilePos>(&self, tile_pos: Pos) -> bool {
+        self.get_wall(tile_pos).is_some()
     }
 
     #[inline]

@@ -18,7 +18,10 @@ impl Plugin for DebugPlugin {
     }
 }
 
-fn debug_gui(mut contexts: EguiContexts, mut debug_config: ResMut<DebugConfiguration>) {
+fn debug_gui(
+    mut contexts: EguiContexts, 
+    mut debug_config: ResMut<DebugConfiguration>,
+) {
     let egui_context = contexts.ctx_mut();
 
     egui::Window::new("Debug Menu")

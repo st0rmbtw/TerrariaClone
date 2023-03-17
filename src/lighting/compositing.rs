@@ -37,21 +37,21 @@ pub struct FitToWindowSize {
 pub struct PostProcessingMaterial {
     #[texture(0)]
     #[sampler(1)]
-    source_image: Handle<Image>,
+    pub source_image: Handle<Image>,
 
     #[texture(2)]
     #[sampler(3)]
-    shadow_map_image: Handle<Image>,
+    pub shadow_map_image: Handle<Image>,
 
     #[texture(4)]
     #[sampler(5)]
-    light_sources_image: Handle<Image>,
+    pub light_sources_image: Handle<Image>,
 
     #[uniform(6)]
-    player_position: Vec2,
+    pub player_position: Vec2,
 
     #[uniform(7)]
-    scale: f32,
+    pub scale: f32,
 }
 
 impl Material2d for PostProcessingMaterial {

@@ -1,27 +1,21 @@
 use bevy::{prelude::{Deref, DerefMut, Resource, Vec2}, time::Timer};
 
 #[derive(Resource, Default, Clone, Copy)]
-pub struct InputAxis {
+pub(super) struct InputAxis {
     pub x: f32,
 }
 
-impl InputAxis {
-    pub fn is_moving(&self) -> bool {
-        self.x != 0.
-    }
-}
+#[derive(Resource, Deref, DerefMut)]
+pub(super) struct AnimationTimer(pub Timer);
 
 #[derive(Resource, Deref, DerefMut)]
-pub struct AnimationTimer(pub Timer);
-
-#[derive(Resource, Deref, DerefMut)]
-pub struct UseItemAnimationTimer(pub Timer);
+pub(super) struct UseItemAnimationTimer(pub Timer);
 
 #[derive(Resource, Default, Clone, Copy)]
-pub struct MovementAnimationIndex(pub usize);
+pub(super) struct MovementAnimationIndex(pub usize);
 
 #[derive(Resource, Default, Clone, Copy)]
-pub struct UseItemAnimationIndex(pub usize);
+pub(super) struct UseItemAnimationIndex(pub usize);
 
 #[derive(Resource, Clone, Copy, Default, Deref, DerefMut)]
 pub struct PlayerVelocity(pub Vec2);

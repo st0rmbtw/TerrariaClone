@@ -5,8 +5,8 @@ mod utils;
 
 pub use components::*;
 pub use resources::*;
-pub use systems::*;
-pub use utils::*;
+use systems::*;
+use utils::*;
 
 use crate::{common::{state::GameState, helpers::tile_to_world_coords}, DebugConfiguration};
 use std::time::Duration;
@@ -160,7 +160,7 @@ impl Plugin for PlayerPlugin {
 }
 
 #[autodefault(except(GroundSensor, PlayerParticleEffects))]
-pub fn spawn_player(
+fn spawn_player(
     mut commands: Commands,
     player_assets: Res<PlayerAssets>,
     mut effects: ResMut<Assets<EffectAsset>>,
@@ -177,9 +177,10 @@ pub fn spawn_player(
     });
 
     let player = commands
-        .spawn(PlayerBundle::new(
-            Transform::from_xyz(player_spawn_point.x, player_spawn_point.y, 3.)
-        ))
+        .spawn(PlayerBundle {
+            spatial: SpatialBundle::from_transform(Transform::from_xyz(player_spawn_point.x, player_spawn_point.y, 3.)),
+            ..default()
+        })
         .with_children(|cmd| {
             // region: Hair
             cmd.spawn((

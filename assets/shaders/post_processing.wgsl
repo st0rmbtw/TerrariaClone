@@ -32,8 +32,8 @@ fn blur(texture: texture_2d<f32>, texture_sampler: sampler, resolution: vec2<f32
     
     // GAUSSIAN BLUR SETTINGS {{{
     let Directions = 16.; // BLUR DIRECTIONS (Default 16.0 - More is better but slower)
-    let Quality = 5.; // BLUR QUALITY (Default 4.0 - More is better but slower)
-    let Size = 2.; // BLUR SIZE (Radius)
+    let Quality = 3.; // BLUR QUALITY (Default 4.0 - More is better but slower)
+    let Size = 1.5; // BLUR SIZE (Radius)
     // GAUSSIAN BLUR SETTINGS }}}
    
     let Radius = Size/resolution;
@@ -98,6 +98,8 @@ fn fragment(
     }
 
     let in_irradiance = blur(in_irradiance_texture, in_irradiance_texture_sampler, view.viewport.zw, in_irradiance_uv).rgb;
+
+    // let in_irradiance = textureSample(in_irradiance_texture, in_irradiance_texture_sampler, in_irradiance_uv).rgb;
 
     var object_irradiance = in_irradiance;
     let k_size = 1;
