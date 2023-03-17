@@ -261,7 +261,7 @@ pub fn select_inventory_cell(
 ) {
     let digit = input
         .get_just_pressed()
-        .find_map(|k| keycode_to_digit(k));
+        .find_map(keycode_to_digit);
 
     if let Some(index) = digit {
         if inventory.select_item(index) {

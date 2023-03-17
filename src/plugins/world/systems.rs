@@ -358,9 +358,7 @@ pub fn handle_break_block_event(
         let map_tile_pos = TilePos { x: tile_pos.x as u32, y: tile_pos.y as u32 };
 
         let block = world_data.get_block(map_tile_pos);
-        if block.is_some() {
-            let block = block.unwrap();
-
+        if let Some(block) = block {
             if matches!(block.block_type, BlockType::Tree(_)) {
                 break_tree(&mut commands, &mut chunks, map_tile_pos, &mut world_data);
             } else {

@@ -28,13 +28,13 @@ pub fn generate_light_map(world: &WorldData) -> LightMap {
 
     for y in 0..light_map_height {
         for x in 0..light_map_width {
-            propagate_light(x, y, cluster_size, &mut light_map, &world);
+            propagate_light(x, y, cluster_size, &mut light_map, world);
         }
     }
 
     for y in (0..light_map_height).rev() {
         for x in (0..light_map_width).rev() {
-            propagate_light(x, y, cluster_size, &mut light_map, &world);
+            propagate_light(x, y, cluster_size, &mut light_map, world);
         }
     }
 
