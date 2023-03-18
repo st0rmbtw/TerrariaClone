@@ -1,13 +1,13 @@
 use bevy::prelude::Component;
 
 #[derive(Component)]
-pub struct SinglePlayerButton;
+pub(super) struct SinglePlayerButton;
 
 #[derive(Component)]
-pub struct SettingsButton;
+pub(super) struct SettingsButton;
 
 #[derive(Component)]
-pub struct ExitButton;
+pub(super) struct ExitButton;
 
 #[derive(Component)]
 pub struct Menu;

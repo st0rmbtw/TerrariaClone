@@ -27,7 +27,7 @@ pub fn text_tween(initial_font_size: f32) -> Tween<Text> {
     )
 }
 
-pub fn setup_camera(mut commands: Commands) {
+pub(super) fn setup_camera(mut commands: Commands) {
     commands
         .spawn(Camera2dBundle::default())
         .insert(ParallaxCameraComponent)
@@ -136,7 +136,7 @@ pub fn menu(marker: impl Component, commands: &mut Commands, container: Entity, 
         .add_child(menu);
 }
 
-pub fn spawn_menu_container(
+pub(super) fn spawn_menu_container(
     mut commands: Commands,
     ui_assets: Res<UiAssets>
 ) {
@@ -193,7 +193,7 @@ pub fn spawn_menu_container(
         });
 }
 
-pub fn setup_main_menu(
+pub(super) fn setup_main_menu(
     mut commands: Commands, 
     fonts: Res<FontAssets>,
     language_content: Res<LanguageContent>,
@@ -263,15 +263,15 @@ pub fn update_buttons(
     }
 }
 
-pub fn single_player_clicked(mut next_state: ResMut<NextState<GameState>>) {
+pub(super) fn single_player_clicked(mut next_state: ResMut<NextState<GameState>>) {
     next_state.set(GameState::WorldLoading);
 }
 
-pub fn settings_clicked(mut next_state: ResMut<NextState<GameState>>) {
+pub(super) fn settings_clicked(mut next_state: ResMut<NextState<GameState>>) {
     next_state.set(GameState::Menu(MenuState::Settings(SettingsMenuState::Main)));
 }
 
-pub fn exit_clicked(
+pub(super) fn exit_clicked(
     mut ev: EventWriter<AppExit>,
     fullscreen: Res<FullScreen>,
     show_tile_grid: Res<ShowTileGrid>,

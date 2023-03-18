@@ -227,13 +227,14 @@ pub fn update_selected_cell_size(
     mut hotbar_cells: Query<(&InventoryCellIndex, &mut Style), With<HotbarCellMarker>>,
     visibility: Res<ExtraUiVisibility>,
 ) {
-    for (cell_index, mut style) in hotbar_cells.iter_mut() {
-        let selected = cell_index.0 == inventory.selected_slot;
-
-        style.size = match selected {
-            true if !visibility.0 => INVENTORY_CELL_SIZE_SELECTED,
-            _ => INVENTORY_CELL_SIZE,
-        };
+    if inventory.is_changed() {
+        for (cell_index, mut style) in hotbar_cells.iter_mut() {
+            let selected = cell_index.0 == inventory.selected_slot;
+            style.size = match selected {
+                true if !visibility.0 => INVENTORY_CELL_SIZE_SELECTED,
+                _ => INVENTORY_CELL_SIZE,
+            };
+        }
     }
 }
 
@@ -245,7 +246,6 @@ pub fn update_selected_cell_image(
     if inventory.is_changed() {
         for (cell_index, mut image) in hotbar_cells.iter_mut() {
             let selected = cell_index.0 == inventory.selected_slot;
-
             image.texture = if selected {
                 ui_assets.selected_inventory_background.clone_weak()
             } else {
@@ -348,12 +348,9 @@ pub fn update_cell(
 }
 
 pub fn update_cell_image(
-    mut item_images: Query<
-        (&mut UiImage, &InventoryCellItemImage),
-        Changed<InventoryCellItemImage>,
-    >,
+    mut query: Query<(&mut UiImage, &InventoryCellItemImage), Changed<InventoryCellItemImage>>,
 ) {
-    for (mut image, item_image) in &mut item_images {
+    for (mut image, item_image) in &mut query {
         image.texture = item_image.0.clone();
     }
 }

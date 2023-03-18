@@ -9,6 +9,6 @@ pub struct LightMap {
 }
 
 #[derive(Resource, Default)]
-pub struct ChunkManager {
+pub(super) struct ChunkManager {
     pub spawned_chunks: HashSet<ChunkPos>
 }

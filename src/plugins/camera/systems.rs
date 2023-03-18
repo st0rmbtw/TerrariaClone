@@ -13,7 +13,7 @@ use crate::{parallax::ParallaxCameraComponent, plugins::{world::{TILE_SIZE, Worl
 
 use crate::plugins::player::Player;
 
-use super::{MainCamera, CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, MouseLight};
+use super::{MainCamera, CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, MouseLight, CAMERA_MOVE_SPEED};
 
 #[autodefault(except(TextureDescriptor, ShadowMapMaterial, LightMapMaterial, SunMaterial, LightingMaterial))]
 pub fn setup_camera(
@@ -130,33 +130,36 @@ pub fn free_camera(
     input: Res<bevy::prelude::Input<KeyCode>>,
     world_data: Res<WorldData>
 ) {
-    const CAMERA_MOVE_SPEED: f32 = 1000.;
-
-    let mut move_direction = Vec2::new(0., 0.);
-
-    if input.pressed(KeyCode::A) {
-        move_direction.x = -1.;
-    }
-
-    if input.pressed(KeyCode::D) {
-        move_direction.x = 1.;
-    }
-
-    if input.pressed(KeyCode::W) {
-        move_direction.y = 1.;
-    }
-
-    if input.pressed(KeyCode::S) {
-        move_direction.y = -1.;
-    }
-
     if let Ok((mut camera_transform, projection)) = camera.get_single_mut() {
+        let camera_speed = if input.pressed(KeyCode::LShift) {
+            CAMERA_MOVE_SPEED * 2.
+        } else if input.pressed(KeyCode::LAlt) {
+            CAMERA_MOVE_SPEED / 2.
+        } else {
+            CAMERA_MOVE_SPEED
+        };
+
+        let mut move_direction = Vec2::new(0., 0.);
+
+        if input.pressed(KeyCode::A) {
+            move_direction.x = -1.;
+        }
+        if input.pressed(KeyCode::D) {
+            move_direction.x = 1.;
+        }
+        if input.pressed(KeyCode::W) {
+            move_direction.y = 1.;
+        }
+        if input.pressed(KeyCode::S) {
+            move_direction.y = -1.;
+        }
+
         let projection_left = projection.area.min.x;
         let projection_right = projection.area.max.x;
         let projection_top = projection.area.max.y;
 
         {
-            let velocity = move_direction.x * CAMERA_MOVE_SPEED * time.delta_seconds();
+            let velocity = move_direction.x * camera_speed * time.delta_seconds();
             let new_position = camera_transform.translation.x + velocity;
 
             let min = projection_left.abs() - TILE_SIZE / 2.;
@@ -165,7 +168,7 @@ pub fn free_camera(
             camera_transform.translation.x = new_position.clamp(min, max);
         }
         {
-            let velocity = move_direction.y * CAMERA_MOVE_SPEED * time.delta_seconds();
+            let velocity = move_direction.y * camera_speed * time.delta_seconds();
             let new_position = camera_transform.translation.y + velocity;
 
             let min = -((world_data.size.height as f32 * 16.) + projection_top + TILE_SIZE / 2.);

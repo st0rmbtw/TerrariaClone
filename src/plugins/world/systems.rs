@@ -20,11 +20,11 @@ use bevy_ecs_tilemap::{
 };
 use rand::thread_rng;
 
-use crate::{common::rect::{FRect, URect}, plugins::{inventory::Inventory, world::{CHUNK_SIZE, TILE_SIZE, LightMap, light::generate_light_map, WorldSize}, assets::{BlockAssets, WallAssets, SoundAssets}, camera::{MainCamera, UpdateLightEvent}}, common::state::GameState};
+use crate::{plugins::{inventory::Inventory, world::{CHUNK_SIZE, TILE_SIZE, LightMap, light::generate_light_map, WorldSize}, assets::{BlockAssets, WallAssets, SoundAssets}, camera::{MainCamera, UpdateLightEvent}}, common::state::GameState};
 
-use super::{get_chunk_pos, CHUNK_SIZE_U, UpdateNeighborsEvent, WALL_SIZE, CHUNKMAP_SIZE, ChunkContainer, get_camera_fov, ChunkManager, ChunkPos, get_chunk_tile_pos, world::WorldData, block::Block, Wall, Size, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent, BlockType, TREE_SIZE, TREE_BRANCHES_SIZE, TreeFrameType, TREE_TOPS_SIZE, ChunkType, Chunk};
+use super::{get_chunk_pos, CHUNK_SIZE_U, UpdateNeighborsEvent, WALL_SIZE, CHUNKMAP_SIZE, ChunkContainer, get_camera_fov, ChunkManager, ChunkPos, get_chunk_tile_pos, world::WorldData, block::Block, Wall, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent, BlockType, TREE_SIZE, TREE_BRANCHES_SIZE, TreeFrameType, TREE_TOPS_SIZE, ChunkType, Chunk, utils::get_chunk_position_by_camera_fov};
 
-pub fn spawn_terrain(mut commands: Commands) {
+pub(super) fn spawn_terrain(mut commands: Commands) {
     let _current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
 
     // let seed = current_time.as_millis() as u32;
@@ -44,7 +44,7 @@ pub fn spawn_terrain(mut commands: Commands) {
     commands.insert_resource(NextState(Some(GameState::InGame)));
 }
 
-pub fn spawn_block(
+pub(super) fn spawn_block(
     commands: &mut Commands,
     block: Block,
     tile_pos: TilePos,
@@ -62,7 +62,7 @@ pub fn spawn_block(
         .id()
 }
 
-pub fn spawn_wall(
+pub(super) fn spawn_wall(
     commands: &mut Commands,
     wall_pos: TilePos,
     wallmap_entity: Entity,
@@ -78,7 +78,7 @@ pub fn spawn_wall(
         .id()
 }
 
-pub fn spawn_chunks(
+pub(super) fn spawn_chunks(
     mut commands: Commands,
     block_assets: Res<BlockAssets>,
     wall_assets: Res<WallAssets>,
@@ -105,7 +105,7 @@ pub fn spawn_chunks(
     }
 }
 
-pub fn despawn_chunks(
+pub(super) fn despawn_chunks(
     mut commands: Commands,
     chunks: Query<(Entity, &ChunkContainer)>,
     mut chunk_manager: ResMut<ChunkManager>,
@@ -130,7 +130,7 @@ pub fn despawn_chunks(
     }
 }
 
-pub fn spawn_chunk(
+pub(super) fn spawn_chunk(
     commands: &mut Commands,
     block_assets: &BlockAssets,
     wall_assets: &WallAssets,
@@ -324,29 +324,7 @@ pub fn spawn_chunk(
         );
 }
 
-pub fn get_chunk_position_by_camera_fov(camera_fov: FRect, world_size: Size) -> URect {
-    let mut rect = URect { 
-        left: (camera_fov.left / (CHUNK_SIZE * TILE_SIZE)).floor() as u32, 
-        right: (camera_fov.right / (CHUNK_SIZE * TILE_SIZE)).ceil() as u32, 
-        bottom: (camera_fov.bottom / (CHUNK_SIZE * TILE_SIZE)).floor().abs() as u32, 
-        top: (camera_fov.top / (CHUNK_SIZE * TILE_SIZE)).ceil().abs() as u32,
-    };
-
-    let max_chunk_x: u32 = world_size.width as u32 / CHUNK_SIZE_U;
-    let max_chunk_y: u32 = world_size.height as u32 / CHUNK_SIZE_U;
-
-    if rect.right > max_chunk_x {
-        rect.right = max_chunk_x;
-    }
-    
-    if rect.bottom > max_chunk_y {
-        rect.bottom = max_chunk_y;
-    }
-
-    rect
-}
-
-pub fn handle_break_block_event(
+pub(super) fn handle_break_block_event(
     mut commands: Commands,
     mut world_data: ResMut<WorldData>,
     mut break_block_events: EventReader<BreakBlockEvent>,
@@ -393,39 +371,7 @@ pub fn handle_break_block_event(
     }
 }
 
-fn break_tree(
-    commands: &mut Commands, 
-    chunks: &mut Query<(&Chunk, &mut TileStorage)>, 
-    pos: TilePos, 
-    world_data: &mut ResMut<WorldData>
-) {
-    if let Some(block) = world_data.get_block(pos) {
-        if matches!(block.block_type, BlockType::Tree(_)) {
-            world_data.remove_block(pos);
-
-            let chunk_pos = get_chunk_pos(pos);
-            let chunk_tile_pos = get_chunk_tile_pos(pos);
-
-            let filtered_chunks = chunks
-                .iter_mut()
-                .find(|(chunk, tile_storage)| {
-                    chunk.pos == chunk_pos && tile_storage.get(&chunk_tile_pos).is_some()
-                });
-
-            if let Some((_, mut tile_storage)) = filtered_chunks {
-                let tile_entity = tile_storage.get(&chunk_tile_pos).unwrap();
-                commands.entity(tile_entity).despawn_recursive();
-                tile_storage.remove(&chunk_tile_pos);
-            }
-
-            break_tree(commands, chunks, TilePos::new(pos.x + 1, pos.y), world_data);
-            break_tree(commands, chunks, TilePos::new(pos.x - 1, pos.y), world_data);
-            break_tree(commands, chunks, TilePos::new(pos.x, pos.y - 1), world_data);
-        }
-    }
-}
-
-pub fn handle_dig_block_event(
+pub(super) fn handle_dig_block_event(
     mut world_data: ResMut<WorldData>,
     mut break_block_events: EventWriter<BreakBlockEvent>,
     mut dig_block_events: EventReader<DigBlockEvent>,
@@ -451,7 +397,7 @@ pub fn handle_dig_block_event(
     }
 }
 
-pub fn handle_place_block_event(
+pub(super) fn handle_place_block_event(
     mut commands: Commands,
     mut world_data: ResMut<WorldData>,
     mut place_block_events: EventReader<PlaceBlockEvent>,
@@ -509,7 +455,7 @@ pub fn handle_place_block_event(
     }
 }
 
-pub fn update_neighbors(
+pub(super) fn update_neighbors(
     world_data: Res<WorldData>,
     mut events: EventReader<UpdateNeighborsEvent>,
     mut tiles: Query<&mut TileTextureIndex>,
@@ -549,6 +495,38 @@ pub fn update_neighbors(
                     }
                 }
             }
+        }
+    }
+}
+
+fn break_tree(
+    commands: &mut Commands, 
+    chunks: &mut Query<(&Chunk, &mut TileStorage)>, 
+    pos: TilePos, 
+    world_data: &mut ResMut<WorldData>
+) {
+    if let Some(block) = world_data.get_block(pos) {
+        if matches!(block.block_type, BlockType::Tree(_)) {
+            world_data.remove_block(pos);
+
+            let chunk_pos = get_chunk_pos(pos);
+            let chunk_tile_pos = get_chunk_tile_pos(pos);
+
+            let filtered_chunks = chunks
+                .iter_mut()
+                .find(|(chunk, tile_storage)| {
+                    chunk.pos == chunk_pos && tile_storage.get(&chunk_tile_pos).is_some()
+                });
+
+            if let Some((_, mut tile_storage)) = filtered_chunks {
+                let tile_entity = tile_storage.get(&chunk_tile_pos).unwrap();
+                commands.entity(tile_entity).despawn_recursive();
+                tile_storage.remove(&chunk_tile_pos);
+            }
+
+            break_tree(commands, chunks, TilePos::new(pos.x + 1, pos.y), world_data);
+            break_tree(commands, chunks, TilePos::new(pos.x - 1, pos.y), world_data);
+            break_tree(commands, chunks, TilePos::new(pos.x, pos.y - 1), world_data);
         }
     }
 }

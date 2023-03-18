@@ -62,7 +62,7 @@ pub fn spawn_ingame_settings_button(
         .id()
 }
 
-pub fn set_btn_visibility(
+pub(super) fn set_btn_visibility(
     mut query: Query<&mut Visibility, With<SettingsButtonContainer>>,
     mut events: EventReader<ToggleExtraUiEvent>,
 ) {
@@ -73,7 +73,7 @@ pub fn set_btn_visibility(
     }
 }
 
-pub fn update(
+pub(super) fn update(
     mut query: Query<
         (&Interaction, &mut Animator<Text>),
         (With<SettingsButtonText>, Changed<Interaction>),

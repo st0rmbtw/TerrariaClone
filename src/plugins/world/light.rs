@@ -3,7 +3,7 @@ use super::world::WorldData;
 
 type LightMap = Array2::<u8>;
 
-pub fn generate_light_map(world: &WorldData) -> LightMap {
+pub(super) fn generate_light_map(world: &WorldData) -> LightMap {
     let cluster_size = 1;
 
     let mut light_map = LightMap::default((world.size.height * cluster_size, world.size.width * cluster_size));

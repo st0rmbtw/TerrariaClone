@@ -4,7 +4,7 @@ mod systems;
 
 pub use components::*;
 pub use resources::*;
-pub use systems::*;
+use systems::*;
 
 use bevy::{prelude::{Plugin, App, IntoSystemConfig, OnExit, OnEnter, IntoSystemConfigs, not, IntoSystemAppConfig, resource_equals, OnUpdate, in_state, Res, State, Condition}, ui::BackgroundColor};
 use crate::{common::state::GameState, animation::{AnimationSystemSet, component_animator_system}, DebugConfiguration};

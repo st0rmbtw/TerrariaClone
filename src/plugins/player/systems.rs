@@ -14,9 +14,6 @@ use crate::{
 
 use super::*;
 
-#[cfg(feature = "debug")]
-use bevy_prototype_debug_lines::DebugLines;
-
 pub(super) fn horizontal_movement(
     axis: Res<InputAxis>,
     mut velocity: ResMut<PlayerVelocity>
@@ -257,7 +254,7 @@ pub(super) fn update_face_direction(axis: Res<InputAxis>, mut query: Query<&mut 
     }
 }
 
-pub(super) fn update_axis(input: Res<Input<KeyCode>>, mut axis: ResMut<InputAxis>) {
+pub(super) fn update_input_axis(input: Res<Input<KeyCode>>, mut axis: ResMut<InputAxis>) {
     let left = input.pressed(KeyCode::A);
     let right = input.pressed(KeyCode::D);
 
@@ -490,6 +487,10 @@ pub(super) fn current_speed(
     }
 }
 
+
+#[cfg(feature = "debug")]
+use bevy_prototype_debug_lines::DebugLines;
+
 #[cfg(feature = "debug")]
 pub(super) fn draw_hitbox(
     query_player: Query<&Transform, With<Player>>,
@@ -530,4 +531,18 @@ pub(super) fn draw_hitbox(
         0.,
         Color::RED
     );
+}
+
+#[cfg(feature = "debug")]
+use crate::plugins::cursor::CursorPosition;
+
+#[cfg(feature = "debug")]
+pub(super) fn teleport_player(
+    cursor_position: Res<CursorPosition>,
+    mut query_player: Query<&mut Transform, With<Player>>,
+) {
+    if let Ok(mut transform) = query_player.get_single_mut() {
+        transform.translation.x = cursor_position.world_position.x;
+        transform.translation.y = cursor_position.world_position.y;
+    }
 }

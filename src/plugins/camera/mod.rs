@@ -13,6 +13,7 @@ mod events;
 const MAX_CAMERA_ZOOM: f32 = 2.;
 const MIN_CAMERA_ZOOM: f32 = 0.2;
 const CAMERA_ZOOM_STEP: f32 = 0.5;
+const CAMERA_MOVE_SPEED: f32 = 1000.;
 
 pub struct CameraPlugin;
 
@@ -29,6 +30,7 @@ impl Plugin for CameraPlugin {
 
         app.add_system(
             follow_player
+                .after(zoom)
                 .in_set(OnUpdate(GameState::InGame))
                 .run_if(|debug_config: Res<DebugConfiguration>| !debug_config.free_camera)
         );
@@ -36,6 +38,7 @@ impl Plugin for CameraPlugin {
         #[cfg(feature = "debug")]
         app.add_system(
             free_camera
+                .after(zoom)
                 .in_set(OnUpdate(GameState::InGame))
                 .run_if(|debug_config: Res<DebugConfiguration>| debug_config.free_camera)
         );

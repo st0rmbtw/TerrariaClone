@@ -32,7 +32,7 @@ use crate::plugins::player::{PlayerVelocity, MAX_RUN_SPEED, MAX_FALL_SPEED};
 use super::{HoveredInfoMarker, CursorContainer, CursorForeground, CursorBackground, TileGrid, MAX_TILE_GRID_OPACITY, CursorPosition, HoveredInfo, MIN_TILE_GRID_OPACITY};
 
 #[autodefault(except(TransformScaleLens, BackgroundColorLens))]
-pub fn setup(
+pub(super) fn setup(
     mut commands: Commands, 
     cursor_assets: Res<CursorAssets>, 
     fonts: Res<FontAssets>,
@@ -128,7 +128,7 @@ pub fn setup(
 }
 
 #[autodefault]
-pub fn spawn_tile_grid(
+pub(super) fn spawn_tile_grid(
     mut commands: Commands, 
     ui_assets: Res<UiAssets>
 ) {
@@ -144,7 +144,7 @@ pub fn spawn_tile_grid(
         .insert(TileGrid);
 }
 
-pub fn update_cursor_position(
+pub(super) fn update_cursor_position(
     query_windows: Query<&Window, With<PrimaryWindow>>,
     mut cursor: ResMut<CursorPosition>,
     camera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
@@ -167,7 +167,7 @@ pub fn update_cursor_position(
     }
 }
 
-pub fn set_visibility<C: Component>(
+pub(super) fn set_visibility<C: Component>(
     ui_visibility: Res<UiVisibility>,
     mut query: Query<&mut Visibility, With<C>>,
 ) {
@@ -178,7 +178,7 @@ pub fn set_visibility<C: Component>(
     }
 }
 
-pub fn update_hovered_info(
+pub(super) fn update_hovered_info(
     hovered_info: Res<HoveredInfo>,
     mut query: Query<&mut Text, With<HoveredInfoMarker>>,
 ) {
@@ -188,7 +188,7 @@ pub fn update_hovered_info(
     }
 }
 
-pub fn update_tile_grid_position(
+pub(super) fn update_tile_grid_position(
     cursor: Res<CursorPosition>,
     mut query: Query<&mut Transform, With<TileGrid>>,
 ) {
@@ -199,7 +199,7 @@ pub fn update_tile_grid_position(
     transform.translation.y = tile_coords.y * TILE_SIZE;
 }
 
-pub fn update_tile_grid_opacity(
+pub(super) fn update_tile_grid_opacity(
     velocity: Res<PlayerVelocity>,
     mut tile_grid: Query<&mut Sprite, With<TileGrid>>,
 ) {
@@ -218,7 +218,7 @@ pub fn update_tile_grid_opacity(
     sprite.color = *sprite.color.set_a(opacity.clamp(0., MAX_TILE_GRID_OPACITY));
 }
 
-pub fn update_tile_grid_visibility(
+pub(super) fn update_tile_grid_visibility(
     mut tile_grid: Query<&mut Visibility, With<TileGrid>>,
     show_tile_grid: Res<ShowTileGrid>
 ) {

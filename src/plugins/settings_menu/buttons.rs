@@ -1,10 +1,10 @@
 use bevy::prelude::Component;
 
 #[derive(Component)]
-pub struct InterfaceButton;
+pub(super) struct InterfaceButton;
 
 #[derive(Component)]
-pub struct VideoButton;
+pub(super) struct VideoButton;
 
 #[derive(Component)]
-pub struct CursorButton;
+pub(super) struct CursorButton;

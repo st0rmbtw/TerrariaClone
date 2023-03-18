@@ -33,7 +33,7 @@ impl Inventory {
         self.items[slot] = None;
     }
 
-    /// Returns true if the `slot` to select is less then [`CELL_COUNT_IN_ROW`] and is not the same as the `selected_slot`
+    /// Returns `true` if the `slot` is less than [`CELL_COUNT_IN_ROW`] and is not the same as the selected_slot
     pub fn select_item(&mut self, slot: usize) -> bool {
         if slot < CELL_COUNT_IN_ROW && slot != self.selected_slot {
             self.selected_slot = slot;
@@ -66,8 +66,8 @@ impl Inventory {
 
                     if new_stack < inv_item.item.max_stack() {
                         inv_item.stack += new_stack;
+                        break;
                     }
-                    break;
                 },
                 None => {
                     *inv_item_option = Some(item);

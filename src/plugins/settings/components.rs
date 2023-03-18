@@ -1,7 +1,7 @@
 use bevy::prelude::Component;
 
 #[derive(Component)]
-pub struct SettingsButtonContainer;
+pub(super) struct SettingsButtonContainer;
 
 #[derive(Component)]
-pub struct SettingsButtonText;
+pub(super) struct SettingsButtonText;

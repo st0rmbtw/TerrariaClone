@@ -38,6 +38,7 @@ pub const MAX_FALL_SPEED: f32 = -10.;
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
 enum PhysicsSet {
     SetVelocity,
+    Gravity,
     Movement,
     CollisionDetection
 }
@@ -68,6 +69,7 @@ impl Plugin for PlayerPlugin {
             )
             .chain()
             .in_set(OnUpdate(GameState::InGame))
+            .distributive_run_if(|config: Res<DebugConfiguration>| !config.free_camera)
         );
 
         app.add_systems(
@@ -106,38 +108,46 @@ impl Plugin for PlayerPlugin {
             .in_set(OnUpdate(GameState::InGame))
         );
 
-        app.add_system(update_axis.in_set(OnUpdate(GameState::InGame)));
-        app.add_system(player_using_item.in_set(OnUpdate(GameState::InGame)));
+        app.add_system(update_input_axis.in_set(OnUpdate(GameState::InGame)));
+        app.add_system(
+            player_using_item
+                .in_set(OnUpdate(GameState::InGame))
+                .run_if(|config: Res<DebugConfiguration>| !config.free_camera)
+        );
         app.add_system(set_using_item_visibility.in_set(OnUpdate(GameState::InGame)));
 
         app.add_systems(
             (
                 horizontal_movement,
                 update_jump,
-                gravity
             )
             .chain()
             .distributive_run_if(in_state(GameState::InGame))
             .distributive_run_if(|config: Res<DebugConfiguration>| !config.free_camera)
             .in_set(PhysicsSet::SetVelocity)
-            .before(PhysicsSet::CollisionDetection)
+            .before(PhysicsSet::Gravity)
             .in_schedule(CoreSchedule::FixedUpdate)
+        );
+
+        app.add_system(
+            gravity
+                .run_if(in_state(GameState::InGame))
+                .in_set(PhysicsSet::Gravity)
+                .in_schedule(CoreSchedule::FixedUpdate)
         );
 
         app.add_system(
             detect_collisions
                 .run_if(in_state(GameState::InGame))
-                .run_if(|config: Res<DebugConfiguration>| !config.free_camera)
                 .in_schedule(CoreSchedule::FixedUpdate)
                 .in_set(PhysicsSet::CollisionDetection)
-                .after(PhysicsSet::SetVelocity)
+                .after(PhysicsSet::Gravity)
                 .before(PhysicsSet::Movement)
         );
 
         app.add_system(
             move_player
                 .run_if(in_state(GameState::InGame))
-                .run_if(|config: Res<DebugConfiguration>| !config.free_camera)
                 .in_schedule(CoreSchedule::FixedUpdate)
                 .in_set(PhysicsSet::Movement)
                 .after(PhysicsSet::CollisionDetection)
@@ -155,6 +165,18 @@ impl Plugin for PlayerPlugin {
             draw_hitbox
                 .run_if(|config: Res<DebugConfiguration>| config.show_hitboxes)
                 .in_set(OnUpdate(GameState::InGame))
+        );
+
+        #[cfg(feature = "debug")]
+        use bevy::input::common_conditions::input_just_pressed;
+
+        #[cfg(feature = "debug")]
+        app.add_system(
+            teleport_player
+                .run_if(
+                    (|config: Res<DebugConfiguration>| config.free_camera)
+                        .and_then(input_just_pressed(MouseButton::Right))
+                )
         );
 
         // app.add_system(current_speed);

@@ -52,17 +52,15 @@ impl Plugin for PlayerInventoryPlugin {
                 inventory
             });
 
-        app.add_systems(
-            (
-                scroll_select_inventory_item,
-                select_inventory_cell,
-                set_selected_item,
-            )
-            .chain()
-            .in_set(OnUpdate(GameState::InGame))
-        );
+        app.add_system(scroll_select_inventory_item.in_set(OnUpdate(GameState::InGame)));
+        app.add_system(select_inventory_cell.in_set(OnUpdate(GameState::InGame)));
+        app.add_system(set_selected_item.in_set(OnUpdate(GameState::InGame)));
 
-        app.add_system(use_item.in_schedule(CoreSchedule::FixedUpdate).in_set(OnUpdate(GameState::InGame)));
+        app.add_system(
+            use_item
+                .in_schedule(CoreSchedule::FixedUpdate)
+                .in_set(OnUpdate(GameState::InGame))
+        );
 
         app.add_systems(
             (

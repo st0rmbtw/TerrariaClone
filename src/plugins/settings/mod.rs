@@ -9,7 +9,7 @@ mod components;
 mod systems;
 mod resources;
 
-pub use components::*;
+use components::*;
 pub use systems::*;
 pub use resources::*;
 

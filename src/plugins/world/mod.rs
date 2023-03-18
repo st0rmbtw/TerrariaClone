@@ -13,13 +13,12 @@ mod light;
 pub use chunk::*;
 pub use events::*;
 pub use resources::*;
-pub use systems::*;
-pub use utils::*;
+use systems::*;
+use utils::*;
 pub use world::*;
 pub use block::*;
 pub use wall::*;
 pub use tree::*;
-pub use light::*;
 
 use crate::common::state::GameState;
 use bevy::prelude::{Plugin, App, IntoSystemAppConfig, OnEnter, IntoSystemConfigs, OnUpdate};

@@ -6,10 +6,10 @@ use bevy::{
         camera::RenderTarget,
         mesh::{InnerMeshVertexBufferLayout},
         render_resource::{
-            AddressMode, AsBindGroup, Extent3d, SamplerDescriptor, ShaderRef,
+            AsBindGroup, Extent3d, ShaderRef,
             TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, SpecializedMeshPipelineError, RenderPipelineDescriptor, PrimitiveState,
         },
-        texture::{BevyDefault, ImageSampler},
+        texture::{BevyDefault},
         view::RenderLayers,
     },
     sprite::{Material2d, MaterialMesh2dBundle, Material2dKey},
@@ -240,12 +240,6 @@ pub fn setup_post_processing_camera(
                     | TextureUsages::RENDER_ATTACHMENT,
                 view_formats: &[]
             },
-            sampler_descriptor: ImageSampler::Descriptor(SamplerDescriptor {
-                address_mode_u: AddressMode::ClampToBorder,
-                address_mode_v: AddressMode::ClampToBorder,
-                address_mode_w: AddressMode::ClampToBorder,
-                ..default()
-            }),
             ..Default::default()
         };
 

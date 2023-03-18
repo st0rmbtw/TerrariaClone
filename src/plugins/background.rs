@@ -3,7 +3,7 @@ use crate::{
     common::{state::GameState, conditions::in_menu_state},
 };
 use bevy::{
-    prelude::{default, App, Commands, Plugin, Res, ResMut, Vec2, Transform, Component, Query, Camera, GlobalTransform, With, OnEnter, OnExit, IntoSystemAppConfig, OnUpdate, IntoSystemConfig, IntoSystemConfigs, IntoSystemAppConfigs},
+    prelude::{default, App, Commands, Plugin, Res, ResMut, Vec2, Transform, Component, Query, Camera, GlobalTransform, With, OnEnter, OnExit, IntoSystemAppConfig, OnUpdate, IntoSystemConfig, IntoSystemConfigs, IntoSystemAppConfigs, Name},
     sprite::{SpriteBundle, Anchor}, window::{Window, PrimaryWindow},
 };
 use rand::{thread_rng, Rng, seq::SliceRandom};
@@ -65,7 +65,7 @@ fn spawn_stars(
         background_assets.star_4.clone_weak(),
     ];
 
-    for _ in 0..100 {
+    for i in 0..100 {
         let x = rng.gen_range(0f32..window.width());
         let y = rng.gen_range(0f32..window.height());
 
@@ -78,7 +78,8 @@ fn spawn_stars(
             },
             Star {
                 screen_position: Vec2::new(x, y)
-            }
+            },
+            Name::new(format!("Star {i}")),
         ));
     }
 }

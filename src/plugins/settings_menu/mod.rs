@@ -89,7 +89,7 @@ impl Plugin for SettingsMenuPlugin {
 }
 
 #[autodefault]
-pub fn setup_settings_menu(
+pub(super) fn setup_settings_menu(
     mut commands: Commands,
     fonts: Res<FontAssets>,
     language_content: Res<LanguageContent>,
@@ -116,18 +116,18 @@ pub fn setup_settings_menu(
 }
 
 
-pub fn interface_clicked(mut next_state: ResMut<NextState<GameState>>) {
+pub(super) fn interface_clicked(mut next_state: ResMut<NextState<GameState>>) {
     next_state.set(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface)));
 }
 
-pub fn video_clicked(mut next_state: ResMut<NextState<GameState>>) {
+pub(super) fn video_clicked(mut next_state: ResMut<NextState<GameState>>) {
     next_state.set(GameState::Menu(MenuState::Settings(SettingsMenuState::Video)));
 }
 
-pub fn cursor_clicked(/* mut commands: Commands */) {
+pub(super) fn cursor_clicked(/* mut commands: Commands */) {
     // TODO: Implement Cursor menu
 }
 
-pub fn back_clicked(mut next_state: ResMut<NextState<GameState>>) {
+pub(super) fn back_clicked(mut next_state: ResMut<NextState<GameState>>) {
     next_state.set(GameState::Menu(MenuState::Main));
 }

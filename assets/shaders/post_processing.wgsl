@@ -68,8 +68,6 @@ fn fragment(
     @builtin(position) position: vec4<f32>,
     @location(0) uv: vec2<f32>,
 ) -> @location(0) vec4<f32> {
-    let pixelate = 10.;
-
     let player_uv = player_position.xy / (vec2(1750. * 16., 900. * 16.) - vec2(16., 32.));
 
     let texture_diffuse = textureSample(texture, texture_sampler, uv);
@@ -94,41 +92,27 @@ fn fragment(
         let scale = scale(scl);
 
         in_irradiance_uv = uv * scale;
-        // in_irradiance_uv = (floor(position.xy / pixelate) * pixelate + 0.5) / size;
     }
 
-    let in_irradiance = blur(in_irradiance_texture, in_irradiance_texture_sampler, view.viewport.zw, in_irradiance_uv).rgb;
+    var in_irradiance = vec4(0.);
 
-    // let in_irradiance = textureSample(in_irradiance_texture, in_irradiance_texture_sampler, in_irradiance_uv).rgb;
+    if (in_irradiance_uv.x >= 0. && in_irradiance_uv.x <= 1.) && (in_irradiance_uv.y >= 0. && in_irradiance_uv.y <= 1.) {
+        in_irradiance = blur(in_irradiance_texture, in_irradiance_texture_sampler, view.viewport.zw, in_irradiance_uv);
+    }
 
-    var object_irradiance = in_irradiance;
-    let k_size = 1;
-    let k_width = 10;
+    var light_map_color = vec4(1.);
+    {
+        let uv = light_map_uv + player_uv;
+        if (uv.x >= -0.00025) && (uv.x <= 1.) && (uv.y >= 0.) && (uv.y <= 1.0015) {
+            light_map_color = blur(light_map_texture, light_map_texture_sampler, view.viewport.zw, light_map_uv + player_uv);
+        }
+    }
 
-    // for (var i = -k_size; i <= k_size; i++) {
-    //     for (var j = -k_size; j < 0; j++) {
-    //         let offset = vec2<f32>(f32(i * k_width), f32(j * k_width));
-    //         let irradiance_uv = coords_to_viewport_uv(position.xy - offset, view.viewport);
+    var color = texture_diffuse;
 
-    //         let sample_irradiance = textureSample(
-    //             in_irradiance_texture,
-    //             in_irradiance_texture_sampler,
-    //             irradiance_uv
-    //         ).rgb;
-
-    //         if any(irradiance_uv < vec2<f32>(0.0)) || any(irradiance_uv > vec2<f32>(1.0)) {
-    //             continue;
-    //         }
-
-    //         object_irradiance = max(object_irradiance, sample_irradiance);
-    //     }
-    // }
-
-    let object_irradiance_srgb = lin_to_srgb(object_irradiance);
-    let light_map_color = blur(light_map_texture, light_map_texture_sampler, view.viewport.zw, light_map_uv + player_uv);
-    // let light_map_color = textureSample(light_map_texture, light_map_texture_sampler, light_map_uv + player_uv);
-    
-    let color = texture_diffuse * (light_map_color + vec4(object_irradiance, 1.));
+    if (uv.x >= 0.) && (uv.x <= 1.) && (uv.y >= 0.) && (uv.y <= 1.) {
+        color = texture_diffuse * (light_map_color + in_irradiance);
+    }
 
     return color;
 }
