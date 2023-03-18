@@ -356,6 +356,8 @@ pub fn handle_break_block_event(
 ) {
     for BreakBlockEvent { tile_pos } in break_block_events.iter() {
         let map_tile_pos = TilePos { x: tile_pos.x as u32, y: tile_pos.y as u32 };
+        let chunk_pos = get_chunk_pos(map_tile_pos);
+        let chunk_tile_pos = get_chunk_tile_pos(map_tile_pos);
 
         let block = world_data.get_block(map_tile_pos);
         if let Some(block) = block {
@@ -363,9 +365,6 @@ pub fn handle_break_block_event(
                 break_tree(&mut commands, &mut chunks, map_tile_pos, &mut world_data);
             } else {
                 world_data.remove_block(map_tile_pos);
-
-                let chunk_pos = get_chunk_pos(map_tile_pos);
-                let chunk_tile_pos = get_chunk_tile_pos(map_tile_pos);
 
                 let filtered_chunks = chunks
                     .iter_mut()
@@ -378,18 +377,18 @@ pub fn handle_break_block_event(
                     commands.entity(tile_entity).despawn_recursive();
                     tile_storage.remove(&chunk_tile_pos);
                 }
-
-                update_neighbors_ew.send(UpdateNeighborsEvent { 
-                    tile_pos: map_tile_pos,
-                    chunk_tile_pos,
-                    chunk_pos
-                });
-
-                update_light_events.send(UpdateLightEvent {
-                    tile_pos: map_tile_pos,
-                    color: 0xFF
-                });
             }
+
+            update_neighbors_ew.send(UpdateNeighborsEvent { 
+                tile_pos: map_tile_pos,
+                chunk_tile_pos,
+                chunk_pos
+            });
+
+            update_light_events.send(UpdateLightEvent {
+                tile_pos: map_tile_pos,
+                color: 0xFF
+            });
         }
     }
 }

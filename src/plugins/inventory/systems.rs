@@ -242,13 +242,15 @@ pub fn update_selected_cell_image(
     mut hotbar_cells: Query<(&InventoryCellIndex, &mut UiImage), With<HotbarCellMarker>>,
     ui_assets: Res<UiAssets>,
 ) {
-    for (cell_index, mut image) in hotbar_cells.iter_mut() {
-        let selected = cell_index.0 == inventory.selected_slot;
+    if inventory.is_changed() {
+        for (cell_index, mut image) in hotbar_cells.iter_mut() {
+            let selected = cell_index.0 == inventory.selected_slot;
 
-        image.texture = if selected {
-            ui_assets.selected_inventory_background.clone_weak()
-        } else {
-            ui_assets.inventory_background.clone_weak()
+            image.texture = if selected {
+                ui_assets.selected_inventory_background.clone_weak()
+            } else {
+                ui_assets.inventory_background.clone_weak()
+            }
         }
     }
 }
@@ -298,9 +300,8 @@ pub fn update_selected_item_name_alignment(
     mut selected_item_name_query: Query<&mut Style, With<SelectedItemNameMarker>>,
     mut events: EventReader<ToggleExtraUiEvent>,
 ) {
-    let mut style = selected_item_name_query.single_mut();
-
     for event in events.iter() {
+        let mut style = selected_item_name_query.single_mut();
         style.align_self = if event.0 {
             AlignSelf::FlexStart
         } else {

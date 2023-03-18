@@ -10,16 +10,16 @@ pub struct Player;
 #[derive(Default, PartialEq, Eq, Clone, Copy, Component)]
 #[cfg_attr(feature = "debug", derive(bevy_inspector_egui::InspectorOptions))]
 pub enum FaceDirection {
-    LEFT,
+    Left,
     #[default]
-    RIGHT,
+    Right,
 }
 
 impl From<&InputAxis> for Option<FaceDirection> {
     fn from(axis: &InputAxis) -> Self {
         match axis.x {
-            x if x > 0. => Some(FaceDirection::RIGHT),
-            x if x < 0. => Some(FaceDirection::LEFT),
+            x if x > 0. => Some(FaceDirection::Right),
+            x if x < 0. => Some(FaceDirection::Left),
             _ => None
         }
     }
@@ -28,8 +28,8 @@ impl From<&InputAxis> for Option<FaceDirection> {
 impl From<FaceDirection> for f32 {
     fn from(direction: FaceDirection) -> Self {
         match direction {
-            FaceDirection::LEFT => -1.,
-            FaceDirection::RIGHT => 1.,
+            FaceDirection::Left => -1.,
+            FaceDirection::Right => 1.,
         }
     }
 }
@@ -37,7 +37,7 @@ impl From<FaceDirection> for f32 {
 impl FaceDirection {
     #[inline]
     pub fn is_left(&self) -> bool {
-        *self == FaceDirection::LEFT
+        *self == FaceDirection::Left
     }
 }
 

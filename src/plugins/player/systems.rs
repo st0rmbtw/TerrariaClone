@@ -221,8 +221,8 @@ pub(super) fn spawn_particles(
         let (mut effect, mut effect_transform) = effects.get_mut(particle_effects.walking).unwrap();
 
         effect_transform.translation = match face_direction {
-            FaceDirection::LEFT => Vec3::new(0., -PLAYER_HALF_HEIGHT, 0.),
-            FaceDirection::RIGHT => Vec3::new(0., -PLAYER_HALF_HEIGHT, 0.),
+            FaceDirection::Left => Vec3::new(0., -PLAYER_HALF_HEIGHT, 0.),
+            FaceDirection::Right => Vec3::new(0., -PLAYER_HALF_HEIGHT, 0.),
         };
 
         effect
@@ -300,6 +300,28 @@ pub(super) fn flip_player(
     }
 }
 
+pub(super) fn flip_using_item(
+    player_query: Query<&FaceDirection, (With<Player>, Changed<FaceDirection>)>,
+    mut sprite_query: Query<&mut Sprite, With<UsedItem>>,
+) {
+    let direction = player_query.get_single();
+
+    if let Ok(direction) = direction {
+        let mut sprite = sprite_query.single_mut();
+
+        match direction {
+            FaceDirection::Left => {
+                sprite.flip_y = true;
+                sprite.anchor = Anchor::TopLeft;
+            },
+            FaceDirection::Right => {
+                sprite.flip_y = false;
+                sprite.anchor = Anchor::BottomLeft;
+            },
+        }
+    }
+}
+
 pub(super) fn walking_animation(
     index: Res<MovementAnimationIndex>,
     mut query: Query<
@@ -335,8 +357,10 @@ pub(super) fn set_using_item_visibility(
     anim: Res<UseItemAnimation>,
     mut using_item_query: Query<&mut Visibility, With<UsedItem>>,
 ) {
-    if let Ok(visibility) = using_item_query.get_single_mut() {
-        helpers::set_visibility(visibility, anim.0);
+    if anim.is_changed() {
+        if let Ok(visibility) = using_item_query.get_single_mut() {
+            helpers::set_visibility(visibility, anim.0);
+        }
     }
 }
 
@@ -428,10 +452,10 @@ pub(super) fn update_use_item_animation_index(
         }
 
         index.0 = (index.0 + 1) % USE_ITEM_ANIMATION_FRAMES_COUNT;
-    }
-
-    if index.is_changed() && index.0 == 0 {
-        anim.0 = false;
+        
+        if index.0 == 0 {
+            anim.0 = false;
+        }
     }
 }
 

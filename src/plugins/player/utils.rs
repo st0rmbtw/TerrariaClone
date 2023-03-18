@@ -53,8 +53,10 @@ pub(super) fn is_flying(
 
 pub(super) fn get_rotation_by_direction(direction: FaceDirection) -> Quat {
     let start_rotation = match direction {
-        FaceDirection::LEFT => -0.5,
-        FaceDirection::RIGHT => 2.,
+        // Assumed that sprite is flipped by y and its anchor is TopLeft
+        FaceDirection::Left => 1.2,
+        // Assumed that sprite is not flipped and its anchor is BottomLet
+        FaceDirection::Right => 2.,
     };
 
     Quat::from_rotation_z(start_rotation)

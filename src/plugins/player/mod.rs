@@ -60,8 +60,16 @@ impl Plugin for PlayerPlugin {
 
         app.add_system(spawn_player.in_schedule(OnEnter(GameState::InGame)));
 
-        app.add_system(update_face_direction.in_set(OnUpdate(GameState::InGame)));
-        app.add_system(flip_player.in_set(OnUpdate(GameState::InGame)));
+        app.add_systems(
+            (
+                update_face_direction,
+                flip_player,
+                flip_using_item
+            )
+            .chain()
+            .in_set(OnUpdate(GameState::InGame))
+        );
+
         app.add_systems(
             (
                 update_movement_state,
@@ -89,8 +97,8 @@ impl Plugin for PlayerPlugin {
                 set_using_item_image,
                 set_using_item_position,
                 set_using_item_rotation,
-                update_use_item_animation_index,
                 set_using_item_rotation_on_player_direction_change,
+                update_use_item_animation_index,
                 use_item_animation
             )
             .chain()
@@ -98,15 +106,9 @@ impl Plugin for PlayerPlugin {
             .in_set(OnUpdate(GameState::InGame))
         );
 
-        app.add_systems(
-            (
-                update_axis,
-                player_using_item,
-                set_using_item_visibility,
-            )
-            .chain()
-            .in_set(OnUpdate(GameState::InGame))
-        );
+        app.add_system(update_axis.in_set(OnUpdate(GameState::InGame)));
+        app.add_system(player_using_item.in_set(OnUpdate(GameState::InGame)));
+        app.add_system(set_using_item_visibility.in_set(OnUpdate(GameState::InGame)));
 
         app.add_systems(
             (
