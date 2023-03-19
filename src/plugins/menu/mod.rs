@@ -13,7 +13,7 @@ use crate::{common::{state::{GameState, MenuState}, conditions::{on_btn_clicked,
 
 use self::{celestial_body::CelestialBodyPlugin, settings::SettingsMenuPlugin};
 
-use super::camera::MainCamera;
+use super::{camera::MainCamera, fps::FpsText};
 
 pub struct MenuPlugin;
 
@@ -28,6 +28,7 @@ impl Plugin for MenuPlugin {
 
         app.add_system(despawn_with::<MainCamera>.in_schedule(OnEnter(GameState::InGame)));
         app.add_system(despawn_with::<MenuContainer>.in_schedule(OnEnter(GameState::InGame)));
+        app.add_system(despawn_with::<FpsText>.in_schedule(OnEnter(GameState::InGame)));
         app.add_system(despawn_with::<Menu>.in_schedule(OnExit(GameState::Menu(MenuState::Main))));
 
         app.add_system(move_background_system().run_if(in_menu_state));

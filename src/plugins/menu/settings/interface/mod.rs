@@ -48,7 +48,7 @@ fn setup_interface_menu(
         menu_button(builder, text_style.clone(), language_content.ui.tile_grid.clone(), ToggleTileGridButton);
 
         control_buttons_layout(builder, |control_button_builder| {
-            control_button(control_button_builder, text_style.clone(), language_content.ui.back.clone(), BackButton);
+            control_button(control_button_builder, text_style, language_content.ui.back.clone(), BackButton);
         });
     });
 }

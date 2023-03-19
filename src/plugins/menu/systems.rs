@@ -1,13 +1,19 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveExt, Camera2dBundle, ChildBuilder, NodeBundle, BuildChildren, TextBundle, Button, Res, default, Changed, EventWriter, Color, ImageBundle, Transform, Quat, Vec3, Audio, NextState, ResMut}, text::{Text, TextStyle}, ui::{Style, JustifyContent, AlignItems, UiRect, FocusPolicy, PositionType, Interaction, Size, Val, FlexDirection, AlignSelf, UiImage}, app::AppExit};
+use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveExt, Camera2dBundle, ChildBuilder, NodeBundle, BuildChildren, TextBundle, Button, Res, default, Changed, EventWriter, Color, ImageBundle, Transform, Quat, Vec3, Audio, NextState, ResMut, Visibility, Name, Without}, text::{Text, TextStyle, TextSection}, ui::{Style, JustifyContent, AlignItems, UiRect, FocusPolicy, PositionType, Interaction, Size, Val, FlexDirection, AlignSelf, UiImage}, app::AppExit};
 use interpolation::EaseFunction;
 
-use crate::{animation::{Tween, Animator, AnimatorState, TweeningDirection, RepeatStrategy, Tweenable, EaseMethod, RepeatCount}, parallax::ParallaxCameraComponent, plugins::{camera::MainCamera, assets::{FontAssets, UiAssets, SoundAssets}, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor}}, TEXT_COLOR, common::{state::{GameState, SettingsMenuState, MenuState}, lens::{TextFontSizeLens, TransformLens}}, language::LanguageContent};
+use crate::{animation::{Tween, Animator, AnimatorState, TweeningDirection, RepeatStrategy, Tweenable, EaseMethod, RepeatCount}, parallax::ParallaxCameraComponent, plugins::{camera::MainCamera, assets::{FontAssets, UiAssets, SoundAssets}, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor}, fps::FpsText}, TEXT_COLOR, common::{state::{GameState, SettingsMenuState, MenuState}, lens::{TextFontSizeLens, TransformLens}}, language::LanguageContent};
 use super::{Menu, SinglePlayerButton, SettingsButton, ExitButton, MenuContainer, role::ButtonRole, settings::MENU_BUTTON_FONT_SIZE};
 
 pub fn despawn_with<C: Component>(query: Query<Entity, With<C>>, mut commands: Commands) {
+    for entity in &query {
+        commands.entity(entity).despawn_recursive();
+    }
+}
+
+pub fn despawn_without<C: Component>(query: Query<Entity, Without<C>>, mut commands: Commands) {
     for entity in &query {
         commands.entity(entity).despawn_recursive();
     }
@@ -139,7 +145,8 @@ pub fn menu(marker: impl Component, commands: &mut Commands, container: Entity, 
 
 pub(super) fn spawn_menu_container(
     mut commands: Commands,
-    ui_assets: Res<UiAssets>
+    ui_assets: Res<UiAssets>,
+    font_assets: Res<FontAssets>
 ) {
     let logo_animation = Tween::new(
         EaseFunction::SineInOut,
@@ -158,6 +165,37 @@ pub(super) fn spawn_menu_container(
             }
         }
     ).with_repeat_count(RepeatCount::Infinite);
+
+    let fps_text_style = TextStyle {
+        font: font_assets.andy_regular.clone_weak(),
+        font_size: 24.,
+        color: Color::WHITE,
+    };
+
+    commands.spawn((
+        TextBundle {
+            style: Style {
+                position_type: PositionType::Absolute,
+                margin: UiRect {
+                    left: Val::Px(5.),
+                    top: Val::Px(5.),
+                    ..default()
+                },
+                ..default()
+            },
+            text: Text {
+                sections: vec![TextSection {
+                    value: "".to_string(),
+                    style: fps_text_style,
+                }],
+                ..default()
+            },
+            visibility: Visibility::Hidden,
+            ..default()
+        },
+        FpsText,
+        Name::new("FPS Text")
+    ));
 
     commands
         .spawn((

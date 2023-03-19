@@ -1,4 +1,3 @@
-mod buttons;
 pub(super) mod interface;
 pub(super) mod video;
 
@@ -7,7 +6,7 @@ use bevy::{prelude::{Commands, Res, Plugin, App, Component, IntoSystemAppConfig,
 
 use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button}}, language::LanguageContent, TEXT_COLOR, common::{conditions::on_btn_clicked, state::{SettingsMenuState, GameState, MenuState}}};
 
-use self::{buttons::{InterfaceButton, VideoButton, CursorButton}, interface::InterfaceMenuPlugin, video::VideoMenuPlugin};
+use self::{interface::InterfaceMenuPlugin, video::VideoMenuPlugin};
 
 use super::{despawn_with, menu, MenuContainer};
 
@@ -45,6 +44,15 @@ impl Plugin for SettingsMenuPlugin {
     }
 }
 
+#[derive(Component)]
+struct InterfaceButton;
+
+#[derive(Component)]
+struct VideoButton;
+
+#[derive(Component)]
+struct CursorButton;
+
 #[autodefault]
 fn setup_settings_menu(
     mut commands: Commands,
@@ -61,7 +69,6 @@ fn setup_settings_menu(
     let container = query_container.single();
 
     menu(SettingsMenu, &mut commands, container, 50., |builder| {
-        use buttons::*;
         menu_button(builder, text_style.clone(), language_content.ui.interface.clone(), InterfaceButton);
         menu_button(builder, text_style.clone(), language_content.ui.video.clone(), VideoButton);
         menu_button(builder, text_style.clone(), language_content.ui.cursor.clone(), CursorButton);
