@@ -1,6 +1,6 @@
 use std::ops::Add;
 
-use bevy::prelude::Component;
+use crate::plugins::world::BlockType;
 
 pub mod conditions;
 pub mod extensions;
@@ -24,6 +24,11 @@ impl TextureAtlasPos {
     }
 
     #[inline(always)]
+    pub const fn to_2d_index(self, width: u32) -> u32 {
+        (self.y * width) + self.x
+    }
+
+    #[inline(always)]
     pub const fn to_block_index(self) -> u32 {
         self.to_2d_index(16)
     }
@@ -32,15 +37,12 @@ impl TextureAtlasPos {
     pub const fn to_wall_index(self) -> u32 {
         self.to_2d_index(13)
     }
-
-    #[inline(always)]
-    pub const fn to_tree_index(self) -> u32 {
-        self.to_2d_index(64)
-    }
-
-    #[inline(always)]
-    pub const fn to_2d_index(self, width: u32) -> u32 {
-        (self.y * width) + self.x
+    
+    pub const fn to_2d_index_from_block_type(self, block_type: BlockType) -> u32 {
+        match block_type {
+            BlockType::Tree(tree) => self.to_2d_index(tree.frame_type.texture_width()),
+            _ => self.to_block_index()
+        }
     }
 }
 

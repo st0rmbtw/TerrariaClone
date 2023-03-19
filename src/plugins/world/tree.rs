@@ -2,7 +2,7 @@ use crate::common::TextureAtlasPos;
 
 use super::TerrariaFrame;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TreeFrameType {
     // A trunk
     TrunkPlain,
@@ -37,19 +37,19 @@ impl TreeFrameType {
         match tree_type {
             TreeType::Forest => {
                 match self {
-                    TreeFrameType::TrunkPlain => [TerrariaFrame::new(0, 0), TerrariaFrame::new(0, 22), TerrariaFrame::new(0, 44)],
-                    TreeFrameType::BasePlainLeft => [TerrariaFrame::new(44, 132), TerrariaFrame::new(44, 154), TerrariaFrame::new(44, 176)],
-                    TreeFrameType::BasePlainRight => [TerrariaFrame::new(22, 132), TerrariaFrame::new(22, 132), TerrariaFrame::new(22, 132)],
-                    TreeFrameType::BasePlainAD => [TerrariaFrame::new(88, 132), TerrariaFrame::new(88, 154), TerrariaFrame::new(88, 176)],
-                    TreeFrameType::BasePlainA => [TerrariaFrame::new(66, 132), TerrariaFrame::new(66, 154), TerrariaFrame::new(66, 176)],
-                    TreeFrameType::BasePlainD => [TerrariaFrame::new(0, 132), TerrariaFrame::new(0, 154), TerrariaFrame::new(0, 176)],
-                    TreeFrameType::BranchLeftBare => [TerrariaFrame::new(66, 0), TerrariaFrame::new(66, 22), TerrariaFrame::new(66, 44)],
-                    TreeFrameType::BranchRightBare => [TerrariaFrame::new(88, 66), TerrariaFrame::new(88, 88), TerrariaFrame::new(88, 110)],
-                    TreeFrameType::BranchLeftLeaves => [TerrariaFrame::new(44, 198), TerrariaFrame::new(44, 220), TerrariaFrame::new(44, 242)],
-                    TreeFrameType::BranchRightLeaves =>[TerrariaFrame::new(66, 198), TerrariaFrame::new(66, 220), TerrariaFrame::new(66, 242)],
-                    TreeFrameType::TopBare => [TerrariaFrame::new(110, 0), TerrariaFrame::new(110, 22), TerrariaFrame::new(110, 44)],
-                    TreeFrameType::TopLeaves => [TerrariaFrame::new(22, 198), TerrariaFrame::new(22, 220), TerrariaFrame::new(22, 242)],
-                    TreeFrameType::TopBareJagged => [TerrariaFrame::new(0, 198), TerrariaFrame::new(0, 220), TerrariaFrame::new(0, 242)]
+                    Self::TrunkPlain => [TerrariaFrame::new(0, 0), TerrariaFrame::new(0, 22), TerrariaFrame::new(0, 44)],
+                    Self::BasePlainLeft => [TerrariaFrame::new(44, 132), TerrariaFrame::new(44, 154), TerrariaFrame::new(44, 176)],
+                    Self::BasePlainRight => [TerrariaFrame::new(22, 132), TerrariaFrame::new(22, 132), TerrariaFrame::new(22, 132)],
+                    Self::BasePlainAD => [TerrariaFrame::new(88, 132), TerrariaFrame::new(88, 154), TerrariaFrame::new(88, 176)],
+                    Self::BasePlainA => [TerrariaFrame::new(66, 132), TerrariaFrame::new(66, 154), TerrariaFrame::new(66, 176)],
+                    Self::BasePlainD => [TerrariaFrame::new(0, 132), TerrariaFrame::new(0, 154), TerrariaFrame::new(0, 176)],
+                    Self::BranchLeftBare => [TerrariaFrame::new(66, 0), TerrariaFrame::new(66, 22), TerrariaFrame::new(66, 44)],
+                    Self::BranchRightBare => [TerrariaFrame::new(88, 66), TerrariaFrame::new(88, 88), TerrariaFrame::new(88, 110)],
+                    Self::BranchLeftLeaves => [TerrariaFrame::new(44, 198), TerrariaFrame::new(44, 220), TerrariaFrame::new(44, 242)],
+                    Self::BranchRightLeaves =>[TerrariaFrame::new(66, 198), TerrariaFrame::new(66, 220), TerrariaFrame::new(66, 242)],
+                    Self::TopBare => [TerrariaFrame::new(110, 0), TerrariaFrame::new(110, 22), TerrariaFrame::new(110, 44)],
+                    Self::TopLeaves => [TerrariaFrame::new(22, 198), TerrariaFrame::new(22, 220), TerrariaFrame::new(22, 242)],
+                    Self::TopBareJagged => [TerrariaFrame::new(0, 198), TerrariaFrame::new(0, 220), TerrariaFrame::new(0, 242)]
                 }
             }
         }
@@ -61,28 +61,32 @@ impl TreeFrameType {
         match tree_type {
             TreeType::Forest => {
                 match self {
-                    TreeFrameType::TrunkPlain => TextureAtlasPos::new(0, variant),
-                    TreeFrameType::BasePlainLeft => TextureAtlasPos::new(2, 6 + variant),
-                    TreeFrameType::BasePlainRight => TextureAtlasPos::new(1, 6 + variant),
-                    TreeFrameType::BasePlainAD => TextureAtlasPos::new(4, 6 + variant),
-                    TreeFrameType::BasePlainA => TextureAtlasPos::new(3, 6 + variant),
-                    TreeFrameType::BasePlainD => TextureAtlasPos::new(0, 6 + variant),
-                    TreeFrameType::BranchLeftBare => TextureAtlasPos::new(3, variant),
-                    TreeFrameType::BranchRightBare => TextureAtlasPos::new(4, 3 + variant),
-                    TreeFrameType::BranchLeftLeaves => TextureAtlasPos::new(0, variant),
-                    TreeFrameType::BranchRightLeaves => TextureAtlasPos::new(1, variant),
-                    TreeFrameType::TopBare => TextureAtlasPos::new(5, variant),
-                    TreeFrameType::TopLeaves => TextureAtlasPos::new(0, variant),
-                    TreeFrameType::TopBareJagged => TextureAtlasPos::new(0, 9 + variant)
+                    Self::TrunkPlain => TextureAtlasPos::new(0, variant),
+                    Self::BasePlainLeft => TextureAtlasPos::new(2, 6 + variant),
+                    Self::BasePlainRight => TextureAtlasPos::new(1, 6 + variant),
+                    Self::BasePlainAD => TextureAtlasPos::new(4, 6 + variant),
+                    Self::BasePlainA => TextureAtlasPos::new(3, 6 + variant),
+                    Self::BasePlainD => TextureAtlasPos::new(0, 6 + variant),
+                    Self::BranchLeftBare => TextureAtlasPos::new(3, variant),
+                    Self::BranchRightBare => TextureAtlasPos::new(4, 3 + variant),
+                    Self::BranchLeftLeaves => TextureAtlasPos::new(0, variant),
+                    Self::BranchRightLeaves => TextureAtlasPos::new(1, variant),
+                    Self::TopBare => TextureAtlasPos::new(5, variant),
+                    Self::TopLeaves => TextureAtlasPos::new(0, variant),
+                    Self::TopBareJagged => TextureAtlasPos::new(0, 9 + variant)
                 }
             }
         }
     }
 
+    pub const fn is_stem(&self) -> bool {
+        matches!(self, Self::TrunkPlain | Self::BasePlainA | Self::BasePlainD | Self::BasePlainAD)
+    }
+
     pub const fn texture_width(&self) -> u32 {
         match self {
-            TreeFrameType::BranchLeftLeaves | TreeFrameType::BranchRightLeaves => 2,
-            TreeFrameType::TopLeaves => 3,
+            Self::BranchLeftLeaves | Self::BranchRightLeaves => 2,
+            Self::TopLeaves => 3,
             _ => 64
         }
     }
@@ -97,23 +101,23 @@ pub enum TreeType {
 pub struct Tree {
     pub tree_type: TreeType,
     pub frame_type: TreeFrameType,
-    pub variant: usize
+    pub variant: u32
 }
 
 impl Tree {
-    pub const fn new(tree_type: TreeType, frame_type: TreeFrameType, variant: usize) -> Self {
+    pub const fn new(tree_type: TreeType, frame_type: TreeFrameType, variant: u32) -> Self {
+        assert!(variant < 3, "Frame variant must be in range of 0 to 3");
+
         Self { tree_type, frame_type, variant }
     }
 
     pub const fn terraria_frame(&self) -> TerrariaFrame {
-        assert!(self.variant < 3, "Frame variant must be in range of 0 to 3");
-
-        self.frame_type.terraria_frame(self.tree_type)[self.variant]
+        self.frame_type.terraria_frame(self.tree_type)[self.variant as usize]
     }
     
     pub const fn texture_atlas_pos(&self) -> u32 {
         self.frame_type
-            .texture_atlas_pos(self.tree_type, self.variant as u32)
+            .texture_atlas_pos(self.tree_type, self.variant)
             .to_2d_index(self.frame_type.texture_width())
     }
 }

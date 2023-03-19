@@ -140,37 +140,45 @@ impl WorldData {
         false
     }
 
-    pub fn get_block_neighbors<Pos: AsTilePos>(&self, tile_pos: Pos) -> Neighbors<&Block> {
+    pub fn get_block_neighbors<Pos: AsTilePos>(&self, tile_pos: Pos, solid: bool) -> Neighbors<&Block> {
         let pos = TilePos::new(tile_pos.x() as u32, tile_pos.y() as u32);
         let map_size = TilemapSize {
             x: self.size.width as u32,
             y: self.size.height as u32,
         };
 
+        let get_block = move |pos: TilePos| -> Option<&Block> {
+            if solid {
+                self.get_solid_block(pos)
+            } else {
+                self.get_block(pos)
+            }
+        };
+
         Neighbors {
             west: SquarePos::from(&pos).offset(&SquareDirection::West).as_tile_pos(&map_size)
-                .and_then(|pos| self.get_solid_block(pos)),
+                .and_then(get_block),
 
             east: SquarePos::from(&pos).offset(&SquareDirection::East).as_tile_pos(&map_size)
-                .and_then(|pos| self.get_solid_block(pos)),
+                .and_then(get_block),
 
             north: SquarePos::from(&pos).offset(&SquareDirection::South).as_tile_pos(&map_size)
-                .and_then(|pos| self.get_solid_block(pos)),
+                .and_then(get_block),
 
             south: SquarePos::from(&pos).offset(&SquareDirection::North).as_tile_pos(&map_size)
-                .and_then(|pos| self.get_solid_block(pos)),
+                .and_then(get_block),
 
             north_west: SquarePos::from(&pos).offset(&SquareDirection::SouthWest).as_tile_pos(&map_size)
-                .and_then(|pos| self.get_solid_block(pos)),
+                .and_then(get_block),
 
             south_west: SquarePos::from(&pos).offset(&SquareDirection::NorthWest).as_tile_pos(&map_size)
-                .and_then(|pos| self.get_solid_block(pos)),
+                .and_then(get_block),
 
             south_east: SquarePos::from(&pos).offset(&SquareDirection::NorthEast).as_tile_pos(&map_size)
-                .and_then(|pos| self.get_solid_block(pos)),
+                .and_then(get_block),
             
             north_east: SquarePos::from(&pos).offset(&SquareDirection::SouthEast).as_tile_pos(&map_size)
-                .and_then(|pos| self.get_solid_block(pos)),
+                .and_then(get_block),
         }
     }
 

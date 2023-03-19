@@ -27,28 +27,23 @@ var<uniform> player_position: vec2<f32>;
 @group(1) @binding(7)
 var<uniform> camera_scale: f32;
 
-fn blur(texture: texture_2d<f32>, texture_sampler: sampler, resolution: vec2<f32>, uv: vec2<f32>) -> vec4<f32> {
-    let Pi = 6.28318530718; // Pi*2
-    
-    // GAUSSIAN BLUR SETTINGS {{{
-    let Directions = 16.; // BLUR DIRECTIONS (Default 16.0 - More is better but slower)
-    let Quality = 3.; // BLUR QUALITY (Default 4.0 - More is better but slower)
-    let Size = 1.5; // BLUR SIZE (Radius)
-    // GAUSSIAN BLUR SETTINGS }}}
+fn blur(texture: texture_2d<f32>, texture_sampler: sampler, resolution: vec2<f32>, uv: vec2<f32>, directions: f32, quality: f32) -> vec4<f32> {
+    let Size: f32 = 1.5; // BLUR SIZE (Radius)
+    let Pi: f32 = 6.28318530718; // Pi*2
    
     let Radius = Size/resolution;
     // Pixel colour
     var Color = textureSample(texture, texture_sampler, uv);
     
     // Blur calculations
-    for (var d = 0.0; d < Pi; d += Pi / Directions) {
-		for (var i = 1.0 / Quality; i <= 1.0; i += 1.0 / Quality) {
+    for (var d = 0.0; d < Pi; d += Pi / directions) {
+		for (var i = 1.0 / quality; i <= 1.0; i += 1.0 / quality) {
 			Color += textureSample(texture, texture_sampler, uv+vec2(cos(d),sin(d))*Radius*i);
         }
     }
     
     // Output to screen
-    Color /= Quality * Directions - 15.0;
+    Color /= quality * directions - 15.0;
 
     return Color;
 }
@@ -97,14 +92,14 @@ fn fragment(
     var in_irradiance = vec4(0.);
 
     if (in_irradiance_uv.x >= 0. && in_irradiance_uv.x <= 1.) && (in_irradiance_uv.y >= 0. && in_irradiance_uv.y <= 1.) {
-        in_irradiance = blur(in_irradiance_texture, in_irradiance_texture_sampler, view.viewport.zw, in_irradiance_uv);
+        in_irradiance = blur(in_irradiance_texture, in_irradiance_texture_sampler, view.viewport.zw, in_irradiance_uv, 16.0, 3.0);
     }
 
     var light_map_color = vec4(1.);
     {
         let uv = light_map_uv + player_uv;
-        if (uv.x >= -0.00025) && (uv.x <= 1.) && (uv.y >= 0.) && (uv.y <= 1.0015) {
-            light_map_color = blur(light_map_texture, light_map_texture_sampler, view.viewport.zw, light_map_uv + player_uv);
+        if (uv.x >= -0.00025) && (uv.x <= 1.00025) && (uv.y >= 0.) && (uv.y <= 1.0015) {
+            light_map_color = blur(light_map_texture, light_map_texture_sampler, view.viewport.zw, light_map_uv + player_uv, 16.0, 3.0);
         }
     }
 
