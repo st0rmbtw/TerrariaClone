@@ -10,11 +10,20 @@ use game::{
     parallax::ParallaxPlugin,
     common::state::GameState, 
     plugins::{
-        assets::AssetsPlugin, cursor::CursorPlugin, camera::{CameraPlugin, UpdateLightEvent}, background::BackgroundPlugin, 
-        ui::PlayerUiPlugin, settings::{SettingsPlugin, Resolution, VSync, FullScreen}, menu::MenuPlugin, world::WorldPlugin, 
-        inventory::PlayerInventoryPlugin, fps::FpsPlugin, settings_menu::SettingsMenuPlugin, player::PlayerPlugin
+        assets::AssetsPlugin,
+        cursor::CursorPlugin,
+        fps::FpsPlugin,
+        menu::MenuPlugin,
+        world::WorldPlugin, 
+        inventory::PlayerInventoryPlugin,
+        player::PlayerPlugin,
+        ui::PlayerUiPlugin,
+        background::BackgroundPlugin,
+        camera::{CameraPlugin, UpdateLightEvent},
+        settings::{SettingsPlugin, Resolution, VSync, FullScreen},
     }, 
-    language::{load_language, Language}, lighting::LightingPlugin, DebugConfiguration,
+    language::{load_language, Language},
+    lighting::LightingPlugin, DebugConfiguration,
 };
 use rand::seq::SliceRandom;
 
@@ -77,7 +86,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         .add_plugin(HanabiPlugin)
 
         .add_plugin(CursorPlugin)
-        .add_plugin(SettingsMenuPlugin)
         .add_plugin(CameraPlugin)
         .add_plugin(LightingPlugin)
         .add_plugin(ParallaxPlugin { initial_speed: 0.15 })

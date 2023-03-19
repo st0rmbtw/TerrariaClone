@@ -1,6 +1,7 @@
+mod settings;
+mod celestial_body;
 mod components;
 mod systems;
-mod celestial_body;
 mod role;
 
 pub use components::*;
@@ -10,7 +11,7 @@ use bevy::prelude::{Plugin, App, IntoSystemAppConfig, IntoSystemConfigs, IntoSys
 
 use crate::{common::{state::{GameState, MenuState}, conditions::{on_btn_clicked, in_menu_state}}, parallax::move_background_system};
 
-use self::celestial_body::CelestialBodyPlugin;
+use self::{celestial_body::CelestialBodyPlugin, settings::SettingsMenuPlugin};
 
 use super::camera::MainCamera;
 
@@ -19,6 +20,7 @@ pub struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(CelestialBodyPlugin);
+        app.add_plugin(SettingsMenuPlugin);
 
         app.add_system(setup_camera.on_startup());
         app.add_system(spawn_menu_container.in_schedule(OnExit(GameState::AssetLoading)));

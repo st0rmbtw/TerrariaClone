@@ -1,4 +1,4 @@
-use bevy::{prelude::{App, Plugin,IntoSystemConfig, OnUpdate, ResMut, Commands, TextBundle, Res, Color, IntoSystemAppConfig, OnEnter, Component, Query, Visibility, With, DetectChanges, Name}, utils::default, text::{Text, TextSection, TextStyle}, ui::{Style, UiRect, Val, PositionType}};
+use bevy::{prelude::{App, Plugin,IntoSystemConfig, OnUpdate, ResMut, Commands, TextBundle, Res, Color, IntoSystemAppConfig, OnEnter, Component, Query, Visibility, With, DetectChanges, Name}, utils::default, text::{Text, TextSection, TextStyle}, ui::{Style, UiRect, Val, PositionType}, sprite::TextureAtlasSprite};
 use bevy_inspector_egui::{bevy_egui::{EguiPlugin, egui, EguiContexts}, egui::Align2, quick::{WorldInspectorPlugin}};
 
 use crate::{common::{state::GameState, helpers}, DebugConfiguration};
@@ -10,6 +10,8 @@ pub struct DebugPlugin;
 impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<CursorPosition>();
+        app.register_type::<TextureAtlasSprite>();
+
         app.add_plugin(EguiPlugin);
         app.add_plugin(DebugLinesPlugin::default());
         app.add_plugin(WorldInspectorPlugin::new());

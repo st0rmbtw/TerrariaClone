@@ -1,16 +1,53 @@
-mod buttons;
-pub use buttons::*;
-
 use autodefault::autodefault;
-use bevy::{prelude::{Component, Commands, Res, ResMut, Query, With, Local, NextState, Entity}, text::{TextStyle, Text}, window::{Window, WindowResolution}};
+use bevy::{prelude::{Component, Commands, Res, ResMut, Query, With, Local, NextState, Entity, Plugin, App, OnEnter, OnExit, OnUpdate, IntoSystemConfig, IntoSystemAppConfig, IntoSystemConfigs}, text::{TextStyle, Text}, window::{Window, WindowResolution}};
 
-use crate::{plugins::{assets::FontAssets, settings_menu::{MENU_BUTTON_FONT_SIZE, BackButton, ApplyButton}, menu::{menu_button, control_buttons_layout, control_button, menu, MenuContainer}, settings::{FullScreen, Resolution, RESOLUTIONS}}, language::LanguageContent, TEXT_COLOR, common::state::{SettingsMenuState, GameState, MenuState}};
+use crate::{
+    language::LanguageContent,
+    common::{state::{SettingsMenuState, GameState, MenuState}, conditions::on_btn_clicked},
+    plugins::{
+        assets::FontAssets, 
+        menu::{
+            menu_button, control_buttons_layout, control_button, menu, MenuContainer,
+            settings::{BackButton, ApplyButton, MENU_BUTTON_FONT_SIZE}, despawn_with
+        }, 
+        settings::{FullScreen, Resolution, RESOLUTIONS}
+    }, 
+    TEXT_COLOR
+};
+
+pub(super) struct ResolutionMenuPlugin;
+
+impl Plugin for ResolutionMenuPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_system(setup_resolution_menu.in_schedule(OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution)))));
+        app.add_system(despawn_with::<ResolutionMenu>.in_schedule(OnExit(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution)))));
+
+        app.add_systems(
+            (
+                update_fullscreen_resolution_button_text,
+                update_resolution_button_text,
+                fullscreen_resolution_clicked.run_if(on_btn_clicked::<FullScreenResolutionButton>),
+                fullscreen_clicked.run_if(on_btn_clicked::<FullScreenButton>),
+                apply_clicked.run_if(on_btn_clicked::<ApplyButton>),
+                back_clicked.run_if(on_btn_clicked::<BackButton>),
+            )
+            .chain()
+            .in_set(OnUpdate(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution))))
+        );
+    }
+}
 
 #[derive(Component)]
-pub struct ResolutionMenu;
+struct ResolutionMenu;
+
+#[derive(Component, Clone)]
+struct FullScreenResolutionButton;
+
+#[derive(Component, Clone)]
+struct FullScreenButton;
 
 #[autodefault]
-pub fn setup_resolution_menu(
+fn setup_resolution_menu(
     mut commands: Commands,
     fonts: Res<FontAssets>,
     language_content: Res<LanguageContent>,
@@ -35,7 +72,7 @@ pub fn setup_resolution_menu(
     });
 }
 
-pub fn fullscreen_resolution_clicked(
+fn fullscreen_resolution_clicked(
     mut resolution_index: Local<usize>,
     mut resolution: ResMut<Resolution> 
 ) {
@@ -44,15 +81,15 @@ pub fn fullscreen_resolution_clicked(
     *resolution = RESOLUTIONS[*resolution_index];
 }
 
-pub fn fullscreen_clicked(mut fullscreen: ResMut<FullScreen>) {
+fn fullscreen_clicked(mut fullscreen: ResMut<FullScreen>) {
     fullscreen.0 = !fullscreen.0;
 }
 
-pub fn back_clicked(mut next_state: ResMut<NextState<GameState>>) {
+fn back_clicked(mut next_state: ResMut<NextState<GameState>>) {
     next_state.set(GameState::Menu(MenuState::Settings(SettingsMenuState::Video)));
 }
 
-pub fn apply_clicked(
+fn apply_clicked(
     mut next_state: ResMut<NextState<GameState>>,
     mut window: Query<&mut Window>,
     fullscreen: Res<FullScreen>,
@@ -65,7 +102,7 @@ pub fn apply_clicked(
     next_state.set(GameState::Menu(MenuState::Settings(SettingsMenuState::Video)));
 }
 
-pub fn update_fullscreen_resolution_button_text(
+fn update_fullscreen_resolution_button_text(
     mut query: Query<&mut Text, With<FullScreenResolutionButton>>,
     resolution: Res<Resolution>,
     language_content: Res<LanguageContent>
@@ -77,7 +114,7 @@ pub fn update_fullscreen_resolution_button_text(
     text.sections[0].value = format!("{} {}", language_content.ui.full_screen_resolution, resolution_str);
 }
 
-pub fn update_resolution_button_text(
+fn update_resolution_button_text(
     mut query: Query<&mut Text, With<FullScreenButton>>,
     fullscreen: Res<FullScreen>,
     language_content: Res<LanguageContent>
