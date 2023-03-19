@@ -233,9 +233,6 @@ pub struct FontAssets {
 
 #[derive(Resource, AssetCollection)]
 pub struct ItemAssets {
-    #[asset(path = "sprites/items/Item_0.png")]
-    no_item: Handle<Image>,
-
     #[asset(path = "sprites/items/Item_2.png")]
     pub dirt_block: Handle<Image>,
 
@@ -376,7 +373,7 @@ impl WallAssets {
 
 impl ItemAssets {
     pub fn no_item(&self) -> Handle<Image> {
-        self.no_item.clone_weak()
+        Handle::<Image>::default()
     }
 
     pub fn get_by_item(&self, item: Item) -> Handle<Image> {

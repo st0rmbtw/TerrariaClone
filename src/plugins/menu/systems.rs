@@ -6,7 +6,7 @@ use interpolation::EaseFunction;
 
 use crate::{animation::{Tween, Animator, AnimatorState, TweeningDirection, RepeatStrategy, Tweenable, EaseMethod, RepeatCount}, parallax::ParallaxCameraComponent, plugins::{camera::MainCamera, assets::{FontAssets, UiAssets, SoundAssets}, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor}, settings_menu::{MENU_BUTTON_FONT_SIZE}}, TEXT_COLOR, common::{state::{GameState, SettingsMenuState, MenuState}, lens::{TextFontSizeLens, TransformLens}}, language::LanguageContent};
 
-use super::{Menu, SinglePlayerButton, SettingsButton, ExitButton, MenuContainer};
+use super::{Menu, SinglePlayerButton, SettingsButton, ExitButton, MenuContainer, role::ButtonRole};
 
 pub fn despawn_with<C: Component>(query: Query<Entity, With<C>>, mut commands: Commands) {
     for entity in &query {
@@ -59,7 +59,8 @@ pub fn menu_button(
             .insert(Button)
             .insert(Interaction::default())
             .insert(Animator::new(text_tween(text_style.font_size)).with_state(AnimatorState::Paused))
-            .insert(marker);
+            .insert(marker)
+            .insert(ButtonRole::MenuButton);
         });
 }
 
@@ -106,7 +107,8 @@ pub fn control_button(
             .insert(Button)
             .insert(Interaction::default())
             .insert(Animator::new(text_tween(MENU_BUTTON_FONT_SIZE)).with_state(AnimatorState::Paused))
-            .insert(marker);
+            .insert(marker)
+            .insert(ButtonRole::ControlButton);
         });
 }
 
@@ -229,16 +231,15 @@ pub(super) fn setup_main_menu(
     });
 }
 
-pub fn update_buttons(
+pub(super) fn update_buttons(
     mut query: Query<
-        (&Interaction, &mut Text, &mut Animator<Text>),
+        (&Interaction, &mut Text, &mut Animator<Text>, &ButtonRole),
         (With<Button>, Changed<Interaction>),
     >,
     audio: Res<Audio>,
     sounds: Res<SoundAssets>
 ) {
-    for (interaction, mut text, mut animator) in query.iter_mut() {
-
+    for (interaction, mut text, mut animator, role) in query.iter_mut() {
         match interaction {
             Interaction::Hovered => {
                 audio.play(sounds.menu_tick.clone_weak());
@@ -258,7 +259,16 @@ pub fn update_buttons(
                 tweenable.set_progress(1. - tweenable.progress());
                 tweenable.set_direction(TweeningDirection::Backward);
             }
-            _ => {}
+            Interaction::Clicked => {
+                match role {
+                    ButtonRole::MenuButton => {
+                        audio.play(sounds.menu_open.clone_weak());
+                    },
+                    ButtonRole::ControlButton => {
+                        audio.play(sounds.menu_close.clone_weak());
+                    },
+                }
+            }
         }
     }
 }

@@ -1,6 +1,7 @@
 mod components;
 mod systems;
 mod celestial_body;
+mod role;
 
 pub use components::*;
 pub use systems::*;

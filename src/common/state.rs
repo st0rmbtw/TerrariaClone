@@ -10,21 +10,20 @@ pub enum GameState {
     Paused
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd)]
 pub enum MenuState {
     Main,
     Settings(SettingsMenuState)
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, PartialOrd)]
 pub enum SettingsMenuState {
     #[default]
-    None,
+    Main,
     Interface,
     Video,
-    Cursor,
     Resolution,
-    Main
+    Cursor,
 }
 
 impl States for GameState {

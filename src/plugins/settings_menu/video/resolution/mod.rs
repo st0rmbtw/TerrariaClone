@@ -53,6 +53,7 @@ pub fn back_clicked(mut next_state: ResMut<NextState<GameState>>) {
 }
 
 pub fn apply_clicked(
+    mut next_state: ResMut<NextState<GameState>>,
     mut window: Query<&mut Window>,
     fullscreen: Res<FullScreen>,
     resolution: Res<Resolution>
@@ -60,6 +61,8 @@ pub fn apply_clicked(
     let mut primary_window = window.single_mut();
     primary_window.mode = fullscreen.as_window_mode();
     primary_window.resolution = WindowResolution::new(resolution.width, resolution.height);
+    
+    next_state.set(GameState::Menu(MenuState::Settings(SettingsMenuState::Video)));
 }
 
 pub fn update_fullscreen_resolution_button_text(
