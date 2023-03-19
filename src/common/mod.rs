@@ -1,5 +1,7 @@
 use std::ops::Add;
 
+use bevy::prelude::Component;
+
 pub mod conditions;
 pub mod extensions;
 pub mod helpers;
