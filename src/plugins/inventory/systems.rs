@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use autodefault::autodefault;
 use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color, MouseButton, EventWriter, Audio, Local, DetectChanges}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, Size, PositionType, AlignContent, Interaction, BackgroundColor, ZIndex}, text::{Text, TextStyle, TextAlignment}};
 
-use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets, SoundAssets}, cursor::{HoveredInfo, CursorPosition}, world::{DigBlockEvent, PlaceBlockEvent}}, common::{extensions::EntityCommandsExtensions, helpers}, language::LanguageContent, items::Item};
+use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets, SoundAssets}, cursor::{HoveredInfo, CursorPosition}, world::{DigBlockEvent, PlaceBlockEvent}}, common::{extensions::EntityCommandsExtensions, helpers}, language::LanguageContent, items::Item, DebugConfiguration};
 
 use super::{Inventory, HOTBAR_LENGTH, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, CELL_COUNT_IN_ROW, INVENTORY_ROWS_COUNT, HotbarUi, util::keycode_to_digit};
 
@@ -122,7 +122,7 @@ pub fn spawn_inventory_ui(
 }
 
 #[autodefault(except(InventoryCell))]
-pub fn spawn_inventory_cell(
+fn spawn_inventory_cell(
     children: &mut ChildBuilder<'_, '_, '_>,
     name: impl Into<Cow<'static, str>>,
     cell_background: Handle<Image>,
@@ -211,7 +211,7 @@ pub fn spawn_inventory_cell(
         .insert(Interaction::default());
 }
 
-pub fn update_inventory_visibility(
+pub(super) fn update_inventory_visibility(
     mut query: Query<&mut Visibility, With<InventoryUi>>,
     mut events: EventReader<ToggleExtraUiEvent>,
 ) {
@@ -222,7 +222,7 @@ pub fn update_inventory_visibility(
     }
 }
 
-pub fn update_selected_cell_size(
+pub(super) fn update_selected_cell_size(
     inventory: Res<Inventory>,
     mut hotbar_cells: Query<(&InventoryCellIndex, &mut Style), With<HotbarCellMarker>>,
     visibility: Res<ExtraUiVisibility>,
@@ -238,7 +238,7 @@ pub fn update_selected_cell_size(
     }
 }
 
-pub fn update_selected_cell_image(
+pub(super) fn update_selected_cell_image(
     inventory: Res<Inventory>,
     mut hotbar_cells: Query<(&InventoryCellIndex, &mut UiImage), With<HotbarCellMarker>>,
     ui_assets: Res<UiAssets>,
@@ -255,7 +255,7 @@ pub fn update_selected_cell_image(
     }
 }
 
-pub fn select_inventory_cell(
+pub(super) fn select_inventory_cell(
     mut inventory: ResMut<Inventory>, 
     input: Res<Input<KeyCode>>,
     sounds: Res<SoundAssets>,
@@ -272,7 +272,7 @@ pub fn select_inventory_cell(
     }
 }
 
-pub fn scroll_select_inventory_item(
+pub(super) fn scroll_select_inventory_item(
     mut inventory: ResMut<Inventory>, 
     mut events: EventReader<MouseWheel>,
     sounds: Res<SoundAssets>,
@@ -290,13 +290,13 @@ pub fn scroll_select_inventory_item(
     }
 }
 
-pub fn set_selected_item(inventory: Res<Inventory>, mut selected_item: ResMut<SelectedItem>) {
+pub(super) fn set_selected_item(inventory: Res<Inventory>, mut selected_item: ResMut<SelectedItem>) {
     if inventory.is_changed() {
         selected_item.0 = inventory.selected_item();
     }
 }
 
-pub fn update_selected_item_name_alignment(
+pub(super) fn update_selected_item_name_alignment(
     mut selected_item_name_query: Query<&mut Style, With<SelectedItemNameMarker>>,
     mut events: EventReader<ToggleExtraUiEvent>,
 ) {
@@ -310,7 +310,7 @@ pub fn update_selected_item_name_alignment(
     }
 }
 
-pub fn update_selected_item_name_text(
+pub(super) fn update_selected_item_name_text(
     mut selected_item_name_query: Query<&mut Text, With<SelectedItemNameMarker>>,
     current_item: Res<SelectedItem>,
     extra_ui_visibility: Res<ExtraUiVisibility>,
@@ -332,7 +332,7 @@ pub fn update_selected_item_name_text(
     }
 }
 
-pub fn update_cell(
+pub(super) fn update_cell(
     inventory: Res<Inventory>,
     mut item_images: Query<(&mut InventoryCellItemImage, &InventoryCellIndex)>,
     item_assets: Res<ItemAssets>,
@@ -347,7 +347,7 @@ pub fn update_cell(
     }
 }
 
-pub fn update_cell_image(
+pub(super) fn update_cell_image(
     mut query: Query<(&mut UiImage, &InventoryCellItemImage), Changed<InventoryCellItemImage>>,
 ) {
     for (mut image, item_image) in &mut query {
@@ -355,7 +355,7 @@ pub fn update_cell_image(
     }
 }
 
-pub fn update_item_amount(
+pub(super) fn update_item_amount(
     inventory: Res<Inventory>,
     mut query: Query<(&mut InventoryItemAmount, &InventoryCellIndex)>,
 ) {
@@ -371,7 +371,7 @@ pub fn update_item_amount(
     }
 }
 
-pub fn update_item_amount_text(
+pub(super) fn update_item_amount_text(
     mut query: Query<(&mut Text, &mut Visibility, &InventoryItemAmount), Changed<InventoryItemAmount>>,
 ) {
     for (mut text, mut visibility, item_stack) in &mut query {
@@ -384,7 +384,7 @@ pub fn update_item_amount_text(
     }
 }
 
-pub fn inventory_cell_background_hover(
+pub(super) fn inventory_cell_background_hover(
     query: Query<(&Interaction, &InventoryCellIndex), Changed<Interaction>>,
     inventory: Res<Inventory>,
     mut info: ResMut<HoveredInfo>,
@@ -408,15 +408,21 @@ pub fn inventory_cell_background_hover(
     }
 }
 
-pub fn use_item(
+#[cfg(feature = "debug")]
+use crate::plugins::world::BreakBlockEvent;
+
+pub(super) fn use_item(
     input: Res<Input<MouseButton>>,
     cursor: Res<CursorPosition>,
     inventory: Res<Inventory>,
+    debug_config: Res<DebugConfiguration>,
     mut dig_block_events: EventWriter<DigBlockEvent>,
     mut place_block_events: EventWriter<PlaceBlockEvent>,
-    mut frame: Local<u32>
+    #[cfg(feature = "debug")]
+    mut break_block_events: EventWriter<BreakBlockEvent>,
+    mut frame: Local<u32>,
 ) {
-    if *frame > 0 {
+    if *frame > 0 && !debug_config.instant_break {
         *frame -= 1;
         return;
     }
@@ -429,9 +435,12 @@ pub fn use_item(
 
             match item_stack.item {
                 Item::Tool(tool) => {
-                    dig_block_events.send(
-                        DigBlockEvent { tile_pos, tool }
-                    );
+                    if debug_config.instant_break {
+                        #[cfg(feature = "debug")]
+                        break_block_events.send(BreakBlockEvent { tile_pos });
+                    } else {
+                        dig_block_events.send(DigBlockEvent { tile_pos, tool });
+                    }
 
                     *frame = tool.cooldown();
                 },

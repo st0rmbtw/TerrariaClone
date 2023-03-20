@@ -8,7 +8,7 @@ mod world;
 mod block;
 mod wall;
 mod tree;
-mod light;
+pub mod light;
 
 pub use chunk::*;
 pub use events::*;

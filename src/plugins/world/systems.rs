@@ -331,7 +331,11 @@ pub(super) fn handle_break_block_event(
     mut update_light_events: EventWriter<UpdateLightEvent>,
     mut update_neighbors_ew: EventWriter<UpdateNeighborsEvent>,
     mut query_chunk: Query<(&Chunk, &mut TileStorage)>,
+    sound_assets: Res<SoundAssets>,
+    audio: Res<Audio>
 ) {
+    let mut rng = thread_rng();
+
     for BreakBlockEvent { tile_pos } in break_block_events.iter() {
         let map_tile_pos = TilePos { x: tile_pos.x as u32, y: tile_pos.y as u32 };
 
@@ -347,10 +351,11 @@ pub(super) fn handle_break_block_event(
                 ChunkManager::remove_block(&mut commands, &mut query_chunk, chunk_pos, chunk_tile_pos, block.block_type);
 
                 update_light_events.send(UpdateLightEvent {
-                    tile_pos: map_tile_pos,
-                    color: 0xFF
+                    tile_pos: map_tile_pos
                 });
             }
+
+            audio.play(sound_assets.get_by_block(block.block_type, &mut rng));
 
             update_neighbors_ew.send(UpdateNeighborsEvent { 
                 tile_pos: map_tile_pos,
@@ -379,9 +384,9 @@ pub(super) fn handle_dig_block_event(
 
                 if block.hp <= 0 {
                     break_block_events.send(BreakBlockEvent { tile_pos: *tile_pos });
+                } else {
+                    audio.play(sound_assets.get_by_block(block.block_type, &mut rng));
                 }
-
-                audio.play(sound_assets.get_by_block(block.block_type, &mut rng));
             }
         }
     }
@@ -423,8 +428,7 @@ pub(super) fn handle_place_block_event(
             });
 
             update_light_events.send(UpdateLightEvent {
-                tile_pos: map_tile_pos,
-                color: 0
+                tile_pos: map_tile_pos
             });
 
             audio.play(sound_assets.get_by_block(block.block_type, &mut rng));

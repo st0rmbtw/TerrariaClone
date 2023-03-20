@@ -15,10 +15,11 @@ use bevy::{
     sprite::{Material2d, MaterialMesh2dBundle, Material2dKey},
     window::{WindowResized, PrimaryWindow}, core_pipeline::fullscreen_vertex_shader::FULLSCREEN_SHADER_HANDLE, utils::Hashed,
 };
+use bevy_ecs_tilemap::helpers::square_grid::neighbors::Neighbors;
 
 use crate::{
     plugins::{
-        world::LightMap,
+        world::{LightMap, WorldData, light::propagate_light},
         camera::{MainCamera, UpdateLightEvent}
     },
 };
@@ -153,7 +154,8 @@ pub fn update_light_map(
     mut update_light_events: EventReader<UpdateLightEvent>,
     post_processing_materials: Res<Assets<PostProcessingMaterial>>,
     mut images: ResMut<Assets<Image>>,
-    mut light_map: ResMut<LightMap>
+    mut light_map: ResMut<LightMap>,
+    world_data: Res<WorldData>
 ) {
     if let Ok(lighting_material_handle) = cameras.get_single() {
         if !update_light_events.is_empty() {
@@ -162,12 +164,20 @@ pub fn update_light_map(
                 .unwrap();
             let light_map_texture = images.get_mut(&lighting_material.shadow_map_image).unwrap();
 
-            for UpdateLightEvent { tile_pos, color } in update_light_events.iter() {
-                let x = tile_pos.x as usize;
+            for UpdateLightEvent { tile_pos } in update_light_events.iter() {
                 let y = tile_pos.y as usize;
-                
-                light_map.colors[(y, x)] = *color;
+                let x = tile_pos.x as usize;
+
+                propagate_light(x, y, 1, &mut light_map.colors, &world_data);
                 update_light_map_texture(x, y, &light_map, &mut light_map_texture.data);
+
+                let neighbors = Neighbors::get_square_neighboring_positions(tile_pos, &world_data.size.as_tilemap_size(), true);
+                for tile_pos in neighbors.iter() {
+                    let y = tile_pos.y as usize;
+                    let x = tile_pos.x as usize;
+                    propagate_light(x, y, 1, &mut light_map.colors, &world_data);
+                    update_light_map_texture(x, y, &light_map, &mut light_map_texture.data);
+                }
             }
         }
     }

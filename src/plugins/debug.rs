@@ -37,6 +37,7 @@ fn debug_gui(
         .show(egui_context, |ui| {
             ui.checkbox(&mut debug_config.free_camera, "Free Camera");
             ui.checkbox(&mut debug_config.show_hitboxes, "Show Hitboxes");
+            ui.checkbox(&mut debug_config.instant_break, "Break tiles instantly");
         });
 }
 

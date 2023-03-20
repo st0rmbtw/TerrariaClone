@@ -16,11 +16,9 @@ pub(super) fn generate_light_map(world: &WorldData) -> LightMap {
             let block = world.get_solid_block((x / cluster_size, y / cluster_size));
             let wall = world.get_wall((x / cluster_size, y / cluster_size));
 
-            if block.is_some() {
-                light_map[(y, x)] = 0;
-            } else if wall.is_some() {
+            if wall.is_some() {
                 light_map[(y, x)] = 30;
-            } else {
+            } else if block.is_none() {
                 light_map[(y, x)] = 255;
             }
         }
@@ -41,51 +39,30 @@ pub(super) fn generate_light_map(world: &WorldData) -> LightMap {
     light_map
 }
 
-fn propagate_light(x: usize, y: usize, cluster_size: usize, light_map: &mut Array2<u8>, world: &WorldData) { 
-    if x >= light_map.ncols() - 1 { return; }
-    if y >= light_map.nrows() - 1 { return; }
+pub fn propagate_light(x: usize, y: usize, cluster_size: usize, light_map: &mut LightMap, world: &WorldData) { 
+    if x >= world.size.width - 1 { return; }
+    if y >= world.size.height - 1 { return; }
 
     if x.checked_sub(1).is_none() { return; }
     if y.checked_sub(1).is_none() { return; }
 
     let light_pass = if world.solid_block_exists((x / cluster_size, y / cluster_size)) { 
-        36
+        50
     } else if world.wall_exists((x / cluster_size, y / cluster_size)) {
-        40
+        38
     } else {
+        light_map[(y, x)] = 255;
         return;
     };
 
-    if light_map[(y, x - 1)] > light_map[(y, x)] { 
-        light_map[(y, x)] = light_map[(y, x - 1)].saturating_sub(light_pass);
-    }
+    let neighbors = [
+       light_map[(y, x - 1)],
+       light_map[(y, x + 1)],
+       light_map[(y + 1, x)],
+       light_map[(y - 1, x)],
+    ];
 
-    if light_map[(y - 1, x)] > light_map[(y, x)] { 
-        light_map[(y, x)] = light_map[(y - 1, x)].saturating_sub(light_pass);
-    }
+    let max_light = neighbors.iter().max().unwrap();
 
-    if light_map[(y, x + 1)] > light_map[(y, x)] { 
-        light_map[(y, x)] = light_map[(y, x + 1)].saturating_sub(light_pass);
-    }
-
-    if light_map[(y + 1, x)] > light_map[(y, x)] { 
-        light_map[(y, x)] = light_map[(y + 1, x)].saturating_sub(light_pass);
-    }
-
-
-    // if light_map[(y - 1, x - 1)] > light_map[(y, x)] { 
-    //     light_map[(y, x)] = light_map[(y - 1, x - 1)].saturating_sub(light_pass);
-    // }
-
-    // if light_map[(y + 1, x + 1)] > light_map[(y, x)] { 
-    //     light_map[(y, x)] = light_map[(y + 1, x + 1)].saturating_sub(light_pass);
-    // }
-
-    // if light_map[(y + 1, x - 1)] > light_map[(y, x)] { 
-    //     light_map[(y, x)] = light_map[(y + 1, x - 1)].saturating_sub(light_pass);
-    // }
-
-    // if light_map[(y - 1, x + 1)] > light_map[(y, x)] { 
-    //     light_map[(y, x)] = light_map[(y - 1, x + 1)].saturating_sub(light_pass);
-    // }
+    light_map[(y, x)] = max_light.saturating_sub(light_pass);
 }

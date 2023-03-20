@@ -90,8 +90,8 @@ pub(super) fn detect_collisions(
 
     let left = ((position.x - PLAYER_HALF_WIDTH) / TILE_SIZE) - 1.;
     let right = ((position.x + PLAYER_HALF_WIDTH) / TILE_SIZE) + 2.;
-    let mut bottom = ((position.y + PLAYER_HALF_HEIGHT) / TILE_SIZE) + 3.;
     let mut top = ((position.y - PLAYER_HALF_HEIGHT) / TILE_SIZE) - 1.;
+    let mut bottom = ((position.y + PLAYER_HALF_HEIGHT) / TILE_SIZE) + 2.;
 
     bottom = bottom.clamp(0., world_data.size.height as f32);
     top = top.max(0.);
@@ -184,49 +184,24 @@ pub(super) fn move_player(
     const max_y: f32 = -PLAYER_HALF_HEIGHT;
 
     let new_position = (transform.translation.xy() + velocity.0).clamp(Vec2::new(min_x, min_y), Vec2::new(max_x, max_y));
-    
+    player_data.prev_position = transform.translation.xy();
+
     transform.translation.x = new_position.x;
     transform.translation.y = new_position.y;
-
-    player_data.prev_position = new_position;
-}
-
-pub(super) fn interpolate_player_transform(
-    time: Res<Time>,
-    player_data: Res<PlayerData>,
-    fixed_time: Res<FixedTime>,
-    mut player_query: Query<&mut Transform, With<Player>>,
-) {
-    let mut transform = player_query.single_mut();
-
-    let fixed_elapsed = fixed_time.accumulated().as_secs_f32();
-    let fixed_delta_time = fixed_time.period.as_secs_f32();
-    
-    let interpolation = (time.elapsed_seconds() - fixed_elapsed) / fixed_delta_time;
-
-    let interpolated = player_data.prev_position.lerp(transform.translation.xy(), interpolation);
-    
-    transform.translation.x = interpolated.x;
-    transform.translation.y = interpolated.y;
 }
 
 pub(super) fn spawn_particles(
-    player: Query<(&MovementState, &FaceDirection, &PlayerParticleEffects), With<Player>>,
-    mut effects: Query<(&mut ParticleEffect, &mut Transform)>,
+    player: Query<(&MovementState, &PlayerParticleEffects), With<Player>>,
+    mut effects: Query<&mut ParticleEffect>,
+    collisions: Res<Collisions>
 ) {
-    for (movement_state, face_direction, particle_effects) in &player {
-        let (mut effect, mut effect_transform) = effects.get_mut(particle_effects.walking).unwrap();
+    let (movement_state, particle_effects) = player.single();
+    let mut effect = effects.get_mut(particle_effects.walking).unwrap();
 
-        effect_transform.translation = match face_direction {
-            FaceDirection::Left => Vec3::new(0., -PLAYER_HALF_HEIGHT, 0.),
-            FaceDirection::Right => Vec3::new(0., -PLAYER_HALF_HEIGHT, 0.),
-        };
-
-        effect
-            .maybe_spawner()
-            .unwrap()   
-            .set_active(*movement_state == MovementState::Walking);
-    }
+    effect
+        .maybe_spawner()
+        .unwrap()   
+        .set_active(*movement_state == MovementState::Walking && collisions.bottom);
 }
 
 pub(super) fn update_movement_state(
@@ -235,7 +210,6 @@ pub(super) fn update_movement_state(
     mut query: Query<&mut MovementState, With<Player>>,
 ) {
     let mut movement_state = query.single_mut();
-
     *movement_state = match velocity.0 {
         _ if (player_data.fall_distance.round() / 16.) > 1. || player_data.jump > 0 => MovementState::Flying,
         Vec2 { x, .. } if x != 0. => MovementState::Walking,

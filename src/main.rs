@@ -36,11 +36,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     app.add_plugin(SettingsPlugin);
 
-    let resolution = app.world.resource::<Resolution>();
-    let vsync = app.world.resource::<VSync>();
-    let fullscreen = app.world.resource::<FullScreen>();
+    let resolution = app.world.resource::<Resolution>().clone();
+    let vsync = app.world.resource::<VSync>().clone();
+    let fullscreen = app.world.resource::<FullScreen>().clone();
 
     app
+        .insert_resource(Msaa::Off)
         .add_plugins(DefaultPlugins
             .set(WindowPlugin {
                 primary_window: Some(Window { 
@@ -71,7 +72,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             render_chunk_size: UVec2::new(100, 100),
         })
         .insert_resource(language_content.clone())
-        .insert_resource(Msaa::Off)
         .insert_resource(ClearColor(Color::BLACK))
         .insert_resource(FixedTime::new_from_secs(1. / 60.))
         .init_resource::<DebugConfiguration>()

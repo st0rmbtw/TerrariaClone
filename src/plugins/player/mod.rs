@@ -134,6 +134,7 @@ impl Plugin for PlayerPlugin {
                 .run_if(in_state(GameState::InGame))
                 .in_set(PhysicsSet::Gravity)
                 .in_schedule(CoreSchedule::FixedUpdate)
+                .before(PhysicsSet::CollisionDetection)
         );
 
         app.add_system(
@@ -152,13 +153,6 @@ impl Plugin for PlayerPlugin {
                 .in_set(PhysicsSet::Movement)
                 .after(PhysicsSet::CollisionDetection)
         );
-
-        // app.add_system(
-        //     interpolate_player_transform
-        //         .run_if(in_state(GameState::InGame))
-        //         .run_if(|config: Res<DebugConfiguration>| !config.free_camera)
-        //         .in_set(PhysicsSet::Movement)
-        // );
 
         #[cfg(feature = "debug")]
         app.add_system(
@@ -406,40 +400,43 @@ fn spawn_player(
         })
         .id();
 
-    let mut gradient = Gradient::new();
-    gradient.add_key(0.0, Vec4::new(114. / 255., 81. / 255., 56. / 255., 1.));
+    let spawner = Spawner::rate(40.0.into());
 
-    let spawner = Spawner::rate(20.0.into());
-
-    // Create the effect asset
     let effect = effects.add(
         EffectAsset {
-            name: "MyEffect".to_string(),
-            // Maximum number of particles alive at a time
-            capacity: 30,
+            name: "PlayerFeetDust".to_string(),
+            capacity: 50,
             spawner,
+            z_layer_2d: 10.,
         }
         .init(InitPositionCone3dModifier {
-            base_radius: 0.5,
-            top_radius: 0.,
+            base_radius: 5.,
+            top_radius: 5.,
             height: 1.,
-            dimension: ShapeDimension::Volume,
+            dimension: ShapeDimension::Surface,
         })
         .init(InitVelocitySphereModifier {
             speed: 10.0.into()
         })
-        .update(AccelModifier::constant(Vec3::new(0., 0., 0.)))
-        // Render the particles with a color gradient over their
-        // lifetime.
-        .render(SizeOverLifetimeModifier {
-            gradient: Gradient::constant(Vec2::splat(3.)),
+        .init(InitSizeModifier {
+            size: DimValue::D1(Value::Uniform((0.8, 2.)))
         })
-        .init(InitLifetimeModifier { lifetime: 1_f32.into() })
-        .render(ColorOverLifetimeModifier { gradient }),
+        .update(AccelModifier::constant(Vec3::new(0., 0., 0.)))
+        .init(InitLifetimeModifier { lifetime: 0.2.into() })
+        .render(ColorOverLifetimeModifier { 
+            gradient: Gradient::constant(Vec4::new(114. / 255., 81. / 255., 56. / 255., 1.))
+        }),
     );
 
     let effect_entity = commands
-        .spawn(ParticleEffectBundle::new(effect).with_spawner(spawner))
+        .spawn(
+            ParticleEffectBundle {
+                effect: ParticleEffect::new(effect),
+                transform: Transform::from_xyz(0., -(TILE_SIZE * 3. / 2.), 0.),
+                ..default()
+            }
+            .with_spawner(spawner)
+        )
         .insert(Name::new("Particle Spawner"))
         .id();
 

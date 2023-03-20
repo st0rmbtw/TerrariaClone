@@ -19,13 +19,13 @@ impl Default for Resolution {
     }
 }
 
-#[derive(Resource)]
+#[derive(Resource, Clone, Copy)]
 pub struct VSync(pub bool);
 
-#[derive(Resource)]
+#[derive(Resource, Clone, Copy)]
 pub struct FullScreen(pub bool);
 
-#[derive(Resource, PartialEq, Clone)]
+#[derive(Resource, PartialEq, Clone, Copy)]
 pub struct ShowTileGrid(pub bool);
 
 #[derive(Resource, Clone, Copy, Serialize, Deserialize)]

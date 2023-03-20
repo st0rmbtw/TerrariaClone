@@ -20,7 +20,7 @@ pub(super) struct UseItemAnimationIndex(pub usize);
 #[derive(Resource, Clone, Copy, Default, Deref, DerefMut)]
 pub struct PlayerVelocity(pub Vec2);
 
-#[derive(Resource, Clone, Copy, Default)]
+#[derive(Resource, Default)]
 pub struct PlayerData {
     pub jump: i32,
     // The distance of player's fall in tiles
