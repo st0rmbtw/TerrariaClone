@@ -25,7 +25,7 @@ impl BlockType {
     }
 
     pub const fn frame(&self) -> Option<TerrariaFrame> {
-        match &self {
+        match self {
             BlockType::Tree(tree) => Some(tree.terraria_frame()),
             _ => None
         }
@@ -40,14 +40,14 @@ impl BlockType {
     }
 
     pub const fn dirt_mergable(&self) -> bool {
-        match &self {
+        match self {
             BlockType::Dirt | BlockType::Grass | BlockType::Tree(_) => false,
             BlockType::Stone => true,
         }
     }
 
     pub const fn check_required_tool(&self, tool: Tool) -> bool {
-        match &self {
+        match self {
             BlockType::Tree(_) => {
                 matches!(tool, Tool::Axe(_))
             },
@@ -58,7 +58,7 @@ impl BlockType {
     }
 
     pub const fn is_solid(&self) -> bool {
-        match &self {
+        match self {
             BlockType::Tree(_) => false,
             _ => true
         }
