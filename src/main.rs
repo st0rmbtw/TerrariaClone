@@ -87,7 +87,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         .add_plugin(CursorPlugin)
         .add_plugin(CameraPlugin)
-        .add_plugin(LightingPlugin)
+        // .add_plugin(LightingPlugin)
         .add_plugin(ParallaxPlugin { initial_speed: 0.15 })
         .add_plugin(BackgroundPlugin)
         .add_plugin(PlayerUiPlugin)

@@ -2,45 +2,55 @@ mod components;
 mod resources;
 mod systems;
 mod util;
+mod events;
 
-use bevy::{ui::{Val, Size}, prelude::{Plugin, App, OnUpdate, IntoSystemConfigs, IntoSystemAppConfig, CoreSchedule, IntoSystemConfig, Res}};
+use bevy::{ui::{Val, Size}, prelude::{Plugin, App, OnUpdate, IntoSystemConfigs, IntoSystemAppConfig, CoreSchedule, IntoSystemConfig, Res, in_state, on_event, IntoSystemAppConfigs, SystemSet}};
 pub use components::*;
 pub use resources::*;
 pub use systems::*;
 
 use crate::{common::state::GameState, items::Items};
 
+use self::events::SwingEvent;
+
 use super::ui::UiVisibility;
 
-pub const SPAWN_PLAYER_UI_LABEL: &str = "spawn_player_ui";
-
-// 5 is a total count of inventory rows. -1 because the hotbar is a first row
-const INVENTORY_ROWS_COUNT: usize = 5 - 1;
+// 5 is the total amount of inventory rows. -1 because the hotbar is a first row
+const INVENTORY_ROWS: usize = 5 - 1;
 
 // region: Inventory cell size
 const INVENTORY_CELL_SIZE_F: f32 = 40.;
 const INVENTORY_CELL_SIZE_BIGGER_F: f32 = INVENTORY_CELL_SIZE_F * 1.3;
 
-const INVENTORY_CELL_SIZE: Size = Size {
-    width: Val::Px(INVENTORY_CELL_SIZE_F),
-    height: Val::Px(INVENTORY_CELL_SIZE_F),
-};
-
-const INVENTORY_CELL_SIZE_SELECTED: Size = Size {
-    width: Val::Px(INVENTORY_CELL_SIZE_BIGGER_F),
-    height: Val::Px(INVENTORY_CELL_SIZE_BIGGER_F),
-};
+const INVENTORY_CELL_SIZE: Size = Size::all(Val::Px(INVENTORY_CELL_SIZE_F));
+const INVENTORY_CELL_SIZE_SELECTED: Size = Size::all(Val::Px(INVENTORY_CELL_SIZE_BIGGER_F));
 // endregion
 
 pub(self) const CELL_COUNT_IN_ROW: usize = 10;
 
 const HOTBAR_LENGTH: usize = 10;
 
-pub struct PlayerInventoryPlugin;
+const ITEM_ROTATION: f32 = 1.5;
 
+#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
+enum UseItemAnimationSet {
+    UpdateSwingCooldown,
+    PlayAnimation,
+    SetCooldown
+}
+
+pub struct PlayerInventoryPlugin;
 impl Plugin for PlayerInventoryPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<SelectedItem>();
+        app.init_resource::<SwingItemCooldown>();
+        app.init_resource::<SwingItemCooldownMax>();
+
+        app.insert_resource(UseItemAnimationIndex::default());
+        app.insert_resource(PlayerUsingItem(false));
+        app.insert_resource(SwingAnimation(false));
+
+        app.add_event::<SwingEvent>();
 
         app.insert_resource({
                 let mut inventory = Inventory::default();
@@ -59,7 +69,47 @@ impl Plugin for PlayerInventoryPlugin {
         app.add_system(
             use_item
                 .in_schedule(CoreSchedule::FixedUpdate)
+                .run_if(in_state(GameState::InGame))
+        );
+
+        app.add_system(update_player_using_item.in_set(OnUpdate(GameState::InGame)));
+        app.add_system(set_using_item_image.in_set(OnUpdate(GameState::InGame)));
+        app.add_system(set_using_item_visibility.in_set(OnUpdate(GameState::InGame)));
+
+        app.add_system(
+            play_swing_sound
                 .in_set(OnUpdate(GameState::InGame))
+                .run_if(on_event::<SwingEvent>())
+        );
+
+        app.add_system(
+            update_swing_cooldown
+                .run_if(in_state(GameState::InGame))
+                .in_set(UseItemAnimationSet::UpdateSwingCooldown)
+                .in_schedule(CoreSchedule::FixedUpdate)
+        );
+
+        app.add_systems(
+            (
+                set_using_item_position,
+                set_using_item_rotation,
+                update_sprite_index,
+                update_use_item_animation_index,
+            )
+            .chain()
+            .distributive_run_if(|res: Res<SwingAnimation>| **res == true)
+            .in_set(UseItemAnimationSet::PlayAnimation)
+            .after(UseItemAnimationSet::UpdateSwingCooldown)
+            .in_schedule(CoreSchedule::FixedUpdate)
+        );
+
+        app.add_system(
+            set_swing_cooldown
+                .run_if(|res: Res<PlayerUsingItem>| **res == true)
+                .run_if(in_state(GameState::InGame))
+                .in_schedule(CoreSchedule::FixedUpdate)
+                .in_set(UseItemAnimationSet::SetCooldown)
+                .after(UseItemAnimationSet::PlayAnimation)
         );
 
         app.add_systems(

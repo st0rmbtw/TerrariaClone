@@ -1,18 +1,33 @@
-use bevy::prelude::{Resource, Deref, DerefMut};
+use bevy::{prelude::{Resource, Deref, DerefMut, ReflectResource}, reflect::Reflect};
 
 use crate::items::ItemStack;
 
 use super::CELL_COUNT_IN_ROW;
+
+#[derive(Resource, Default, Deref, DerefMut)]
+pub struct SelectedItem(pub Option<ItemStack>);
+
+#[derive(Resource, Default, Deref, DerefMut)]
+pub struct SwingItemCooldown(pub u32);
+
+#[derive(Resource, Default, Deref, DerefMut)]
+pub struct SwingItemCooldownMax(pub u32);
+
+#[derive(Resource, PartialEq, Clone, Copy, Deref, DerefMut)]
+pub struct PlayerUsingItem(pub bool);
+
+#[derive(Resource, PartialEq, Clone, Copy, Deref, DerefMut)]
+pub struct SwingAnimation(pub bool);
+
+#[derive(Resource, Default, Clone, Copy, Deref, DerefMut, Reflect)]
+#[reflect(Resource)]
+pub struct UseItemAnimationIndex(usize);
 
 #[derive(Resource)]
 pub struct Inventory {
     pub(super) items: [Option<ItemStack>; 50],
     pub selected_slot: usize,
 }
-
-#[derive(Resource, Default, Deref, DerefMut)]
-pub struct SelectedItem(pub Option<ItemStack>);
-
 
 impl Default for Inventory {
     fn default() -> Self {

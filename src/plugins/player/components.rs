@@ -1,4 +1,4 @@
-use bevy::{prelude::{Component, Entity, Bundle, Resource, Name, SpatialBundle}, utils::default};
+use bevy::{prelude::{Component, Entity, Bundle, Name, SpatialBundle}, utils::default};
 
 use crate::common::state::MovementState;
 
@@ -41,17 +41,11 @@ impl FaceDirection {
     }
 }
 
-#[derive(Resource, Component, PartialEq, Clone, Copy)]
-pub(super) struct UseItemAnimation(pub bool);
-
 #[derive(Component)]
 pub(super) struct ChangeFlip;
 
 #[derive(Component)]
-pub(super) struct PlayerBodySprite;
-
-#[derive(Component)]
-pub(super) struct UsedItem;
+pub struct PlayerBodySprite;
 
 pub(super) trait AnimationData {
     fn index(&self) -> usize;
@@ -83,9 +77,6 @@ pub(super) struct IdleAnimationData(pub usize);
 
 #[derive(Component, Clone, Copy, Default)]
 pub(super) struct FlyingAnimationData(pub usize);
-
-#[derive(Component, Clone, Copy, Default)]
-pub(super) struct UseItemAnimationData(pub usize);
 
 impl AnimationData for IdleAnimationData {
     fn index(&self) -> usize { self.0 }

@@ -6,15 +6,14 @@ mod utils;
 pub use components::*;
 pub use resources::*;
 use systems::*;
-use utils::*;
 
-use crate::{common::{state::GameState, helpers::tile_to_world_coords}, DebugConfiguration};
+use crate::{common::{state::GameState, helpers::tile_to_world_coords}, DebugConfiguration, plugins::player::utils::{simple_animation, is_walking, is_idle, is_flying}};
 use std::time::Duration;
 use bevy_hanabi::prelude::*;
 use bevy::{prelude::*, time::{Timer, TimerMode}, sprite::Anchor};
 use autodefault::autodefault;
 
-use super::{assets::PlayerAssets, world::{WorldData, TILE_SIZE}};
+use super::{assets::PlayerAssets, world::{WorldData, TILE_SIZE}, inventory::{UseItemAnimationData, UsedItem}};
 
 pub const PLAYER_WIDTH: f32 = 22. /* 2. * TILE_SIZE */;
 pub const PLAYER_HEIGHT: f32 = 42. /* 3. * TILE_SIZE */;
@@ -23,8 +22,6 @@ pub const PLAYER_HALF_WIDTH: f32 = PLAYER_WIDTH / 2.;
 pub const PLAYER_HALF_HEIGHT: f32 = PLAYER_HEIGHT / 2.;
 
 const WALKING_ANIMATION_MAX_INDEX: usize = 13;
-
-const USE_ITEM_ANIMATION_FRAMES_COUNT: usize = 3;
 
 const GRAVITY: f32 = 0.4;
 const ACCELERATION: f32 = 0.1;
@@ -48,14 +45,7 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(InputAxis::default());
         app.insert_resource(MovementAnimationIndex::default());
-        app.insert_resource(UseItemAnimationIndex::default());
         app.insert_resource(AnimationTimer(Timer::new(Duration::from_millis(80), TimerMode::Repeating)));
-        app.insert_resource(UseItemAnimation(false));
-        app.insert_resource(UseItemAnimationTimer(Timer::new(
-            Duration::from_millis(100),
-            TimerMode::Repeating
-        )));
-
         app.init_resource::<PlayerVelocity>();
         app.init_resource::<Collisions>();
 
@@ -94,27 +84,7 @@ impl Plugin for PlayerPlugin {
             .in_set(OnUpdate(GameState::InGame))
         );
 
-        app.add_systems(
-            (
-                set_using_item_image,
-                set_using_item_position,
-                set_using_item_rotation,
-                set_using_item_rotation_on_player_direction_change,
-                update_use_item_animation_index,
-                use_item_animation
-            )
-            .chain()
-            .distributive_run_if(|res: Res<UseItemAnimation>| *res == UseItemAnimation(true))
-            .in_set(OnUpdate(GameState::InGame))
-        );
-
         app.add_system(update_input_axis.in_set(OnUpdate(GameState::InGame)));
-        app.add_system(
-            player_using_item
-                .in_set(OnUpdate(GameState::InGame))
-                .run_if(|config: Res<DebugConfiguration>| !config.free_camera)
-        );
-        app.add_system(set_using_item_visibility.in_set(OnUpdate(GameState::InGame)));
 
         app.add_systems(
             (

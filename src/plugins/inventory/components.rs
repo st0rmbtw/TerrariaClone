@@ -1,21 +1,29 @@
-use bevy::prelude::{Component, Handle, Image};
+use bevy::{prelude::{Component, Handle, Image, ReflectComponent}, reflect::Reflect};
 
 #[derive(Component, Default)]
-pub struct InventoryUi;
+pub(super) struct InventoryUi;
 
 #[derive(Component, Default)]
-pub struct HotbarUi;
-#[derive(Component)]
-pub struct HotbarCellMarker;
+pub(super) struct HotbarUi;
 
 #[derive(Component)]
-pub struct SelectedItemNameMarker;
+pub(super) struct HotbarCellMarker;
 
 #[derive(Component)]
-pub struct InventoryCellIndex(pub usize);
+pub(super) struct SelectedItemNameMarker;
+
+#[derive(Component)]
+pub(super) struct InventoryCellIndex(pub usize);
 
 #[derive(Component, Default)]
-pub struct InventoryCellItemImage(pub Handle<Image>);
+pub(super) struct InventoryCellItemImage(pub Handle<Image>);
 
 #[derive(Component, Default)]
 pub struct InventoryItemAmount(pub u16);
+
+#[derive(Reflect, Component, Clone, Copy, Default)]
+#[reflect(Component)]
+pub struct UseItemAnimationData(pub usize);
+
+#[derive(Component)]
+pub struct UsedItem;

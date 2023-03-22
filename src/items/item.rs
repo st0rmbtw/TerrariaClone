@@ -27,6 +27,13 @@ impl Item {
             Item::Block(_) => 999
         }
     }
+
+    pub fn swing_cooldown(&self) -> u32 {
+        match self {
+            Item::Tool(tool) => tool.swing_cooldown(),
+            Item::Block(_) => 10,
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
