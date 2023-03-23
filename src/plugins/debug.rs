@@ -1,22 +1,25 @@
-use bevy::{prelude::{App, Plugin,IntoSystemConfig, OnUpdate, ResMut, Commands, TextBundle, Res, Color, IntoSystemAppConfig, OnEnter, Component, Query, Visibility, With, DetectChanges, Name}, utils::default, text::{Text, TextSection, TextStyle}, ui::{Style, UiRect, Val, PositionType}, sprite::TextureAtlasSprite};
-use bevy_inspector_egui::{bevy_egui::{EguiPlugin, egui, EguiContexts}, egui::Align2, quick::{WorldInspectorPlugin}};
+use bevy::{prelude::{App, Plugin,IntoSystemConfig, OnUpdate, ResMut, Commands, TextBundle, Res, Color, IntoSystemAppConfig, OnEnter, Component, Query, Visibility, With, DetectChanges, Name}, utils::default, text::{Text, TextSection, TextStyle}, ui::{Style, UiRect, Val, PositionType}, sprite::TextureAtlasSprite, time::Time};
+use bevy_inspector_egui::{bevy_egui::{EguiPlugin, egui, EguiContexts}, egui::Align2, quick::{WorldInspectorPlugin, ResourceInspectorPlugin}};
 
 use crate::{common::{state::GameState, helpers}, DebugConfiguration};
 use bevy_prototype_debug_lines::DebugLinesPlugin;
 
-use super::{cursor::CursorPosition, assets::FontAssets};
+use super::{cursor::CursorPosition, assets::FontAssets, inventory::{UseItemAnimationIndex, UseItemAnimationData}};
 
 pub struct DebugPlugin;
 impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<CursorPosition>();
-        app.register_type::<TextureAtlasSprite>();
-
         app.add_plugin(EguiPlugin);
         app.add_plugin(DebugLinesPlugin::default());
         app.add_plugin(WorldInspectorPlugin::new());
-        app.add_system(debug_gui.in_set(OnUpdate(GameState::InGame)));
+        app.add_plugin(ResourceInspectorPlugin::<Time>::default());
 
+        app.register_type::<CursorPosition>();
+        app.register_type::<TextureAtlasSprite>();
+        app.register_type::<UseItemAnimationIndex>();
+        app.register_type::<UseItemAnimationData>();
+
+        app.add_system(debug_gui.in_set(OnUpdate(GameState::InGame)));
         app.add_system(spawn_free_camera_legend.in_schedule(OnEnter(GameState::InGame)));
         app.add_system(set_free_camera_legend_visibility.in_set(OnUpdate(GameState::InGame)));
     }

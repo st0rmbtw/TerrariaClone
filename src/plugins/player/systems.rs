@@ -1,15 +1,12 @@
 use bevy::{prelude::*, math::Vec3Swizzles};
 use bevy_hanabi::prelude::*;
-use rand::seq::SliceRandom;
 
 use crate::{
     plugins::{
-        world::{WorldData, TILE_SIZE}, 
-        assets::{ItemAssets, SoundAssets}, 
-        inventory::{SelectedItem, Inventory},
-    }, 
-    common::{math::{move_towards, map_range_usize}, state::MovementState, helpers}, 
-    items::{get_animation_points, ItemStack, Item}
+        world::{WorldData, TILE_SIZE},
+        inventory::{UsedItem, SwingAnimation},
+    },
+    common::{math::{move_towards, map_range_usize}, state::MovementState},
 };
 
 use super::*;
@@ -70,9 +67,9 @@ pub(super) fn gravity(
     if !collisions.bottom {
         player_data.fall_distance += GRAVITY / (time.delta_seconds() * 16.);
         velocity.y -= GRAVITY;
-
-        velocity.y = velocity.y.max(MAX_FALL_SPEED);
     }
+
+    velocity.y = velocity.y.max(MAX_FALL_SPEED);
 }
 
 pub(super) fn detect_collisions(
@@ -85,7 +82,7 @@ pub(super) fn detect_collisions(
 ) {
     let transform = player_query.single();
 
-    let position = (transform.translation.xy()).abs();
+    let position = transform.translation.xy().abs();
     let next_position = (transform.translation.xy() + velocity.0).abs();
 
     let left = ((position.x - PLAYER_HALF_WIDTH) / TILE_SIZE) - 1.;
@@ -121,11 +118,11 @@ pub(super) fn detect_collisions(
 
                         let fall_distance = (player_data.fall_distance / 16.).round();
 
-                        if fall_distance > 0. {
-                            debug!(
-                                fall_distance = fall_distance
-                            );
-                        }
+                        // if fall_distance > 0. {
+                        //     debug!(
+                        //         fall_distance = fall_distance
+                        //     );
+                        // }
                         
                         player_data.fall_distance = 0.;
 
@@ -282,11 +279,11 @@ pub(super) fn flip_using_item(
 
         match direction {
             FaceDirection::Left => {
-                sprite.flip_y = true;
-                sprite.anchor = Anchor::TopLeft;
+                sprite.flip_x = true;
+                sprite.anchor = Anchor::BottomRight;
             },
             FaceDirection::Right => {
-                sprite.flip_y = false;
+                sprite.flip_x = false;
                 sprite.anchor = Anchor::BottomLeft;
             },
         }
@@ -294,148 +291,21 @@ pub(super) fn flip_using_item(
 }
 
 pub(super) fn walking_animation(
+    swing_animation: Res<SwingAnimation>,
     index: Res<MovementAnimationIndex>,
-    mut query: Query<
-        (&mut TextureAtlasSprite, &WalkingAnimationData),
-        With<PlayerBodySprite>,
-    >,
+    mut query: Query<(&mut TextureAtlasSprite, &WalkingAnimationData, Option<&UseItemAnimationData>), With<PlayerBodySprite>>,
 ) {
-    query.for_each_mut(|(mut sprite, anim_data)| {
-        let walking_anim_offset = anim_data.offset;
-        let walking_anim_count = anim_data.count;
+    query.for_each_mut(|(mut sprite, anim_data, use_item_animation)| {
+        if use_item_animation.is_none() || !**swing_animation {
+            let walking_anim_offset = anim_data.offset;
+            let walking_anim_count = anim_data.count;
 
-        sprite.index = walking_anim_offset + map_range_usize(
-            (0, WALKING_ANIMATION_MAX_INDEX),
-            (0, walking_anim_count),
-            index.0,
-        );
-    });
-}
-
-pub(super) fn player_using_item(
-    input: Res<Input<MouseButton>>,
-    selected_item: Res<SelectedItem>,
-    mut anim: ResMut<UseItemAnimation>,
-) {
-    let using_item = input.pressed(MouseButton::Left) && selected_item.is_some();
-
-    if using_item {
-        anim.0 = true;
-    }
-}
-
-pub(super) fn set_using_item_visibility(
-    anim: Res<UseItemAnimation>,
-    mut using_item_query: Query<&mut Visibility, With<UsedItem>>,
-) {
-    if anim.is_changed() {
-        if let Ok(visibility) = using_item_query.get_single_mut() {
-            helpers::set_visibility(visibility, anim.0);
+            sprite.index = walking_anim_offset + map_range_usize(
+                (0, WALKING_ANIMATION_MAX_INDEX),
+                (0, walking_anim_count),
+                index.0,
+            );
         }
-    }
-}
-
-pub(super) fn set_using_item_image(
-    item_assets: Res<ItemAssets>,
-    selected_item: Res<SelectedItem>,
-    mut using_item_query: Query<&mut Handle<Image>, With<UsedItem>>,
-) {
-    let mut image = using_item_query.single_mut();
-
-    if let Some(item_stack) = selected_item.0 {
-        *image = item_assets.get_by_item(item_stack.item);
-    }
-}
-
-pub(super) fn set_using_item_position(
-    index: Res<UseItemAnimationIndex>,
-    selected_item: Res<SelectedItem>,
-    mut using_item_query: Query<&mut Transform, With<UsedItem>>,
-    player_query: Query<&FaceDirection, With<Player>>,
-) {
-    let mut transform = using_item_query.single_mut();
-    let direction = player_query.single();
-
-    if selected_item.is_some() {
-        let position = get_animation_points()[index.0];
-
-        transform.translation.x = position.x * f32::from(*direction);
-        transform.translation.y = position.y;
-    }
-}
-
-pub(super) fn set_using_item_rotation_on_player_direction_change(
-    query_player: Query<&FaceDirection, (With<Player>, Changed<FaceDirection>)>,
-    mut query_using_item: Query<&mut Transform, With<UsedItem>>,
-) {
-    let player_query_result = query_player.get_single();
-    let using_item_query_result = query_using_item.get_single_mut();
-
-    if let Ok(mut transform) = using_item_query_result {
-        if let Ok(direction) = player_query_result {
-            transform.rotation = get_rotation_by_direction(*direction);
-        }
-    }
-}
-
-pub(super) fn set_using_item_rotation(
-    time: Res<Time>,
-    index: Res<UseItemAnimationIndex>,
-    selected_item: Res<SelectedItem>,
-    mut using_item_query: Query<&mut Transform, With<UsedItem>>,
-    player_query: Query<&FaceDirection, With<Player>>,
-) {
-    const ROTATION_STEP: f32 = -11.;
-
-    let direction = player_query.single();
-    let mut transform = using_item_query.single_mut();
-
-    if selected_item.is_some() {
-        let position = get_animation_points()[index.0];
-        let direction_f = f32::from(*direction);
-
-        transform.rotate_around(
-            position.extend(0.15),
-            Quat::from_rotation_z(ROTATION_STEP * direction_f * time.delta_seconds()),
-        );
-
-        if index.0 == 0 && index.is_changed() {
-            transform.rotation = get_rotation_by_direction(*direction);
-        }
-    }
-}
-
-pub(super) fn update_use_item_animation_index(
-    time: Res<Time>,
-    mut index: ResMut<UseItemAnimationIndex>,
-    mut timer: ResMut<UseItemAnimationTimer>,
-    mut anim: ResMut<UseItemAnimation>,
-    inventory: Res<Inventory>,
-    sound_assets: Res<SoundAssets>,
-    audio: Res<Audio>
-) {
-    if timer.tick(time.delta()).just_finished() {
-        if index.0 == 0 {
-            if let Some(ItemStack { item: Item::Tool(_), .. }) = inventory.selected_item() {
-                let sound = sound_assets.swing.choose(&mut rand::thread_rng()).unwrap();
-                audio.play(sound.clone_weak());
-            }
-        }
-
-        index.0 = (index.0 + 1) % USE_ITEM_ANIMATION_FRAMES_COUNT;
-        
-        if index.0 == 0 {
-            anim.0 = false;
-        }
-    }
-}
-
-pub(super) fn use_item_animation(
-    index: Res<UseItemAnimationIndex>,
-    mut query: Query<(&mut TextureAtlasSprite, &UseItemAnimationData), With<PlayerBodySprite>>,
-) {
-    query.for_each_mut(|(mut sprite, anim_data)| {
-        sprite.index = anim_data.0 + index.0;
     });
 }
 

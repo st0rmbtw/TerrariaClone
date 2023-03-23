@@ -27,6 +27,13 @@ impl Item {
             Item::Block(_) => 999
         }
     }
+
+    pub fn swing_cooldown(&self) -> u32 {
+        match self {
+            Item::Tool(tool) => tool.swing_cooldown(),
+            Item::Block(_) => 10,
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -66,5 +73,5 @@ impl Items {
 }
 
 pub fn get_animation_points() -> [Vec2; 3] {
-    [vec2(-5., 4.), vec2(5., 3.), vec2(5., -7.)]
+    [vec2(-7.5, 11.0), vec2(6.0, 7.5), vec2(7.0, -4.0)]
 }

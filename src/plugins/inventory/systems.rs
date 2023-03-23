@@ -1,11 +1,12 @@
 use std::borrow::Cow;
 
 use autodefault::autodefault;
-use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color, MouseButton, EventWriter, Audio, Local, DetectChanges}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, Size, PositionType, AlignContent, Interaction, BackgroundColor, ZIndex}, text::{Text, TextStyle, TextAlignment}};
+use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color, MouseButton, EventWriter, Audio, DetectChanges, Local, Transform, Quat}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, Size, PositionType, AlignContent, Interaction, BackgroundColor, ZIndex}, text::{Text, TextStyle, TextAlignment}, sprite::TextureAtlasSprite};
+use rand::seq::SliceRandom;
 
-use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets, SoundAssets}, cursor::{HoveredInfo, CursorPosition}, world::{DigBlockEvent, PlaceBlockEvent}}, common::{extensions::EntityCommandsExtensions, helpers}, language::LanguageContent, items::Item, DebugConfiguration};
+use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets, SoundAssets}, cursor::{HoveredInfo, CursorPosition}, world::{DigBlockEvent, PlaceBlockEvent}, player::{FaceDirection, Player, PlayerBodySprite}}, common::{extensions::EntityCommandsExtensions, helpers}, language::LanguageContent, items::{Item, get_animation_points, ItemStack}, DebugConfiguration};
 
-use super::{Inventory, HOTBAR_LENGTH, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, CELL_COUNT_IN_ROW, INVENTORY_ROWS_COUNT, HotbarUi, util::keycode_to_digit};
+use super::{Inventory, HOTBAR_LENGTH, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, CELL_COUNT_IN_ROW, INVENTORY_ROWS, HotbarUi, util::keycode_to_digit, SwingItemCooldown, UsedItem, UseItemAnimationIndex, PlayerUsingItem, UseItemAnimationData, SwingItemCooldownMax, ITEM_ROTATION, SwingAnimation};
 
 #[autodefault]
 pub fn spawn_inventory_ui(
@@ -88,7 +89,7 @@ pub fn spawn_inventory_ui(
                     visibility: Visibility::Hidden,
                 })
                 .with_children(|children| {
-                    for j in 0..INVENTORY_ROWS_COUNT {
+                    for j in 0..INVENTORY_ROWS {
                         children
                             .spawn(NodeBundle {
                                 style: Style {
@@ -412,7 +413,7 @@ pub(super) fn inventory_cell_background_hover(
 use crate::plugins::world::BreakBlockEvent;
 
 pub(super) fn use_item(
-    input: Res<Input<MouseButton>>,
+    using_item: Res<PlayerUsingItem>,
     cursor: Res<CursorPosition>,
     inventory: Res<Inventory>,
     debug_config: Res<DebugConfiguration>,
@@ -420,14 +421,14 @@ pub(super) fn use_item(
     mut place_block_events: EventWriter<PlaceBlockEvent>,
     #[cfg(feature = "debug")]
     mut break_block_events: EventWriter<BreakBlockEvent>,
-    mut frame: Local<u32>,
+    mut use_cooldown: Local<u32>
 ) {
-    if *frame > 0 && !debug_config.instant_break {
-        *frame -= 1;
+    if *use_cooldown > 0 && !debug_config.instant_break {
+        *use_cooldown -= 1;
         return;
     }
 
-    if input.pressed(MouseButton::Left) || input.just_pressed(MouseButton::Left) {
+    if **using_item {
         let selected_item_index = inventory.selected_slot;
 
         if let Some(item_stack) = inventory.selected_item() {
@@ -442,7 +443,7 @@ pub(super) fn use_item(
                         dig_block_events.send(DigBlockEvent { tile_pos, tool });
                     }
 
-                    *frame = tool.cooldown();
+                    *use_cooldown = tool.use_cooldown();
                 },
                 Item::Block(block) => {
                     place_block_events.send(
@@ -451,5 +452,146 @@ pub(super) fn use_item(
                 },
             }
         }
+    }
+}
+
+pub(super) fn update_swing_cooldown(
+    mut swing_cooldown: ResMut<SwingItemCooldown>
+) {
+    if **swing_cooldown > 0 {
+        **swing_cooldown -= 1;
+    }
+}
+
+pub(super) fn stop_swing_animation(
+    swing_cooldown: Res<SwingItemCooldown>,
+    mut using_item: ResMut<PlayerUsingItem>,
+    mut swing_animation: ResMut<SwingAnimation>,
+) {
+    if **swing_cooldown == 0 {
+        **swing_animation = false;
+        **using_item = false;
+    }
+}
+
+pub(super) fn set_using_item_image(
+    item_assets: Res<ItemAssets>,
+    selected_item: Res<SelectedItem>,
+    mut using_item_query: Query<&mut Handle<Image>, With<UsedItem>>,
+) {
+    if selected_item.is_changed() {
+        let mut image = using_item_query.single_mut();
+        if let Some(item_stack) = **selected_item {
+            *image = item_assets.get_by_item(item_stack.item);
+        }
+    }
+}
+
+pub(super) fn set_using_item_visibility(visible: bool) -> impl FnMut(Res<SwingAnimation>, Query<&mut Visibility, With<UsedItem>>) {
+    move |swing_animation: Res<SwingAnimation>, mut using_item_query: Query<&mut Visibility, With<UsedItem>>| {
+        if swing_animation.is_changed() && **swing_animation == visible {
+            if let Ok(visibility) = using_item_query.get_single_mut() {
+                helpers::set_visibility(visibility, visible);
+            }
+        }
+    }
+}
+
+pub(super) fn set_using_item_position(
+    index: Res<UseItemAnimationIndex>,
+    mut query_using_item: Query<&mut Transform, With<UsedItem>>,
+    query_player: Query<&FaceDirection, With<Player>>,
+) {
+    let mut transform = query_using_item.single_mut();
+    let direction = query_player.single();
+
+    let position = get_animation_points()[**index];
+
+    transform.translation.x = position.x * f32::from(*direction);
+    transform.translation.y = position.y;
+}
+
+pub(super) fn set_using_item_rotation(
+    swing_cooldown: Res<SwingItemCooldown>,
+    swing_cooldown_max: Res<SwingItemCooldownMax>,
+    mut query_using_item: Query<&mut Transform, With<UsedItem>>,
+    query_player: Query<&FaceDirection, With<Player>>,
+) {
+    let direction = query_player.single();
+    let mut transform = query_using_item.single_mut();
+
+    let direction_f = f32::from(*direction);
+
+    // 0..1
+    let rotation = (**swing_cooldown as f32) / (**swing_cooldown_max as f32);
+    // -1..1
+    let rotation = rotation * 2.0 - 1.;
+
+    let rotation = Quat::from_rotation_z(rotation * direction_f * ITEM_ROTATION + direction_f * 0.3);
+
+    transform.rotation = rotation;
+}
+
+pub(super) fn update_use_item_animation_index(
+    mut index: ResMut<UseItemAnimationIndex>,
+    swing_cooldown: Res<SwingItemCooldown>,
+    swing_cooldown_max: Res<SwingItemCooldownMax>,
+) {
+    if (**swing_cooldown as f32) < (**swing_cooldown_max as f32) * 0.333 {
+        **index = 2;
+    } else if (**swing_cooldown as f32) < (**swing_cooldown_max as f32) * 0.666 {
+        **index = 1;
+    } else {
+        **index = 0;
+    }
+}
+
+pub(super) fn update_sprite_index(
+    index: Res<UseItemAnimationIndex>,
+    mut query: Query<(&mut TextureAtlasSprite, &UseItemAnimationData), With<PlayerBodySprite>>,
+) {
+    query.for_each_mut(|(mut sprite, anim_data)| {
+        sprite.index = anim_data.0 + **index;
+    });
+}
+
+pub(super) fn play_swing_sound(
+    selected_item: Res<SelectedItem>,
+    sound_assets: Res<SoundAssets>,
+    audio: Res<Audio>,
+    swing_cooldown: Res<SwingItemCooldown>,
+    swing_cooldown_max: Res<SwingItemCooldownMax>
+) {
+    if **swing_cooldown == **swing_cooldown_max {
+        if let Some(ItemStack { item: Item::Tool(_), .. }) = **selected_item {
+            let sound = sound_assets.swing.choose(&mut rand::thread_rng()).unwrap();
+            audio.play(sound.clone_weak());
+        }
+    }
+}
+
+pub(super) fn update_player_using_item(
+    input: Res<Input<MouseButton>>,
+    selected_item: Res<SelectedItem>,
+    mut using_item: ResMut<PlayerUsingItem>,
+    mut swing_animation: ResMut<SwingAnimation>,
+    mut swing_cooldown: ResMut<SwingItemCooldown>,
+    mut swing_cooldown_max: ResMut<SwingItemCooldownMax>
+) {
+    **using_item = if input.pressed(MouseButton::Left) || input.just_pressed(MouseButton::Left) {
+        if let Some(selected_item) = **selected_item {
+            if !**swing_animation {
+                **swing_cooldown = selected_item.item.swing_cooldown();
+                **swing_cooldown_max = selected_item.item.swing_cooldown();
+            }
+
+            **swing_animation = true;
+
+            true
+        } else{
+            false
+        }
+    } else {
+        false
     }
 }

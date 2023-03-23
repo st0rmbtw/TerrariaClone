@@ -8,14 +8,8 @@ pub(super) struct InputAxis {
 #[derive(Resource, Deref, DerefMut)]
 pub(super) struct AnimationTimer(pub Timer);
 
-#[derive(Resource, Deref, DerefMut)]
-pub(super) struct UseItemAnimationTimer(pub Timer);
-
 #[derive(Resource, Default, Clone, Copy)]
 pub(super) struct MovementAnimationIndex(pub usize);
-
-#[derive(Resource, Default, Clone, Copy)]
-pub(super) struct UseItemAnimationIndex(pub usize);
 
 #[derive(Resource, Clone, Copy, Default, Deref, DerefMut)]
 pub struct PlayerVelocity(pub Vec2);
@@ -30,23 +24,9 @@ pub struct PlayerData {
 }
 
 #[derive(Debug, Resource, Clone, Copy, Default)]
-pub struct Collisions {
+pub(crate) struct Collisions {
     pub top: bool,
     pub bottom: bool,
     pub left: bool,
     pub right: bool
-}
-
-impl Collisions {
-    pub fn none(&self) -> bool {
-        !self.top && !self.bottom && !self.left && !self.right
-    }
-
-    pub fn x(&self) -> bool {
-        self.left || self.right
-    }
-
-    pub fn y(&self) -> bool {
-        self.top || self.bottom
-    }
 }

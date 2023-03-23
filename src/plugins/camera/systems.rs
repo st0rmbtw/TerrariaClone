@@ -13,7 +13,7 @@ use crate::{parallax::ParallaxCameraComponent, plugins::{world::{TILE_SIZE, Worl
 
 use crate::plugins::player::Player;
 
-use super::{MainCamera, CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, MouseLight, CAMERA_MOVE_SPEED};
+use super::{MainCamera, CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, MouseLight};
 
 #[autodefault(except(TextureDescriptor, ShadowMapMaterial, LightMapMaterial, SunMaterial, LightingMaterial))]
 pub fn setup_camera(
@@ -124,12 +124,15 @@ pub fn control_mouse_light(
     }
 }
 
+#[cfg(feature = "debug")]
 pub fn free_camera(
     time: Res<Time>,
     mut camera: Query<(&mut Transform, &OrthographicProjection), With<MainCamera>>,
     input: Res<bevy::prelude::Input<KeyCode>>,
     world_data: Res<WorldData>
 ) {
+    use super::CAMERA_MOVE_SPEED;
+
     if let Ok((mut camera_transform, projection)) = camera.get_single_mut() {
         let camera_speed = if input.pressed(KeyCode::LShift) {
             CAMERA_MOVE_SPEED * 2.

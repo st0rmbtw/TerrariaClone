@@ -127,7 +127,7 @@ fn update_light_map_texture(
     }
 }
 
-pub fn update_lighting_material(
+pub(super) fn update_lighting_material(
     cameras: Query<
         (
             &GlobalTransform,

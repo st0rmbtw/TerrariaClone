@@ -1,17 +1,17 @@
-use bevy::{prelude::{Query, With, Component, Quat}, sprite::TextureAtlasSprite};
+use bevy::{prelude::{Query, With, Component, Res}, sprite::TextureAtlasSprite};
 
-use crate::common::{state::MovementState};
+use crate::{common::state::MovementState, plugins::inventory::{UseItemAnimationData, SwingAnimation}};
 
-use super::{Player, AnimationData, PlayerBodySprite, FaceDirection};
+use super::{Player, AnimationData, PlayerBodySprite};
 
 pub(super) fn simple_animation<C: AnimationData + Component>(
-    mut query: Query<
-        (&mut TextureAtlasSprite, &C),
-        With<PlayerBodySprite>,
-    >,
+    swing_animation: Res<SwingAnimation>,
+    mut query: Query<(&mut TextureAtlasSprite, &C, Option<&UseItemAnimationData>), With<PlayerBodySprite>>,
 ) {
-    query.for_each_mut(|(mut sprite, anim_data)| {
-        sprite.index = anim_data.index();
+    query.for_each_mut(|(mut sprite, anim_data, use_item_animation)| {
+        if use_item_animation.is_none() || !**swing_animation {
+            sprite.index = anim_data.index();
+        }
     });
 }
 
@@ -49,15 +49,4 @@ pub(super) fn is_flying(
     }
 
     false
-}
-
-pub(super) fn get_rotation_by_direction(direction: FaceDirection) -> Quat {
-    let start_rotation = match direction {
-        // Assumed that sprite is flipped by y and its anchor is TopLeft
-        FaceDirection::Left => 1.2,
-        // Assumed that sprite is not flipped and its anchor is BottomLet
-        FaceDirection::Right => 2.,
-    };
-
-    Quat::from_rotation_z(start_rotation)
 }

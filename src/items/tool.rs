@@ -14,10 +14,17 @@ impl Tool {
         }
     }
 
-    pub const fn cooldown(&self) -> u32 {
+    pub const fn use_cooldown(&self) -> u32 {
         match self {
-            Tool::Pickaxe(pickaxe) => pickaxe.cooldown(),
-            Tool::Axe(axe) => axe.cooldown(),
+            Tool::Pickaxe(pickaxe) => pickaxe.use_cooldown(),
+            Tool::Axe(axe) => axe.use_cooldown(),
+        }
+    }
+
+    pub const fn swing_cooldown(&self) -> u32 {
+        match self {
+            Tool::Pickaxe(pickaxe) => pickaxe.swing_cooldown(),
+            Tool::Axe(axe) => axe.swing_cooldown(),
         }
     }
 }

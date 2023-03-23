@@ -10,9 +10,15 @@ impl Axe {
         }
     }
 
-    pub const fn cooldown(&self) -> u32 {
+    pub const fn use_cooldown(&self) -> u32 {
         match self {
             Axe::CopperAxe => 21,
+        }
+    }
+
+    pub const fn swing_cooldown(&self) -> u32 {
+        match self {
+            Axe::CopperAxe => 30,
         }
     }
 }
