@@ -68,7 +68,7 @@ impl Plugin for PlayerInventoryPlugin {
 
         app.add_system(update_player_using_item.in_set(OnUpdate(GameState::InGame)));
         app.add_system(set_using_item_image.in_set(OnUpdate(GameState::InGame)));
-        app.add_system(hide_using_item.in_set(OnUpdate(GameState::InGame)));
+        app.add_system(set_using_item_visibility(false).in_set(OnUpdate(GameState::InGame)));
 
         app.add_system(
             play_swing_sound
@@ -89,7 +89,7 @@ impl Plugin for PlayerInventoryPlugin {
             (
                 set_using_item_position,
                 set_using_item_rotation,
-                unhide_using_item,
+                set_using_item_visibility(true),
                 update_sprite_index,
                 update_use_item_animation_index,
             )

@@ -487,24 +487,12 @@ pub(super) fn set_using_item_image(
     }
 }
 
-pub(super) fn hide_using_item(
-    swing_animation: Res<SwingAnimation>,
-    mut using_item_query: Query<&mut Visibility, With<UsedItem>>,
-) {
-    if swing_animation.is_changed() && !**swing_animation {
-        if let Ok(visibility) = using_item_query.get_single_mut() {
-            helpers::set_visibility(visibility, false);
-        }
-    }
-}
-
-pub(super) fn unhide_using_item(
-    swing_animation: Res<SwingAnimation>,
-    mut using_item_query: Query<&mut Visibility, With<UsedItem>>,
-) {
-    if swing_animation.is_changed() && **swing_animation {
-        if let Ok(visibility) = using_item_query.get_single_mut() {
-            helpers::set_visibility(visibility, true);
+pub(super) fn set_using_item_visibility(visible: bool) -> impl FnMut(Res<SwingAnimation>, Query<&mut Visibility, With<UsedItem>>) {
+    move |swing_animation: Res<SwingAnimation>, mut using_item_query: Query<&mut Visibility, With<UsedItem>>| {
+        if swing_animation.is_changed() && **swing_animation == visible {
+            if let Ok(visibility) = using_item_query.get_single_mut() {
+                helpers::set_visibility(visibility, visible);
+            }
         }
     }
 }
