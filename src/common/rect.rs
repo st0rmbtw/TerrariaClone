@@ -1,63 +1,67 @@
-use std::ops::Mul;
-
 #[derive(Copy, Clone, PartialEq, Debug, Default)]
-pub struct FRect {
-    pub left: f32,
-    pub right: f32,
-    pub top: f32,
-    pub bottom: f32,
+pub(crate) struct FRect {
+    pub centerx: f32,
+    pub centery: f32,
+    pub width: f32,
+    pub height: f32
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
-pub struct URect {
+#[derive(Clone, Eq, PartialEq, Debug, Default)]
+pub(crate) struct URect {
     pub left: u32,
     pub right: u32,
     pub top: u32,
     pub bottom: u32,
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
-pub struct IRect {
-    pub left: i32,
-    pub right: i32,
-    pub top: i32,
-    pub bottom: i32,
-}
-
-impl URect {
-    pub fn to_frect(&self) -> FRect {
-        FRect {
-            left: self.left as f32,
-            right: self.right as f32,
-            top: self.top as f32,
-            bottom: self.bottom as f32,
-        }
-    }
-}
-
 impl FRect {
-    pub fn intersect(&self, rect: FRect) -> bool {
-        self.left < rect.right
-            && self.right > rect.left
-            && self.bottom > rect.top
-            && self.top > rect.bottom
+    pub const fn new(centerx: f32, centery: f32, width: f32, height: f32) -> Self {
+        Self { centerx, centery, width, height }
     }
 
-    
-    pub fn inside(&self, point: (f32, f32)) -> bool {
-        point.0 > self.left && point.0 < self.right && point.1 > self.bottom && point.1 < self.top
-    }
-}
-
-impl Mul<f32> for FRect {
-    type Output = FRect;
-
-    fn mul(self, rhs: f32) -> Self::Output {
-        FRect {
-            left: self.left * rhs,
-            right: self.right * rhs,
-            top: self.top * rhs,
-            bottom: self.bottom * rhs,
+    pub fn intersects(&self, other: &FRect) -> bool {
+        if self.width == 0.0 || self.height == 0.0 || other.width == 0.0 || other.height == 0.0 {
+            return false;
         }
+
+        let self_left = self.left();
+        let self_right = self.right();
+        let self_top = self.top();
+        let self_bottom = self.bottom();
+
+        let other_left = other.left();
+        let other_right = other.right();
+        let other_top = other.top();
+        let other_bottom = other.bottom();
+
+        return self_left < other_right &&
+               self_top > other_bottom &&
+               self_right > other_left &&
+               self_bottom < other_top;
+    }
+
+    pub fn inside(&self, point: (f32, f32)) -> bool {
+        let left = self.left();
+        let right = self.right();
+        let top = self.top();
+        let bottom = self.bottom();
+
+        point.0 > left && point.0 < right && point.1 > bottom && point.1 < top
+    }
+
+    pub fn left(&self) -> f32 {
+        self.centerx - self.width / 2.
+    }
+
+    pub fn right(&self) -> f32 {
+        self.centerx + self.width / 2.
+    }
+
+    pub fn top(&self) -> f32 {
+        self.centery + self.height / 2.
+    }
+
+    pub fn bottom(&self) -> f32 {
+        self.centery - self.height / 2.
     }
 }

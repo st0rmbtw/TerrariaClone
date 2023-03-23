@@ -22,7 +22,7 @@ use rand::thread_rng;
 
 use crate::{plugins::{inventory::Inventory, world::{CHUNK_SIZE, TILE_SIZE, LightMap, light::generate_light_map, WorldSize}, assets::{BlockAssets, WallAssets, SoundAssets}, camera::{MainCamera, UpdateLightEvent}}, common::state::GameState};
 
-use super::{get_chunk_pos, CHUNK_SIZE_U, UpdateNeighborsEvent, WALL_SIZE, CHUNKMAP_SIZE, ChunkContainer, get_camera_fov, ChunkManager, ChunkPos, get_chunk_tile_pos, world::WorldData, block::Block, Wall, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent, BlockType, TREE_SIZE, TREE_BRANCHES_SIZE, TreeFrameType, TREE_TOPS_SIZE, ChunkType, Chunk, utils::get_chunk_position_by_camera_fov};
+use super::{get_chunk_pos, CHUNK_SIZE_U, UpdateNeighborsEvent, WALL_SIZE, CHUNKMAP_SIZE, ChunkContainer, get_camera_fov, ChunkManager, ChunkPos, get_chunk_tile_pos, world::WorldData, block::Block, Wall, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent, BlockType, TREE_SIZE, TREE_BRANCHES_SIZE, TreeFrameType, TREE_TOPS_SIZE, ChunkType, Chunk, utils::get_chunk_range_by_camera_fov};
 
 pub(super) fn spawn_terrain(mut commands: Commands) {
     let _current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
@@ -91,12 +91,11 @@ pub(super) fn spawn_chunks(
 ) {
     if let Ok((camera_transform, projection)) = camera_query.get_single() {
         let camera_fov = get_camera_fov(camera_transform.translation().xy(), projection);
-        let camera_chunk_pos = get_chunk_position_by_camera_fov(camera_fov, world_data.size);
+        let chunk_range = get_chunk_range_by_camera_fov(camera_fov, world_data.size);
 
-        for y in camera_chunk_pos.top..=camera_chunk_pos.bottom {
-            for x in camera_chunk_pos.left..=camera_chunk_pos.right {
+        for y in chunk_range.y {
+            for x in chunk_range.x.clone() {
                 let chunk_pos = UVec2::new(x, y);
-
                 if chunk_manager.spawned_chunks.insert(chunk_pos) {
                     spawn_chunk(&mut commands, &block_assets, &wall_assets, &world_data, chunk_pos);
                 }
@@ -117,11 +116,11 @@ pub(super) fn despawn_chunks(
 ) {
     if let Ok((camera_transform, projection)) = camera_query.get_single() {
         let camera_fov = get_camera_fov(camera_transform.translation().xy(), projection);
-        let camera_chunk_pos = get_chunk_position_by_camera_fov(camera_fov, world_data.size);
+        let chunk_range = get_chunk_range_by_camera_fov(camera_fov, world_data.size);
 
         for (entity, ChunkContainer { pos: chunk_pos }) in chunks.iter() {
-            if (chunk_pos.x < camera_chunk_pos.left || chunk_pos.x > camera_chunk_pos.right) ||
-               (chunk_pos.y > camera_chunk_pos.bottom || chunk_pos.y < camera_chunk_pos.top) 
+            if (chunk_pos.x < *chunk_range.x.start() || chunk_pos.x > *chunk_range.x.end()) ||
+               (chunk_pos.y > *chunk_range.y.end() || chunk_pos.y < *chunk_range.y.start()) 
             {
                 chunk_manager.spawned_chunks.remove(chunk_pos);
                 commands.entity(entity).despawn_recursive();

@@ -10,6 +10,8 @@ mod wall;
 mod tree;
 pub mod light;
 
+use std::ops::RangeInclusive;
+
 pub use chunk::*;
 pub use events::*;
 pub use resources::*;
@@ -76,4 +78,18 @@ impl TerrariaFrame {
     pub const fn new(x: u16, y: u16) -> Self {
         Self { x, y }
     }
+}
+
+#[derive(Copy, Clone, PartialEq, Debug, Default)]
+pub(super) struct CameraFov {
+    pub left: f32,
+    pub right: f32,
+    pub top: f32,
+    pub bottom: f32,
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub(super) struct ChunkRange {
+    pub x: RangeInclusive<u32>,
+    pub y: RangeInclusive<u32>
 }

@@ -6,7 +6,7 @@ use crate::{
         world::{WorldData, TILE_SIZE},
         inventory::{UsedItem, SwingAnimation},
     },
-    common::{math::{move_towards, map_range_usize}, state::MovementState},
+    common::{math::{move_towards, map_range_usize}, state::MovementState, rect::FRect},
 };
 
 use super::*;
@@ -78,12 +78,12 @@ pub(super) fn detect_collisions(
     mut collisions: ResMut<Collisions>,
     mut velocity: ResMut<PlayerVelocity>,
     mut player_data: ResMut<PlayerData>,
-    player_query: Query<&Transform, With<Player>>,
+    mut player_query: Query<&mut Transform, With<Player>>,
 ) {
-    let transform = player_query.single();
+    let mut transform = player_query.single_mut();
 
     let position = transform.translation.xy().abs();
-    let next_position = (transform.translation.xy() + velocity.0).abs();
+    let next_position = (transform.translation.xy() + **velocity).abs();
 
     let left = ((position.x - PLAYER_HALF_WIDTH) / TILE_SIZE) - 1.;
     let right = ((position.x + PLAYER_HALF_WIDTH) / TILE_SIZE) + 2.;
@@ -100,62 +100,54 @@ pub(super) fn detect_collisions(
 
     let mut new_collisions = Collisions::default();
 
-    let mut yx: i32;
-    let mut xy: i32;
-    let mut yy: i32 = -1;
-    let mut xx: i32 = -1;
-
-    let mut a = (bottom + 3.) * TILE_SIZE;
+    let player_rect = FRect {
+        centerx: next_position.x,
+        centery: next_position.y,
+        width: PLAYER_WIDTH,
+        height: PLAYER_HEIGHT,
+    };
 
     for x in left_u32..right_u32 {
         for y in top_u32..bottom_u32 {
             if world_data.solid_block_exists((x, y)) {
-                let tile_pos = Vec2::new(x as f32 * TILE_SIZE, y as f32 * TILE_SIZE);
+                let tile_rect = FRect::new(
+                    x as f32 * TILE_SIZE,
+                    y as f32 * TILE_SIZE,
+                    TILE_SIZE,
+                    TILE_SIZE
+                );
 
-                if (next_position.x + PLAYER_HALF_WIDTH) > (tile_pos.x - TILE_SIZE / 2.) && (next_position.x - PLAYER_HALF_WIDTH) < (tile_pos.x + TILE_SIZE / 2.) && (next_position.y + PLAYER_HALF_HEIGHT) > (tile_pos.y - TILE_SIZE / 2.) && (next_position.y - PLAYER_HALF_HEIGHT) < (tile_pos.y + TILE_SIZE / 2.) {
-                    if position.y + PLAYER_HALF_HEIGHT <= tile_pos.y - TILE_SIZE / 2. {
-                        new_collisions.bottom = true;
+                if player_rect.intersects(&tile_rect) {
+                    let delta_x = position.x - tile_rect.centerx;
+                    let delta_y = position.y - tile_rect.centery;
 
-                        let fall_distance = (player_data.fall_distance / 16.).round();
-
-                        // if fall_distance > 0. {
-                        //     debug!(
-                        //         fall_distance = fall_distance
-                        //     );
-                        // }
-                        
-                        player_data.fall_distance = 0.;
-
-                        if a > tile_pos.y {
-                            yx = x as i32;
-                            yy = y as i32;
-                            if yx != xx {
-                                // velocity.y = ((tile_pos.y - TILE_SIZE / 2.) - (position.y + PLAYER_HALF_HEIGHT));
-                                velocity.y = 0.;
-                                a = tile_pos.y;
+                    if delta_x.abs() > delta_y.abs() {
+                        velocity.x = 0.;
+                        if delta_x > 0. {
+                            new_collisions.right = true;
+                            // If the player's left side is more to the left than the tile's right side then move the player right
+                            transform.translation.x = tile_rect.right() + player_rect.width / 2.;
+                        } else {
+                            new_collisions.left = true;
+                            // If the player's right side is more to the right than the tile's left side then move the player left
+                            transform.translation.x = tile_rect.left() - player_rect.width / 2.;
+                        }
+                    } else {
+                        velocity.y = 0.;
+                        if delta_y > 0. {
+                            new_collisions.top = true;
+                            // If the player's top side is higher than the tile's bottom side then move the player down
+                            if player_rect.top() < tile_rect.bottom() {
+                                transform.translation.y = -tile_rect.top() - player_rect.height / 2.;
+                            }
+                        } else {
+                            new_collisions.bottom = true;
+                            player_data.fall_distance = 0.;
+                            // If the player's bottom side is lower than the tile's top side then move the player up
+                            if player_rect.bottom() < tile_rect.top() {
+                                transform.translation.y = -tile_rect.bottom() + player_rect.height / 2.;
                             }
                         }
-                    } else if position.x + PLAYER_HALF_WIDTH <= tile_pos.x - TILE_SIZE / 2. {
-                        new_collisions.right = true;
-                        velocity.x = 0.;
-                        xx = x as i32;
-                        xy = y as i32;
-                        if xy != yy {
-                            velocity.x = (tile_pos.x - TILE_SIZE / 2.) - (position.x + PLAYER_HALF_WIDTH);
-                        }
-                    } else if position.x - PLAYER_HALF_WIDTH >= tile_pos.x + TILE_SIZE / 2. {
-                        new_collisions.left = true;
-                        velocity.x = 0.;
-                        xx = x as i32;
-                        xy = y as i32;
-                        if xy != yy {
-                            velocity.x = (tile_pos.x + TILE_SIZE / 2.) - (position.x - PLAYER_HALF_WIDTH);
-                        }
-                    } else if position.y >= tile_pos.y + TILE_SIZE / 2. {
-                        collisions.top = true;
-                        yx = x as i32;
-                        yy = y as i32;
-                        velocity.y = ((tile_pos.y + TILE_SIZE / 2.) - (position.y - PLAYER_HALF_HEIGHT)) * time.delta_seconds();
                     }
                 }
             }
