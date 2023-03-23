@@ -27,7 +27,7 @@ pub(self) const CELL_COUNT_IN_ROW: usize = 10;
 
 const HOTBAR_LENGTH: usize = 10;
 
-const ITEM_ROTATION: f32 = 1.5;
+const ITEM_ROTATION: f32 = 1.7;
 
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
 enum UseItemAnimationSet {
@@ -68,7 +68,7 @@ impl Plugin for PlayerInventoryPlugin {
 
         app.add_system(update_player_using_item.in_set(OnUpdate(GameState::InGame)));
         app.add_system(set_using_item_image.in_set(OnUpdate(GameState::InGame)));
-        app.add_system(set_using_item_visibility.in_set(OnUpdate(GameState::InGame)));
+        app.add_system(hide_using_item.in_set(OnUpdate(GameState::InGame)));
 
         app.add_system(
             play_swing_sound
@@ -89,6 +89,7 @@ impl Plugin for PlayerInventoryPlugin {
             (
                 set_using_item_position,
                 set_using_item_rotation,
+                unhide_using_item,
                 update_sprite_index,
                 update_use_item_animation_index,
             )
