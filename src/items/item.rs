@@ -73,5 +73,5 @@ impl Items {
 }
 
 pub fn get_animation_points() -> [Vec2; 3] {
-    [vec2(-5., 4.), vec2(5., 3.), vec2(5., -7.)]
+    [vec2(-7.5, 11.0), vec2(6.0, 7.5), vec2(7.0, -4.0)]
 }

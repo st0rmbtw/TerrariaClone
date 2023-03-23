@@ -6,7 +6,7 @@ use rand::seq::SliceRandom;
 
 use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets, SoundAssets}, cursor::{HoveredInfo, CursorPosition}, world::{DigBlockEvent, PlaceBlockEvent}, player::{FaceDirection, Player, PlayerBodySprite}}, common::{extensions::EntityCommandsExtensions, helpers}, language::LanguageContent, items::{Item, get_animation_points, ItemStack}, DebugConfiguration};
 
-use super::{Inventory, HOTBAR_LENGTH, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, CELL_COUNT_IN_ROW, INVENTORY_ROWS, HotbarUi, util::keycode_to_digit, SwingItemCooldown, UsedItem, UseItemAnimationIndex, PlayerUsingItem, UseItemAnimationData, events::SwingEvent, SwingItemCooldownMax, ITEM_ROTATION, SwingAnimation};
+use super::{Inventory, HOTBAR_LENGTH, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, CELL_COUNT_IN_ROW, INVENTORY_ROWS, HotbarUi, util::keycode_to_digit, SwingItemCooldown, UsedItem, UseItemAnimationIndex, PlayerUsingItem, UseItemAnimationData, SwingItemCooldownMax, ITEM_ROTATION, SwingAnimation};
 
 #[autodefault]
 pub fn spawn_inventory_ui(
@@ -456,31 +456,21 @@ pub(super) fn use_item(
 }
 
 pub(super) fn update_swing_cooldown(
-    mut swing_animation: ResMut<SwingAnimation>,
     mut swing_cooldown: ResMut<SwingItemCooldown>
 ) {
     if **swing_cooldown > 0 {
         **swing_cooldown -= 1;
-    } else {
-        **swing_animation = false;
     }
 }
 
-pub(super) fn set_swing_cooldown(
-    selected_item: Res<SelectedItem>,
-    mut swing_cooldown: ResMut<SwingItemCooldown>,
-    mut swing_cooldown_max: ResMut<SwingItemCooldownMax>,
-    mut swing_events: EventWriter<SwingEvent>,
-    mut swing_animation: ResMut<SwingAnimation>
+pub(super) fn stop_swing_animation(
+    swing_cooldown: Res<SwingItemCooldown>,
+    mut using_item: ResMut<PlayerUsingItem>,
+    mut swing_animation: ResMut<SwingAnimation>,
 ) {
     if **swing_cooldown == 0 {
-        if let Some(item_stack) = **selected_item {
-            **swing_cooldown = item_stack.item.swing_cooldown();
-            **swing_cooldown_max = item_stack.item.swing_cooldown();
-            swing_events.send(SwingEvent);
-        }
-
         **swing_animation = false;
+        **using_item = false;
     }
 }
 
@@ -498,12 +488,12 @@ pub(super) fn set_using_item_image(
 }
 
 pub(super) fn set_using_item_visibility(
-    using_item: Res<PlayerUsingItem>,
+    swing_animation: Res<SwingAnimation>,
     mut using_item_query: Query<&mut Visibility, With<UsedItem>>,
 ) {
-    if using_item.is_changed() {
+    if swing_animation.is_changed() {
         if let Ok(visibility) = using_item_query.get_single_mut() {
-            helpers::set_visibility(visibility, using_item.0);
+            helpers::set_visibility(visibility, swing_animation.0);
         }
     }
 }
@@ -570,10 +560,14 @@ pub(super) fn play_swing_sound(
     selected_item: Res<SelectedItem>,
     sound_assets: Res<SoundAssets>,
     audio: Res<Audio>,
+    swing_cooldown: Res<SwingItemCooldown>,
+    swing_cooldown_max: Res<SwingItemCooldownMax>
 ) {
-    if let Some(ItemStack { item: Item::Tool(_), .. }) = **selected_item {
-        let sound = sound_assets.swing.choose(&mut rand::thread_rng()).unwrap();
-        audio.play(sound.clone_weak());
+    if **swing_cooldown == **swing_cooldown_max {
+        if let Some(ItemStack { item: Item::Tool(_), .. }) = **selected_item {
+            let sound = sound_assets.swing.choose(&mut rand::thread_rng()).unwrap();
+            audio.play(sound.clone_weak());
+        }
     }
 }
 
@@ -582,9 +576,23 @@ pub(super) fn update_player_using_item(
     selected_item: Res<SelectedItem>,
     mut using_item: ResMut<PlayerUsingItem>,
     mut swing_animation: ResMut<SwingAnimation>,
+    mut swing_cooldown: ResMut<SwingItemCooldown>,
+    mut swing_cooldown_max: ResMut<SwingItemCooldownMax>
 ) {
-    if (input.pressed(MouseButton::Left) || input.just_pressed(MouseButton::Left)) && selected_item.is_some() {
-        **using_item = true;
-        **swing_animation = true;
+    **using_item = if input.pressed(MouseButton::Left) || input.just_pressed(MouseButton::Left) {
+        if let Some(selected_item) = **selected_item {
+            if !**swing_animation {
+                **swing_cooldown = selected_item.item.swing_cooldown();
+                **swing_cooldown_max = selected_item.item.swing_cooldown();
+            }
+
+            **swing_animation = true;
+
+            true
+        } else{
+            false
+        }
+    } else {
+        false
     }
 }

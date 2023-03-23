@@ -4,7 +4,7 @@ use bevy_hanabi::prelude::*;
 use crate::{
     plugins::{
         world::{WorldData, TILE_SIZE},
-        inventory::{PlayerUsingItem, UsedItem},
+        inventory::{UsedItem, SwingAnimation},
     },
     common::{math::{move_towards, map_range_usize}, state::MovementState},
 };
@@ -291,12 +291,12 @@ pub(super) fn flip_using_item(
 }
 
 pub(super) fn walking_animation(
-    using_item: Res<PlayerUsingItem>,
+    swing_animation: Res<SwingAnimation>,
     index: Res<MovementAnimationIndex>,
     mut query: Query<(&mut TextureAtlasSprite, &WalkingAnimationData, Option<&UseItemAnimationData>), With<PlayerBodySprite>>,
 ) {
     query.for_each_mut(|(mut sprite, anim_data, use_item_animation)| {
-        if use_item_animation.is_none() || !**using_item {
+        if use_item_animation.is_none() || !**swing_animation {
             let walking_anim_offset = anim_data.offset;
             let walking_anim_count = anim_data.count;
 

@@ -2,16 +2,13 @@ mod components;
 mod resources;
 mod systems;
 mod util;
-mod events;
 
-use bevy::{ui::{Val, Size}, prelude::{Plugin, App, OnUpdate, IntoSystemConfigs, IntoSystemAppConfig, CoreSchedule, IntoSystemConfig, Res, in_state, on_event, IntoSystemAppConfigs, SystemSet}};
+use bevy::{ui::{Val, Size}, prelude::{Plugin, App, OnUpdate, IntoSystemConfigs, IntoSystemAppConfig, CoreSchedule, IntoSystemConfig, Res, in_state, IntoSystemAppConfigs, SystemSet}};
 pub use components::*;
 pub use resources::*;
 pub use systems::*;
 
 use crate::{common::state::GameState, items::Items};
-
-use self::events::SwingEvent;
 
 use super::ui::UiVisibility;
 
@@ -49,9 +46,6 @@ impl Plugin for PlayerInventoryPlugin {
         app.insert_resource(UseItemAnimationIndex::default());
         app.insert_resource(PlayerUsingItem(false));
         app.insert_resource(SwingAnimation(false));
-
-        app.add_event::<SwingEvent>();
-
         app.insert_resource({
                 let mut inventory = Inventory::default();
                 inventory.add_item(Items::COPPER_PICKAXE);
@@ -78,8 +72,9 @@ impl Plugin for PlayerInventoryPlugin {
 
         app.add_system(
             play_swing_sound
-                .in_set(OnUpdate(GameState::InGame))
-                .run_if(on_event::<SwingEvent>())
+                .run_if(in_state(GameState::InGame))
+                .run_if(|res: Res<SwingAnimation>| **res == true)
+                .in_schedule(CoreSchedule::FixedUpdate)
         );
 
         app.add_system(
@@ -87,6 +82,7 @@ impl Plugin for PlayerInventoryPlugin {
                 .run_if(in_state(GameState::InGame))
                 .in_set(UseItemAnimationSet::UpdateSwingCooldown)
                 .in_schedule(CoreSchedule::FixedUpdate)
+                .after(play_swing_sound)
         );
 
         app.add_systems(
@@ -104,8 +100,8 @@ impl Plugin for PlayerInventoryPlugin {
         );
 
         app.add_system(
-            set_swing_cooldown
-                .run_if(|res: Res<PlayerUsingItem>| **res == true)
+            stop_swing_animation
+                .run_if(|res: Res<SwingAnimation>| **res == true)
                 .run_if(in_state(GameState::InGame))
                 .in_schedule(CoreSchedule::FixedUpdate)
                 .in_set(UseItemAnimationSet::SetCooldown)
