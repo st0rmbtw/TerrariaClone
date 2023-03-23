@@ -6,14 +6,6 @@ pub(crate) struct FRect {
     pub height: f32
 }
 
-#[derive(Clone, Eq, PartialEq, Debug, Default)]
-pub(crate) struct URect {
-    pub left: u32,
-    pub right: u32,
-    pub top: u32,
-    pub bottom: u32,
-}
-
 impl FRect {
     pub const fn new(centerx: f32, centery: f32, width: f32, height: f32) -> Self {
         Self { centerx, centery, width, height }

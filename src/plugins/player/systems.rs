@@ -73,7 +73,6 @@ pub(super) fn gravity(
 }
 
 pub(super) fn detect_collisions(
-    time: Res<Time>,
     world_data: Res<WorldData>,
     mut collisions: ResMut<Collisions>,
     mut velocity: ResMut<PlayerVelocity>,
