@@ -59,13 +59,17 @@ pub(super) fn update_jump(
 }
 
 pub(super) fn gravity(
-    time: Res<Time>,
     collisions: Res<Collisions>,
     mut player_data: ResMut<PlayerData>,
     mut velocity: ResMut<PlayerVelocity>,
+    query_player: Query<&Transform, With<Player>>
 ) {
     if !collisions.bottom {
-        player_data.fall_distance += GRAVITY / (time.delta_seconds() * 16.);
+        if velocity.y <= 0. && player_data.fall_start == 0. {
+            let transform = query_player.single();
+            player_data.fall_start = transform.translation.y;
+        }
+
         velocity.y -= GRAVITY;
     }
 
@@ -141,7 +145,15 @@ pub(super) fn detect_collisions(
                             }
                         } else {
                             new_collisions.bottom = true;
-                            player_data.fall_distance = 0.;
+
+                            if player_data.fall_start != 0. {
+                                let fall_distance = ((position.y + player_data.fall_start) / TILE_SIZE).round();
+                                if fall_distance > 0. {
+                                    debug!(fall_distance);
+                                }
+                            }
+
+                            player_data.fall_start = 0.;
                             // If the player's bottom side is lower than the tile's top side then move the player up
                             if player_rect.bottom() < tile_rect.top() {
                                 transform.translation.y = -tile_rect.bottom() + player_rect.height / 2.;
@@ -193,13 +205,14 @@ pub(super) fn spawn_particles(
 }
 
 pub(super) fn update_movement_state(
+    collisions: Res<Collisions>,
     player_data: Res<PlayerData>,
     velocity: Res<PlayerVelocity>,
     mut query: Query<&mut MovementState, With<Player>>,
 ) {
     let mut movement_state = query.single_mut();
     *movement_state = match velocity.0 {
-        _ if (player_data.fall_distance.round() / 16.) > 1. || player_data.jump > 0 => MovementState::Flying,
+        _ if !collisions.bottom || player_data.jump > 0 => MovementState::Flying,
         Vec2 { x, .. } if x != 0. => MovementState::Walking,
         _ => MovementState::Idle
     };

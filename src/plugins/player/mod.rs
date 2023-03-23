@@ -35,9 +35,7 @@ pub const MAX_FALL_SPEED: f32 = -10.;
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
 enum PhysicsSet {
     SetVelocity,
-    Gravity,
-    Movement,
-    CollisionDetection
+    Update
 }
 
 pub struct PlayerPlugin;
@@ -68,7 +66,7 @@ impl Plugin for PlayerPlugin {
                 spawn_particles
             )
             .chain()
-            .after(PhysicsSet::Movement)
+            .after(PhysicsSet::Update)
             .in_set(OnUpdate(GameState::InGame))
         );
 
@@ -95,33 +93,20 @@ impl Plugin for PlayerPlugin {
             .distributive_run_if(in_state(GameState::InGame))
             .distributive_run_if(|config: Res<DebugConfiguration>| !config.free_camera)
             .in_set(PhysicsSet::SetVelocity)
-            .before(PhysicsSet::Gravity)
+            .before(PhysicsSet::Update)
             .in_schedule(CoreSchedule::FixedUpdate)
         );
 
-        app.add_system(
-            gravity
-                .run_if(in_state(GameState::InGame))
-                .in_set(PhysicsSet::Gravity)
-                .in_schedule(CoreSchedule::FixedUpdate)
-                .before(PhysicsSet::CollisionDetection)
-        );
-
-        app.add_system(
-            detect_collisions
-                .run_if(in_state(GameState::InGame))
-                .in_schedule(CoreSchedule::FixedUpdate)
-                .in_set(PhysicsSet::CollisionDetection)
-                .after(PhysicsSet::Gravity)
-                .before(PhysicsSet::Movement)
-        );
-
-        app.add_system(
-            move_player
-                .run_if(in_state(GameState::InGame))
-                .in_schedule(CoreSchedule::FixedUpdate)
-                .in_set(PhysicsSet::Movement)
-                .after(PhysicsSet::CollisionDetection)
+        app.add_systems(
+            (
+                gravity,
+                detect_collisions,
+                move_player
+            )
+            .chain()
+            .distributive_run_if(in_state(GameState::InGame))
+            .in_set(PhysicsSet::Update)
+            .in_schedule(CoreSchedule::FixedUpdate)
         );
 
         #[cfg(feature = "debug")]
