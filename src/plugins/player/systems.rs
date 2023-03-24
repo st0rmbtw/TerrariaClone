@@ -183,7 +183,7 @@ pub(super) fn detect_collisions(
                                 new_collisions.bottom = true;
 
                                 if player_data.fall_start != 0. {
-                                    let fall_distance = ((position.y + player_data.fall_start) / TILE_SIZE).round();
+                                    let fall_distance = ((position.y + player_data.fall_start) / TILE_SIZE).ceil();
                                     if fall_distance > 0. {
                                         debug!(fall_distance);
                                     }
