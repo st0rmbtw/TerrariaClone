@@ -15,8 +15,8 @@ use autodefault::autodefault;
 
 use super::{assets::PlayerAssets, world::{WorldData, TILE_SIZE}, inventory::{UseItemAnimationData, UsedItem}};
 
-pub const PLAYER_WIDTH: f32 = 22. /* 2. * TILE_SIZE */;
-pub const PLAYER_HEIGHT: f32 = 42. /* 3. * TILE_SIZE */;
+pub const PLAYER_WIDTH: f32 = 22.;
+pub const PLAYER_HEIGHT: f32 = 44.;
 
 pub const PLAYER_HALF_WIDTH: f32 = PLAYER_WIDTH / 2.;
 pub const PLAYER_HALF_HEIGHT: f32 = PLAYER_HEIGHT / 2.;
