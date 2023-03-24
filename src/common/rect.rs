@@ -1,4 +1,4 @@
-#[derive(Copy, Clone, PartialEq, Debug, Default)]
+#[derive(Clone, PartialEq, Debug, Default)]
 pub(crate) struct FRect {
     pub centerx: f32,
     pub centery: f32,
@@ -12,13 +12,9 @@ impl FRect {
     }
 
     pub(crate) fn intersects(&self, other: &FRect) -> bool {
-        if self.width == 0.0 || self.height == 0.0 || other.width == 0.0 || other.height == 0.0 {
-            return false;
-        }
-
-        return self.left() <= other.right() &&
+        return self.left() < other.right() &&
                self.top() >= other.bottom() &&
-               self.right() >= other.left() &&
+               self.right() > other.left() &&
                self.bottom() <= other.top();
     }
 

@@ -11,6 +11,9 @@ use crate::{
 
 use super::*;
 
+#[cfg(feature = "debug")]
+use bevy_prototype_debug_lines::DebugLines;
+
 pub(super) fn horizontal_movement(
     axis: Res<InputAxis>,
     mut velocity: ResMut<PlayerVelocity>
@@ -82,6 +85,10 @@ pub(super) fn detect_collisions(
     mut velocity: ResMut<PlayerVelocity>,
     mut player_data: ResMut<PlayerData>,
     mut player_query: Query<&mut Transform, With<Player>>,
+    #[cfg(feature = "debug")]
+    mut debug_lines: ResMut<DebugLines>,
+    #[cfg(feature = "debug")]
+    debug_config: Res<DebugConfiguration>,
 ) {
     let mut transform = player_query.single_mut();
 
@@ -121,29 +128,51 @@ pub(super) fn detect_collisions(
                 );
 
                 if player_rect.intersects(&tile_rect) {
-                    let delta_x = position.x - tile_rect.centerx;
-                    let delta_y = position.y - tile_rect.centery;
+                    let delta_x = next_position.x - tile_rect.centerx;
+                    let delta_y = next_position.y - tile_rect.centery;
 
                     if delta_x.abs() > delta_y.abs() {
-                        velocity.x = 0.;
                         if delta_x > 0. {
-                            new_collisions.right = true;
+                            velocity.x = 0.;
+                            new_collisions.left = true;
                             // If the player's left side is more to the left than the tile's right side then move the player right
                             transform.translation.x = tile_rect.right() + player_rect.width / 2.;
+
+                            #[cfg(feature = "debug")]
+                            if debug_config.show_collisions {
+                                debug_lines.line_colored(
+                                    Vec3::new(tile_rect.right(), -tile_rect.top(), 10.),
+                                    Vec3::new(tile_rect.right(), -tile_rect.bottom(), 10.),
+                                    0.1,
+                                    Color::RED
+                                );
+                            }
                         } else {
-                            new_collisions.left = true;
+                            velocity.x = 0.;
+                            new_collisions.right = true;
                             // If the player's right side is more to the right than the tile's left side then move the player left
                             transform.translation.x = tile_rect.left() - player_rect.width / 2.;
+
+                            #[cfg(feature = "debug")]
+                            if debug_config.show_collisions {
+                                debug_lines.line_colored(
+                                    Vec3::new(tile_rect.left(), -tile_rect.top(), 10.),
+                                    Vec3::new(tile_rect.left(), -tile_rect.bottom(), 10.),
+                                    0.1,
+                                    Color::BLUE
+                                );
+                            }
                         }
                     } else {
-                        velocity.y = 0.;
                         if delta_y > 0. {
+                            velocity.y = 0.;
                             new_collisions.top = true;
                             // If the player's top side is higher than the tile's bottom side then move the player down
                             if player_rect.top() < tile_rect.bottom() {
                                 transform.translation.y = -tile_rect.top() - player_rect.height / 2.;
                             }
                         } else {
+                            velocity.y = 0.;
                             new_collisions.bottom = true;
 
                             if player_data.fall_start != 0. {
@@ -152,11 +181,21 @@ pub(super) fn detect_collisions(
                                     debug!(fall_distance);
                                 }
                             }
-
                             player_data.fall_start = 0.;
+                            
                             // If the player's bottom side is lower than the tile's top side then move the player up
                             if player_rect.bottom() < tile_rect.top() {
                                 transform.translation.y = -tile_rect.bottom() + player_rect.height / 2.;
+                            }
+
+                            #[cfg(feature = "debug")]
+                            if debug_config.show_collisions {
+                                debug_lines.line_colored(
+                                    Vec3::new(tile_rect.left(), -tile_rect.bottom(), 10.),
+                                    Vec3::new(tile_rect.right(), -tile_rect.bottom(), 10.),
+                                    0.1,
+                                    Color::YELLOW
+                                );
                             }
                         }
                     }
@@ -334,10 +373,6 @@ pub(super) fn current_speed(
         );
     }
 }
-
-
-#[cfg(feature = "debug")]
-use bevy_prototype_debug_lines::DebugLines;
 
 #[cfg(feature = "debug")]
 pub(super) fn draw_hitbox(
