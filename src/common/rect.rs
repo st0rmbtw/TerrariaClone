@@ -1,3 +1,10 @@
+#[cfg(feature = "debug")]
+use bevy_prototype_debug_lines::DebugLines;
+#[cfg(feature = "debug")]
+use bevy::prelude::Vec3;
+#[cfg(feature = "debug")]
+use bevy::prelude::Color;
+
 #[derive(Clone, PartialEq, Debug, Default)]
 pub(crate) struct FRect {
     pub(crate) centerx: f32,
@@ -48,5 +55,44 @@ impl FRect {
 
     pub(crate) fn bottom(&self) -> f32 {
         self.centery - self.height / 2.
+    }
+
+    #[cfg(feature = "debug")]
+    pub(crate) fn draw_left_side(&self, debug_lines: &mut DebugLines, duration: f32, color: Color) {
+        debug_lines.line_colored(
+            Vec3::new(self.left, -self.bottom(), 10.),
+            Vec3::new(self.left, -self.top(), 10.),
+            duration,
+            color
+        );
+    }
+
+    #[cfg(feature = "debug")]
+    pub(crate) fn draw_right_side(&self, debug_lines: &mut DebugLines, duration: f32, color: Color) {
+        debug_lines.line_colored(
+            Vec3::new(self.right, -self.bottom(), 10.),
+            Vec3::new(self.right, -self.top(), 10.),
+            duration,
+            color
+        );
+    }
+
+    #[cfg(feature = "debug")]
+    pub(crate) fn draw_top_side(&self, debug_lines: &mut DebugLines, duration: f32, color: Color) {
+        debug_lines.line_colored(
+            Vec3::new(self.left, -self.bottom(), 10.),
+            Vec3::new(self.right, -self.bottom(), 10.),
+            duration,
+            color
+        );
+    }
+    #[cfg(feature = "debug")]
+    pub(crate) fn draw_bottom_side(&self, debug_lines: &mut DebugLines, duration: f32, color: Color) {
+        debug_lines.line_colored(
+            Vec3::new(self.left, -self.top(), 10.),
+            Vec3::new(self.right, -self.top(), 10.),
+            duration,
+            color
+        );
     }
 }
