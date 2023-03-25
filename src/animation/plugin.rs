@@ -31,8 +31,7 @@ use crate::animation::{tweenable::ComponentTarget, Animator, AnimatorState, Twee
 /// [`Sprite`]: https://docs.rs/bevy/0.9.0/bevy/sprite/struct.Sprite.html
 /// [`ColorMaterial`]: https://docs.rs/bevy/0.9.0/bevy/sprite/struct.ColorMaterial.html
 #[derive(Debug, Clone, Copy)]
-pub struct TweeningPlugin;
-
+pub(crate) struct TweeningPlugin;
 impl Plugin for TweeningPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<TweenCompleted>();
@@ -45,7 +44,7 @@ impl Plugin for TweeningPlugin {
 
 /// Label enum for the systems relating to animations
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, SystemSet)]
-pub enum AnimationSystemSet {
+pub(crate) enum AnimationSystemSet {
     /// Ticks animations
     AnimationUpdate,
 }
@@ -54,7 +53,7 @@ pub enum AnimationSystemSet {
 ///
 /// This system extracts all components of type `T` with an `Animator<T>`
 /// attached to the same entity, and tick the animator to animate the component.
-pub fn component_animator_system<T: Component>(
+pub(crate) fn component_animator_system<T: Component>(
     time: Res<Time>,
     mut query: Query<(Entity, &mut T, &mut Animator<T>)>,
     events: ResMut<Events<TweenCompleted>>,

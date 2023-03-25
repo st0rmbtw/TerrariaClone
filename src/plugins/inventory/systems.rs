@@ -9,7 +9,7 @@ use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{Item
 use super::{Inventory, HOTBAR_LENGTH, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, CELL_COUNT_IN_ROW, INVENTORY_ROWS, HotbarUi, util::keycode_to_digit, SwingItemCooldown, UsedItem, UseItemAnimationIndex, PlayerUsingItem, UseItemAnimationData, SwingItemCooldownMax, ITEM_ROTATION, SwingAnimation};
 
 #[autodefault]
-pub fn spawn_inventory_ui(
+pub(crate) fn spawn_inventory_ui(
     commands: &mut Commands,
     ui_assets: &UiAssets,
     fonts: &FontAssets,

@@ -65,7 +65,7 @@ use bevy::prelude::*;
 ///   }
 /// }
 /// ```
-pub trait Lens<T> {
+pub(crate) trait Lens<T> {
     /// Perform a linear interpolation (lerp) over the subset of fields of a
     /// component or asset the lens focuses on, based on the linear ratio
     /// `ratio`. The `target` component or asset is mutated in place. The
@@ -81,13 +81,13 @@ pub trait Lens<T> {
 /// [`Text`]: https://docs.rs/bevy/0.9.0/bevy/text/struct.Text.html
 #[cfg(feature = "bevy_text")]
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct TextColorLens {
+pub(crate) struct TextColorLens {
     /// Start color.
-    pub start: Color,
+    pub(crate) start: Color,
     /// End color.
-    pub end: Color,
+    pub(crate) end: Color,
     /// Index of the text section in the [`Text`] component.
-    pub section: usize,
+    pub(crate) section: usize,
 }
 
 #[cfg(feature = "bevy_text")]
@@ -107,11 +107,11 @@ impl Lens<Text> for TextColorLens {
 /// [`translation`]: https://docs.rs/bevy/0.9.0/bevy/transform/components/struct.Transform.html#structfield.translation
 /// [`Transform`]: https://docs.rs/bevy/0.9.0/bevy/transform/components/struct.Transform.html
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct TransformPositionLens {
+pub(crate) struct TransformPositionLens {
     /// Start value of the translation.
-    pub start: Vec3,
+    pub(crate) start: Vec3,
     /// End value of the translation.
-    pub end: Vec3,
+    pub(crate) end: Vec3,
 }
 
 impl Lens<Transform> for TransformPositionLens {
@@ -139,11 +139,11 @@ impl Lens<Transform> for TransformPositionLens {
 /// [`Quat::slerp()`]: https://docs.rs/bevy/0.9.0/bevy/math/struct.Quat.html#method.slerp
 /// [top-level `lens` module documentation]: crate::lens
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct TransformRotationLens {
+pub(crate) struct TransformRotationLens {
     /// Start value of the rotation.
-    pub start: Quat,
+    pub(crate) start: Quat,
     /// End value of the rotation.
-    pub end: Quat,
+    pub(crate) end: Quat,
 }
 
 impl Lens<Transform> for TransformRotationLens {
@@ -165,11 +165,11 @@ impl Lens<Transform> for TransformRotationLens {
 /// [`Transform`]: https://docs.rs/bevy/0.9.0/bevy/transform/components/struct.Transform.html
 /// [top-level `lens` module documentation]: crate::lens
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct TransformRotateXLens {
+pub(crate) struct TransformRotateXLens {
     /// Start value of the rotation angle, in radians.
-    pub start: f32,
+    pub(crate) start: f32,
     /// End value of the rotation angle, in radians.
-    pub end: f32,
+    pub(crate) end: f32,
 }
 
 impl Lens<Transform> for TransformRotateXLens {
@@ -192,11 +192,11 @@ impl Lens<Transform> for TransformRotateXLens {
 /// [`Transform`]: https://docs.rs/bevy/0.9.0/bevy/transform/components/struct.Transform.html
 /// [top-level `lens` module documentation]: crate::lens
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct TransformRotateYLens {
+pub(crate) struct TransformRotateYLens {
     /// Start value of the rotation angle, in radians.
-    pub start: f32,
+    pub(crate) start: f32,
     /// End value of the rotation angle, in radians.
-    pub end: f32,
+    pub(crate) end: f32,
 }
 
 impl Lens<Transform> for TransformRotateYLens {
@@ -219,11 +219,11 @@ impl Lens<Transform> for TransformRotateYLens {
 /// [`Transform`]: https://docs.rs/bevy/0.9.0/bevy/transform/components/struct.Transform.html
 /// [top-level `lens` module documentation]: crate::lens
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct TransformRotateZLens {
+pub(crate) struct TransformRotateZLens {
     /// Start value of the rotation angle, in radians.
-    pub start: f32,
+    pub(crate) start: f32,
     /// End value of the rotation angle, in radians.
-    pub end: f32,
+    pub(crate) end: f32,
 }
 
 impl Lens<Transform> for TransformRotateZLens {
@@ -250,13 +250,13 @@ impl Lens<Transform> for TransformRotateZLens {
 /// [`Transform`]: https://docs.rs/bevy/0.9.0/bevy/transform/components/struct.Transform.html
 /// [top-level `lens` module documentation]: crate::lens
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct TransformRotateAxisLens {
+pub(crate) struct TransformRotateAxisLens {
     /// The normalized rotation axis.
-    pub axis: Vec3,
+    pub(crate) axis: Vec3,
     /// Start value of the rotation angle, in radians.
-    pub start: f32,
+    pub(crate) start: f32,
     /// End value of the rotation angle, in radians.
-    pub end: f32,
+    pub(crate) end: f32,
 }
 
 impl Lens<Transform> for TransformRotateAxisLens {
@@ -271,11 +271,11 @@ impl Lens<Transform> for TransformRotateAxisLens {
 /// [`scale`]: https://docs.rs/bevy/0.9.0/bevy/transform/components/struct.Transform.html#structfield.scale
 /// [`Transform`]: https://docs.rs/bevy/0.9.0/bevy/transform/components/struct.Transform.html
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct TransformScaleLens {
+pub(crate) struct TransformScaleLens {
     /// Start value of the scale.
-    pub start: Vec3,
+    pub(crate) start: Vec3,
     /// End value of the scale.
-    pub end: Vec3,
+    pub(crate) end: Vec3,
 }
 
 impl Lens<Transform> for TransformScaleLens {
@@ -290,31 +290,31 @@ impl Lens<Transform> for TransformScaleLens {
 /// [`position`]: https://docs.rs/bevy/0.9.0/bevy/ui/struct.Style.html#structfield.position
 /// [`Style`]: https://docs.rs/bevy/0.9.0/bevy/ui/struct.Style.html
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct UiPositionLens {
+pub(crate) struct UiPositionLens {
     /// Start position.
-    pub start: UiRect,
+    pub(crate) start: UiRect,
     /// End position.
-    pub end: UiRect,
+    pub(crate) end: UiRect,
 }
 
 /// A lens to manipulate the [`position`] field of a UI [`Style`] component.
 /// Only Left and Right
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct UiPositionHorizontalLens {
+pub(crate) struct UiPositionHorizontalLens {
     /// Start position.
-    pub start: UiRect,
+    pub(crate) start: UiRect,
     /// End position.
-    pub end: UiRect,
+    pub(crate) end: UiRect,
 }
 
 /// A lens to manipulate the [`position`] field of a UI [`Style`] component.
 /// Only Top and Bottom
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct UiPositionVerticalLens {
+pub(crate) struct UiPositionVerticalLens {
     /// Start position.
-    pub start: UiRect,
+    pub(crate) start: UiRect,
     /// End position.
-    pub end: UiRect,
+    pub(crate) end: UiRect,
 }
 
 fn lerp_val(start: &Val, end: &Val, ratio: f32) -> Val {
@@ -357,11 +357,11 @@ impl Lens<Style> for UiPositionVerticalLens {
 /// [`color`]: https://docs.rs/bevy/0.9.0/bevy/sprite/struct.ColorMaterial.html#structfield.color
 /// [`ColorMaterial`]: https://docs.rs/bevy/0.9.0/bevy/sprite/struct.ColorMaterial.html
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct ColorMaterialColorLens {
+pub(crate) struct ColorMaterialColorLens {
     /// Start color.
-    pub start: Color,
+    pub(crate) start: Color,
     /// End color.
-    pub end: Color,
+    pub(crate) end: Color,
 }
 
 impl Lens<ColorMaterial> for ColorMaterialColorLens {
@@ -380,11 +380,11 @@ impl Lens<ColorMaterial> for ColorMaterialColorLens {
 /// [`color`]: https://docs.rs/bevy/0.9.0/bevy/sprite/struct.Sprite.html#structfield.color
 /// [`Sprite`]: https://docs.rs/bevy/0.9.0/bevy/sprite/struct.Sprite.html
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct SpriteColorLens {
+pub(crate) struct SpriteColorLens {
     /// Start color.
-    pub start: Color,
+    pub(crate) start: Color,
     /// End color.
-    pub end: Color,
+    pub(crate) end: Color,
 }
 
 impl Lens<Sprite> for SpriteColorLens {

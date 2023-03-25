@@ -5,13 +5,13 @@ use ndarray::Array2;
 use super::{ChunkPos, Chunk, Block, systems::spawn_block, ChunkType, BlockType};
 
 #[derive(Resource)]
-pub struct LightMap {
-    pub colors: Array2<u8>,
+pub(crate) struct LightMap {
+    pub(crate) colors: Array2<u8>,
 }
 
 #[derive(Resource, Default)]
 pub(super) struct ChunkManager {
-    pub spawned_chunks: HashSet<ChunkPos>
+    pub(super) spawned_chunks: HashSet<ChunkPos>
 }
 
 impl ChunkManager {

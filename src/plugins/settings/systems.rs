@@ -9,7 +9,7 @@ use crate::{plugins::{ui::ToggleExtraUiEvent, assets::{FontAssets, SoundAssets}}
 use super::{SettingsButtonContainer, SettingsButtonText};
 
 #[autodefault(except(TextFontSizeLens))]
-pub fn spawn_ingame_settings_button(
+pub(crate) fn spawn_ingame_settings_button(
     commands: &mut Commands, 
     fonts: &FontAssets,
     language_content: &LanguageContent

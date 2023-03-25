@@ -47,7 +47,7 @@ use crate::animation::{EaseMethod, Lens, RepeatCount, RepeatStrategy, TweeningDi
 ///     }
 /// }
 /// ```
-pub type BoxedTweenable<T> = Box<dyn Tweenable<T> + 'static>;
+pub(crate) type BoxedTweenable<T> = Box<dyn Tweenable<T> + 'static>;
 
 /// Playback state of a [`Tweenable`].
 ///
@@ -55,7 +55,7 @@ pub type BoxedTweenable<T> = Box<dyn Tweenable<T> + 'static>;
 /// some logic based on the updated state of the tweenable, like advanding a
 /// sequence to its next child tweenable.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TweenState {
+pub(crate) enum TweenState {
     /// The tweenable is still active, and did not reach its end state yet.
     Active,
     /// Animation reached its end state. The tweenable is idling at its latest
@@ -82,10 +82,10 @@ pub enum TweenState {
 /// the [`TweenCompleted`] event instead marks the end of a single loop
 /// iteration.
 #[derive(Copy, Clone)]
-pub struct TweenCompleted {
+pub(crate) struct TweenCompleted {
     /// The [`Entity`] the tween which completed and its animator are attached
     /// to.
-    pub entity: Entity,
+    pub(crate) entity: Entity,
     /// An opaque value set by the user when activating event raising, used to
     /// identify the particular tween which raised this event. The value is
     /// passed unmodified from a call to [`with_completed_event()`]
@@ -93,7 +93,7 @@ pub struct TweenCompleted {
     ///
     /// [`with_completed_event()`]: Tween::with_completed_event
     /// [`set_completed_event()`]: Tween::set_completed_event
-    pub user_data: u64,
+    pub(crate) user_data: u64,
 }
 
 /// Calculate the progress fraction in \[0:1\] of the ratio between two
@@ -178,7 +178,7 @@ impl AnimClock {
 ///
 /// Used to measure the total duration of an animation including any looping.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TotalDuration {
+pub(crate) enum TotalDuration {
     /// The duration is finite, of the given value.
     Finite(Duration),
     /// The duration is infinite.
@@ -198,18 +198,18 @@ fn compute_total_duration(duration: Duration, count: RepeatCount) -> TotalDurati
 
 /// Trait to workaround the discrepancies of the change detection mechanisms of
 /// assets and components.
-pub trait Targetable<T> {
+pub(crate) trait Targetable<T> {
     /// Dereference the target, triggering any change detection, and return a
     /// mutable reference.
     fn target_mut(&mut self) -> &mut T;
 }
 
-pub struct ComponentTarget<'a, T: Component> {
+pub(super) struct ComponentTarget<'a, T: Component> {
     target: Mut<'a, T>,
 }
 
 impl<'a, T: Component> ComponentTarget<'a, T> {
-    pub fn new(target: Mut<'a, T>) -> Self {
+    pub(crate) fn new(target: Mut<'a, T>) -> Self {
         Self { target }
     }
 }
@@ -222,7 +222,7 @@ impl<'a, T: Component> Targetable<T> for ComponentTarget<'a, T> {
 
 
 /// An animatable entity, either a single [`Tween`] or a collection of them.
-pub trait Tweenable<T>: Send + Sync {
+pub(crate) trait Tweenable<T>: Send + Sync {
     /// Get the duration of a single iteration of the animation.
     ///
     /// Note that for [`RepeatStrategy::MirroredRepeat`], this is the duration
@@ -357,10 +357,10 @@ impl_boxed!(Tracks<T>);
 /// Type of a callback invoked when a [`Tween`] or [`Delay`] has completed.
 ///
 /// See [`Tween::set_completed()`] or [`Delay::set_completed()`] for usage.
-pub type CompletedCallback<T> = dyn Fn(Entity, &T) + Send + Sync + 'static;
+pub(crate) type CompletedCallback<T> = dyn Fn(Entity, &T) + Send + Sync + 'static;
 
 /// Single tweening animation instance.
-pub struct Tween<T> {
+pub(crate) struct Tween<T> {
     ease_function: EaseMethod,
     clock: AnimClock,
     direction: TweeningDirection,
@@ -387,7 +387,7 @@ impl<T> Tween<T> {
     /// );
     /// ```
     #[must_use]
-    pub fn new<L>(ease_function: impl Into<EaseMethod>, strategy: RepeatStrategy, duration: Duration, lens: L) -> Self
+    pub(crate) fn new<L>(ease_function: impl Into<EaseMethod>, strategy: RepeatStrategy, duration: Duration, lens: L) -> Self
     where
         L: Lens<T> + Send + Sync + 'static,
     {
@@ -434,7 +434,7 @@ impl<T> Tween<T> {
     ///
     /// [`with_completed()`]: Tween::with_completed
     #[must_use]
-    pub fn with_completed_event(mut self, user_data: u64) -> Self {
+    pub(crate) fn with_completed_event(mut self, user_data: u64) -> Self {
         self.event_data = Some(user_data);
         self
     }
@@ -469,7 +469,7 @@ impl<T> Tween<T> {
     /// ```
     ///
     /// [`with_completed_event()`]: Tween::with_completed_event
-    pub fn with_completed<C>(mut self, callback: C) -> Self
+    pub(crate) fn with_completed<C>(mut self, callback: C) -> Self
     where
         C: Fn(Entity, &Self) + Send + Sync + 'static,
     {
@@ -490,7 +490,7 @@ impl<T> Tween<T> {
     /// of the tween. Only the direction of animation from this moment
     /// potentially changes. To force a target state change, call
     /// [`Tweenable::tick()`] with a zero delta (`Duration::ZERO`).
-    pub fn set_direction(&mut self, direction: TweeningDirection) {
+    pub(crate) fn set_direction(&mut self, direction: TweeningDirection) {
         self.direction = direction;
     }
 
@@ -498,7 +498,7 @@ impl<T> Tween<T> {
     ///
     /// See [`Tween::set_direction()`].
     #[must_use]
-    pub fn with_direction(mut self, direction: TweeningDirection) -> Self {
+    pub(crate) fn with_direction(mut self, direction: TweeningDirection) -> Self {
         self.direction = direction;
         self
     }
@@ -507,20 +507,20 @@ impl<T> Tween<T> {
     ///
     /// See [`TweeningDirection`] for details.
     #[must_use]
-    pub fn direction(&self) -> TweeningDirection {
+    pub(crate) fn direction(&self) -> TweeningDirection {
         self.direction
     }
 
     /// Set the number of times to repeat the animation.
     #[must_use]
-    pub fn with_repeat_count(mut self, count: impl Into<RepeatCount>) -> Self {
+    pub(crate) fn with_repeat_count(mut self, count: impl Into<RepeatCount>) -> Self {
         self.clock.total_duration = compute_total_duration(self.clock.duration, count.into());
         self
     }
 
     /// Choose how the animation behaves upon a repetition.
     #[must_use]
-    pub fn with_repeat_strategy(mut self, strategy: RepeatStrategy) -> Self {
+    pub(crate) fn with_repeat_strategy(mut self, strategy: RepeatStrategy) -> Self {
         self.clock.strategy = strategy;
         self
     }
@@ -532,7 +532,7 @@ impl<T> Tween<T> {
     /// current [`Tween`].
     ///
     /// Only non-looping tweenables can complete.
-    pub fn set_completed<C>(&mut self, callback: C)
+    pub(crate) fn set_completed<C>(&mut self, callback: C)
     where
         C: Fn(Entity, &Self) + Send + Sync + 'static,
     {
@@ -544,7 +544,7 @@ impl<T> Tween<T> {
     /// See also [`set_completed()`].
     ///
     /// [`set_completed()`]: Tween::set_completed
-    pub fn clear_completed(&mut self) {
+    pub(crate) fn clear_completed(&mut self) {
         self.on_completed = None;
     }
 
@@ -558,7 +558,7 @@ impl<T> Tween<T> {
     ///
     /// [`set_completed()`]: Tween::set_completed
     /// [`with_completed_event()`]: Tween::with_completed_event
-    pub fn set_completed_event(&mut self, user_data: u64) {
+    pub(crate) fn set_completed_event(&mut self, user_data: u64) {
         self.event_data = Some(user_data);
     }
 
@@ -567,7 +567,7 @@ impl<T> Tween<T> {
     /// See also [`set_completed_event()`].
     ///
     /// [`set_completed_event()`]: Tween::set_completed_event
-    pub fn clear_completed_event(&mut self) {
+    pub(crate) fn clear_completed_event(&mut self) {
         self.event_data = None;
     }
 }
@@ -662,7 +662,7 @@ impl<T: 'static> Tweenable<T> for Tween<T> {
 }
 
 /// A collection of [`Tweenable`] executing in parallel.
-pub struct Tracks<T> {
+pub(crate) struct Tracks<T> {
     tracks: Vec<BoxedTweenable<T>>,
     duration: Duration,
     elapsed: Duration
@@ -672,7 +672,7 @@ impl<T> Tracks<T> {
     /// Create a new [`Tracks`] from an iterator over a collection of
     /// [`Tweenable`].
     #[must_use]
-    pub fn new(items: impl IntoIterator<Item = impl Into<BoxedTweenable<T>>>) -> Self {
+    pub(crate) fn new(items: impl IntoIterator<Item = impl Into<BoxedTweenable<T>>>) -> Self {
         let tracks: Vec<_> = items.into_iter().map(Into::into).collect();
         let duration = tracks
             .iter()
@@ -688,12 +688,12 @@ impl<T> Tracks<T> {
     }
 
     ///
-    pub fn get_track(&self, index: usize) -> Option<&BoxedTweenable<T>> {
+    pub(crate) fn get_track(&self, index: usize) -> Option<&BoxedTweenable<T>> {
         self.tracks.get(index)
     }
 
     ///
-    pub fn get_track_mut(&mut self, index: usize) -> Option<&mut BoxedTweenable<T>> {
+    pub(crate) fn get_track_mut(&mut self, index: usize) -> Option<&mut BoxedTweenable<T>> {
         self.tracks.get_mut(index)
     }
 }

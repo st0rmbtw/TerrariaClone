@@ -15,8 +15,7 @@ use self::{celestial_body::CelestialBodyPlugin, settings::SettingsMenuPlugin};
 
 use super::{camera::MainCamera, fps::FpsText, background::Star};
 
-pub struct MenuPlugin;
-
+pub(crate) struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(CelestialBodyPlugin);

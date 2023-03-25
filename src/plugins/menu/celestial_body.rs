@@ -9,7 +9,6 @@ use crate::{plugins::{assets::{CelestialBodyAssets}, camera::MainCamera, cursor:
 use super::in_menu_state;
 
 pub(super) struct CelestialBodyPlugin;
-
 impl Plugin for CelestialBodyPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<TimeType>();

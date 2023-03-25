@@ -10,18 +10,18 @@ mod systems;
 mod resources;
 
 use components::*;
-pub use systems::*;
-pub use resources::*;
+pub(crate) use systems::*;
+pub(crate) use resources::*;
 
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
-pub struct Settings {
-    pub full_screen: bool,
-    pub show_tile_grid: bool,
+pub(crate) struct Settings {
+    pub(crate) full_screen: bool,
+    pub(crate) show_tile_grid: bool,
     #[serde(rename = "VSync")]
-    pub vsync: bool,
-    pub resolution: Resolution,
-    pub cursor_color: CursorColor
+    pub(crate) vsync: bool,
+    pub(crate) resolution: Resolution,
+    pub(crate) cursor_color: CursorColor
 }
 
 
@@ -51,7 +51,7 @@ fn load_settings() -> Settings {
     serde_json::from_reader(reader).unwrap_or_default()
 }
 
-pub fn save_settings(settings: Settings) {
+pub(super) fn save_settings(settings: Settings) {
     let mut file = OpenOptions::new()
         .write(true)
         .create(true)
@@ -64,7 +64,7 @@ pub fn save_settings(settings: Settings) {
     ).unwrap();
 }
 
-pub struct SettingsPlugin;
+pub(crate) struct SettingsPlugin;
 impl Plugin for SettingsPlugin {
     fn build(&self, app: &mut App) {
         let settings = load_settings();
@@ -92,7 +92,7 @@ impl Plugin for SettingsPlugin {
     }
 }
 
-pub const RESOLUTIONS: [Resolution; 16] = [
+pub(super) const RESOLUTIONS: [Resolution; 16] = [
     Resolution::new(800., 600.),
     Resolution::new(1024., 768.),
     Resolution::new(1152., 864.),

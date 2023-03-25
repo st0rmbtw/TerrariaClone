@@ -11,21 +11,21 @@ use super::types::LightSource;
 use super::types_gpu::{GpuCameraParams, GpuLightSourceBuffer, GpuLightSource, GpuLightPassParams};
 
 #[derive(Default, Resource)]
-pub struct LightPassPipelineAssets {
-    pub camera_params: UniformBuffer<GpuCameraParams>,
-    pub light_pass_params: UniformBuffer<GpuLightPassParams>,
-    pub light_sources: StorageBuffer<GpuLightSourceBuffer>,
+pub(super) struct LightPassPipelineAssets {
+    pub(super) camera_params: UniformBuffer<GpuCameraParams>,
+    pub(super) light_pass_params: UniformBuffer<GpuLightPassParams>,
+    pub(super) light_sources: StorageBuffer<GpuLightSourceBuffer>,
 }
 
 impl LightPassPipelineAssets {
-    pub fn write_buffer(&mut self, device: &RenderDevice, queue: &RenderQueue) {
+    pub(super) fn write_buffer(&mut self, device: &RenderDevice, queue: &RenderQueue) {
         self.light_sources.write_buffer(device, queue);
         self.camera_params.write_buffer(device, queue);
         self.light_pass_params.write_buffer(device, queue);
     }
 }
 
-pub(crate) fn system_prepare_pipeline_assets(
+pub(super) fn system_prepare_pipeline_assets(
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
     mut compute_assets: ResMut<LightPassPipelineAssets>,
@@ -33,7 +33,7 @@ pub(crate) fn system_prepare_pipeline_assets(
     compute_assets.write_buffer(&render_device, &render_queue);
 }
 
-pub(crate) fn system_extract_pipeline_assets(
+pub(super) fn system_extract_pipeline_assets(
     res_light_pass_params: Extract<Res<LightPassParams>>,
     res_target_sizes: Extract<Res<ComputedTargetSizes>>,
 

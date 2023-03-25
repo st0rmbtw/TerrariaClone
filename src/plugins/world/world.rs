@@ -4,34 +4,34 @@ use bevy_ecs_tilemap::{tiles::TilePos, helpers::square_grid::neighbors::{Neighbo
 use super::{generator::{BlockArray, WallArray}, block::Block, wall::Wall};
 
 #[derive(Clone, Copy)]
-pub struct Layer {
-    pub surface: usize,
-    pub underground: usize,
-    pub cavern: usize,
+pub(crate) struct Layer {
+    pub(crate) surface: usize,
+    pub(crate) underground: usize,
+    pub(crate) cavern: usize,
 }
 
 
 #[derive(Clone, Copy)]
-pub struct Size {
-    pub width: usize,
-    pub height: usize
+pub(crate) struct Size {
+    pub(crate) width: usize,
+    pub(crate) height: usize
 }
 
 impl Size {
-    pub fn as_tilemap_size(&self) -> TilemapSize {
+    pub(crate) fn as_tilemap_size(&self) -> TilemapSize {
         TilemapSize { x: self.width as u32, y: self.height as u32 }
     }
 }
 
 #[derive(Clone, Copy)]
-pub enum WorldSize {
+pub(super) enum WorldSize {
     Tiny,
     Medium,
     Large
 }
 
 impl WorldSize {
-    pub fn size(&self) -> Size {
+    pub(super) fn size(&self) -> Size {
         match self {
             WorldSize::Tiny => Size { width: 1750, height: 900 },
             WorldSize::Medium => Size { width: 6400, height: 1800 },
@@ -41,15 +41,15 @@ impl WorldSize {
 }
 
 #[derive(Resource)]
-pub struct WorldData {
-    pub size: Size,
-    pub layer: Layer,
-    pub spawn_point: TilePos,
-    pub blocks: BlockArray,
-    pub walls: WallArray,
+pub(crate) struct WorldData {
+    pub(crate) size: Size,
+    pub(crate) layer: Layer,
+    pub(crate) spawn_point: TilePos,
+    pub(crate) blocks: BlockArray,
+    pub(crate) walls: WallArray,
 }
 
-pub trait AsTilePos {
+pub(crate) trait AsTilePos {
     fn x(&self) -> usize;
     fn y(&self) -> usize;
 
@@ -73,31 +73,31 @@ impl AsTilePos for (u32, u32) {
 
 impl WorldData {
     #[inline]
-    pub fn get_block<Pos: AsTilePos>(&self, tile_pos: Pos) -> Option<&Block> {
+    pub(crate) fn get_block<Pos: AsTilePos>(&self, tile_pos: Pos) -> Option<&Block> {
         self.blocks.get(tile_pos.yx()).and_then(|b| b.as_ref())
     }
 
     #[inline]
-    pub fn get_solid_block<Pos: AsTilePos>(&self, tile_pos: Pos) -> Option<&Block> {
+    pub(crate) fn get_solid_block<Pos: AsTilePos>(&self, tile_pos: Pos) -> Option<&Block> {
         self.blocks.get(tile_pos.yx()).and_then(|b| b.as_ref()).filter(|b| b.is_solid())
     }
 
     #[inline]
-    pub fn get_block_mut<Pos: AsTilePos>(&mut self, tile_pos: Pos) -> Option<&mut Block> {
+    pub(crate) fn get_block_mut<Pos: AsTilePos>(&mut self, tile_pos: Pos) -> Option<&mut Block> {
         self.blocks.get_mut(tile_pos.yx()).and_then(|b| b.as_mut())
     }
 
     #[inline]
-    pub fn get_wall<Pos: AsTilePos>(&self, tile_pos: Pos) -> Option<&Wall> {
+    pub(crate) fn get_wall<Pos: AsTilePos>(&self, tile_pos: Pos) -> Option<&Wall> {
         self.walls.get(tile_pos.yx()).and_then(|w| w.as_ref())
     }
 
     #[inline]
-    pub fn get_wall_mut<Pos: AsTilePos>(&mut self, tile_pos: Pos) -> Option<&mut Wall> {
+    pub(crate) fn get_wall_mut<Pos: AsTilePos>(&mut self, tile_pos: Pos) -> Option<&mut Wall> {
         self.walls.get_mut(tile_pos.yx()).and_then(|w| w.as_mut())
     }
 
-    pub fn set_block<Pos: AsTilePos>(&mut self, tile_pos: Pos, block: &Block) {
+    pub(crate) fn set_block<Pos: AsTilePos>(&mut self, tile_pos: Pos, block: &Block) {
         unsafe {
             if let Some(b) = self.blocks.get_mut_ptr(tile_pos.yx()) {
                 *b = Some(*block);
@@ -105,7 +105,7 @@ impl WorldData {
         }
     }
 
-    pub fn set_wall<Pos: AsTilePos>(&mut self, tile_pos: Pos, wall: Wall) {
+    pub(crate) fn set_wall<Pos: AsTilePos>(&mut self, tile_pos: Pos, wall: Wall) {
         unsafe {
             if let Some(w) = self.walls.get_mut_ptr(tile_pos.yx()) {
                 *w = Some(wall);
@@ -113,7 +113,7 @@ impl WorldData {
         }
     }
 
-    pub fn remove_block<Pos: AsTilePos>(&mut self, tile_pos: Pos) {
+    pub(crate) fn remove_block<Pos: AsTilePos>(&mut self, tile_pos: Pos) {
         unsafe {
             if let Some(block) = self.blocks.get_mut_ptr(tile_pos.yx()) {
                 *block = None;
@@ -122,17 +122,17 @@ impl WorldData {
     }
 
     #[inline]
-    pub fn block_exists<Pos: AsTilePos>(&self, tile_pos: Pos) -> bool {
+    pub(crate) fn block_exists<Pos: AsTilePos>(&self, tile_pos: Pos) -> bool {
         self.get_block(tile_pos).is_some()
     }
 
     #[inline]
-    pub fn wall_exists<Pos: AsTilePos>(&self, tile_pos: Pos) -> bool {
+    pub(crate) fn wall_exists<Pos: AsTilePos>(&self, tile_pos: Pos) -> bool {
         self.get_wall(tile_pos).is_some()
     }
 
     #[inline]
-    pub fn solid_block_exists<Pos: AsTilePos>(&self, tile_pos: Pos) -> bool {
+    pub(crate) fn solid_block_exists<Pos: AsTilePos>(&self, tile_pos: Pos) -> bool {
         if let Some(block) = self.get_block(tile_pos) {
             return block.is_solid();
         }
@@ -140,7 +140,7 @@ impl WorldData {
         false
     }
 
-    pub fn get_block_neighbors<Pos: AsTilePos>(&self, tile_pos: Pos, solid: bool) -> Neighbors<&Block> {
+    pub(crate) fn get_block_neighbors<Pos: AsTilePos>(&self, tile_pos: Pos, solid: bool) -> Neighbors<&Block> {
         let pos = TilePos::new(tile_pos.x() as u32, tile_pos.y() as u32);
         let map_size = TilemapSize {
             x: self.size.width as u32,
@@ -182,7 +182,7 @@ impl WorldData {
         }
     }
 
-    pub fn get_wall_neighbors<Pos: AsTilePos>(&self, tile_pos: Pos) -> Neighbors<&Wall> {
+    pub(crate) fn get_wall_neighbors<Pos: AsTilePos>(&self, tile_pos: Pos) -> Neighbors<&Wall> {
         let pos = TilePos::new(tile_pos.x() as u32, tile_pos.y() as u32);
         let map_size = TilemapSize {
             x: self.size.width as u32,
@@ -218,13 +218,13 @@ impl WorldData {
 }
 
 #[derive(Debug, Default, Clone, Copy)]
-pub struct Point {
-    pub x: usize,
-    pub y: usize
+pub(super) struct Point {
+    pub(super) x: usize,
+    pub(super) y: usize
 }
 
 impl Point {
-    pub const fn new(x: usize, y: usize) -> Self {
+    pub(super) const fn new(x: usize, y: usize) -> Self {
         Self { x, y }
     }
 }

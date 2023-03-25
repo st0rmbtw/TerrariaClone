@@ -2,15 +2,15 @@ use bevy::prelude::{Component, UVec2};
 
 use super::{Tree, TreeFrameType, BlockType};
 
-pub type ChunkPos = UVec2;
+pub(super) type ChunkPos = UVec2;
 
 #[derive(Component)]
-pub struct ChunkContainer {
-    pub pos: ChunkPos
+pub(super) struct ChunkContainer {
+    pub(super) pos: ChunkPos
 }
 
 #[derive(Component, PartialEq, Eq)]
-pub enum ChunkType {
+pub(super) enum ChunkType {
     Tile,
     Wall,
     Tree,
@@ -19,7 +19,7 @@ pub enum ChunkType {
 }
 
 impl ChunkType {
-    pub const fn from_block_type(block_type: BlockType) -> Self {
+    pub(super) const fn from_block_type(block_type: BlockType) -> Self {
         match block_type {
             BlockType::Tree(Tree { frame_type: TreeFrameType::BranchLeftLeaves | TreeFrameType::BranchRightLeaves, .. }) => ChunkType::TreeBranch,
             BlockType::Tree(Tree { frame_type: TreeFrameType::TopLeaves, .. }) => ChunkType::TreeTop,
@@ -30,13 +30,13 @@ impl ChunkType {
 }
 
 #[derive(Component)]
-pub struct Chunk {
-    pub chunk_type: ChunkType,
-    pub pos: ChunkPos
+pub(super) struct Chunk {
+    pub(super) chunk_type: ChunkType,
+    pub(super) pos: ChunkPos
 }
 
 impl Chunk {
-    pub const fn new(pos: ChunkPos, chunk_type: ChunkType) -> Self {
+    pub(super) const fn new(pos: ChunkPos, chunk_type: ChunkType) -> Self {
         Self { pos, chunk_type }
     }
 }

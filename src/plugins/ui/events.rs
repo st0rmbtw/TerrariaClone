@@ -1,1 +1,1 @@
-pub struct ToggleExtraUiEvent(pub bool);
+pub(crate) struct ToggleExtraUiEvent(pub(crate) bool);

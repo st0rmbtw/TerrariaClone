@@ -1,6 +1,6 @@
 use bevy::{ecs::system::EntityCommands, prelude::Component};
 
-pub trait EntityCommandsExtensions<'w, 's, 'a> {
+pub(crate) trait EntityCommandsExtensions<'w, 's, 'a> {
     fn insert_if(
         &mut self,
         component: impl Component,

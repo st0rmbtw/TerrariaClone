@@ -2,13 +2,13 @@ use bevy::{prelude::{Resource, Color}, window::{PresentMode, WindowMode}};
 use serde::{Deserialize, Serialize};
 
 #[derive(Resource, Serialize, Deserialize, Clone, Copy, PartialEq)]
-pub struct Resolution {
-    pub width: f32,
-    pub height: f32
+pub(crate) struct Resolution {
+    pub(crate) width: f32,
+    pub(crate) height: f32
 }
 
 impl Resolution {
-    pub const fn new(width: f32, height: f32) -> Self {
+    pub(crate) const fn new(width: f32, height: f32) -> Self {
         Self { width, height }
     }
 }
@@ -20,18 +20,18 @@ impl Default for Resolution {
 }
 
 #[derive(Resource, Clone, Copy)]
-pub struct VSync(pub bool);
+pub(crate) struct VSync(pub(crate) bool);
 
 #[derive(Resource, Clone, Copy)]
-pub struct FullScreen(pub bool);
+pub(crate) struct FullScreen(pub(crate) bool);
 
 #[derive(Resource, PartialEq, Clone, Copy)]
-pub struct ShowTileGrid(pub bool);
+pub(crate) struct ShowTileGrid(pub(crate) bool);
 
 #[derive(Resource, Clone, Copy, Serialize, Deserialize)]
-pub struct CursorColor {
-    pub background_color: Color,
-    pub foreground_color: Color
+pub(crate) struct CursorColor {
+    pub(crate) background_color: Color,
+    pub(crate) foreground_color: Color
 }
 
 impl Default for CursorColor {
@@ -44,7 +44,7 @@ impl Default for CursorColor {
 }
 
 impl VSync {
-    pub fn as_present_mode(&self) -> PresentMode {
+    pub(crate) fn as_present_mode(&self) -> PresentMode {
         match self.0 {
             true => PresentMode::Fifo,
             false => PresentMode::Immediate
@@ -53,7 +53,7 @@ impl VSync {
 }
 
 impl FullScreen {
-    pub fn as_window_mode(&self) -> WindowMode {
+    pub(crate) fn as_window_mode(&self) -> WindowMode {
         match self.0 {
             true => WindowMode::BorderlessFullscreen,
             false => WindowMode::Windowed

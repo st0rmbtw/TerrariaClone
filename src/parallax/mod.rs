@@ -4,7 +4,7 @@ use bevy::{prelude::*, window::{WindowResized, PrimaryWindow}};
 
 mod layer;
 
-pub use layer::*;
+pub(crate) use layer::*;
 
 use crate::plugins::camera::MainCamera;
 
@@ -13,7 +13,7 @@ pub struct ParallaxPlugin {
 }
 
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
-pub enum ParallaxSet {
+pub(crate) enum ParallaxSet {
     FollowCamera
 }
 
@@ -37,19 +37,19 @@ impl Plugin for ParallaxPlugin {
 }
 
 #[derive(Resource)]
-pub struct ParallaxMoveSpeed {
-    pub speed: f32,
+struct ParallaxMoveSpeed {
+    speed: f32,
 }
 
 /// Resource for managing parallax
 #[derive(Resource, Debug)]
-pub struct ParallaxResource {
+pub(crate) struct ParallaxResource {
     /// Data to describe each layer of parallax
-    pub layer_data: Vec<LayerData>,
+    pub(crate) layer_data: Vec<LayerData>,
     /// Parallax layer entities
-    pub layer_entities: Vec<Entity>,
+    pub(crate) layer_entities: Vec<Entity>,
     /// Dimensions of window
-    pub window_size: Vec2,
+    pub(crate) window_size: Vec2,
 }
 
 impl Default for ParallaxResource {
@@ -63,17 +63,8 @@ impl Default for ParallaxResource {
 }
 
 impl ParallaxResource {
-    /// Create a new parallax resource
-    pub fn new(layer_data: Vec<LayerData>) -> Self {
-        ParallaxResource {
-            layer_data,
-            layer_entities: vec![],
-            window_size: Vec2::ZERO,
-        }
-    }
-
     /// Delete all layer entities in parallax resource and empty Vec
-    pub fn despawn_layers(&mut self, commands: &mut Commands) {
+    pub(crate) fn despawn_layers(&mut self, commands: &mut Commands) {
         // Remove all layer entities
         for entity in self.layer_entities.iter() {
             commands.entity(*entity).despawn_recursive();
@@ -84,7 +75,7 @@ impl ParallaxResource {
     }
 
     /// Create layers from layer data
-    pub fn create_layers(
+    pub(crate) fn create_layers(
         &mut self,
         commands: &mut Commands,
         images: &Assets<Image>,
@@ -158,10 +149,10 @@ impl ParallaxResource {
 }
 
 #[derive(Component)]
-pub struct ParallaxCameraComponent;
+pub(crate) struct ParallaxCameraComponent;
 
 #[inline(always)]
-pub fn move_background_system() -> impl IntoSystemConfig<()> {
+pub(crate) fn move_background_system() -> impl IntoSystemConfig<()> {
     parallax_animation_system
         .run_if(resource_exists::<ParallaxResource>())
         .in_set(ParallaxSet::FollowCamera)
@@ -194,7 +185,7 @@ fn parallax_animation_system(
     }
 }
 
-pub fn follow_camera_system(
+pub(crate) fn follow_camera_system(
     camera_query: Query<&GlobalTransform, (With<ParallaxCameraComponent>, With<MainCamera>)>,
     mut layer_query: Query<(&mut Transform, &LayerComponent), Without<ParallaxCameraComponent>>,
     res_parallax: Res<ParallaxResource>,

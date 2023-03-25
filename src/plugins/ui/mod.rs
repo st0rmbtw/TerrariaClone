@@ -3,18 +3,15 @@ mod resources;
 mod systems;
 mod events;
 
-pub use components::*;
-pub use resources::*;
-pub use systems::*;
-pub use events::*;
+use components::*;
+pub(crate) use events::*;
+pub(crate) use resources::*;
+pub(crate) use systems::*;
 
 use bevy::{prelude::{Plugin, App, IntoSystemAppConfig, OnEnter, OnUpdate, IntoSystemConfig, KeyCode}, input::common_conditions::input_just_pressed};
 use crate::common::state::GameState;
 
-pub const SPAWN_UI_CONTAINER_LABEL: &str = "spawn_ui_container";
-
-pub struct PlayerUiPlugin;
-
+pub(crate) struct PlayerUiPlugin;
 impl Plugin for PlayerUiPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<ToggleExtraUiEvent>();

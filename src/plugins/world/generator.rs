@@ -11,13 +11,13 @@ use super::Wall;
 use super::tree::{TreeType, TreeFrameType, tree};
 use super::world::{WorldSize, WorldData, Point};
 
-pub type BlockId = i8;
-pub type WallId = i8;
+pub(super) type BlockId = i8;
+pub(super) type WallId = i8;
 
-pub type BlockArray = Array2<Option<Block>>;
-pub type WallArray = Array2<Option<Wall>>;
+pub(crate) type BlockArray = Array2<Option<Block>>;
+pub(crate) type WallArray = Array2<Option<Wall>>;
 
-pub fn generate(seed: u32, world_size: WorldSize) -> WorldData {
+pub(super) fn generate(seed: u32, world_size: WorldSize) -> WorldData {
     println!("Generating world...");
 
     let world_size = world_size.size();
@@ -64,7 +64,7 @@ pub fn generate(seed: u32, world_size: WorldSize) -> WorldData {
     world
 }
 
-pub fn set_spawn_point(world: &mut WorldData) {
+fn set_spawn_point(world: &mut WorldData) {
     let x = world.size.width / 2;
     
     let mut y = world.layer.underground - DIRT_HILL_HEIGHT as usize;

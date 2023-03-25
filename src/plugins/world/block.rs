@@ -7,7 +7,7 @@ use crate::{common::{helpers::get_tile_start_index, TextureAtlasPos}, items::Too
 use super::{generator::BlockId, tree::Tree, TerrariaFrame, TreeFrameType};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum BlockType {
+pub(crate) enum BlockType {
     Dirt,
     Stone,
     Grass,
@@ -15,7 +15,7 @@ pub enum BlockType {
 }
 
 impl BlockType {
-    pub const fn id(&self) -> BlockId {
+    pub(crate) const fn id(&self) -> BlockId {
         match self {
             BlockType::Dirt => 0,
             BlockType::Stone => 1,
@@ -24,14 +24,14 @@ impl BlockType {
         }
     }
 
-    pub const fn frame(&self) -> Option<TerrariaFrame> {
+    pub(crate) const fn frame(&self) -> Option<TerrariaFrame> {
         match self {
             BlockType::Tree(tree) => Some(tree.terraria_frame()),
             _ => None
         }
     }
     
-    pub const fn max_health(&self) -> i32 {
+    pub(crate) const fn max_health(&self) -> i32 {
         match self {
             BlockType::Dirt | BlockType::Grass => 50,
             BlockType::Stone => 100,
@@ -39,14 +39,14 @@ impl BlockType {
         }
     }
 
-    pub const fn dirt_mergable(&self) -> bool {
+    pub(crate) const fn dirt_mergable(&self) -> bool {
         match self {
             BlockType::Dirt | BlockType::Grass | BlockType::Tree(_) => false,
             BlockType::Stone => true,
         }
     }
 
-    pub const fn check_required_tool(&self, tool: Tool) -> bool {
+    pub(crate) const fn check_required_tool(&self, tool: Tool) -> bool {
         match self {
             BlockType::Tree(_) => {
                 matches!(tool, Tool::Axe(_))
@@ -57,7 +57,7 @@ impl BlockType {
         }
     }
 
-    pub const fn is_solid(&self) -> bool {
+    pub(crate) const fn is_solid(&self) -> bool {
         match self {
             BlockType::Tree(_) => false,
             _ => true
@@ -66,46 +66,46 @@ impl BlockType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Component)]
-pub struct Block {
-    pub block_type: BlockType,
-    pub hp: i32
+pub(crate) struct Block {
+    pub(crate) block_type: BlockType,
+    pub(crate) hp: i32
 }
 
 impl Block {
     #[inline(always)]
-    pub const fn id(&self) -> BlockId {
+    pub(crate) const fn id(&self) -> BlockId {
         self.block_type.id()
     }
 
     #[inline(always)]
-    pub const fn frame(&self) -> Option<TerrariaFrame> {
+    pub(crate) const fn frame(&self) -> Option<TerrariaFrame> {
         self.block_type.frame()
     }
 
     #[inline(always)]
-    pub const fn max_health(&self) -> i32 {
+    pub(crate) const fn max_health(&self) -> i32 {
         self.block_type.max_health()
     }
     
     #[inline(always)]
-    pub const fn dirt_mergable(&self) -> bool {
+    pub(crate) const fn dirt_mergable(&self) -> bool {
         self.block_type.dirt_mergable()
     }
 
     #[inline(always)]
-    pub const fn is_solid(&self) -> bool {
+    pub(crate) const fn is_solid(&self) -> bool {
         self.block_type.is_solid()
     }
 
     #[inline(always)]
-    pub const fn check_required_tool(&self, tool: Tool) -> bool {
+    pub(crate) const fn check_required_tool(&self, tool: Tool) -> bool {
         self.block_type.check_required_tool(tool)
     }
 }
 
 macro_rules! block {
     ($block_name: ident) => {
-        pub const $block_name: Block = Block {
+        pub(crate) const $block_name: Block = Block {
             block_type: BlockType::$block_name,
             hp: BlockType::$block_name.max_health()
         };
@@ -120,7 +120,7 @@ impl Block {
 }
 
 impl Block {
-    pub fn get_sprite_index(neighbors: &Neighbors<BlockType>, block_type: BlockType) -> u32 {
+    pub(super) fn get_sprite_index(neighbors: &Neighbors<BlockType>, block_type: BlockType) -> u32 {
         /*
          * "$" - Any block
          * "#" - Dirt

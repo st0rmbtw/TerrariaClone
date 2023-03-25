@@ -1,7 +1,7 @@
 use bevy::prelude::{Component, States};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum GameState {
+pub(crate) enum GameState {
     #[default]
     AssetLoading,
     Menu(MenuState),
@@ -11,13 +11,13 @@ pub enum GameState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd)]
-pub enum MenuState {
+pub(crate) enum MenuState {
     Main,
     Settings(SettingsMenuState)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, PartialOrd)]
-pub enum SettingsMenuState {
+pub(crate) enum SettingsMenuState {
     #[default]
     Main,
     Interface,
@@ -45,7 +45,7 @@ impl States for GameState {
 
 #[derive(Default, Clone, Copy, PartialEq, Eq, Component)]
 #[cfg_attr(feature = "debug", derive(bevy_inspector_egui::InspectorOptions))]
-pub enum MovementState {
+pub(crate) enum MovementState {
     #[default]
     Idle,
     Walking,

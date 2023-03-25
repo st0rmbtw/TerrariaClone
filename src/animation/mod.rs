@@ -1,14 +1,11 @@
 #![deny(
-    warnings,
     missing_copy_implementations,
     trivial_casts,
     trivial_numeric_casts,
     unsafe_code,
     unstable_features,
-    unused_import_braces,
-    unused_qualifications,
-    missing_docs
 )]
+#![allow(dead_code)]
 
 //! Tweening animation plugin for the Bevy game engine
 //!
@@ -148,20 +145,17 @@ use bevy::prelude::*;
 use interpolation::Ease as IEase;
 pub use interpolation::{EaseFunction, Lerp};
 
-pub use lens::Lens;
-pub use plugin::{component_animator_system, AnimationSystemSet, TweeningPlugin};
-pub use tweenable::{
-    BoxedTweenable, Targetable, TotalDuration, Tracks, Tween, TweenCompleted,
-    TweenState, Tweenable,
-};
+pub(crate) use lens::Lens;
+pub(crate) use plugin::{component_animator_system, AnimationSystemSet, TweeningPlugin};
+pub(crate) use tweenable::*;
 
-pub mod lens;
+pub(crate) mod lens;
 mod plugin;
 mod tweenable;
 
 /// How many times to repeat a tween animation. See also: [`RepeatStrategy`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RepeatCount {
+pub(crate) enum RepeatCount {
     /// Run the animation N times.
     Finite(u32),
     /// Run the animation for some amount of time.
@@ -193,7 +187,7 @@ impl From<Duration> for RepeatCount {
 ///
 /// Only applicable when [`RepeatCount`] is greater than the animation duration.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RepeatStrategy {
+pub(crate) enum RepeatStrategy {
     /// Reset the animation back to its starting position.
     Repeat,
     /// Follow a ping-pong pattern, changing the direction each time an endpoint
@@ -214,7 +208,7 @@ impl Default for RepeatStrategy {
 
 /// Playback state of an animator.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AnimatorState {
+pub(crate) enum AnimatorState {
     /// The animation is playing. This is the default state.
     Playing,
     /// The animation is paused in its current state.
@@ -240,7 +234,7 @@ impl std::ops::Not for AnimatorState {
 
 /// Describe how eased value should be computed.
 #[derive(Clone, Copy)]
-pub enum EaseMethod {
+pub(crate) enum EaseMethod {
     /// Follow `EaseFunction`.
     EaseFunction(EaseFunction),
     /// Linear interpolation, with no function.
@@ -299,7 +293,7 @@ impl From<EaseFunction> for EaseMethod {
 /// forward (from start to end; ping) or backward (from end to start; pong),
 /// depending on the current iteration of the loop.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TweeningDirection {
+pub(crate) enum TweeningDirection {
     /// Animation playing from start to end.
     Forward,
     /// Animation playing from end to start, in reverse.
@@ -309,13 +303,13 @@ pub enum TweeningDirection {
 impl TweeningDirection {
     /// Is the direction equal to [`TweeningDirection::Forward`]?
     #[must_use]
-    pub fn is_forward(&self) -> bool {
+    pub(crate) fn is_forward(&self) -> bool {
         *self == Self::Forward
     }
 
     /// Is the direction equal to [`TweeningDirection::Backward`]?
     #[must_use]
-    pub fn is_backward(&self) -> bool {
+    pub(crate) fn is_backward(&self) -> bool {
         *self == Self::Backward
     }
 }
@@ -341,7 +335,7 @@ macro_rules! animator_impl {
     () => {
         /// Set the initial playback state of the animator.
         #[must_use]
-        pub fn with_state(mut self, state: AnimatorState) -> Self {
+        pub(crate) fn with_state(mut self, state: AnimatorState) -> Self {
             self.state = state;
             self
         }
@@ -349,7 +343,7 @@ macro_rules! animator_impl {
         /// Set the initial speed of the animator. See [`Animator::set_speed`] for
         /// details.
         #[must_use]
-        pub fn with_speed(mut self, speed: f32) -> Self {
+        pub(crate) fn with_speed(mut self, speed: f32) -> Self {
             self.speed = speed;
             self
         }
@@ -358,7 +352,7 @@ macro_rules! animator_impl {
         ///
         /// A speed of 2 means the animation will run twice as fast while a speed of 0.1
         /// will result in a 10x slowed animation.
-        pub fn set_speed(&mut self, speed: f32) {
+        pub(crate) fn set_speed(&mut self, speed: f32) {
             self.speed = speed;
         }
 
@@ -367,24 +361,24 @@ macro_rules! animator_impl {
         /// See [`set_speed()`] for a definition of what the animation speed is.
         ///
         /// [`set_speed()`]: Animator::speed
-        pub fn speed(&self) -> f32 {
+        pub(crate) fn speed(&self) -> f32 {
             self.speed
         }
 
         /// Set the top-level tweenable item this animator controls.
-        pub fn set_tweenable(&mut self, tween: impl Tweenable<T> + 'static) {
+        pub(crate) fn set_tweenable(&mut self, tween: impl Tweenable<T> + 'static) {
             self.tweenable = Box::new(tween);
         }
 
         /// Get the top-level tweenable this animator is currently controlling.
         #[must_use]
-        pub fn tweenable(&self) -> &dyn Tweenable<T> {
+        pub(crate) fn tweenable(&self) -> &dyn Tweenable<T> {
             self.tweenable.as_ref()
         }
 
         /// Get the top-level mutable tweenable this animator is currently controlling.
         #[must_use]
-        pub fn tweenable_mut(&mut self) -> &mut dyn Tweenable<T> {
+        pub(crate) fn tweenable_mut(&mut self) -> &mut dyn Tweenable<T> {
             self.tweenable.as_mut()
         }
 
@@ -392,13 +386,13 @@ macro_rules! animator_impl {
         ///
         /// This changes the animator state to [`AnimatorState::Paused`] and rewind its
         /// tweenable.
-        pub fn stop(&mut self) {
+        pub(crate) fn stop(&mut self) {
             self.state = AnimatorState::Paused;
             self.tweenable_mut().rewind();
         }
 
         ///
-        pub fn start(&mut self) {
+        pub(crate) fn start(&mut self) {
             self.state = AnimatorState::Playing;
         }
     };
@@ -406,9 +400,9 @@ macro_rules! animator_impl {
 
 /// Component to control the animation of another component.
 #[derive(Component)]
-pub struct Animator<T: Component> {
+pub(crate) struct Animator<T: Component> {
     /// Control if this animation is played or not.
-    pub state: AnimatorState,
+    pub(crate) state: AnimatorState,
     tweenable: BoxedTweenable<T>,
     speed: f32,
 }

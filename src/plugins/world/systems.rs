@@ -336,31 +336,25 @@ pub(super) fn handle_break_block_event(
     let mut rng = thread_rng();
 
     for BreakBlockEvent { tile_pos } in break_block_events.iter() {
-        let map_tile_pos = TilePos { x: tile_pos.x as u32, y: tile_pos.y as u32 };
+        let tile_pos = TilePos { x: tile_pos.x as u32, y: tile_pos.y as u32 };
 
-        if let Some(&block) = world_data.get_block(map_tile_pos) {
-            let chunk_pos = get_chunk_pos(map_tile_pos);
-            let chunk_tile_pos = get_chunk_tile_pos(map_tile_pos);
+        if let Some(&block) = world_data.get_block(tile_pos) {
+            let chunk_pos = get_chunk_pos(tile_pos);
+            let chunk_tile_pos = get_chunk_tile_pos(tile_pos);
 
             if let BlockType::Tree(_) = block.block_type {
-                break_tree(&mut commands, &mut query_chunk, map_tile_pos, &mut world_data, false);
+                break_tree(&mut commands, &mut query_chunk, tile_pos, &mut world_data, false);
             } else {
-                world_data.remove_block(map_tile_pos);
+                world_data.remove_block(tile_pos);
 
                 ChunkManager::remove_block(&mut commands, &mut query_chunk, chunk_pos, chunk_tile_pos, block.block_type);
 
-                update_light_events.send(UpdateLightEvent {
-                    tile_pos: map_tile_pos
-                });
+                update_light_events.send(UpdateLightEvent { tile_pos });
             }
 
             audio.play(sound_assets.get_by_block(block.block_type, &mut rng));
 
-            update_neighbors_ew.send(UpdateNeighborsEvent { 
-                tile_pos: map_tile_pos,
-                chunk_tile_pos,
-                chunk_pos
-            });
+            update_neighbors_ew.send(UpdateNeighborsEvent { tile_pos });
         }
     }
 }
@@ -405,30 +399,24 @@ pub(super) fn handle_place_block_event(
     let mut rng = thread_rng();
 
     for PlaceBlockEvent { tile_pos, block, inventory_item_index } in place_block_events.iter() {
-        let map_tile_pos = TilePos { x: tile_pos.x as u32, y: tile_pos.y as u32 };
+        let tile_pos = TilePos { x: tile_pos.x as u32, y: tile_pos.y as u32 };
 
-        if !world_data.block_exists(map_tile_pos) {
-            world_data.set_block(map_tile_pos, block);
+        if !world_data.block_exists(tile_pos) {
+            world_data.set_block(tile_pos, block);
             inventory.consume_item(*inventory_item_index);
 
             let neighbors = world_data
-                .get_block_neighbors(map_tile_pos, block.is_solid())
+                .get_block_neighbors(tile_pos, block.is_solid())
                 .map_ref(|b| b.block_type);
             let index = Block::get_sprite_index(&neighbors, block.block_type);
-            let chunk_pos = get_chunk_pos(map_tile_pos);
-            let chunk_tile_pos = get_chunk_tile_pos(map_tile_pos);
+            let chunk_pos = get_chunk_pos(tile_pos);
+            let chunk_tile_pos = get_chunk_tile_pos(tile_pos);
 
             ChunkManager::spawn_block(&mut commands, &mut query_chunk, chunk_pos, chunk_tile_pos, block, index);
 
-            update_neighbors_ew.send(UpdateNeighborsEvent { 
-                tile_pos: map_tile_pos,
-                chunk_tile_pos,
-                chunk_pos
-            });
+            update_neighbors_ew.send(UpdateNeighborsEvent { tile_pos });
 
-            update_light_events.send(UpdateLightEvent {
-                tile_pos: map_tile_pos
-            });
+            update_light_events.send(UpdateLightEvent { tile_pos });
 
             audio.play(sound_assets.get_by_block(block.block_type, &mut rng));
         }

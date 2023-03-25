@@ -1,10 +1,10 @@
 use bevy::prelude::Resource;
 
 #[derive(Resource, Clone, Copy, Default)]
-pub struct ExtraUiVisibility(pub bool);
+pub(crate) struct ExtraUiVisibility(pub bool);
 
 #[derive(Resource, Clone, Copy, PartialEq, Eq)]
-pub struct UiVisibility(pub bool);
+pub(crate) struct UiVisibility(pub bool);
 
 impl Default for UiVisibility {
     fn default() -> Self {

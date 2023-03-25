@@ -3,8 +3,8 @@ mod resources;
 mod systems;
 mod utils;
 
-pub use components::*;
-pub use resources::*;
+pub(crate) use components::*;
+pub(crate) use resources::*;
 use systems::*;
 
 use crate::{common::{state::GameState, helpers::tile_to_world_coords}, DebugConfiguration, plugins::player::utils::{simple_animation, is_walking, is_idle, is_flying}};
@@ -15,22 +15,23 @@ use autodefault::autodefault;
 
 use super::{assets::PlayerAssets, world::{WorldData, TILE_SIZE}, inventory::{UseItemAnimationData, UsedItem}};
 
-pub const PLAYER_WIDTH: f32 = 22.;
-pub const PLAYER_HEIGHT: f32 = 42.;
+const PLAYER_WIDTH: f32 = 22.;
+const PLAYER_HEIGHT: f32 = 42.;
 
-pub const PLAYER_HALF_WIDTH: f32 = PLAYER_WIDTH / 2.;
-pub const PLAYER_HALF_HEIGHT: f32 = PLAYER_HEIGHT / 2.;
+const PLAYER_HALF_WIDTH: f32 = PLAYER_WIDTH / 2.;
+const PLAYER_HALF_HEIGHT: f32 = PLAYER_HEIGHT / 2.;
 
 const WALKING_ANIMATION_MAX_INDEX: usize = 13;
 
 const GRAVITY: f32 = 0.4;
 const ACCELERATION: f32 = 0.1;
 const SLOWDOWN: f32 = 0.2;
-pub const MAX_RUN_SPEED: f32 = 3.;
 
 const JUMP_HEIGHT: i32 = 15;
 const JUMP_SPEED: f32 = 5.01;
-pub const MAX_FALL_SPEED: f32 = -10.;
+
+pub(crate) const MAX_RUN_SPEED: f32 = 3.;
+pub(crate) const MAX_FALL_SPEED: f32 = -10.;
 
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
 enum PhysicsSet {
@@ -38,7 +39,7 @@ enum PhysicsSet {
     Update
 }
 
-pub struct PlayerPlugin;
+pub(crate) struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(InputAxis::default());

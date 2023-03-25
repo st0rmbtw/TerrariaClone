@@ -3,7 +3,7 @@ mod events;
 mod resources;
 mod systems;
 mod utils;
-pub mod generator;
+mod generator;
 mod world;
 mod block;
 mod wall;
@@ -12,25 +12,25 @@ pub mod light;
 
 use std::ops::RangeInclusive;
 
-pub use chunk::*;
-pub use events::*;
-pub use resources::*;
+use chunk::*;
 use systems::*;
 use utils::*;
-pub use world::*;
-pub use block::*;
-pub use wall::*;
-pub use tree::*;
+pub(crate) use events::*;
+pub(crate) use resources::*;
+pub(crate) use world::*;
+pub(crate) use block::*;
+pub(crate) use wall::*;
+pub(crate) use tree::*;
 
 use crate::common::state::GameState;
 use bevy::prelude::{Plugin, App, IntoSystemAppConfig, OnEnter, IntoSystemConfigs, OnUpdate};
 use bevy_ecs_tilemap::prelude::{TilemapSize, TilemapTileSize};
 
-pub const TILE_SIZE: f32 = 16.;
-pub const WALL_SIZE: f32 = 32.;
-pub const TREE_SIZE: TilemapTileSize = TilemapTileSize { x: 20., y: 20. };
-pub const TREE_BRANCHES_SIZE: TilemapTileSize = TilemapTileSize { x: 50., y: 40. };
-pub const TREE_TOPS_SIZE: TilemapTileSize = TilemapTileSize { x: 88., y: 148. };
+pub(crate) const TILE_SIZE: f32 = 16.;
+pub(crate) const WALL_SIZE: f32 = 32.;
+pub(super) const TREE_SIZE: TilemapTileSize = TilemapTileSize { x: 20., y: 20. };
+pub(super) const TREE_BRANCHES_SIZE: TilemapTileSize = TilemapTileSize { x: 50., y: 40. };
+pub(super) const TREE_TOPS_SIZE: TilemapTileSize = TilemapTileSize { x: 88., y: 148. };
 
 const CHUNK_SIZE: f32 = 25.;
 const CHUNK_SIZE_U: u32 = CHUNK_SIZE as u32;
@@ -40,11 +40,10 @@ const CHUNKMAP_SIZE: TilemapSize = TilemapSize {
     y: CHUNK_SIZE as u32,
 };
 
-pub const DIRT_HILL_HEIGHT: f32 = 50.;
-pub const STONE_HILL_HEIGHT: f32 = 15.;
+pub(super) const DIRT_HILL_HEIGHT: f32 = 50.;
+pub(super) const STONE_HILL_HEIGHT: f32 = 15.;
 
-pub struct WorldPlugin;
-
+pub(crate) struct WorldPlugin;
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<ChunkManager>();
@@ -69,13 +68,13 @@ impl Plugin for WorldPlugin {
 }
 
 #[derive(Debug, Clone, Copy, Default)]
-pub struct TerrariaFrame {
+pub(crate) struct TerrariaFrame {
     pub x: u16,
     pub y: u16
 }
 
 impl TerrariaFrame {
-    pub const fn new(x: u16, y: u16) -> Self {
+    pub(crate) const fn new(x: u16, y: u16) -> Self {
         Self { x, y }
     }
 }

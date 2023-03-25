@@ -20,7 +20,7 @@ use bevy_ecs_tilemap::helpers::square_grid::neighbors::Neighbors;
 use crate::{
     plugins::{
         world::{LightMap, WorldData, light::propagate_light},
-        camera::{MainCamera, UpdateLightEvent}
+        camera::{MainCamera, UpdateLightEvent, LightMapCamera}
     },
 };
 
@@ -29,30 +29,30 @@ use super::pipeline::PipelineTargetsWrapper;
 
 /// To support window resizing, this fits an image to a windows size.
 #[derive(Component)]
-pub struct FitToWindowSize {
-    image: Handle<Image>,
+pub(super) struct FitToWindowSize {
+    pub(super) image: Handle<Image>,
 }
 
 #[derive(AsBindGroup, TypeUuid, Clone)]
 #[uuid = "9114bbd2-1bb3-4b5a-a710-8965798db745"]
-pub struct PostProcessingMaterial {
+pub(super) struct PostProcessingMaterial {
     #[texture(0)]
     #[sampler(1)]
-    pub source_image: Handle<Image>,
+    pub(super) source_image: Handle<Image>,
 
     #[texture(2)]
     #[sampler(3)]
-    pub shadow_map_image: Handle<Image>,
+    pub(super) shadow_map_image: Handle<Image>,
 
     #[texture(4)]
     #[sampler(5)]
-    pub light_sources_image: Handle<Image>,
+    pub(super) light_sources_image: Handle<Image>,
 
     #[uniform(6)]
-    pub player_position: Vec2,
+    pub(super) player_position: Vec2,
 
     #[uniform(7)]
-    pub scale: f32,
+    pub(super) scale: f32,
 }
 
 impl Material2d for PostProcessingMaterial {
@@ -74,11 +74,8 @@ impl Material2d for PostProcessingMaterial {
     }
 }
 
-#[derive(Component)]
-pub struct LightMapCamera;
-
 /// Update image size to fit window
-pub fn update_image_to_window_size(
+pub(super) fn update_image_to_window_size(
     query_windows: Query<&Window, With<PrimaryWindow>>,
     mut images: ResMut<Assets<Image>>,
     mut resize_events: EventReader<WindowResized>,
@@ -149,7 +146,7 @@ pub(super) fn update_lighting_material(
     }
 }
 
-pub fn update_light_map(
+pub(super) fn update_light_map(
     cameras: Query<&Handle<PostProcessingMaterial>, With<MainCamera>>,
     mut update_light_events: EventReader<UpdateLightEvent>,
     post_processing_materials: Res<Assets<PostProcessingMaterial>>,
@@ -183,7 +180,7 @@ pub fn update_light_map(
     }
 }       
 
-pub fn setup_post_processing_camera(
+pub(super) fn setup_post_processing_camera(
     mut commands: Commands,
     query_windows: Query<&Window, With<PrimaryWindow>>,
     mut query_camera: Query<(Entity, &mut Camera, &OrthographicProjection), Added<LightMapCamera>>,

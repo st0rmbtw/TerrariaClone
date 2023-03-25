@@ -11,8 +11,8 @@ use bevy::{
 
 use crate::common::helpers::toggle_visibility;
 use super::{assets::FontAssets, ui::UiVisibility};
-pub struct FpsPlugin;
 
+pub(crate) struct FpsPlugin;
 impl Plugin for FpsPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_systems(
@@ -28,10 +28,10 @@ impl Plugin for FpsPlugin {
 }
 
 #[derive(Component)]
-pub struct FpsText;
+pub(crate) struct FpsText;
 
 #[autodefault]
-pub fn spawn_fps_text(commands: &mut Commands, font_assets: &FontAssets) -> Entity {
+pub(crate) fn spawn_fps_text(commands: &mut Commands, font_assets: &FontAssets) -> Entity {
     let text_style = TextStyle {
         font: font_assets.andy_regular.clone_weak(),
         font_size: 20.,

@@ -19,10 +19,9 @@ pub(super) struct BackButton;
 #[derive(Component)]
 pub(super) struct ApplyButton;
 
-pub(super) struct SettingsMenuPlugin;
-
 pub(super) const MENU_BUTTON_FONT_SIZE: f32 = 42.;
 
+pub(super) struct SettingsMenuPlugin;
 impl Plugin for SettingsMenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(InterfaceMenuPlugin);

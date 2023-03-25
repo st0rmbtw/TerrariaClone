@@ -2,9 +2,9 @@ use bevy::{prelude::{Plugin, App, Component, OnUpdate, IntoSystemConfig, IntoSys
 
 use crate::{common::{state::GameState, helpers::toggle_visibility}, DebugConfiguration};
 
-pub use components::*;
-pub use systems::*;
-pub use events::*;
+pub(crate) use components::*;
+pub(crate) use events::*;
+use systems::*;
 
 mod components;
 mod systems;
@@ -15,8 +15,7 @@ const MIN_CAMERA_ZOOM: f32 = 0.2;
 const CAMERA_ZOOM_STEP: f32 = 0.5;
 const CAMERA_MOVE_SPEED: f32 = 1000.;
 
-pub struct CameraPlugin;
-
+pub(crate) struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.add_system(setup_camera.in_schedule(OnEnter(GameState::InGame)));
@@ -46,4 +45,4 @@ impl Plugin for CameraPlugin {
 }
 
 #[derive(Component)]
-pub struct MouseLight;
+pub(super) struct MouseLight;

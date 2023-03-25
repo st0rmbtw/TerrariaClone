@@ -10,7 +10,7 @@ pub(super) struct SettingsButton;
 pub(super) struct ExitButton;
 
 #[derive(Component)]
-pub struct Menu;
+pub(super) struct Menu;
 
 #[derive(Component)]
-pub struct MenuContainer;
+pub(super) struct MenuContainer;

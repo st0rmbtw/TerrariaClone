@@ -8,9 +8,9 @@ use interpolation::Lerp;
 use crate::animation::Lens;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct BackgroundColorLens {
-    pub start: Color,
-    pub end: Color,
+pub(crate) struct BackgroundColorLens {
+    pub(crate) start: Color,
+    pub(crate) end: Color,
 }
 
 impl Lens<BackgroundColor> for BackgroundColorLens {
@@ -24,15 +24,15 @@ impl Lens<BackgroundColor> for BackgroundColorLens {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct TextFontSizeLens {
-    pub start: f32,
-    pub end: f32,
+pub(crate) struct TextFontSizeLens {
+    pub(crate) start: f32,
+    pub(crate) end: f32,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct TransformLens {
-    pub start: Transform,
-    pub end: Transform,
+pub(crate) struct TransformLens {
+    pub(crate) start: Transform,
+    pub(crate) end: Transform,
 }
 
 impl Lens<Text> for TextFontSizeLens {

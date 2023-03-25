@@ -11,8 +11,7 @@ use rand::{thread_rng, Rng, seq::SliceRandom};
 use super::{assets::BackgroundAssets, camera::MainCamera, world::{WorldData, TILE_SIZE}};
 
 // region: Plugin
-pub struct BackgroundPlugin;
-
+pub(crate) struct BackgroundPlugin;
 impl Plugin for BackgroundPlugin {
     fn build(&self, app: &mut App) {
         app.add_system(setup_main_menu_background.in_schedule(OnExit(GameState::AssetLoading)));
@@ -40,7 +39,7 @@ impl Plugin for BackgroundPlugin {
 // endregion
 
 #[derive(Component)]
-pub struct Star {
+pub(crate) struct Star {
     screen_position: Vec2
 }
 

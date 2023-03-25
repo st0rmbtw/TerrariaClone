@@ -5,11 +5,11 @@ use crate::common::state::MovementState;
 use super::{InputAxis, WALKING_ANIMATION_MAX_INDEX};
 
 #[derive(Component, Default)]
-pub struct Player;
+pub(crate) struct Player;
 
 #[derive(Default, PartialEq, Eq, Clone, Copy, Component)]
 #[cfg_attr(feature = "debug", derive(bevy_inspector_egui::InspectorOptions))]
-pub enum FaceDirection {
+pub(crate) enum FaceDirection {
     Left,
     #[default]
     Right,
@@ -67,8 +67,8 @@ impl Default for WalkingAnimationData {
 }
 
 #[derive(Component)]
-pub struct PlayerParticleEffects {
-    pub walking: Entity,
+pub(super) struct PlayerParticleEffects {
+    pub(super) walking: Entity,
 }
 
 
@@ -88,9 +88,9 @@ impl AnimationData for FlyingAnimationData {
 
 #[derive(Bundle, Default)]
 pub(super) struct MovementAnimationBundle {
-    pub walking: WalkingAnimationData,
-    pub idle: IdleAnimationData,
-    pub flying: FlyingAnimationData
+    pub(super) walking: WalkingAnimationData,
+    pub(super) idle: IdleAnimationData,
+    pub(super) flying: FlyingAnimationData
 }
 
 #[derive(Bundle)]

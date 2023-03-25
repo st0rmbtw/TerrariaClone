@@ -2,9 +2,9 @@ mod components;
 mod resources;
 mod systems;
 
-pub use components::*;
-pub use resources::*;
+use components::*;
 use systems::*;
+pub(crate) use resources::*;
 
 use bevy::{prelude::{Plugin, App, IntoSystemConfig, OnExit, OnEnter, IntoSystemConfigs, not, IntoSystemAppConfig, resource_equals, OnUpdate, in_state, Res, State, Condition}, ui::BackgroundColor};
 use crate::{common::state::GameState, animation::{AnimationSystemSet, component_animator_system}, DebugConfiguration};
@@ -14,7 +14,6 @@ const MAX_TILE_GRID_OPACITY: f32 = 0.8;
 const MIN_TILE_GRID_OPACITY: f32 = 0.2;
 
 pub struct CursorPlugin;
-
 impl Plugin for CursorPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(HoveredInfo::default());

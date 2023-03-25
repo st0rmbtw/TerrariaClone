@@ -3,7 +3,7 @@ use crate::common::TextureAtlasPos;
 use super::TerrariaFrame;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TreeFrameType {
+pub(crate) enum TreeFrameType {
     // A trunk
     TrunkPlain,
     // A left base
@@ -33,7 +33,7 @@ pub enum TreeFrameType {
 }
 
 impl TreeFrameType {
-    pub const fn terraria_frame(&self, tree_type: TreeType) -> [TerrariaFrame; 3] {
+    pub(crate) const fn terraria_frame(&self, tree_type: TreeType) -> [TerrariaFrame; 3] {
         match tree_type {
             TreeType::Forest => {
                 match self {
@@ -55,7 +55,7 @@ impl TreeFrameType {
         }
     }
 
-    pub const fn texture_atlas_pos(&self, tree_type: TreeType, variant: u32) -> TextureAtlasPos {
+    pub(crate) const fn texture_atlas_pos(&self, tree_type: TreeType, variant: u32) -> TextureAtlasPos {
         assert!(variant < 3, "Variant of texture must be in range of 0 to 3");
 
         match tree_type {
@@ -79,11 +79,11 @@ impl TreeFrameType {
         }
     }
 
-    pub const fn is_stem(&self) -> bool {
+    pub(crate) const fn is_stem(&self) -> bool {
         matches!(self, Self::TrunkPlain | Self::BasePlainA | Self::BasePlainD | Self::BasePlainAD)
     }
 
-    pub const fn texture_width(&self) -> u32 {
+    pub(crate) const fn texture_width(&self) -> u32 {
         match self {
             Self::BranchLeftLeaves | Self::BranchRightLeaves => 2,
             Self::TopLeaves => 3,
@@ -93,29 +93,29 @@ impl TreeFrameType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TreeType {
+pub(crate) enum TreeType {
     Forest
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct Tree {
-    pub tree_type: TreeType,
-    pub frame_type: TreeFrameType,
-    pub variant: u32
+pub(crate) struct Tree {
+    pub(crate) tree_type: TreeType,
+    pub(crate) frame_type: TreeFrameType,
+    pub(crate) variant: u32
 }
 
 impl Tree {
-    pub const fn new(tree_type: TreeType, frame_type: TreeFrameType, variant: u32) -> Self {
+    pub(crate) const fn new(tree_type: TreeType, frame_type: TreeFrameType, variant: u32) -> Self {
         assert!(variant < 3, "Frame variant must be in range of 0 to 3");
 
         Self { tree_type, frame_type, variant }
     }
 
-    pub const fn terraria_frame(&self) -> TerrariaFrame {
+    pub(crate) const fn terraria_frame(&self) -> TerrariaFrame {
         self.frame_type.terraria_frame(self.tree_type)[self.variant as usize]
     }
     
-    pub const fn texture_atlas_pos(&self) -> u32 {
+    pub(crate) const fn texture_atlas_pos(&self) -> u32 {
         self.frame_type
             .texture_atlas_pos(self.tree_type, self.variant)
             .to_2d_index(self.frame_type.texture_width())
@@ -137,4 +137,4 @@ macro_rules! tree {
     };
 }
 
-pub(crate) use tree;
+pub(super) use tree;

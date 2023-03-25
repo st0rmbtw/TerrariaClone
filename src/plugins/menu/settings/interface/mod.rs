@@ -27,7 +27,7 @@ impl Plugin for InterfaceMenuPlugin {
 struct InterfaceMenu;
 
 #[derive(Component)]
-pub struct ToggleTileGridButton;
+struct ToggleTileGridButton;
 
 #[autodefault]
 fn setup_interface_menu(

@@ -29,8 +29,7 @@ pub mod compositing;
 
 const WORKGROUP_SIZE: u32 = 8;
 
-pub struct LightingPlugin;
-
+pub(crate) struct LightingPlugin;
 impl Plugin for LightingPlugin {
     fn build(&self, app: &mut App) {
         app
@@ -109,7 +108,7 @@ impl Plugin for LightingPlugin {
 #[derive(Default)]
 struct LightPass2DNode {}
 
-pub fn detect_target_sizes(
+fn detect_target_sizes(
     query_windows: Query<&Window, With<PrimaryWindow>>,
     mut target_sizes: ResMut<ComputedTargetSizes>
 ) {
@@ -123,7 +122,7 @@ pub fn detect_target_sizes(
     target_sizes.primary_target_size = primary_size;
 }
 
-pub fn resize_primary_target(
+fn resize_primary_target(
     query_windows: Query<&Window, With<PrimaryWindow>>,
     mut resize_events: EventReader<WindowResized>,
     mut target_sizes: ResMut<ComputedTargetSizes>,

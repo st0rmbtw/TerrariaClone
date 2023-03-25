@@ -9,14 +9,14 @@ use bevy::{
 };
 use rand::{thread_rng, Rng};
 
-use crate::{parallax::ParallaxCameraComponent, plugins::{world::{TILE_SIZE, WorldData}, cursor::CursorPosition}, lighting::{compositing::LightMapCamera, types::LightSource}, common::helpers::tile_to_world_coords};
+use crate::{parallax::ParallaxCameraComponent, plugins::{world::{TILE_SIZE, WorldData}, cursor::CursorPosition}, lighting::types::LightSource, common::helpers::tile_to_world_coords};
 
 use crate::plugins::player::Player;
 
-use super::{MainCamera, CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, MouseLight};
+use super::{MainCamera, CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, MouseLight, LightMapCamera};
 
 #[autodefault(except(TextureDescriptor, ShadowMapMaterial, LightMapMaterial, SunMaterial, LightingMaterial))]
-pub fn setup_camera(
+pub(super) fn setup_camera(
     mut commands: Commands,
     mut color_materials: ResMut<Assets<ColorMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -61,7 +61,7 @@ pub fn setup_camera(
         .insert(MouseLight);
 }
 
-pub fn zoom(
+pub(super) fn zoom(
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
     mut camera_query: Query<&mut OrthographicProjection>,
@@ -81,7 +81,7 @@ pub fn zoom(
     }
 }
 
-pub fn follow_player(
+pub(super) fn follow_player(
     mut player: Query<&Transform, (With<Player>, Without<MainCamera>, Changed<Transform>)>,
     mut camera: Query<(&mut Transform, &OrthographicProjection), (With<MainCamera>, Without<Player>)>,
     world_data: Res<WorldData>
@@ -107,7 +107,7 @@ pub fn follow_player(
     }
 }
 
-pub fn control_mouse_light(
+pub(super) fn control_mouse_light(
     mut query: Query<(&mut Transform, &mut LightSource), With<MouseLight>>,
     cursor_position: Res<CursorPosition>,
     input_keyboard: Res<Input<KeyCode>>,
@@ -125,7 +125,7 @@ pub fn control_mouse_light(
 }
 
 #[cfg(feature = "debug")]
-pub fn free_camera(
+pub(super) fn free_camera(
     time: Res<Time>,
     mut camera: Query<(&mut Transform, &OrthographicProjection), With<MainCamera>>,
     input: Res<bevy::prelude::Input<KeyCode>>,

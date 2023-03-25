@@ -1,7 +1,10 @@
 use bevy::prelude::Component;
 
 #[derive(Component)]
-pub struct MainCamera;
+pub(crate) struct MainCamera;
 
 #[derive(Component)]
-pub struct PostProcessCamera;
+pub(crate) struct PostProcessCamera;
+
+#[derive(Component)]
+pub(crate) struct LightMapCamera;

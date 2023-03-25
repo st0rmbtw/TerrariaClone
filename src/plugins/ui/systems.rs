@@ -6,7 +6,7 @@ use crate::{plugins::{assets::{FontAssets, UiAssets, SoundAssets}, fps::spawn_fp
 use super::{MainUiContainer, ToggleExtraUiEvent, ExtraUiVisibility, UiVisibility};
 
 #[autodefault(except(UiContainer))]
-pub fn spawn_ui_container(
+pub(crate) fn spawn_ui_container(
     mut commands: Commands,
     font_assets: Res<FontAssets>,
     ui_assets: Res<UiAssets>,
@@ -90,7 +90,7 @@ pub fn spawn_ui_container(
     commands.entity(main_id).push_children(&[left_id, right_id]);
 }
 
-pub fn toggle_extra_ui(
+pub(super) fn toggle_extra_ui(
     mut events: EventWriter<ToggleExtraUiEvent>,
     mut extra_ui_visibility: ResMut<ExtraUiVisibility>,
     sounds: Res<SoundAssets>,
@@ -107,11 +107,11 @@ pub fn toggle_extra_ui(
     }
 }
 
-pub fn toggle_ui(mut ui_visibility: ResMut<UiVisibility>) {
+pub(super) fn toggle_ui(mut ui_visibility: ResMut<UiVisibility>) {
     ui_visibility.0 = !ui_visibility.0;
 }
 
-pub fn set_main_container_visibility(
+pub(super) fn set_main_container_visibility(
     ui_visibility: Res<UiVisibility>,
     mut query: Query<&mut Visibility, With<MainUiContainer>>,
 ) {

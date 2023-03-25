@@ -5,28 +5,28 @@ use crate::items::ItemStack;
 use super::CELL_COUNT_IN_ROW;
 
 #[derive(Resource, Default, Deref, DerefMut)]
-pub struct SelectedItem(pub Option<ItemStack>);
+pub(super) struct SelectedItem(pub Option<ItemStack>);
 
 #[derive(Resource, Default, Deref, DerefMut)]
-pub struct SwingItemCooldown(pub u32);
+pub(super) struct SwingItemCooldown(pub u32);
 
 #[derive(Resource, Default, Deref, DerefMut)]
-pub struct SwingItemCooldownMax(pub u32);
+pub(super) struct SwingItemCooldownMax(pub u32);
 
 #[derive(Resource, PartialEq, Clone, Copy, Deref, DerefMut)]
-pub struct PlayerUsingItem(pub bool);
+pub(super) struct PlayerUsingItem(pub bool);
 
 #[derive(Resource, PartialEq, Clone, Copy, Deref, DerefMut)]
-pub struct SwingAnimation(pub bool);
+pub(crate) struct SwingAnimation(pub bool);
 
 #[derive(Resource, Default, Clone, Copy, Deref, DerefMut, Reflect)]
 #[reflect(Resource)]
-pub struct UseItemAnimationIndex(usize);
+pub(crate) struct UseItemAnimationIndex(usize);
 
 #[derive(Resource)]
-pub struct Inventory {
+pub(crate) struct Inventory {
     pub(super) items: [Option<ItemStack>; 50],
-    pub selected_slot: usize,
+    pub(super) selected_slot: usize,
 }
 
 impl Default for Inventory {

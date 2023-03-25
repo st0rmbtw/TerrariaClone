@@ -19,11 +19,11 @@ pub(super) struct InventoryCellIndex(pub usize);
 pub(super) struct InventoryCellItemImage(pub Handle<Image>);
 
 #[derive(Component, Default)]
-pub struct InventoryItemAmount(pub u16);
+pub(super) struct InventoryItemAmount(pub u16);
 
 #[derive(Reflect, Component, Clone, Copy, Default)]
 #[reflect(Component)]
-pub struct UseItemAnimationData(pub usize);
+pub(crate) struct UseItemAnimationData(pub usize);
 
 #[derive(Component)]
-pub struct UsedItem;
+pub(crate) struct UsedItem;

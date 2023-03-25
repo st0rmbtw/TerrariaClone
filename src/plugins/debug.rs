@@ -6,7 +6,7 @@ use bevy_prototype_debug_lines::DebugLinesPlugin;
 
 use super::{cursor::CursorPosition, assets::FontAssets, inventory::{UseItemAnimationIndex, UseItemAnimationData}};
 
-pub struct DebugPlugin;
+pub(crate) struct DebugPlugin;
 impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(EguiPlugin);

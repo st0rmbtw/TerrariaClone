@@ -39,7 +39,7 @@ pub(super) fn generate_light_map(world: &WorldData) -> LightMap {
     light_map
 }
 
-pub fn propagate_light(x: usize, y: usize, cluster_size: usize, light_map: &mut LightMap, world: &WorldData) { 
+pub(crate) fn propagate_light(x: usize, y: usize, cluster_size: usize, light_map: &mut LightMap, world: &WorldData) { 
     if x >= world.size.width - 1 { return; }
     if y >= world.size.height - 1 { return; }
 

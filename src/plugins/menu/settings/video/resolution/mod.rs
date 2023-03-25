@@ -16,7 +16,6 @@ use crate::{
 };
 
 pub(super) struct ResolutionMenuPlugin;
-
 impl Plugin for ResolutionMenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_system(setup_resolution_menu.in_schedule(OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution)))));

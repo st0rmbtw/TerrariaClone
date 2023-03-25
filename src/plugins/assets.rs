@@ -37,7 +37,7 @@ macro_rules! handles {
         }
 
         impl $struct_name {
-            pub fn handles(&self) -> Vec<$field_type> {
+            fn handles(&self) -> Vec<$field_type> {
                 vec![$(self.$field_name.clone()),*]
             }
         }
@@ -45,7 +45,6 @@ macro_rules! handles {
 }
 
 pub struct AssetsPlugin;
-
 impl Plugin for AssetsPlugin {
     fn build(&self, app: &mut App) {
         app.add_loading_state(
@@ -69,59 +68,57 @@ impl Plugin for AssetsPlugin {
     }
 }
 
-handles! {
-    Handle<Image>,
-    #[derive(Resource, AssetCollection)]
-    pub struct BlockAssets {
-        #[asset(path = "sprites/tiles/Tiles_0.png")]
-        pub dirt: Handle<Image>,
 
-        #[asset(path = "sprites/tiles/Tiles_2.png")]
-        pub grass: Handle<Image>,
+#[derive(Resource, AssetCollection)]
+pub(crate) struct BlockAssets {
+    #[asset(path = "sprites/tiles/Tiles_0.png")]
+    pub(crate) dirt: Handle<Image>,
 
-        #[asset(path = "sprites/tiles/Tiles_1.png")]
-        pub stone: Handle<Image>,
+    #[asset(path = "sprites/tiles/Tiles_2.png")]
+    pub(crate) grass: Handle<Image>,
 
-        #[asset(path = "sprites/tiles/Tiles2.png")]
-        pub tiles: Handle<Image>,
+    #[asset(path = "sprites/tiles/Tiles_1.png")]
+    pub(crate) stone: Handle<Image>,
 
-        #[asset(path = "sprites/tiles/Tiles_5.png")]
-        pub trees: Handle<Image>,
+    #[asset(path = "sprites/tiles/Tiles2.png")]
+    pub(crate) tiles: Handle<Image>,
 
-        #[asset(path = "sprites/tiles/Tree_Branches_0.png")]
-        pub tree_branches_forest: Handle<Image>,
+    #[asset(path = "sprites/tiles/Tiles_5.png")]
+    pub(crate) trees: Handle<Image>,
 
-        #[asset(path = "sprites/tiles/Tree_Tops_0.png")]
-        pub tree_tops_forest: Handle<Image>,
-    }
+    #[asset(path = "sprites/tiles/Tree_Branches_0.png")]
+    pub(crate) tree_branches_forest: Handle<Image>,
+
+    #[asset(path = "sprites/tiles/Tree_Tops_0.png")]
+    pub(crate) tree_tops_forest: Handle<Image>,
 }
 
 handles! {
     Handle<Image>,
     #[derive(Resource, AssetCollection)]
-    pub struct UiAssets {
+    pub(crate) struct UiAssets {
         #[asset(path = "sprites/ui/InnerPanelBackground.png")]
-        pub iner_panel_background: Handle<Image>,
+        pub(crate) iner_panel_background: Handle<Image>,
 
         #[asset(path = "sprites/ui/PlayerBackground.png")]
-        pub player_background: Handle<Image>,
+        pub(crate) player_background: Handle<Image>,
 
         #[asset(path = "sprites/Inventory_Back.png")]
-        pub inventory_background: Handle<Image>,
+        pub(crate) inventory_background: Handle<Image>,
 
         #[asset(path = "sprites/Inventory_Back14.png")]
-        pub selected_inventory_background: Handle<Image>,
+        pub(crate) selected_inventory_background: Handle<Image>,
 
         #[asset(path = "sprites/ui/Radial.png")]
-        pub radial: Handle<Image>,
+        pub(crate) radial: Handle<Image>,
 
         #[asset(path = "sprites/ui/Logo.png")]
-        pub logo: Handle<Image>,
+        pub(crate) logo: Handle<Image>,
     }
 }
 
 #[derive(Resource, AssetCollection)]
-pub struct PlayerAssets {
+pub(crate) struct PlayerAssets {
     #[asset(texture_atlas(
         tile_size_x = 40.,
         tile_size_y = 48.,
@@ -131,7 +128,7 @@ pub struct PlayerAssets {
         padding_y = 0.
     ))]
     #[asset(path = "sprites/player/Player_0_0.png")]
-    pub head: Handle<TextureAtlas>,
+    pub(crate) head: Handle<TextureAtlas>,
 
     #[asset(texture_atlas(
         tile_size_x = 32.,
@@ -142,7 +139,7 @@ pub struct PlayerAssets {
         padding_y = 0.
     ))]
     #[asset(path = "sprites/player/Player_Left_Shoulder.png")]
-    pub left_shoulder: Handle<TextureAtlas>,
+    pub(crate) left_shoulder: Handle<TextureAtlas>,
 
     #[asset(texture_atlas(
         tile_size_x = 32.,
@@ -153,7 +150,7 @@ pub struct PlayerAssets {
         padding_y = 0.
     ))]
     #[asset(path = "sprites/player/Player_Left_Hand.png")]
-    pub left_hand: Handle<TextureAtlas>,
+    pub(crate) left_hand: Handle<TextureAtlas>,
 
     #[asset(texture_atlas(
         tile_size_x = 32.,
@@ -164,7 +161,7 @@ pub struct PlayerAssets {
         padding_y = 0.
     ))]
     #[asset(path = "sprites/player/Player_Right_Arm.png")]
-    pub right_arm: Handle<TextureAtlas>,
+    pub(crate) right_arm: Handle<TextureAtlas>,
 
     #[asset(texture_atlas(
         tile_size_x = 40.,
@@ -175,7 +172,7 @@ pub struct PlayerAssets {
         padding_y = 0.
     ))]
     #[asset(path = "sprites/player/Player_Hair_1.png")]
-    pub hair: Handle<TextureAtlas>,
+    pub(crate) hair: Handle<TextureAtlas>,
 
     #[asset(texture_atlas(
         tile_size_x = 32.,
@@ -186,7 +183,7 @@ pub struct PlayerAssets {
         padding_y = 0.
     ))]
     #[asset(path = "sprites/player/Player_Body.png")]
-    pub chest: Handle<TextureAtlas>,
+    pub(crate) chest: Handle<TextureAtlas>,
 
     #[asset(texture_atlas(
         tile_size_x = 40.,
@@ -197,7 +194,7 @@ pub struct PlayerAssets {
         padding_y = 0.
     ))]
     #[asset(path = "sprites/player/Player_0_11.png")]
-    pub feet: Handle<TextureAtlas>,
+    pub(crate) feet: Handle<TextureAtlas>,
 
     #[asset(texture_atlas(
         tile_size_x = 40.,
@@ -208,7 +205,7 @@ pub struct PlayerAssets {
         padding_y = 0.
     ))]
     #[asset(path = "sprites/player/Player_0_1.png")]
-    pub eyes_1: Handle<TextureAtlas>,
+    pub(crate) eyes_1: Handle<TextureAtlas>,
 
     #[asset(texture_atlas(
         tile_size_x = 40.,
@@ -219,151 +216,145 @@ pub struct PlayerAssets {
         padding_y = 0.
     ))]
     #[asset(path = "sprites/player/Player_0_2.png")]
-    pub eyes_2: Handle<TextureAtlas>,
+    pub(crate) eyes_2: Handle<TextureAtlas>,
 }
 
 #[derive(Resource, AssetCollection)]
-pub struct FontAssets {
+pub(crate) struct FontAssets {
     #[asset(path = "fonts/andy_bold.ttf")]
-    pub andy_bold: Handle<Font>,
+    pub(crate) andy_bold: Handle<Font>,
 
     #[asset(path = "fonts/andy_regular.otf")]
-    pub andy_regular: Handle<Font>,
+    pub(crate) andy_regular: Handle<Font>,
 }
 
 #[derive(Resource, AssetCollection)]
-pub struct ItemAssets {
+pub(crate) struct ItemAssets {
     #[asset(path = "sprites/items/Item_2.png")]
-    pub dirt_block: Handle<Image>,
+    pub(crate) dirt_block: Handle<Image>,
 
     #[asset(path = "sprites/items/Item_3.png")]
-    pub stone_block: Handle<Image>,
+    pub(crate) stone_block: Handle<Image>,
 
     #[asset(path = "sprites/items/Item_3509.png")]
-    pub copper_pickaxe: Handle<Image>,
+    pub(crate) copper_pickaxe: Handle<Image>,
 
     #[asset(path = "sprites/items/Item_3506.png")]
-    pub copper_axe: Handle<Image>,
+    pub(crate) copper_axe: Handle<Image>,
 }
 
 handles! {
     Handle<Image>,
     #[derive(Resource, AssetCollection)]
-    pub struct CursorAssets {
+    pub(crate) struct CursorAssets {
         #[asset(path = "sprites/ui/Cursor_0.png")]
-        pub cursor: Handle<Image>,
+        pub(crate) cursor: Handle<Image>,
 
         #[asset(path = "sprites/ui/Cursor_11.png")]
-        pub cursor_background: Handle<Image>,
+        pub(crate) cursor_background: Handle<Image>,
     }
 }
 
 handles! {
     Handle<Image>,
     #[derive(Resource, AssetCollection)]
-    pub struct BackgroundAssets {
+    pub(crate) struct BackgroundAssets {
         #[asset(path = "sprites/backgrounds/Background_0.png")]
-        pub background_0: Handle<Image>,
+        pub(crate) background_0: Handle<Image>,
 
         #[asset(path = "sprites/backgrounds/Background_7.png")]
-        pub background_7: Handle<Image>,
+        pub(crate) background_7: Handle<Image>,
 
         #[asset(path = "sprites/backgrounds/Background_74.png")]
-        pub background_74: Handle<Image>,
+        pub(crate) background_74: Handle<Image>,
 
         #[asset(path = "sprites/backgrounds/Background_55.png")]
-        pub background_55: Handle<Image>,
+        pub(crate) background_55: Handle<Image>,
 
         #[asset(path = "sprites/backgrounds/Background_90.png")]
-        pub background_90: Handle<Image>,
+        pub(crate) background_90: Handle<Image>,
 
         #[asset(path = "sprites/backgrounds/Background_91.png")]
-        pub background_91: Handle<Image>,
+        pub(crate) background_91: Handle<Image>,
 
         #[asset(path = "sprites/backgrounds/Background_92.png")]
-        pub background_92: Handle<Image>,
+        pub(crate) background_92: Handle<Image>,
 
         #[asset(path = "sprites/backgrounds/Background_93.png")]
-        pub background_93: Handle<Image>,
+        pub(crate) background_93: Handle<Image>,
 
         #[asset(path = "sprites/backgrounds/Background_112.png")]
-        pub background_112: Handle<Image>,
+        pub(crate) background_112: Handle<Image>,
 
         #[asset(path = "sprites/backgrounds/Background_114.png")]
-        pub background_114: Handle<Image>,
+        pub(crate) background_114: Handle<Image>,
 
         #[asset(path = "sprites/backgrounds/Star_0.png")]
-        pub star_0: Handle<Image>,
+        pub(crate) star_0: Handle<Image>,
 
         #[asset(path = "sprites/backgrounds/Star_1.png")]
-        pub star_1: Handle<Image>,
+        pub(crate) star_1: Handle<Image>,
 
         #[asset(path = "sprites/backgrounds/Star_2.png")]
-        pub star_2: Handle<Image>,
+        pub(crate) star_2: Handle<Image>,
 
         #[asset(path = "sprites/backgrounds/Star_3.png")]
-        pub star_3: Handle<Image>,
+        pub(crate) star_3: Handle<Image>,
 
         #[asset(path = "sprites/backgrounds/Star_4.png")]
-        pub star_4: Handle<Image>,
-    }
-}
-
-handles! {
-    Handle<TextureAtlas>,
-    #[derive(Resource, AssetCollection)]
-    pub struct CelestialBodyAssets {
-        #[asset(texture_atlas(tile_size_x = 114., tile_size_y = 114., columns = 1, rows = 1, padding_x = 0., padding_y = 0.))]
-        #[asset(path = "sprites/backgrounds/Sun.png")]
-        pub sun: Handle<TextureAtlas>,
-
-        #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 7, padding_x = 0., padding_y = 0.))]
-        #[asset(path = "sprites/backgrounds/Moon_0.png")]
-        pub moon_0: Handle<TextureAtlas>,
-    }
-}
-
-handles! {
-    Handle<Image>,
-    #[derive(Resource, AssetCollection)]
-    pub struct WallAssets {
-        #[asset(path = "sprites/walls/Wall_2.png")]
-        pub wall_2: Handle<Image>,
-
-        #[asset(path = "sprites/walls/Walls.png")]
-        pub walls: Handle<Image>,
+        pub(crate) star_4: Handle<Image>,
     }
 }
 
 #[derive(Resource, AssetCollection)]
-pub struct SoundAssets {
+pub(crate) struct CelestialBodyAssets {
+    #[asset(texture_atlas(tile_size_x = 114., tile_size_y = 114., columns = 1, rows = 1, padding_x = 0., padding_y = 0.))]
+    #[asset(path = "sprites/backgrounds/Sun.png")]
+    pub(crate) sun: Handle<TextureAtlas>,
+
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 7, padding_x = 0., padding_y = 0.))]
+    #[asset(path = "sprites/backgrounds/Moon_0.png")]
+    pub(crate) moon_0: Handle<TextureAtlas>,
+}
+
+#[derive(Resource, AssetCollection)]
+pub(crate) struct WallAssets {
+    #[asset(path = "sprites/walls/Wall_2.png")]
+    pub(crate) wall_2: Handle<Image>,
+
+    #[asset(path = "sprites/walls/Walls.png")]
+    pub(crate) walls: Handle<Image>,
+}
+
+#[derive(Resource, AssetCollection)]
+pub(crate) struct SoundAssets {
     #[asset(path = "sounds/Menu_Tick.wav")]
-    pub menu_tick: Handle<AudioSource>,
+    pub(crate) menu_tick: Handle<AudioSource>,
 
     #[asset(path = "sounds/Menu_Open.wav")]
-    pub menu_open: Handle<AudioSource>,
+    pub(crate) menu_open: Handle<AudioSource>,
 
     #[asset(path = "sounds/Menu_Close.wav")]
-    pub menu_close: Handle<AudioSource>,
+    pub(crate) menu_close: Handle<AudioSource>,
 
     #[asset(paths("sounds/Swing_1.wav", "sounds/Swing_2.wav", "sounds/Swing_3.wav"), collection(typed))]
-    pub swing: Vec<Handle<AudioSource>>,
+    pub(crate) swing: Vec<Handle<AudioSource>>,
 
     #[asset(paths("sounds/Dig_0.wav", "sounds/Dig_1.wav", "sounds/Dig_2.wav"), collection(typed))]
-    pub dig: Vec<Handle<AudioSource>>,
+    pub(crate) dig: Vec<Handle<AudioSource>>,
 
     #[asset(paths("sounds/Tink_0.wav", "sounds/Tink_1.wav", "sounds/Tink_2.wav"), collection(typed))]
-    pub tink: Vec<Handle<AudioSource>>,
+    pub(crate) tink: Vec<Handle<AudioSource>>,
 }
 
 #[derive(Resource, AssetCollection)]
-pub struct ShaderAssets {
+pub(crate) struct ShaderAssets {
     #[asset(path = "shaders/lighting.wgsl")]
-    pub lighting: Handle<Shader>,
+    pub(crate) lighting: Handle<Shader>,
 }
 
 impl WallAssets {
-    pub fn get_by_wall(&self, id: Wall) -> Option<Handle<Image>> {
+    pub(crate) fn get_by_wall(&self, id: Wall) -> Option<Handle<Image>> {
         match id {
             Wall::Dirt => Some(self.wall_2.clone_weak()),
             _ => None,
@@ -372,11 +363,11 @@ impl WallAssets {
 }
 
 impl ItemAssets {
-    pub fn no_item(&self) -> Handle<Image> {
+    pub(crate) fn no_item(&self) -> Handle<Image> {
         Handle::<Image>::default()
     }
 
-    pub fn get_by_item(&self, item: Item) -> Handle<Image> {
+    pub(crate) fn get_by_item(&self, item: Item) -> Handle<Image> {
         match item {
             Item::Block(block) => {
                 match block.block_type {
@@ -392,7 +383,7 @@ impl ItemAssets {
 }
 
 impl BlockAssets {
-    pub fn get_by_block(&self, block: BlockType) -> Option<Handle<Image>> {
+    pub(crate) fn get_by_block(&self, block: BlockType) -> Option<Handle<Image>> {
         match block {
             BlockType::Dirt => Some(self.dirt.clone_weak()),
             BlockType::Stone => Some(self.stone.clone_weak()),
@@ -403,7 +394,7 @@ impl BlockAssets {
 }
 
 impl SoundAssets {
-    pub fn get_by_block<Rng: RngCore>(&self, block: BlockType, rng: &mut Rng) -> Handle<AudioSource> {
+    pub(crate) fn get_by_block<Rng: RngCore>(&self, block: BlockType, rng: &mut Rng) -> Handle<AudioSource> {
         match block {
             BlockType::Stone => self.tink.choose(rng).unwrap().clone_weak(),
             _ => self.dig.choose(rng).unwrap().clone_weak()

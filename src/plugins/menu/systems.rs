@@ -7,14 +7,14 @@ use interpolation::EaseFunction;
 use crate::{animation::{Tween, Animator, AnimatorState, TweeningDirection, RepeatStrategy, Tweenable, EaseMethod, RepeatCount}, parallax::ParallaxCameraComponent, plugins::{camera::MainCamera, assets::{FontAssets, UiAssets, SoundAssets}, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor}, fps::FpsText}, TEXT_COLOR, common::{state::{GameState, SettingsMenuState, MenuState}, lens::{TextFontSizeLens, TransformLens}}, language::LanguageContent};
 use super::{Menu, SinglePlayerButton, SettingsButton, ExitButton, MenuContainer, role::ButtonRole, settings::MENU_BUTTON_FONT_SIZE};
 
-pub fn despawn_with<C: Component>(query: Query<Entity, With<C>>, mut commands: Commands) {
+pub(super) fn despawn_with<C: Component>(query: Query<Entity, With<C>>, mut commands: Commands) {
     for entity in &query {
         commands.entity(entity).despawn_recursive();
     }
 }
 
 #[inline(always)]
-pub fn text_tween(initial_font_size: f32) -> Tween<Text> {
+fn text_tween(initial_font_size: f32) -> Tween<Text> {
     Tween::new(
         EaseMethod::Linear,
         RepeatStrategy::MirroredRepeat,
@@ -34,7 +34,7 @@ pub(super) fn setup_camera(mut commands: Commands) {
 }
 
 #[autodefault]
-pub fn menu_button(
+pub(super) fn menu_button(
     builder: &mut ChildBuilder,
     text_style: TextStyle,
     button_name: String,
@@ -64,7 +64,7 @@ pub fn menu_button(
 }
 
 #[autodefault]
-pub fn control_buttons_layout(
+pub(super) fn control_buttons_layout(
     builder: &mut ChildBuilder,
     spawn_builder: impl FnOnce(&mut ChildBuilder)
 ) {
@@ -82,7 +82,7 @@ pub fn control_buttons_layout(
 }
 
 #[autodefault]
-pub fn control_button(
+pub(super) fn control_button(
     builder: &mut ChildBuilder,
     text_style: TextStyle,
     name: String,
@@ -111,7 +111,7 @@ pub fn control_button(
         });
 }
 
-pub fn menu(marker: impl Component, commands: &mut Commands, container: Entity, gap: f32, spawn_children: impl FnOnce(&mut ChildBuilder)) {
+pub(super) fn menu(marker: impl Component, commands: &mut Commands, container: Entity, gap: f32, spawn_children: impl FnOnce(&mut ChildBuilder)) {
     let menu = commands.spawn((
         NodeBundle {
             style: Style {

@@ -3,7 +3,7 @@ mod pickaxe;
 mod tool;
 mod axe;
 
-pub use item::*;
-pub use pickaxe::*;
-pub use tool::*;
-pub use axe::*;
+pub(crate) use item::*;
+pub(crate) use pickaxe::*;
+pub(crate) use tool::*;
+pub(crate) use axe::*;

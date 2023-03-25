@@ -3,25 +3,23 @@ use bevy_ecs_tilemap::tiles::TilePos;
 
 use crate::items::Tool;
 
-use super::{ChunkPos, Block};
+use super::Block;
 
-pub struct BreakBlockEvent {
-    pub tile_pos: Vec2
+pub(crate) struct BreakBlockEvent {
+    pub(crate) tile_pos: Vec2
 }
 
-pub struct DigBlockEvent {
-    pub tile_pos: Vec2,
-    pub tool: Tool
+pub(crate) struct DigBlockEvent {
+    pub(crate) tile_pos: Vec2,
+    pub(crate) tool: Tool
 }
 
-pub struct PlaceBlockEvent {
-    pub tile_pos: Vec2,
-    pub block: Block,
-    pub inventory_item_index: usize
+pub(crate) struct PlaceBlockEvent {
+    pub(crate) tile_pos: Vec2,
+    pub(crate) block: Block,
+    pub(crate) inventory_item_index: usize
 }
 
-pub struct UpdateNeighborsEvent {
-    pub tile_pos: TilePos,
-    pub chunk_tile_pos: TilePos,
-    pub chunk_pos: ChunkPos,
+pub(super) struct UpdateNeighborsEvent {
+    pub(super) tile_pos: TilePos
 }

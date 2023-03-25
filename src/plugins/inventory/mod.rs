@@ -4,9 +4,9 @@ mod systems;
 mod util;
 
 use bevy::{ui::{Val, Size}, prelude::{Plugin, App, OnUpdate, IntoSystemConfigs, IntoSystemAppConfig, CoreSchedule, IntoSystemConfig, Res, in_state, IntoSystemAppConfigs, SystemSet}};
-pub use components::*;
-pub use resources::*;
-pub use systems::*;
+pub(crate) use components::*;
+pub(crate) use resources::*;
+pub(crate) use systems::*;
 
 use crate::{common::state::GameState, items::Items};
 
