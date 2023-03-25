@@ -165,12 +165,12 @@ fn drag_celestial_body(
         TimeType::Night => MOON_SIZE,
     };
 
-    let cb_rect = FRect {
-        left: celestial_body_transform.translation.x - celestial_body_size / 2.,
-        right: celestial_body_transform.translation.x + celestial_body_size / 2.,
-        top: celestial_body_transform.translation.y + celestial_body_size / 2.,
-        bottom: celestial_body_transform.translation.y - celestial_body_size / 2.,
-    };
+    let cb_rect = FRect::new_center(
+        celestial_body_transform.translation.x,
+        celestial_body_transform.translation.y,
+        celestial_body_size,
+        celestial_body_size
+    );
 
     let cursor_is_on_celestial_body = cb_rect.inside((cursor_position.world_position.x, cursor_position.world_position.y));
 

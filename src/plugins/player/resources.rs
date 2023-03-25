@@ -17,9 +17,7 @@ pub struct PlayerVelocity(pub Vec2);
 #[derive(Resource, Default)]
 pub struct PlayerData {
     pub jump: i32,
-    // The distance of player's fall in tiles
-    pub fall_distance: f32,
-
+    pub fall_start: f32,
     pub prev_position: Vec2
 }
 

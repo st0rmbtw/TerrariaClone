@@ -6,10 +6,13 @@ use crate::{
         world::{WorldData, TILE_SIZE},
         inventory::{UsedItem, SwingAnimation},
     },
-    common::{math::{move_towards, map_range_usize}, state::MovementState},
+    common::{math::{move_towards, map_range_usize}, state::MovementState, rect::FRect},
 };
 
 use super::*;
+
+#[cfg(feature = "debug")]
+use bevy_prototype_debug_lines::DebugLines;
 
 pub(super) fn horizontal_movement(
     axis: Res<InputAxis>,
@@ -59,13 +62,17 @@ pub(super) fn update_jump(
 }
 
 pub(super) fn gravity(
-    time: Res<Time>,
     collisions: Res<Collisions>,
     mut player_data: ResMut<PlayerData>,
     mut velocity: ResMut<PlayerVelocity>,
+    query_player: Query<&Transform, With<Player>>
 ) {
     if !collisions.bottom {
-        player_data.fall_distance += GRAVITY / (time.delta_seconds() * 16.);
+        if velocity.y <= 0. && player_data.fall_start == 0. {
+            let transform = query_player.single();
+            player_data.fall_start = transform.translation.y;
+        }
+
         velocity.y -= GRAVITY;
     }
 
@@ -73,22 +80,28 @@ pub(super) fn gravity(
 }
 
 pub(super) fn detect_collisions(
-    time: Res<Time>,
     world_data: Res<WorldData>,
     mut collisions: ResMut<Collisions>,
     mut velocity: ResMut<PlayerVelocity>,
     mut player_data: ResMut<PlayerData>,
-    player_query: Query<&Transform, With<Player>>,
+    mut player_query: Query<&mut Transform, With<Player>>,
+    #[cfg(feature = "debug")]
+    mut debug_lines: ResMut<DebugLines>,
+    #[cfg(feature = "debug")]
+    debug_config: Res<DebugConfiguration>,
 ) {
-    let transform = player_query.single();
+    let mut transform = player_query.single_mut();
 
-    let position = transform.translation.xy().abs();
-    let next_position = (transform.translation.xy() + velocity.0).abs();
+    let position = transform.translation.xy();
+    let next_position = transform.translation.xy() + **velocity;
+
+    let player_rect = FRect::new_center(position.x, position.y, PLAYER_WIDTH, PLAYER_HEIGHT);
+    let next_player_rect = FRect::new_center(next_position.x, next_position.y, PLAYER_WIDTH, PLAYER_HEIGHT);
 
     let left = ((position.x - PLAYER_HALF_WIDTH) / TILE_SIZE) - 1.;
     let right = ((position.x + PLAYER_HALF_WIDTH) / TILE_SIZE) + 2.;
-    let mut top = ((position.y - PLAYER_HALF_HEIGHT) / TILE_SIZE) - 1.;
-    let mut bottom = ((position.y + PLAYER_HALF_HEIGHT) / TILE_SIZE) + 2.;
+    let mut top = ((position.y.abs() - PLAYER_HALF_HEIGHT) / TILE_SIZE) - 1.;
+    let mut bottom = ((position.y.abs() + PLAYER_HALF_HEIGHT) / TILE_SIZE) + 2.;
 
     bottom = bottom.clamp(0., world_data.size.height as f32);
     top = top.max(0.);
@@ -100,62 +113,89 @@ pub(super) fn detect_collisions(
 
     let mut new_collisions = Collisions::default();
 
-    let mut yx: i32;
-    let mut xy: i32;
-    let mut yy: i32 = -1;
-    let mut xx: i32 = -1;
-
-    let mut a = (bottom + 3.) * TILE_SIZE;
-
     for x in left_u32..right_u32 {
         for y in top_u32..bottom_u32 {
             if world_data.solid_block_exists((x, y)) {
-                let tile_pos = Vec2::new(x as f32 * TILE_SIZE, y as f32 * TILE_SIZE);
+                let tile_rect = FRect::new_center(
+                    x as f32 * TILE_SIZE,
+                    -(y as f32 * TILE_SIZE),
+                    TILE_SIZE,
+                    TILE_SIZE
+                );
 
-                if (next_position.x + PLAYER_HALF_WIDTH) > (tile_pos.x - TILE_SIZE / 2.) && (next_position.x - PLAYER_HALF_WIDTH) < (tile_pos.x + TILE_SIZE / 2.) && (next_position.y + PLAYER_HALF_HEIGHT) > (tile_pos.y - TILE_SIZE / 2.) && (next_position.y - PLAYER_HALF_HEIGHT) < (tile_pos.y + TILE_SIZE / 2.) {
-                    if position.y + PLAYER_HALF_HEIGHT <= tile_pos.y - TILE_SIZE / 2. {
-                        new_collisions.bottom = true;
+                if next_player_rect.intersects(&tile_rect) {
+                    let delta_x = player_rect.centerx - tile_rect.centerx;
+                    let delta_y = if player_rect.centery < tile_rect.centery {
+                        player_rect.top().abs() + (tile_rect.top() + tile_rect.height / 2.)
+                    } else {
+                        player_rect.bottom().abs() + (tile_rect.bottom() - tile_rect.height / 2.)
+                    };
 
-                        let fall_distance = (player_data.fall_distance / 16.).round();
+                    if delta_x.abs() > delta_y.abs() {
+                        if delta_x > 0. {
+                            velocity.x = 0.;
+                            new_collisions.left = true;
 
-                        // if fall_distance > 0. {
-                        //     debug!(
-                        //         fall_distance = fall_distance
-                        //     );
-                        // }
-                        
-                        player_data.fall_distance = 0.;
+                            // If the player's left side is more to the left than the tile's right side then move the player right.
+                            transform.translation.x = tile_rect.right + player_rect.width / 2.;
 
-                        if a > tile_pos.y {
-                            yx = x as i32;
-                            yy = y as i32;
-                            if yx != xx {
-                                // velocity.y = ((tile_pos.y - TILE_SIZE / 2.) - (position.y + PLAYER_HALF_HEIGHT));
-                                velocity.y = 0.;
-                                a = tile_pos.y;
+                            #[cfg(feature = "debug")]
+                            if debug_config.show_collisions {
+                                tile_rect.draw_right_side(&mut debug_lines, 0.1, Color::BLUE);
+                            }
+                        } else {
+                            velocity.x = 0.;
+                            new_collisions.right = true;
+
+                            // If the player's right side is more to the right than the tile's left side then move the player left.
+                            transform.translation.x = tile_rect.left - player_rect.width / 2.;
+
+                            #[cfg(feature = "debug")]
+                            if debug_config.show_collisions {
+                                tile_rect.draw_left_side(&mut debug_lines, 0.1, Color::GREEN);
                             }
                         }
-                    } else if position.x + PLAYER_HALF_WIDTH <= tile_pos.x - TILE_SIZE / 2. {
-                        new_collisions.right = true;
-                        velocity.x = 0.;
-                        xx = x as i32;
-                        xy = y as i32;
-                        if xy != yy {
-                            velocity.x = (tile_pos.x - TILE_SIZE / 2.) - (position.x + PLAYER_HALF_WIDTH);
+                    } else {
+                        // Checking for collisions again with an offset to workaround the bug when the player stuck in a wall.
+                        if FRect::new_bounds_h(next_player_rect.left + 2.0, next_player_rect.top(), PLAYER_WIDTH - 4.0, PLAYER_HEIGHT).intersects(&tile_rect) {
+                            if delta_y > 0. {
+                                velocity.y = 0.;
+                                new_collisions.top = true;
+
+                                // If the player's top side is higher than the tile's bottom side then move the player down.
+                                if player_rect.top() > tile_rect.bottom() {
+                                    velocity.y = tile_rect.bottom() - player_rect.top();
+                                }
+
+                                #[cfg(feature = "debug")]
+                                if debug_config.show_collisions {
+                                    tile_rect.draw_bottom_side(&mut debug_lines, 0.1, Color::YELLOW);
+                                }
+                            } else {
+                                new_collisions.bottom = true;
+
+                                // If the player's bottom side is lower than the tile's top side then move the player up
+                                if player_rect.bottom() < tile_rect.top() {
+                                    velocity.y = tile_rect.top() - player_rect.bottom();
+                                } else {
+                                    transform.translation.y = tile_rect.top() + player_rect.height / 2.;
+                                    velocity.y = 0.;
+                                }
+
+                                if player_data.fall_start != 0. {
+                                    let fall_distance = ((position.y.abs() + player_data.fall_start) / TILE_SIZE).ceil();
+                                    if fall_distance > 0. {
+                                        debug!(fall_distance);
+                                    }
+                                }
+                                player_data.fall_start = 0.;
+
+                                #[cfg(feature = "debug")]
+                                if debug_config.show_collisions {
+                                    tile_rect.draw_top_side(&mut debug_lines, 0.1, Color::RED);
+                                }
+                            }
                         }
-                    } else if position.x - PLAYER_HALF_WIDTH >= tile_pos.x + TILE_SIZE / 2. {
-                        new_collisions.left = true;
-                        velocity.x = 0.;
-                        xx = x as i32;
-                        xy = y as i32;
-                        if xy != yy {
-                            velocity.x = (tile_pos.x + TILE_SIZE / 2.) - (position.x - PLAYER_HALF_WIDTH);
-                        }
-                    } else if position.y >= tile_pos.y + TILE_SIZE / 2. {
-                        collisions.top = true;
-                        yx = x as i32;
-                        yy = y as i32;
-                        velocity.y = ((tile_pos.y + TILE_SIZE / 2.) - (position.y - PLAYER_HALF_HEIGHT)) * time.delta_seconds();
                     }
                 }
             }
@@ -202,13 +242,14 @@ pub(super) fn spawn_particles(
 }
 
 pub(super) fn update_movement_state(
+    collisions: Res<Collisions>,
     player_data: Res<PlayerData>,
     velocity: Res<PlayerVelocity>,
     mut query: Query<&mut MovementState, With<Player>>,
 ) {
     let mut movement_state = query.single_mut();
     *movement_state = match velocity.0 {
-        _ if (player_data.fall_distance.round() / 16.) > 1. || player_data.jump > 0 => MovementState::Flying,
+        _ if !collisions.bottom || player_data.jump > 0 => MovementState::Flying,
         Vec2 { x, .. } if x != 0. => MovementState::Walking,
         _ => MovementState::Idle
     };
@@ -330,10 +371,6 @@ pub(super) fn current_speed(
         );
     }
 }
-
-
-#[cfg(feature = "debug")]
-use bevy_prototype_debug_lines::DebugLines;
 
 #[cfg(feature = "debug")]
 pub(super) fn draw_hitbox(
