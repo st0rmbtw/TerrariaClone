@@ -92,13 +92,16 @@ pub(super) fn detect_collisions(
 ) {
     let mut transform = player_query.single_mut();
 
-    let position = transform.translation.xy().abs();
-    let next_position = (transform.translation.xy() + **velocity).abs();
+    let position = transform.translation.xy();
+    let next_position = transform.translation.xy() + **velocity;
+
+    let player_rect = FRect::new_center(position.x, position.y, PLAYER_WIDTH, PLAYER_HEIGHT);
+    let next_player_rect = FRect::new_center(next_position.x, next_position.y, PLAYER_WIDTH, PLAYER_HEIGHT);
 
     let left = ((position.x - PLAYER_HALF_WIDTH) / TILE_SIZE) - 1.;
     let right = ((position.x + PLAYER_HALF_WIDTH) / TILE_SIZE) + 2.;
-    let mut top = ((position.y - PLAYER_HALF_HEIGHT) / TILE_SIZE) - 1.;
-    let mut bottom = ((position.y + PLAYER_HALF_HEIGHT) / TILE_SIZE) + 2.;
+    let mut top = ((position.y.abs() - PLAYER_HALF_HEIGHT) / TILE_SIZE) - 1.;
+    let mut bottom = ((position.y.abs() + PLAYER_HALF_HEIGHT) / TILE_SIZE) + 2.;
 
     bottom = bottom.clamp(0., world_data.size.height as f32);
     top = top.max(0.);
@@ -110,25 +113,22 @@ pub(super) fn detect_collisions(
 
     let mut new_collisions = Collisions::default();
 
-    let player_rect = FRect::new_center(position.x, position.y, PLAYER_WIDTH, PLAYER_HEIGHT);
-    let next_player_rect = FRect::new_center(next_position.x, next_position.y, PLAYER_WIDTH, PLAYER_HEIGHT);
-
     for x in left_u32..right_u32 {
         for y in top_u32..bottom_u32 {
             if world_data.solid_block_exists((x, y)) {
                 let tile_rect = FRect::new_center(
                     x as f32 * TILE_SIZE,
-                    y as f32 * TILE_SIZE,
+                    -(y as f32 * TILE_SIZE),
                     TILE_SIZE,
                     TILE_SIZE
                 );
 
                 if next_player_rect.intersects(&tile_rect) {
                     let delta_x = player_rect.centerx - tile_rect.centerx;
-                    let delta_y = if player_rect.centery > tile_rect.centery {
-                        player_rect.bottom() - (tile_rect.bottom() - tile_rect.height / 2.)
+                    let delta_y = if player_rect.centery < tile_rect.centery {
+                        player_rect.top().abs() + (tile_rect.top() + tile_rect.height / 2.)
                     } else {
-                        player_rect.top() - (tile_rect.top() + tile_rect.height / 2.)
+                        player_rect.bottom().abs() + (tile_rect.bottom() - tile_rect.height / 2.)
                     };
 
                     if delta_x.abs() > delta_y.abs() {
@@ -163,8 +163,8 @@ pub(super) fn detect_collisions(
                                 new_collisions.top = true;
 
                                 // If the player's top side is higher than the tile's bottom side then move the player down.
-                                if player_rect.bottom() < tile_rect.top() {
-                                    velocity.y = dbg!(player_rect.bottom() - tile_rect.top());
+                                if player_rect.top() > tile_rect.bottom() {
+                                    velocity.y = dbg!(tile_rect.bottom() - player_rect.top());
                                 }
 
                                 #[cfg(feature = "debug")]
@@ -172,13 +172,14 @@ pub(super) fn detect_collisions(
                                     tile_rect.draw_bottom_side(&mut debug_lines, 0.1, Color::YELLOW);
                                 }
                             } else {
-                                velocity.y = 0.;
                                 new_collisions.bottom = true;
-                                transform.translation.y = -tile_rect.bottom() + player_rect.height / 2.;
 
                                 // If the player's bottom side is lower than the tile's top side then move the player up
-                                if player_rect.top() > tile_rect.bottom() {
-                                    velocity.y = dbg!(tile_rect.bottom() - player_rect.top());
+                                if player_rect.bottom() < tile_rect.top() {
+                                    velocity.y = dbg!(tile_rect.top() - player_rect.bottom());
+                                } else {
+                                    transform.translation.y = tile_rect.top() + player_rect.height / 2.;
+                                    velocity.y = 0.;
                                 }
 
                                 if player_data.fall_start != 0. {

@@ -60,8 +60,8 @@ impl FRect {
     #[cfg(feature = "debug")]
     pub(crate) fn draw_left_side(&self, debug_lines: &mut DebugLines, duration: f32, color: Color) {
         debug_lines.line_colored(
-            Vec3::new(self.left, -self.bottom(), 10.),
-            Vec3::new(self.left, -self.top(), 10.),
+            Vec3::new(self.left, self.bottom(), 10.),
+            Vec3::new(self.left, self.top(), 10.),
             duration,
             color
         );
@@ -70,8 +70,8 @@ impl FRect {
     #[cfg(feature = "debug")]
     pub(crate) fn draw_right_side(&self, debug_lines: &mut DebugLines, duration: f32, color: Color) {
         debug_lines.line_colored(
-            Vec3::new(self.right, -self.bottom(), 10.),
-            Vec3::new(self.right, -self.top(), 10.),
+            Vec3::new(self.right, self.bottom(), 10.),
+            Vec3::new(self.right, self.top(), 10.),
             duration,
             color
         );
@@ -80,8 +80,8 @@ impl FRect {
     #[cfg(feature = "debug")]
     pub(crate) fn draw_top_side(&self, debug_lines: &mut DebugLines, duration: f32, color: Color) {
         debug_lines.line_colored(
-            Vec3::new(self.left, -self.bottom(), 10.),
-            Vec3::new(self.right, -self.bottom(), 10.),
+            Vec3::new(self.left, self.top(), 10.),
+            Vec3::new(self.right, self.top(), 10.),
             duration,
             color
         );
@@ -89,8 +89,8 @@ impl FRect {
     #[cfg(feature = "debug")]
     pub(crate) fn draw_bottom_side(&self, debug_lines: &mut DebugLines, duration: f32, color: Color) {
         debug_lines.line_colored(
-            Vec3::new(self.left, -self.top(), 10.),
-            Vec3::new(self.right, -self.top(), 10.),
+            Vec3::new(self.left, self.bottom(), 10.),
+            Vec3::new(self.right, self.bottom(), 10.),
             duration,
             color
         );
