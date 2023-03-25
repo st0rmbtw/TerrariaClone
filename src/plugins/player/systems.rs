@@ -164,7 +164,7 @@ pub(super) fn detect_collisions(
 
                                 // If the player's top side is higher than the tile's bottom side then move the player down.
                                 if player_rect.top() > tile_rect.bottom() {
-                                    velocity.y = dbg!(tile_rect.bottom() - player_rect.top());
+                                    velocity.y = tile_rect.bottom() - player_rect.top();
                                 }
 
                                 #[cfg(feature = "debug")]
@@ -176,14 +176,14 @@ pub(super) fn detect_collisions(
 
                                 // If the player's bottom side is lower than the tile's top side then move the player up
                                 if player_rect.bottom() < tile_rect.top() {
-                                    velocity.y = dbg!(tile_rect.top() - player_rect.bottom());
+                                    velocity.y = tile_rect.top() - player_rect.bottom();
                                 } else {
                                     transform.translation.y = tile_rect.top() + player_rect.height / 2.;
                                     velocity.y = 0.;
                                 }
 
                                 if player_data.fall_start != 0. {
-                                    let fall_distance = ((position.y + player_data.fall_start) / TILE_SIZE).ceil();
+                                    let fall_distance = ((position.y.abs() + player_data.fall_start) / TILE_SIZE).ceil();
                                     if fall_distance > 0. {
                                         debug!(fall_distance);
                                     }
