@@ -124,7 +124,11 @@ pub(super) fn detect_collisions(
 
                 if player_rect.intersects(&tile_rect) {
                     let delta_x = position.x - tile_rect.centerx;
-                    let delta_y = position.y - tile_rect.centery;
+                    let delta_y = if position.y > tile_rect.centery {
+                        (position.y - PLAYER_HALF_HEIGHT) - (tile_rect.bottom() - tile_rect.height / 2.)
+                    } else {
+                        (position.y + PLAYER_HALF_HEIGHT) - (tile_rect.top() + tile_rect.height / 2.)
+                    };
 
                     if delta_x.abs() > delta_y.abs() {
                         if delta_x > 0. {
