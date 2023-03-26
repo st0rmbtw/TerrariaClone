@@ -30,7 +30,7 @@ impl Item {
     pub(crate) fn swing_cooldown(&self) -> u32 {
         match self {
             Item::Tool(tool) => tool.swing_cooldown(),
-            Item::Block(_) => 10,
+            Item::Block(_) => 15,
         }
     }
 }
