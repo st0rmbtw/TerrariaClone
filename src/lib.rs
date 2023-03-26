@@ -27,9 +27,14 @@ pub(crate) const TEXT_COLOR: Color = Color::rgb(156. / 255., 156. / 255., 156. /
 #[derive(Default, Resource)]
 pub(crate) struct DebugConfiguration {
     pub(crate) free_camera: bool,
+    pub(crate) instant_break: bool,
+
+    #[cfg(feature = "debug")]
     pub(crate) show_hitboxes: bool,
+    #[cfg(feature = "debug")]
     pub(crate) show_collisions: bool,
-    pub(crate) instant_break: bool
+    #[cfg(feature = "debug")]
+    pub(crate) player_speed: bevy::prelude::Vec2
 }
 
 pub struct GameApp;

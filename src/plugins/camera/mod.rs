@@ -13,6 +13,8 @@ mod events;
 const MAX_CAMERA_ZOOM: f32 = 2.;
 const MIN_CAMERA_ZOOM: f32 = 0.2;
 const CAMERA_ZOOM_STEP: f32 = 0.5;
+
+#[cfg(feature = "debug")]
 const CAMERA_MOVE_SPEED: f32 = 1000.;
 
 pub(crate) struct CameraPlugin;

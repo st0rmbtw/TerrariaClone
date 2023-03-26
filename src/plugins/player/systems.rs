@@ -350,26 +350,19 @@ pub(super) fn walking_animation(
     });
 }
 
+#[cfg(feature = "debug")]
 pub(super) fn current_speed(
-    velocity: Res<PlayerVelocity>
+    velocity: Res<PlayerVelocity>,
+    mut debug_config: ResMut<DebugConfiguration>
 ) {
     // https://terraria.fandom.com/wiki/Stopwatch
     let factor = (60. * 3600.) / 42240.;
 
-    let velocity_x = velocity.x.abs() as f64 * factor;
-    let velocity_y = velocity.y.abs() as f64 * factor;
+    let velocity_x = velocity.x.abs() * factor;
+    let velocity_y = velocity.y.abs() * factor;
 
-    if velocity_x > 0. {
-        debug!(
-            horizontal = velocity_x,
-        );
-    }
-
-    if velocity_y > 0. {
-        debug!(
-            vertical = velocity_y,
-        );
-    }
+    debug_config.player_speed.x = velocity_x;
+    debug_config.player_speed.y = velocity_y;
 }
 
 #[cfg(feature = "debug")]

@@ -1,5 +1,5 @@
-use bevy::{prelude::{App, Plugin,IntoSystemConfig, OnUpdate, ResMut, Commands, TextBundle, Res, Color, IntoSystemAppConfig, OnEnter, Component, Query, Visibility, With, DetectChanges, Name}, utils::default, text::{Text, TextSection, TextStyle}, ui::{Style, UiRect, Val, PositionType}, sprite::TextureAtlasSprite, time::Time};
-use bevy_inspector_egui::{bevy_egui::{EguiPlugin, egui, EguiContexts}, egui::Align2, quick::{WorldInspectorPlugin, ResourceInspectorPlugin}};
+use bevy::{prelude::{App, Plugin,IntoSystemConfig, OnUpdate, ResMut, Commands, TextBundle, Res, Color, IntoSystemAppConfig, OnEnter, Component, Query, Visibility, With, DetectChanges, Name, AppTypeRegistry}, utils::default, text::{Text, TextSection, TextStyle}, ui::{Style, UiRect, Val, PositionType}, sprite::TextureAtlasSprite, time::Time, reflect::{Reflect, ReflectMut}};
+use bevy_inspector_egui::{bevy_egui::{EguiPlugin, egui, EguiContexts}, egui::Align2, quick::WorldInspectorPlugin, reflect_inspector};
 
 use crate::{common::{state::GameState, helpers}, DebugConfiguration};
 use bevy_prototype_debug_lines::DebugLinesPlugin;
@@ -12,7 +12,6 @@ impl Plugin for DebugPlugin {
         app.add_plugin(EguiPlugin);
         app.add_plugin(DebugLinesPlugin::default());
         app.add_plugin(WorldInspectorPlugin::new());
-        app.add_plugin(ResourceInspectorPlugin::<Time>::default());
 
         app.register_type::<CursorPosition>();
         app.register_type::<TextureAtlasSprite>();
@@ -31,6 +30,8 @@ struct FreeCameraLegendText;
 fn debug_gui(
     mut contexts: EguiContexts, 
     mut debug_config: ResMut<DebugConfiguration>,
+    mut time: ResMut<Time>,
+    type_registry: Res<AppTypeRegistry>,
 ) {
     let egui_context = contexts.ctx_mut();
 
@@ -42,6 +43,26 @@ fn debug_gui(
             ui.checkbox(&mut debug_config.show_hitboxes, "Show Hitboxes");
             ui.checkbox(&mut debug_config.show_collisions, "Show Collisions");
             ui.checkbox(&mut debug_config.instant_break, "Break tiles instantly");
+
+            if let ReflectMut::Struct(str) = time.reflect_mut() {
+                ui.heading("Game Time");
+                ui.separator();
+                ui.columns(2, |columns| {
+                    columns[0].label("Pause:");
+                    reflect_inspector::ui_for_value(str.field_mut("paused").unwrap(), &mut columns[1], &type_registry.0.read());
+                    columns[0].strong("Speed:");
+                    reflect_inspector::ui_for_value(str.field_mut("relative_speed").unwrap(), &mut columns[1], &type_registry.0.read());
+                });
+            }
+
+            ui.heading("Player Speed");
+            ui.separator();
+            ui.columns(2, |columns| {
+                columns[0].strong("Horizontal:");
+                reflect_inspector::ui_for_value_readonly(&debug_config.player_speed.x, &mut columns[1], &type_registry.0.read());
+                columns[0].strong("Vertical:");
+                reflect_inspector::ui_for_value_readonly(&debug_config.player_speed.y, &mut columns[1], &type_registry.0.read());
+            });
         });
 }
 
