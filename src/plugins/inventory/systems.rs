@@ -409,9 +409,6 @@ pub(super) fn inventory_cell_background_hover(
     }
 }
 
-#[cfg(feature = "debug")]
-use crate::plugins::world::BreakBlockEvent;
-
 pub(super) fn use_item(
     using_item: Res<PlayerUsingItem>,
     cursor: Res<CursorPosition>,
@@ -419,8 +416,6 @@ pub(super) fn use_item(
     debug_config: Res<DebugConfiguration>,
     mut dig_block_events: EventWriter<DigBlockEvent>,
     mut place_block_events: EventWriter<PlaceBlockEvent>,
-    #[cfg(feature = "debug")]
-    mut break_block_events: EventWriter<BreakBlockEvent>,
     mut use_cooldown: Local<u32>
 ) {
     if *use_cooldown > 0 && !debug_config.instant_break {
@@ -436,13 +431,7 @@ pub(super) fn use_item(
 
             match item_stack.item {
                 Item::Tool(tool) => {
-                    if debug_config.instant_break {
-                        #[cfg(feature = "debug")]
-                        break_block_events.send(BreakBlockEvent { tile_pos });
-                    } else {
-                        dig_block_events.send(DigBlockEvent { tile_pos, tool });
-                    }
-
+                    dig_block_events.send(DigBlockEvent { tile_pos, tool });
                     *use_cooldown = tool.use_cooldown();
                 },
                 Item::Block(block) => {
