@@ -20,7 +20,7 @@ use bevy_ecs_tilemap::{
 };
 use rand::thread_rng;
 
-use crate::{plugins::{inventory::Inventory, world::{CHUNK_SIZE, TILE_SIZE, LightMap, light::generate_light_map, WorldSize}, assets::{BlockAssets, WallAssets, SoundAssets}, camera::{MainCamera, UpdateLightEvent}}, common::state::GameState};
+use crate::{plugins::{world::{CHUNK_SIZE, TILE_SIZE, LightMap, light::generate_light_map, WorldSize}, assets::{BlockAssets, WallAssets, SoundAssets}, camera::{MainCamera, UpdateLightEvent}}, common::state::GameState};
 
 use super::{get_chunk_pos, CHUNK_SIZE_U, UpdateNeighborsEvent, WALL_SIZE, CHUNKMAP_SIZE, ChunkContainer, get_camera_fov, ChunkManager, ChunkPos, get_chunk_tile_pos, world::WorldData, block::Block, Wall, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent, BlockType, TREE_SIZE, TREE_BRANCHES_SIZE, TreeFrameType, TREE_TOPS_SIZE, ChunkType, Chunk, utils::get_chunk_range_by_camera_fov};
 
@@ -399,19 +399,17 @@ pub(super) fn handle_place_block_event(
     mut place_block_events: EventReader<PlaceBlockEvent>,
     mut update_light_events: EventWriter<UpdateLightEvent>,
     mut update_neighbors_ew: EventWriter<UpdateNeighborsEvent>,
-    mut inventory: ResMut<Inventory>,
     mut query_chunk: Query<(&Chunk, &mut TileStorage, Entity)>,
     sound_assets: Res<SoundAssets>,
     audio: Res<Audio>
 ) {
     let mut rng = thread_rng();
 
-    for PlaceBlockEvent { tile_pos, block, inventory_item_index } in place_block_events.iter() {
+    for PlaceBlockEvent { tile_pos, block } in place_block_events.iter() {
         let tile_pos = TilePos { x: tile_pos.x as u32, y: tile_pos.y as u32 };
 
         if !world_data.block_exists(tile_pos) {
             world_data.set_block(tile_pos, block);
-            inventory.consume_item(*inventory_item_index);
 
             let neighbors = world_data
                 .get_block_neighbors(tile_pos, block.is_solid())
@@ -423,7 +421,6 @@ pub(super) fn handle_place_block_event(
             ChunkManager::spawn_block(&mut commands, &mut query_chunk, chunk_pos, chunk_tile_pos, block, index);
 
             update_neighbors_ew.send(UpdateNeighborsEvent { tile_pos });
-
             update_light_events.send(UpdateLightEvent { tile_pos });
 
             audio.play(sound_assets.get_by_block(block.block_type, &mut rng));

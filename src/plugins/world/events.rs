@@ -17,7 +17,6 @@ pub(crate) struct DigBlockEvent {
 pub(crate) struct PlaceBlockEvent {
     pub(crate) tile_pos: Vec2,
     pub(crate) block: Block,
-    pub(crate) inventory_item_index: usize
 }
 
 pub(super) struct UpdateNeighborsEvent {
