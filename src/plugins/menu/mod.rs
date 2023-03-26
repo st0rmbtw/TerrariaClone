@@ -4,8 +4,8 @@ mod components;
 mod systems;
 mod role;
 
-pub use components::*;
-pub use systems::*;
+use components::*;
+use systems::*;
 
 use bevy::prelude::{Plugin, App, IntoSystemAppConfig, IntoSystemConfigs, IntoSystemConfig, OnEnter, OnExit};
 

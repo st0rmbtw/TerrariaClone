@@ -5,7 +5,7 @@ use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query
 use bevy_ecs_tilemap::tiles::TilePos;
 use rand::seq::SliceRandom;
 
-use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets, SoundAssets}, cursor::{HoveredInfo, CursorPosition}, world::{DigBlockEvent, PlaceBlockEvent, WorldData}, player::{FaceDirection, Player, PlayerBodySprite}}, common::{extensions::EntityCommandsExtensions, helpers}, language::LanguageContent, items::{Item, get_animation_points, ItemStack}, DebugConfiguration};
+use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets, SoundAssets}, cursor::{Hoverable, CursorPosition, UpdateHoverableInfoEvent}, world::{DigBlockEvent, PlaceBlockEvent, WorldData}, player::{FaceDirection, Player, PlayerBodySprite}}, common::{extensions::EntityCommandsExtensions, helpers}, language::LanguageContent, items::{Item, get_animation_points, ItemStack}, DebugConfiguration};
 
 use super::{Inventory, HOTBAR_LENGTH, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, CELL_COUNT_IN_ROW, INVENTORY_ROWS, HotbarUi, util::keycode_to_digit, SwingItemCooldown, UsedItem, UseItemAnimationIndex, PlayerUsingItem, UseItemAnimationData, SwingItemCooldownMax, ITEM_ROTATION, SwingAnimation};
 
@@ -389,21 +389,25 @@ pub(super) fn update_item_amount_text(
 pub(super) fn inventory_cell_background_hover(
     query: Query<(&Interaction, &InventoryCellIndex), Changed<Interaction>>,
     inventory: Res<Inventory>,
-    mut info: ResMut<HoveredInfo>,
-    language_content: Res<LanguageContent>
+    language_content: Res<LanguageContent>,
+    mut update_hoverable_info_events: EventWriter<UpdateHoverableInfoEvent>,
 ) {
     for (interaction, cell_index) in &query {
         if let Some(item_stack) = inventory.get_item(cell_index.0) {
-            info.0 = match interaction {
-                Interaction::None => "".to_string(),
+            match interaction {
+                Interaction::None => {
+                    update_hoverable_info_events.send(UpdateHoverableInfoEvent(Hoverable::None));
+                },
                 _ => {
                     let mut name = language_content.name(item_stack.item).to_owned();
                     
                     if item_stack.stack > 1 {
                         name.push_str(&format!(" ({})", item_stack.stack));
                     }
-        
-                    name.to_string()
+
+                    update_hoverable_info_events.send(UpdateHoverableInfoEvent(
+                        Hoverable::SimpleText(name.to_string())
+                    ));
                 }
             }
         }

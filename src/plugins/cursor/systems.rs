@@ -5,7 +5,7 @@ use bevy::{
     prelude::{
         Res, Commands, Vec3, Color, NodeBundle, default, TextBundle, Name, ImageBundle, Transform, 
         Component, GlobalTransform, Query, With, ResMut, Camera, Visibility, 
-        BuildChildren, DetectChanges
+        BuildChildren, DetectChanges, EventReader
     }, 
     ui::{
         Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Size, Val, AlignSelf, ZIndex, FlexDirection, UiRect
@@ -29,7 +29,7 @@ use crate::{
 
 use crate::plugins::player::{PlayerVelocity, MAX_RUN_SPEED, MAX_FALL_SPEED};
 
-use super::{HoveredInfoMarker, CursorContainer, CursorForeground, CursorBackground, TileGrid, MAX_TILE_GRID_OPACITY, CursorPosition, HoveredInfo, MIN_TILE_GRID_OPACITY};
+use super::{HoverableInfoMarker, CursorContainer, CursorForeground, CursorBackground, TileGrid, MAX_TILE_GRID_OPACITY, CursorPosition, MIN_TILE_GRID_OPACITY, UpdateHoverableInfoEvent, components::Hoverable};
 
 #[autodefault(except(TransformScaleLens, BackgroundColorLens))]
 pub(super) fn setup(
@@ -121,7 +121,7 @@ pub(super) fn setup(
                     },
                 )
             })
-            .insert(HoveredInfoMarker);
+            .insert(HoverableInfoMarker);
         })
         .insert(CursorContainer)
         .insert(Name::new("Cursor Container"));
@@ -178,13 +178,21 @@ pub(super) fn set_visibility<C: Component>(
     }
 }
 
-pub(super) fn update_hovered_info(
-    hovered_info: Res<HoveredInfo>,
-    mut query: Query<&mut Text, With<HoveredInfoMarker>>,
+pub(super) fn handle_update_hoverable_info_event(
+    mut events: EventReader<UpdateHoverableInfoEvent>,
+    mut query: Query<(&mut Text, &mut Visibility), With<HoverableInfoMarker>>,
 ) {
-    if hovered_info.is_changed() {
-        let mut text = query.single_mut();
-        text.sections[0].value = hovered_info.0.clone();
+    if let Some(event) = events.iter().last() {
+        let (mut text, mut visibility) = query.single_mut();
+        match &event.0 {
+            Hoverable::SimpleText(string) => {
+                text.sections[0].value = string.clone();
+                *visibility = Visibility::Inherited;
+            },
+            Hoverable::None => {
+                *visibility = Visibility::Hidden;
+            },
+        }
     }
 }
 

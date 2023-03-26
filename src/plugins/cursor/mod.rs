@@ -1,10 +1,12 @@
 mod components;
 mod resources;
 mod systems;
+mod events;
 
-use components::*;
 use systems::*;
+pub(crate) use components::*;
 pub(crate) use resources::*;
+pub(crate) use events::*;
 
 use bevy::{prelude::{Plugin, App, IntoSystemConfig, OnExit, OnEnter, IntoSystemConfigs, not, IntoSystemAppConfig, resource_equals, OnUpdate, in_state, Res, State, Condition}, ui::BackgroundColor};
 use crate::{common::state::GameState, animation::{AnimationSystemSet, component_animator_system}, DebugConfiguration};
@@ -16,8 +18,9 @@ const MIN_TILE_GRID_OPACITY: f32 = 0.2;
 pub struct CursorPlugin;
 impl Plugin for CursorPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(HoveredInfo::default());
         app.insert_resource(CursorPosition::default());
+
+        app.add_event::<UpdateHoverableInfoEvent>();
 
         app.add_system(setup.in_schedule(OnExit(GameState::AssetLoading)));
         app.add_system(spawn_tile_grid.in_schedule(OnEnter(GameState::InGame)));
@@ -25,9 +28,8 @@ impl Plugin for CursorPlugin {
         app.add_systems(
             (
                 update_cursor_position,
-                update_hovered_info,
+                handle_update_hoverable_info_event
             )
-            .chain()
             .distributive_run_if(|current_state: Res<State<GameState>>| current_state.0 != GameState::AssetLoading)
         );
 

@@ -1,4 +1,4 @@
-use bevy::prelude::{Vec2, Deref, DerefMut, Resource};
+use bevy::prelude::{Vec2, Resource};
 
 #[cfg(feature = "debug")]
 use bevy::ecs::reflect::ReflectResource;
@@ -10,6 +10,3 @@ pub(crate) struct CursorPosition {
     pub position: Vec2,
     pub world_position: Vec2,
 }
-
-#[derive(Default, Deref, DerefMut, Resource)]
-pub(crate) struct HoveredInfo(pub String);

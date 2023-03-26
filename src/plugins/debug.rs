@@ -50,7 +50,7 @@ fn debug_gui(
                 ui.columns(2, |columns| {
                     columns[0].label("Pause:");
                     reflect_inspector::ui_for_value(str.field_mut("paused").unwrap(), &mut columns[1], &type_registry.0.read());
-                    columns[0].strong("Speed:");
+                    columns[0].label("Speed:");
                     reflect_inspector::ui_for_value(str.field_mut("relative_speed").unwrap(), &mut columns[1], &type_registry.0.read());
                 });
             }
@@ -58,9 +58,9 @@ fn debug_gui(
             ui.heading("Player Speed");
             ui.separator();
             ui.columns(2, |columns| {
-                columns[0].strong("Horizontal:");
+                columns[0].label("Horizontal:");
                 reflect_inspector::ui_for_value_readonly(&debug_config.player_speed.x, &mut columns[1], &type_registry.0.read());
-                columns[0].strong("Vertical:");
+                columns[0].label("Vertical:");
                 reflect_inspector::ui_for_value_readonly(&debug_config.player_speed.y, &mut columns[1], &type_registry.0.read());
             });
         });
