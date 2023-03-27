@@ -5,8 +5,6 @@ use bevy::render::render_resource::*;
 use bevy::render::renderer::RenderDevice;
 use bevy::render::texture::ImageSampler;
 
-use crate::plugins::assets::ShaderAssets;
-
 use super::pipeline_assets::LightPassPipelineAssets;
 use super::resource::ComputedTargetSizes;
 use super::types_gpu::{GpuCameraParams, GpuLightSourceBuffer, GpuLightPassParams};
@@ -200,14 +198,16 @@ impl FromWorld for LightPassPipeline {
                 ],
             });
 
-        let shader_assets = world.resource::<ShaderAssets>();
+        let asset_server = world.resource::<AssetServer>();
+
+        let lighting = asset_server.load("shaders/lighting.wgsl");
 
         let pipeline_cache = world.resource::<PipelineCache>();
 
         let lighting_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
             label: Some("lighting_pipeline".into()),
             layout: vec![lighting_bind_group_layout.clone()],
-            shader: shader_assets.lighting.clone(),
+            shader: lighting,
             shader_defs: vec![],
             entry_point: LIGHTING_PIPELINE_ENTRY.into(),
             push_constant_ranges: vec![]

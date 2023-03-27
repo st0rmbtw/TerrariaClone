@@ -56,7 +56,6 @@ impl Plugin for AssetsPlugin {
         app.add_collection_to_loading_state::<_, WallAssets>(GameState::AssetLoading);
         app.add_collection_to_loading_state::<_, UiAssets>(GameState::AssetLoading);
         app.add_collection_to_loading_state::<_, SoundAssets>(GameState::AssetLoading);
-        app.add_collection_to_loading_state::<_, ShaderAssets>(GameState::AssetLoading);
         app.add_collection_to_loading_state::<_, PlayerAssets>(GameState::AssetLoading);
         app.add_collection_to_loading_state::<_, FontAssets>(GameState::AssetLoading);
         app.add_collection_to_loading_state::<_, ItemAssets>(GameState::AssetLoading);
@@ -345,12 +344,6 @@ pub(crate) struct SoundAssets {
 
     #[asset(paths("sounds/Tink_0.wav", "sounds/Tink_1.wav", "sounds/Tink_2.wav"), collection(typed))]
     pub(crate) tink: Vec<Handle<AudioSource>>,
-}
-
-#[derive(Resource, AssetCollection)]
-pub(crate) struct ShaderAssets {
-    #[asset(path = "shaders/lighting.wgsl")]
-    pub(crate) lighting: Handle<Shader>,
 }
 
 impl WallAssets {

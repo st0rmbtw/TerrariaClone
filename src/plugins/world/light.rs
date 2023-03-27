@@ -3,18 +3,20 @@ use super::world::WorldData;
 
 type LightMap = Array2::<u8>;
 
-pub(super) fn generate_light_map(world: &WorldData) -> LightMap {
-    let cluster_size = 1;
+pub(crate) const CLUSTER_SIZE: usize = 2;
 
-    let mut light_map = LightMap::default((world.size.height * cluster_size, world.size.width * cluster_size));
+pub(super) fn generate_light_map(world: &WorldData) -> LightMap {
+    println!("Generating light map...");
+
+    let mut light_map = LightMap::default((world.size.height * CLUSTER_SIZE, world.size.width * CLUSTER_SIZE));
 
     let light_map_width = light_map.ncols();
     let light_map_height = light_map.nrows();
 
     for y in 0..light_map_height {
         for x in 0..light_map_width {
-            let block = world.get_solid_block((x / cluster_size, y / cluster_size));
-            let wall = world.get_wall((x / cluster_size, y / cluster_size));
+            let block = world.get_solid_block((x / CLUSTER_SIZE, y / CLUSTER_SIZE));
+            let wall = world.get_wall((x / CLUSTER_SIZE, y / CLUSTER_SIZE));
 
             if wall.is_some() {
                 light_map[(y, x)] = 30;
@@ -26,30 +28,30 @@ pub(super) fn generate_light_map(world: &WorldData) -> LightMap {
 
     for y in 0..light_map_height {
         for x in 0..light_map_width {
-            propagate_light(x, y, cluster_size, &mut light_map, world);
+            propagate_light(x, y, &mut light_map, world);
         }
     }
 
     for y in (0..light_map_height).rev() {
         for x in (0..light_map_width).rev() {
-            propagate_light(x, y, cluster_size, &mut light_map, world);
+            propagate_light(x, y, &mut light_map, world);
         }
     }
 
     light_map
 }
 
-pub(crate) fn propagate_light(x: usize, y: usize, cluster_size: usize, light_map: &mut LightMap, world: &WorldData) { 
-    if x >= world.size.width - 1 { return; }
-    if y >= world.size.height - 1 { return; }
+pub(crate) fn propagate_light(x: usize, y: usize, light_map: &mut LightMap, world: &WorldData) { 
+    if x >= light_map.ncols() - 1 { return; }
+    if y >= light_map.nrows() - 1 { return; }
 
     if x.checked_sub(1).is_none() { return; }
     if y.checked_sub(1).is_none() { return; }
 
-    let light_pass = if world.solid_block_exists((x / cluster_size, y / cluster_size)) { 
-        50
-    } else if world.wall_exists((x / cluster_size, y / cluster_size)) {
-        38
+    let light_pass = if world.solid_block_exists((x / CLUSTER_SIZE, y / CLUSTER_SIZE)) { 
+        50 / CLUSTER_SIZE as u8
+    } else if world.wall_exists((x / CLUSTER_SIZE, y / CLUSTER_SIZE)) {
+        38 / CLUSTER_SIZE as u8
     } else {
         light_map[(y, x)] = 255;
         return;

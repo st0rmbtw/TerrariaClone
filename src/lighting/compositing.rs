@@ -15,11 +15,10 @@ use bevy::{
     sprite::{Material2d, MaterialMesh2dBundle, Material2dKey},
     window::{WindowResized, PrimaryWindow}, core_pipeline::fullscreen_vertex_shader::FULLSCREEN_SHADER_HANDLE, utils::Hashed,
 };
-use bevy_ecs_tilemap::helpers::square_grid::neighbors::Neighbors;
 
 use crate::{
     plugins::{
-        world::{LightMap, WorldData, light::propagate_light},
+        world::{LightMap, WorldData, light::{propagate_light, self}, TILE_SIZE},
         camera::{MainCamera, UpdateLightEvent, LightMapCamera}
     },
 };
@@ -101,29 +100,6 @@ pub(super) fn update_image_to_window_size(
     }
 }
 
-fn update_light_map_texture(
-    tile_x: usize,
-    tile_y: usize,
-    light_map: &LightMap,
-    texture_data: &mut [u8],
-) {
-    for row in -4_i32..=4_i32 {
-        for col in -4_i32..=4_i32 {
-            let y = ((tile_y as i32) + row) as usize;
-            let x = ((tile_x as i32) + col) as usize;
-
-            if let Some(color) = light_map.colors.get((y, x)) {
-                let index = ((y * light_map.colors.ncols()) + x) * 4;
-
-                texture_data[index]     = *color; // R
-                texture_data[index + 1] = *color; // G
-                texture_data[index + 2] = *color; // B
-                texture_data[index + 3] = 0xFF; // A
-            }
-        }
-    }
-}
-
 pub(super) fn update_lighting_material(
     cameras: Query<
         (
@@ -147,33 +123,38 @@ pub(super) fn update_lighting_material(
 }
 
 pub(super) fn update_light_map(
-    cameras: Query<&Handle<PostProcessingMaterial>, With<MainCamera>>,
+    query_camera: Query<(&Handle<PostProcessingMaterial>, &OrthographicProjection, &GlobalTransform), With<MainCamera>>,
     mut update_light_events: EventReader<UpdateLightEvent>,
     post_processing_materials: Res<Assets<PostProcessingMaterial>>,
     mut images: ResMut<Assets<Image>>,
     mut light_map: ResMut<LightMap>,
     world_data: Res<WorldData>
 ) {
-    if let Ok(lighting_material_handle) = cameras.get_single() {
-        if !update_light_events.is_empty() {
+    if let Ok((lighting_material_handle, projection, camera_transform)) = query_camera.get_single() {
+        if update_light_events.iter().last().is_some() {
             let lighting_material = post_processing_materials
                 .get(lighting_material_handle)
                 .unwrap();
             let light_map_texture = images.get_mut(&lighting_material.shadow_map_image).unwrap();
+            
+            let x_from = ((camera_transform.translation().x + projection.area.min.x) / TILE_SIZE * light::CLUSTER_SIZE as f32) as usize;
+            let x_to = ((camera_transform.translation().x + projection.area.max.x) / TILE_SIZE * light::CLUSTER_SIZE as f32) as usize;
 
-            for UpdateLightEvent { tile_pos } in update_light_events.iter() {
-                let y = tile_pos.y as usize;
-                let x = tile_pos.x as usize;
+            let y_from = ((camera_transform.translation().y + projection.area.max.y) / TILE_SIZE * light::CLUSTER_SIZE as f32).abs() as usize;
+            let y_to = ((camera_transform.translation().y + projection.area.min.y) / TILE_SIZE * light::CLUSTER_SIZE as f32).abs() as usize;
 
-                propagate_light(x, y, 1, &mut light_map.colors, &world_data);
-                update_light_map_texture(x, y, &light_map, &mut light_map_texture.data);
+            for y in y_from..y_to {
+                for x in x_from..x_to {
+                    propagate_light(x, y, &mut light_map.colors, &world_data);
 
-                let neighbors = Neighbors::get_square_neighboring_positions(tile_pos, &world_data.size.as_tilemap_size(), true);
-                for tile_pos in neighbors.iter() {
-                    let y = tile_pos.y as usize;
-                    let x = tile_pos.x as usize;
-                    propagate_light(x, y, 1, &mut light_map.colors, &world_data);
-                    update_light_map_texture(x, y, &light_map, &mut light_map_texture.data);
+                    if let Some(color) = light_map.colors.get((y, x)) {
+                        let index = ((y * light_map.colors.ncols()) + x) * 4;
+
+                        light_map_texture.data[index]     = *color; // R
+                        light_map_texture.data[index + 1] = *color; // G
+                        light_map_texture.data[index + 2] = *color; // B
+                        light_map_texture.data[index + 3] = 0xFF; // A
+                    }
                 }
             }
         }

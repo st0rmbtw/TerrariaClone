@@ -10,6 +10,7 @@ use bevy_ecs_tilemap::{prelude::TilemapRenderSettings, TilemapPlugin};
 use bevy_hanabi::HanabiPlugin;
 use common::state::GameState;
 use language::{load_language, Language};
+use lighting::LightingPlugin;
 use parallax::ParallaxPlugin;
 use plugins::{settings::{SettingsPlugin, Resolution, VSync, FullScreen}, camera::{UpdateLightEvent, CameraPlugin}, assets::AssetsPlugin, cursor::CursorPlugin, background::BackgroundPlugin, ui::PlayerUiPlugin, menu::MenuPlugin, world::WorldPlugin, inventory::PlayerInventoryPlugin, fps::FpsPlugin, player::PlayerPlugin};
 use rand::seq::SliceRandom;
@@ -98,7 +99,7 @@ impl GameApp {
 
             .add_plugin(CursorPlugin)
             .add_plugin(CameraPlugin)
-            // .add_plugin(LightingPlugin)
+            .add_plugin(LightingPlugin)
             .add_plugin(ParallaxPlugin { initial_speed: 0.15 })
             .add_plugin(BackgroundPlugin)
             .add_plugin(PlayerUiPlugin)

@@ -59,6 +59,8 @@ fn lin_to_srgb(color: vec3<f32>) -> vec3<f32> {
     return clr;
 }
 
+// #define BLUR
+
 @fragment
 fn fragment(
     @builtin(position) position: vec4<f32>,
@@ -91,19 +93,25 @@ fn fragment(
     }
 
     var in_irradiance = vec4(0.);
+    var light_map_color = vec4(1.);
 
+#ifdef BLUR
     if (in_irradiance_uv.x >= 0. && in_irradiance_uv.x <= 1.) && (in_irradiance_uv.y >= 0. && in_irradiance_uv.y <= 1.) {
         in_irradiance = blur(in_irradiance_texture, in_irradiance_texture_sampler, view.viewport.zw, in_irradiance_uv, 16.0, 3.0);
     }
+#else
+    in_irradiance = textureSample(in_irradiance_texture, in_irradiance_texture_sampler, in_irradiance_uv);
+#endif
 
-    var light_map_color = vec4(1.);
     {
         let uv = light_map_uv + player_uv;
-        // let color = textureSample(light_map_texture, light_map_texture_sampler, uv);
+#ifdef BLUR
         if (uv.x >= -0.00025) && (uv.x <= 1.00025) && (uv.y >= 0.) && (uv.y <= 1.0015) {
             light_map_color = blur(light_map_texture, light_map_texture_sampler, view.viewport.zw, uv, 16.0, 3.0);
-            // light_map_color = color;
         }
+#else
+        light_map_color = textureSample(light_map_texture, light_map_texture_sampler, uv);
+#endif
     }
 
     var color = texture_diffuse;
