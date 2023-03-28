@@ -84,7 +84,7 @@ impl GameApp {
                 render_chunk_size: UVec2::new(100, 100),
                 y_sort: false
             })
-            .insert_resource(language_content.clone())
+            .insert_resource(language_content)
             .insert_resource(ClearColor(Color::BLACK))
             .insert_resource(FixedTime::new_from_secs(1. / 60.))
             .init_resource::<DebugConfiguration>()

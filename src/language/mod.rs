@@ -19,7 +19,7 @@ impl Language {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub(crate) struct UI {
     pub(crate) items: String,
@@ -42,7 +42,7 @@ pub(crate) struct UI {
     pub(crate) full_screen_resolution: String
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub(crate) struct Items {
     pub(crate) copper_pickaxe: String,
@@ -54,7 +54,7 @@ pub(crate) struct Items {
     pub(crate) grass_seed: String
 }
 
-#[derive(Debug, Deserialize, Clone, Resource)]
+#[derive(Deserialize, Resource)]
 #[serde(rename_all = "PascalCase")]
 pub(crate) struct LanguageContent {
     #[serde(rename = "Title")]
