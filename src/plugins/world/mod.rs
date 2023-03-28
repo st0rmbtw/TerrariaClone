@@ -62,7 +62,8 @@ impl Plugin for WorldPlugin {
                 handle_place_block_event,
                 handle_break_block_event,
                 update_neighbors,
-            ).chain().in_set(OnUpdate(GameState::InGame))
+            )
+            .in_set(OnUpdate(GameState::InGame))
         );
     }
 }

@@ -53,7 +53,6 @@ impl Plugin for CursorPlugin {
                 update_tile_grid_visibility,
                 update_tile_grid_opacity.run_if(|config: Res<DebugConfiguration>| !config.free_camera)
             )
-            .chain()
             .in_set(OnUpdate(GameState::InGame))
         );
     }

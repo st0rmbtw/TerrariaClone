@@ -79,7 +79,6 @@ impl Plugin for PlayerPlugin {
                 simple_animation::<IdleAnimationData>.run_if(is_idle),
                 simple_animation::<FlyingAnimationData>.run_if(is_flying)
             )
-            .chain()
             .in_set(OnUpdate(GameState::InGame))
         );
 
@@ -90,7 +89,6 @@ impl Plugin for PlayerPlugin {
                 horizontal_movement,
                 update_jump,
             )
-            .chain()
             .distributive_run_if(in_state(GameState::InGame))
             .distributive_run_if(|config: Res<DebugConfiguration>| !config.free_camera)
             .in_set(PhysicsSet::SetVelocity)

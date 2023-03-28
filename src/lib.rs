@@ -82,6 +82,7 @@ impl GameApp {
             )
             .insert_resource(TilemapRenderSettings {
                 render_chunk_size: UVec2::new(100, 100),
+                y_sort: false
             })
             .insert_resource(language_content.clone())
             .insert_resource(ClearColor(Color::BLACK))

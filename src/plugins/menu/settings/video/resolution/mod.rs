@@ -30,7 +30,6 @@ impl Plugin for ResolutionMenuPlugin {
                 apply_clicked.run_if(on_btn_clicked::<ApplyButton>),
                 back_clicked.run_if(on_btn_clicked::<BackButton>),
             )
-            .chain()
             .in_set(OnUpdate(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution))))
         );
     }

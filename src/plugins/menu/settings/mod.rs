@@ -37,7 +37,6 @@ impl Plugin for SettingsMenuPlugin {
                 cursor_clicked.run_if(on_btn_clicked::<CursorButton>),
                 back_clicked.run_if(on_btn_clicked::<BackButton>),
             )
-            .chain()
             .in_set(OnUpdate(GameState::Menu(MenuState::Settings(SettingsMenuState::Main))))
         );
     }

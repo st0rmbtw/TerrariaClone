@@ -24,7 +24,6 @@ impl Plugin for CelestialBodyPlugin {
                 update_sprites_color,
                 change_visibility_of_stars,
             )
-            .chain()
             .distributive_run_if(in_menu_state)
         );
     }

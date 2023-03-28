@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use autodefault::autodefault;
 use bevy::{
-    prelude::{Plugin, IntoSystemConfigs, IntoSystemConfig, resource_exists_and_equals, Condition, Component, Commands, Entity, Color, TextBundle, Res, KeyCode, Query, Visibility, With, Name},
+    prelude::{Plugin, IntoSystemConfig, resource_exists_and_equals, Condition, Component, Commands, Entity, Color, TextBundle, Res, KeyCode, Query, Visibility, With, Name},
     text::{TextStyle, Text, TextSection, TextAlignment},
     ui::{Style, UiRect, Val},
     time::{common_conditions::on_timer, Time},
@@ -22,7 +22,6 @@ impl Plugin for FpsPlugin {
                     resource_exists_and_equals(UiVisibility(true)).and_then(on_timer(Duration::from_secs(1)))
                 ),
             )
-            .chain()
         );
     }
 }

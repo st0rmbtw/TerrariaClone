@@ -41,7 +41,6 @@ impl Plugin for MenuPlugin {
                 settings_clicked.run_if(on_btn_clicked::<SettingsButton>),
                 exit_clicked.run_if(on_btn_clicked::<ExitButton>),
             )
-            .chain()
             .distributive_run_if(in_menu_state)
         );
     }

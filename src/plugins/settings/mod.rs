@@ -74,7 +74,6 @@ impl Plugin for SettingsPlugin {
                 update,
                 set_btn_visibility
             )
-            .chain()
             .in_set(OnUpdate(GameState::InGame))
         );
 
