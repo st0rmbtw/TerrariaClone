@@ -325,14 +325,12 @@ fn grassify(world: &mut WorldData) {
 
     for y in 0..world.size.height {
         for x in 0..world.size.width {
-            if let Some(block) = world.get_block((x, y)) {
-                if matches!(block.block_type, BlockType::Dirt) {
-                    if Neighbors::get_square_neighboring_positions(&TilePos::new(x as u32, y as u32), &world.size.as_tilemap_size(), true)
-                        .iter()
-                        .any(|tile_pos| !world.block_exists(*tile_pos))
-                    {
-                        world.set_block((x, y), &Block::Grass);
-                    }
+            if world.block_exists_with_type((x, y), BlockType::Dirt) {
+                if Neighbors::get_square_neighboring_positions(&TilePos::new(x as u32, y as u32), &world.size.as_tilemap_size(), true)
+                    .iter()
+                    .any(|tile_pos| !world.block_exists(*tile_pos))
+                {
+                    world.set_block((x, y), &Block::Grass);
                 }
             }
         }

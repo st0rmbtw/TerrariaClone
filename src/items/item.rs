@@ -2,14 +2,15 @@ use bevy::{math::vec2, prelude::Vec2};
 
 use crate::plugins::world::Block;
 
-use super::{Pickaxe, Tool, Axe};
+use super::{Pickaxe, Tool, Axe, Seed};
 
 type Stack = u16;
 
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) enum Item {
     Tool(Tool),
-    Block(Block)
+    Block(Block),
+    Seed(Seed)
 }
 
 impl Item {
@@ -23,14 +24,14 @@ impl Item {
     pub(crate) fn max_stack(&self) -> Stack {
         match self {
             Item::Tool(_) => 1,
-            Item::Block(_) => 999
+            _ => 9999
         }
     }
 
     pub(crate) fn swing_cooldown(&self) -> u32 {
         match self {
             Item::Tool(tool) => tool.swing_cooldown(),
-            Item::Block(_) => 15,
+            Item::Block(_) | Item::Seed(_) => 15,
         }
     }
 }
@@ -44,6 +45,13 @@ pub(crate) struct ItemStack {
 impl ItemStack {
     pub(crate) fn with_stack(self, stack: Stack) -> Self {
         Self { stack, ..self }
+    }
+
+    pub(crate) fn with_max_stack(self) -> Self {
+        Self { 
+            stack: self.item.max_stack(),
+            ..self
+        }
     }
 }
 
@@ -66,6 +74,11 @@ impl Items {
 
     pub(crate) const STONE_BLOCK: ItemStack = ItemStack {
         item: Item::Block(Block::Stone),
+        stack: 1,
+    };
+
+    pub(crate) const GRASS_SEEDS: ItemStack = ItemStack {
+        item: Item::Seed(Seed::Grass),
         stack: 1,
     };
 }

@@ -51,6 +51,8 @@ impl Plugin for WorldPlugin {
         app.add_event::<DigBlockEvent>();
         app.add_event::<PlaceBlockEvent>();
         app.add_event::<UpdateNeighborsEvent>();
+        app.add_event::<UpdateBlockEvent>();
+        app.add_event::<SeedEvent>();
 
         app.add_system(spawn_terrain.in_schedule(OnEnter(GameState::WorldLoading)));
 
@@ -61,7 +63,9 @@ impl Plugin for WorldPlugin {
                 handle_dig_block_event,
                 handle_place_block_event,
                 handle_break_block_event,
-                update_neighbors,
+                handle_update_neighbors_event,
+                handle_update_block_event,
+                handle_seed_event
             )
             .in_set(OnUpdate(GameState::InGame))
         );

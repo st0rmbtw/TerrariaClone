@@ -1,7 +1,7 @@
 use bevy::prelude::Resource;
 use bevy_ecs_tilemap::{tiles::TilePos, helpers::square_grid::neighbors::{Neighbors, SquareDirection}, prelude::{SquarePos, TilemapSize}};
 
-use super::{generator::{BlockArray, WallArray}, block::Block, wall::Wall};
+use super::{generator::{BlockArray, WallArray}, block::Block, wall::Wall, BlockType};
 
 #[derive(Clone, Copy)]
 pub(crate) struct Layer {
@@ -124,6 +124,15 @@ impl WorldData {
     #[inline]
     pub(crate) fn block_exists<Pos: AsTilePos>(&self, tile_pos: Pos) -> bool {
         self.get_block(tile_pos).is_some()
+    }
+
+    #[inline]
+    pub(crate) fn block_exists_with_type<Pos: AsTilePos>(&self, tile_pos: Pos, block_type: BlockType) -> bool {
+        if let Some(block) = self.get_block(tile_pos) {
+            return block.block_type == block_type;
+        }
+
+        false
     }
 
     #[inline]

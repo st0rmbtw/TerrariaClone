@@ -48,9 +48,9 @@ impl GameApp {
 
         app.add_plugin(SettingsPlugin);
 
-        let resolution = app.world.resource::<Resolution>().clone();
-        let vsync = app.world.resource::<VSync>().clone();
-        let fullscreen = app.world.resource::<FullScreen>().clone();
+        let resolution = *app.world.resource::<Resolution>();
+        let vsync = *app.world.resource::<VSync>();
+        let fullscreen = *app.world.resource::<FullScreen>();
 
         app
             .insert_resource(Msaa::Off)

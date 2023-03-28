@@ -16,6 +16,7 @@ impl Plugin for DebugPlugin {
 
         app.insert_resource(HoverBlockData {
             pos: TilePos::default(),
+            block_type: None,
             neighbors: Neighbors {
                 east: None,
                 north_east: None,
@@ -126,6 +127,7 @@ fn spawn_free_camera_legend(
 #[derive(Resource)]
 struct HoverBlockData {
     pos: TilePos,
+    block_type: Option<BlockType>,
     neighbors: Neighbors<BlockType>
 }
 
@@ -146,6 +148,16 @@ fn block_gui(
                     columns[0].label("Tile Pos:");
                     reflect_inspector::ui_for_value_readonly(&block_data.pos.x, &mut columns[1], &type_registry.0.read());
                     reflect_inspector::ui_for_value_readonly(&block_data.pos.y, &mut columns[2], &type_registry.0.read());
+                });
+
+                ui.columns(2, |columns| {
+                    columns[0].label("Block Type:");
+                    
+                    if let Some(block_type) = block_data.block_type {
+                        reflect_inspector::ui_for_value_readonly(&block_type, &mut columns[1], &type_registry.0.read());
+                    } else {
+                        reflect_inspector::ui_for_value_readonly(&Option::<BlockType>::None, &mut columns[1], &type_registry.0.read());
+                    }
                 });
 
                 CollapsingHeader::new("Neighbors").show(ui, |ui| {
@@ -179,8 +191,10 @@ fn block_hover(
     mut block_data: ResMut<HoverBlockData>
 ) {
     let tile_pos = get_tile_coords(cursor.world_position);
+    let block_type = world_data.get_block(tile_pos).map(|b| b.block_type);
     let neighbors = world_data.get_block_neighbors(tile_pos, true);
 
     block_data.pos = tile_pos;
+    block_data.block_type = block_type;
     block_data.neighbors = neighbors.map_ref(|b| b.block_type);
 }

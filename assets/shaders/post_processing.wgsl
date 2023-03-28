@@ -66,7 +66,7 @@ fn fragment(
     @builtin(position) position: vec4<f32>,
     @location(0) uv: vec2<f32>,
 ) -> @location(0) vec4<f32> {
-    let player_uv = player_position.xy / (vec2(1750. * 16., 900. * 16.) - vec2(16., 32.));
+    let player_uv = player_position.xy / (vec2(1750. * 16., 900. * 16.) - vec2(16., 42.));
 
     let texture_diffuse = textureSample(texture, texture_sampler, uv);
     

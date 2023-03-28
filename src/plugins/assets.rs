@@ -1,4 +1,5 @@
-use bevy::prelude::{Resource, AudioSource, Shader, IntoSystemAppConfig, OnExit};
+use bevy::prelude::{Resource, AudioSource, IntoSystemAppConfig, OnExit};
+use bevy::utils::default;
 use bevy::{
     math::Vec2,
     prelude::{App, AssetServer, Assets, Handle, Image, Plugin, Res, ResMut},
@@ -10,7 +11,7 @@ use bevy_asset_loader::prelude::{AssetCollection, LoadingState, LoadingStateAppE
 use rand::RngCore;
 use rand::seq::SliceRandom;
 
-use crate::items::{Item, Pickaxe, Tool, Axe};
+use crate::items::{Item, Pickaxe, Tool, Axe, Seed};
 use crate::common::state::{GameState, MenuState};
 
 use super::world::{Wall, BlockType};
@@ -235,6 +236,9 @@ pub(crate) struct ItemAssets {
     #[asset(path = "sprites/items/Item_3.png")]
     pub(crate) stone_block: Handle<Image>,
 
+    #[asset(path = "sprites/items/Item_62.png")]
+    pub(crate) grass_seed: Handle<Image>,
+
     #[asset(path = "sprites/items/Item_3509.png")]
     pub(crate) copper_pickaxe: Handle<Image>,
 
@@ -356,21 +360,18 @@ impl WallAssets {
 }
 
 impl ItemAssets {
-    pub(crate) fn no_item(&self) -> Handle<Image> {
-        Handle::<Image>::default()
-    }
-
     pub(crate) fn get_by_item(&self, item: Item) -> Handle<Image> {
         match item {
             Item::Block(block) => {
                 match block.block_type {
                     BlockType::Dirt => self.dirt_block.clone_weak(),
                     BlockType::Stone => self.stone_block.clone_weak(),
-                    _ => self.no_item()
+                    _ => default()
                 }
             }
             Item::Tool(Tool::Pickaxe(Pickaxe::CopperPickaxe)) => self.copper_pickaxe.clone_weak(),
-            Item::Tool(Tool::Axe(Axe::CopperAxe)) => self.copper_axe.clone_weak()
+            Item::Tool(Tool::Axe(Axe::CopperAxe)) => self.copper_axe.clone_weak(),
+            Item::Seed(Seed::Grass) => self.grass_seed.clone_weak()
         }
     }
 }

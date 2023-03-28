@@ -50,8 +50,9 @@ impl Plugin for PlayerInventoryPlugin {
                 let mut inventory = Inventory::default();
                 inventory.add_item(Items::COPPER_PICKAXE);
                 inventory.add_item(Items::COPPER_AXE);
-                inventory.add_item(Items::DIRT_BLOCK.with_stack(999));
-                inventory.add_item(Items::STONE_BLOCK.with_stack(999));
+                inventory.add_item(Items::DIRT_BLOCK.with_max_stack());
+                inventory.add_item(Items::STONE_BLOCK.with_max_stack());
+                inventory.add_item(Items::GRASS_SEEDS.with_max_stack());
 
                 inventory
             });
@@ -66,9 +67,14 @@ impl Plugin for PlayerInventoryPlugin {
                 .run_if(in_state(GameState::InGame))
         );
 
-        app.add_system(update_player_using_item.in_set(OnUpdate(GameState::InGame)));
-        app.add_system(set_using_item_image.in_set(OnUpdate(GameState::InGame)));
-        app.add_system(set_using_item_visibility(false).in_set(OnUpdate(GameState::InGame)));
+        app.add_systems(
+            (
+                update_player_using_item,
+                set_using_item_image,
+                set_using_item_visibility(false),
+            )
+            .in_set(OnUpdate(GameState::InGame))
+        );
 
         app.add_system(
             play_swing_sound
@@ -87,11 +93,11 @@ impl Plugin for PlayerInventoryPlugin {
 
         app.add_systems(
             (
+                update_use_item_animation_index,
                 set_using_item_position,
                 set_using_item_rotation,
                 set_using_item_visibility(true),
                 update_sprite_index,
-                update_use_item_animation_index,
             )
             .chain()
             .distributive_run_if(|res: Res<SwingAnimation>| **res == true)

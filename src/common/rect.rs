@@ -39,10 +39,10 @@ impl FRect {
     }
 
     pub(crate) fn intersects(&self, other: &FRect) -> bool {
-        return self.left < other.right &&
-               self.top() >= other.bottom() &&
-               self.right > other.left &&
-               self.bottom() <= other.top();
+        self.left < other.right &&
+            self.top() >= other.bottom() &&
+            self.right > other.left &&
+            self.bottom() <= other.top()
     }
 
     pub(crate) fn inside(&self, point: (f32, f32)) -> bool {
