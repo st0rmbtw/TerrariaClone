@@ -1,10 +1,11 @@
-use bevy::{prelude::{App, Plugin,IntoSystemConfig, OnUpdate, ResMut, Commands, TextBundle, Res, Color, IntoSystemAppConfig, OnEnter, Component, Query, Visibility, With, DetectChanges, Name, AppTypeRegistry}, utils::default, text::{Text, TextSection, TextStyle}, ui::{Style, UiRect, Val, PositionType}, sprite::TextureAtlasSprite, time::Time, reflect::{Reflect, ReflectMut}};
-use bevy_inspector_egui::{bevy_egui::{EguiPlugin, egui, EguiContexts}, egui::Align2, quick::WorldInspectorPlugin, reflect_inspector};
+use bevy::{prelude::{App, Plugin,IntoSystemConfig, OnUpdate, ResMut, Commands, TextBundle, Res, Color, IntoSystemAppConfig, OnEnter, Component, Query, Visibility, With, DetectChanges, Name, AppTypeRegistry, Resource}, utils::default, text::{Text, TextSection, TextStyle}, ui::{Style, UiRect, Val, PositionType}, sprite::TextureAtlasSprite, time::Time, reflect::{Reflect, ReflectMut}};
+use bevy_ecs_tilemap::{tiles::TilePos, helpers::square_grid::neighbors::Neighbors};
+use bevy_inspector_egui::{bevy_egui::{EguiPlugin, egui, EguiContexts}, egui::{Align2, RichText, CollapsingHeader}, quick::WorldInspectorPlugin, reflect_inspector};
 
-use crate::{common::{state::GameState, helpers}, DebugConfiguration};
+use crate::{common::{state::GameState, helpers::{self, get_tile_coords}}, DebugConfiguration};
 use bevy_prototype_debug_lines::DebugLinesPlugin;
 
-use super::{cursor::CursorPosition, assets::FontAssets, inventory::{UseItemAnimationIndex, UseItemAnimationData}};
+use super::{cursor::CursorPosition, assets::FontAssets, inventory::{UseItemAnimationIndex, UseItemAnimationData}, world::{WorldData, BlockType}};
 
 pub(crate) struct DebugPlugin;
 impl Plugin for DebugPlugin {
@@ -13,14 +14,32 @@ impl Plugin for DebugPlugin {
         app.add_plugin(DebugLinesPlugin::default());
         app.add_plugin(WorldInspectorPlugin::new());
 
+        app.insert_resource(HoverBlockData {
+            pos: TilePos::default(),
+            neighbors: Neighbors {
+                east: None,
+                north_east: None,
+                north: None,
+                north_west: None,
+                west: None,
+                south_west: None,
+                south: None,
+                south_east: None,
+            },
+        });
+
         app.register_type::<CursorPosition>();
         app.register_type::<TextureAtlasSprite>();
         app.register_type::<UseItemAnimationIndex>();
         app.register_type::<UseItemAnimationData>();
 
         app.add_system(debug_gui.in_set(OnUpdate(GameState::InGame)));
+        app.add_system(block_gui.in_set(OnUpdate(GameState::InGame)));
+
         app.add_system(spawn_free_camera_legend.in_schedule(OnEnter(GameState::InGame)));
         app.add_system(set_free_camera_legend_visibility.in_set(OnUpdate(GameState::InGame)));
+
+        app.add_system(block_hover.in_set(OnUpdate(GameState::InGame)));
     }
 }
 
@@ -102,4 +121,60 @@ fn spawn_free_camera_legend(
         Name::new("Free Camera Legend Text"),
         FreeCameraLegendText
     ));
+}
+
+#[derive(Resource)]
+struct HoverBlockData {
+    pos: TilePos,
+    neighbors: Neighbors<BlockType>
+}
+
+fn block_gui(
+    mut contexts: EguiContexts,
+    block_data: Res<HoverBlockData>,
+    type_registry: Res<AppTypeRegistry>,
+) {
+    let egui_context = contexts.ctx_mut();
+
+    egui::Window::new("Hover Block Data")
+        .anchor(Align2::RIGHT_BOTTOM, (-10., -10.))
+        .resizable(false)
+        .show(egui_context, |ui| {
+            ui.columns(2, |columns| {
+                columns[0].label("Tile Pos:");
+                columns[1].code(RichText::from(format!("X: {} Y: {}", block_data.pos.x, block_data.pos.y)));
+            });
+
+            CollapsingHeader::new("Neighbors").show(ui, |ui| {
+                ui.label("North:");
+                reflect_inspector::ui_for_value_readonly(&block_data.neighbors.north, ui, &type_registry.0.read());
+                
+                ui.label("South:");
+                reflect_inspector::ui_for_value_readonly(&block_data.neighbors.south, ui, &type_registry.0.read());
+
+                ui.label("East:");
+                reflect_inspector::ui_for_value_readonly(&block_data.neighbors.east, ui, &type_registry.0.read());
+
+                ui.label("West:");
+                reflect_inspector::ui_for_value_readonly(&block_data.neighbors.west, ui, &type_registry.0.read());
+
+                ui.label("NorthWest:");
+                reflect_inspector::ui_for_value_readonly(&block_data.neighbors.north_west, ui, &type_registry.0.read());
+
+                ui.label("NorthEast:");
+                reflect_inspector::ui_for_value_readonly(&block_data.neighbors.north_east, ui, &type_registry.0.read());
+            });
+        });
+}
+
+fn block_hover(
+    cursor: Res<CursorPosition>,
+    world_data: Res<WorldData>,
+    mut block_data: ResMut<HoverBlockData>
+) {
+    let tile_pos = get_tile_coords(cursor.world_position);
+    let neighbors = world_data.get_block_neighbors(tile_pos, true);
+
+    block_data.pos = tile_pos;
+    block_data.neighbors = neighbors.map_ref(|b| b.block_type);
 }

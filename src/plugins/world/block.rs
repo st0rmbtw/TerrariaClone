@@ -7,6 +7,7 @@ use crate::{common::{helpers::get_tile_start_index, TextureAtlasPos}, items::Too
 use super::{generator::BlockId, tree::Tree, TerrariaFrame, TreeFrameType};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "debug", derive(bevy::reflect::Reflect, bevy::reflect::FromReflect))]
 pub(crate) enum BlockType {
     Dirt,
     Stone,
@@ -847,6 +848,46 @@ impl Block {
 
 fn get_grass_sprite_index_by_dirt_connections(neighbors: &Neighbors<BlockType>, variant: u32) -> Option<TextureAtlasPos> {
     match neighbors {
+        Neighbors {
+            north: Some(BlockType::Grass),
+            south: Some(_),
+            east: Some(BlockType::Grass),
+            north_east: None,
+            ..
+        } => {
+            Some(TextureAtlasPos::new(2, 6 + variant * 2))
+        },
+
+        Neighbors {
+            north: Some(BlockType::Grass),
+            south: Some(_),
+            west: Some(BlockType::Grass),
+            north_west: None,
+            ..
+        } => {
+            Some(TextureAtlasPos::new(3, 6 + variant * 2))
+        },
+
+        Neighbors {
+            north: Some(_),
+            south: Some(BlockType::Grass),
+            east: Some(BlockType::Grass),
+            south_east: None,
+            ..
+        } => {
+            Some(TextureAtlasPos::new(2, 6 + variant * 2 - 1))
+        },
+
+        Neighbors {
+            north: Some(_),
+            south: Some(BlockType::Grass),
+            west: Some(BlockType::Grass),
+            south_west: None,
+            ..
+        } => {
+            Some(TextureAtlasPos::new(3, 6 + variant * 2 - 1))
+        },
+
         //
         // #X#
         //  $

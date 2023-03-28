@@ -335,9 +335,7 @@ pub(super) fn handle_break_block_event(
 ) {
     let mut rng = thread_rng();
 
-    for BreakBlockEvent { tile_pos } in break_block_events.iter() {
-        let tile_pos = TilePos { x: tile_pos.x as u32, y: tile_pos.y as u32 };
-
+    for &BreakBlockEvent { tile_pos } in break_block_events.iter() {
         if let Some(&block) = world_data.get_block(tile_pos) {
             let chunk_pos = get_chunk_pos(tile_pos);
             let chunk_tile_pos = get_chunk_tile_pos(tile_pos);
@@ -370,21 +368,19 @@ pub(super) fn handle_dig_block_event(
 ) {
     let mut rng = thread_rng();
 
-    for DigBlockEvent { tile_pos, tool } in dig_block_events.iter() {
-        let map_tile_pos = TilePos { x: tile_pos.x as u32, y: tile_pos.y as u32 };
-
-        if let Some(block) = world_data.get_block_mut(map_tile_pos) {
-            if block.check_required_tool(*tool) {
+    for &DigBlockEvent { tile_pos, tool } in dig_block_events.iter() {
+        if let Some(block) = world_data.get_block_mut(tile_pos) {
+            if block.check_required_tool(tool) {
                 #[cfg(feature = "debug")]
                 if debug_config.instant_break {
-                    break_block_events.send(BreakBlockEvent { tile_pos: *tile_pos });
+                    break_block_events.send(BreakBlockEvent { tile_pos });
                     return;
                 }
 
                 block.hp -= tool.power();
 
                 if block.hp <= 0 {
-                    break_block_events.send(BreakBlockEvent { tile_pos: *tile_pos });
+                    break_block_events.send(BreakBlockEvent { tile_pos });
                 } else {
                     audio.play(sound_assets.get_by_block(block.block_type, &mut rng));
                 }
@@ -405,11 +401,9 @@ pub(super) fn handle_place_block_event(
 ) {
     let mut rng = thread_rng();
 
-    for PlaceBlockEvent { tile_pos, block } in place_block_events.iter() {
-        let tile_pos = TilePos { x: tile_pos.x as u32, y: tile_pos.y as u32 };
-
+    for &PlaceBlockEvent { tile_pos, block } in place_block_events.iter() {
         if !world_data.block_exists(tile_pos) {
-            world_data.set_block(tile_pos, block);
+            world_data.set_block(tile_pos, &block);
 
             let neighbors = world_data
                 .get_block_neighbors(tile_pos, block.is_solid())
@@ -418,7 +412,7 @@ pub(super) fn handle_place_block_event(
             let chunk_pos = get_chunk_pos(tile_pos);
             let chunk_tile_pos = get_chunk_tile_pos(tile_pos);
 
-            ChunkManager::spawn_block(&mut commands, &mut query_chunk, chunk_pos, chunk_tile_pos, block, index);
+            ChunkManager::spawn_block(&mut commands, &mut query_chunk, chunk_pos, chunk_tile_pos, &block, index);
 
             update_neighbors_ew.send(UpdateNeighborsEvent { tile_pos });
             update_light_events.send(UpdateLightEvent { tile_pos });

@@ -41,8 +41,9 @@ pub(crate) fn set_visibility(mut visibility: Mut<Visibility>, visible: bool) {
     }
 }
 
-pub(crate) fn get_tile_coords(world_coords: Vec2) -> Vec2 {
-    (world_coords / TILE_SIZE).round().abs()
+pub(crate) fn get_tile_coords(world_coords: Vec2) -> TilePos {
+    let tile_pos = (world_coords / TILE_SIZE).round().abs();
+    TilePos { x: tile_pos.x as u32, y: tile_pos.y as u32 }
 }
 
 pub(crate) fn tile_to_world_coords(tile_pos: TilePos) -> Vec2 {

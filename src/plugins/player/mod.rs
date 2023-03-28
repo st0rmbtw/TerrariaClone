@@ -153,7 +153,7 @@ fn spawn_player(
 
     let player = commands
         .spawn(PlayerBundle {
-            spatial: SpatialBundle::from_transform(Transform::from_xyz(player_spawn_point.x, player_spawn_point.y, 3.)),
+            spatial: SpatialBundle::from_transform(Transform::from_xyz(player_spawn_point.x, player_spawn_point.y, 5.)),
             ..default()
         })
         .with_children(|cmd| {

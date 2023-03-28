@@ -2,7 +2,6 @@ use std::borrow::Cow;
 
 use autodefault::autodefault;
 use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color, MouseButton, EventWriter, Audio, DetectChanges, Local, Transform, Quat}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, Size, PositionType, AlignContent, Interaction, BackgroundColor, ZIndex}, text::{Text, TextStyle, TextAlignment}, sprite::TextureAtlasSprite};
-use bevy_ecs_tilemap::tiles::TilePos;
 use rand::seq::SliceRandom;
 
 use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets, SoundAssets}, cursor::{Hoverable, CursorPosition, UpdateHoverableInfoEvent}, world::{DigBlockEvent, PlaceBlockEvent, WorldData}, player::{FaceDirection, Player, PlayerBodySprite}}, common::{extensions::EntityCommandsExtensions, helpers}, language::LanguageContent, items::{Item, get_animation_points, ItemStack}, DebugConfiguration};
@@ -441,7 +440,7 @@ pub(super) fn use_item(
                     *use_cooldown = tool.use_cooldown();
                 },
                 Item::Block(block) => {
-                    if !world_data.block_exists(TilePos::new(tile_pos.x as u32, tile_pos.y as u32)) {
+                    if !world_data.block_exists(tile_pos) {
                         place_block_events.send(PlaceBlockEvent { tile_pos, block });
                         inventory.consume_item(selected_item_index);
                     }
