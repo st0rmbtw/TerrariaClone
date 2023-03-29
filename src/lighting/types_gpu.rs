@@ -35,8 +35,6 @@ pub(super) struct GpuCameraParams {
     pub(super) screen_size_inv:   Vec2,
     pub(super) view_proj:         Mat4,
     pub(super) inverse_view_proj: Mat4,
-    pub(super) sdf_scale:         Vec2,
-    pub(super) inv_sdf_scale:     Vec2,
 }
 
 #[derive(Clone, ShaderType, Debug)]

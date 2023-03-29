@@ -1,7 +1,7 @@
 use std::time::Duration;
 
-use autodefault::autodefault;
-use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, Local, Input, MouseButton, Color, Vec4, IntoSystemConfig, DetectChanges, IntoSystemConfigs, IntoSystemAppConfig, OnExit, Name}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas}, window::{Window, PrimaryWindow}};
+use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, Local, Input, MouseButton, Color, Vec4, IntoSystemConfig, DetectChanges, IntoSystemConfigs, IntoSystemAppConfig, OnExit, Name}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas}, window::{Window, PrimaryWindow}, utils::default};
+use bevy_hanabi::Gradient;
 use interpolation::Lerp;
 
 use crate::{plugins::{assets::{CelestialBodyAssets}, camera::MainCamera, cursor::CursorPosition, background::Star}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystemSet, AnimatorState}, common::state::GameState, common::{math::map_range_f32, rect::FRect}, parallax::LayerTextureComponent};
@@ -51,14 +51,40 @@ enum TimeType {
     Night
 }
 
+#[derive(Resource)]
+struct Gradients {
+    night: Gradient<Vec4>,
+    day: Gradient<Vec4>
+}
+
 const SUNRISE_THRESHOLD: f32 = 0.2;
 const SUNSET_THRESHOLD: f32 = 0.8;
 
-#[autodefault(except(CelestialBodyPositionLens))]
 fn setup(
     mut commands: Commands,
     celestial_body_assets: Res<CelestialBodyAssets>
 ) {
+    commands.insert_resource(Gradients {
+        night: {
+            let mut gradient = Gradient::<Vec4>::new();
+            gradient.add_key(0., Color::rgb_u8(0, 54, 107).into());
+            gradient.add_key(0.2, Color::rgb(0.2, 0.2, 0.2).into());
+            gradient.add_key(0.5, Color::rgb(0.2, 0.2, 0.2).into());
+            gradient.add_key(0.8, Color::rgb(0.2, 0.2, 0.2).into());
+            gradient.add_key(1.0, Color::rgb(0.3, 0.2, 0.3).into());
+            gradient
+        },
+        day: {
+            let mut gradient = Gradient::<Vec4>::new();
+            gradient.add_key(0., Color::rgb_u8(0, 54, 107).into());
+            gradient.add_key(0.2, Color::WHITE.into());
+            gradient.add_key(0.5, Color::WHITE.into());
+            gradient.add_key(0.8, Color::WHITE.into());
+            gradient.add_key(1.0, Color::rgb(0.3, 0.2, 0.3).into());
+            gradient
+        }
+    });
+
     let celestial_body_animation = Tween::new(
         EaseMethod::Linear,
         RepeatStrategy::Repeat,
@@ -74,10 +100,12 @@ fn setup(
     commands.spawn((
         SpriteSheetBundle {
             sprite: TextureAtlasSprite {
-                index: 0
+                index: 0,
+                ..default()
             },
             texture_atlas: celestial_body_assets.sun.clone_weak(),
             transform: Transform::IDENTITY,
+            ..default()
         },
         Animator::new(celestial_body_animation),
         CelestialBody::default(),
@@ -211,32 +239,19 @@ fn update_celestial_type(
 fn update_sprites_color(
     time_type: Res<TimeType>,
     mut query_sprite: Query<&mut Sprite, With<LayerTextureComponent>>,
-    query_celestial_body: Query<&CelestialBody>
+    query_celestial_body: Query<&CelestialBody>,
+    gradients: Res<Gradients>
 ) {
     let celestial_body = query_celestial_body.single();
     let celestial_body_position = celestial_body.position.x.clamp(0., 1.);
 
-    let mut color = match *time_type {
-        TimeType::Day => Color::WHITE,
-        TimeType::Night => Color::rgb(0.2, 0.2, 0.2),
+    let gradient = match *time_type {
+        TimeType::Day => &gradients.day,
+        TimeType::Night => &gradients.night,
     };
-
-    if celestial_body_position <= SUNRISE_THRESHOLD {
-        let start: Vec4 = Color::rgb_u8(0, 54, 107).into();
-        let end: Vec4 = color.into();
-        let s = map_range_f32(0., SUNRISE_THRESHOLD, 0., 1., celestial_body_position);
-
-        color = start.lerp(end, s).into();
-    } else if celestial_body_position >= SUNSET_THRESHOLD {
-        let start: Vec4 = color.into();
-        let end: Vec4 = Color::rgb(0.3, 0.2, 0.3).into();
-        let s = map_range_f32(SUNSET_THRESHOLD, 1., 0., 1., celestial_body_position);
-
-        color = start.lerp(end, s).into();
-    }
     
     for mut sprite in &mut query_sprite {
-        sprite.color = color;
+        sprite.color = gradient.sample(celestial_body_position).into();
     }
 }
 

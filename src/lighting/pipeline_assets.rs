@@ -38,7 +38,7 @@ pub(super) fn system_extract_pipeline_assets(
     res_target_sizes: Extract<Res<ComputedTargetSizes>>,
 
     query_lights: Extract<Query<(&Transform, &LightSource, &ComputedVisibility)>>,
-    query_camera: Extract<Query<(&Camera, &GlobalTransform, &OrthographicProjection), With<MainCamera>>>,
+    query_camera: Extract<Query<(&Camera, &GlobalTransform), With<MainCamera>>>,
 
     mut gpu_target_sizes: ResMut<ComputedTargetSizes>,
     mut gpu_pipeline_assets: ResMut<LightPassPipelineAssets>,
@@ -72,11 +72,13 @@ pub(super) fn system_extract_pipeline_assets(
     }
 
     {
-        if let Ok((camera, camera_global_transform, proj)) = query_camera.get_single() {
+        if let Ok((camera, camera_transform)) = query_camera.get_single() {
             let mut camera_params = gpu_pipeline_assets.camera_params.get_mut();
+            
             let projection = camera.projection_matrix();
             let inverse_projection = projection.inverse();
-            let view = camera_global_transform.compute_matrix();
+
+            let view = camera_transform.compute_matrix();
             let inverse_view = view.inverse();
 
             camera_params.view_proj = projection * inverse_view;
@@ -89,10 +91,6 @@ pub(super) fn system_extract_pipeline_assets(
                 1.0 / gpu_target_sizes.primary_target_size.x,
                 1.0 / gpu_target_sizes.primary_target_size.y,
             );
-
-            let scale = proj.scale;
-            camera_params.sdf_scale     = Vec2::splat(scale);
-            camera_params.inv_sdf_scale = Vec2::splat(1. / scale);
         } else {
             warn!("Failed to get camera");
         }

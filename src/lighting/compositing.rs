@@ -75,27 +75,26 @@ impl Material2d for PostProcessingMaterial {
 
 /// Update image size to fit window
 pub(super) fn update_image_to_window_size(
-    query_windows: Query<&Window, With<PrimaryWindow>>,
     mut images: ResMut<Assets<Image>>,
     mut resize_events: EventReader<WindowResized>,
     fit_to_window_size: Query<&FitToWindowSize>,
 ) {
-    for _ in resize_events.iter() {
-        for fit_to_window in fit_to_window_size.iter() {
-            let window = query_windows.get_single().expect("No primary window");
-
-            let size = {
-                Extent3d {
-                    width: window.width() as u32,
-                    height: window.height() as u32,
-                    ..Default::default()
-                }
-            };
-            let image = images.get_mut(&fit_to_window.image).expect(
-                "FitToWindowSize is referring to an Image, but this Image could not be found",
-            );
-            info!("resize to {:?}", size);
-            image.resize(size);
+    for event in resize_events.iter() {
+        if event.width > 0. && event.height > 0. {
+            for fit_to_window in fit_to_window_size.iter() {
+                let size = {
+                    Extent3d {
+                        width: event.width as u32,
+                        height: event.height as u32,
+                        ..Default::default()
+                    }
+                };
+                let image = images.get_mut(&fit_to_window.image).expect(
+                    "FitToWindowSize is referring to an Image, but this Image could not be found",
+                );
+                info!("resize to {:?}", size);
+                image.resize(size);
+            }
         }
     }
 }
@@ -149,7 +148,20 @@ pub(super) fn update_light_map(
 
                     if let Some(color) = light_map.colors.get((y, x)) {
                         let index = ((y * light_map.colors.ncols()) + x) * 4;
+                        light_map_texture.data[index]     = *color; // R
+                        light_map_texture.data[index + 1] = *color; // G
+                        light_map_texture.data[index + 2] = *color; // B
+                        light_map_texture.data[index + 3] = 0xFF; // A
+                    }
+                }
+            }
 
+            for y in (y_from..y_to).rev() {
+                for x in (x_from..x_to).rev() {
+                    propagate_light(x, y, &mut light_map.colors, &world_data);
+
+                    if let Some(color) = light_map.colors.get((y, x)) {
+                        let index = ((y * light_map.colors.ncols()) + x) * 4;
                         light_map_texture.data[index]     = *color; // R
                         light_map_texture.data[index + 1] = *color; // G
                         light_map_texture.data[index + 2] = *color; // B

@@ -6,7 +6,7 @@
 @group(0) @binding(0) var<uniform> camera_params:         CameraParams;
 @group(0) @binding(1) var<uniform> cfg:                   LightPassParams;
 @group(0) @binding(2) var<storage> lights_source_buffer:  LightSourceBuffer;
-@group(0) @binding(3) var          ss_probe_out:          texture_storage_2d<rgba16float, write>;
+@group(0) @binding(3) var          texture:               texture_storage_2d<rgba16float, write>;
 
 
 @compute @workgroup_size(10, 10, 1)
@@ -14,7 +14,7 @@ fn main(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let tile_xy = vec2<i32>(invocation_id.xy);
 
     // Screen-space position of the probe.
-    let probe_tile_origin_screen = tile_xy * cfg.probe_size;
+    let probe_tile_origin_screen = vec2<f32>(tile_xy * cfg.probe_size);
 
     // Get current frame.
     var probe_center_world = screen_to_world(
@@ -42,5 +42,5 @@ fn main(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     // let out_halton_jitter = pack2x16float(halton_jitter);
     // var out_color = vec4<f32>(probe_irradiance, bitcast<f32>(out_halton_jitter));
 
-    textureStore(ss_probe_out, tile_xy, vec4(probe_irradiance, 1.));
+    textureStore(texture, tile_xy, vec4(probe_irradiance, 1.));
 }

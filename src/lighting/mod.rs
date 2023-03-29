@@ -5,12 +5,12 @@ use bevy::{
         renderer::RenderContext, 
         render_resource::{PipelineCache, ComputePassDescriptor, Extent3d}, ExtractSchedule, RenderSet
     }, 
-    prelude::{Shader, Vec2, ResMut, Res, World, Plugin, App, default, EventReader, Assets, Image, warn, IntoSystemConfig, resource_exists, Query, OnUpdate, With, IntoSystemAppConfig},
-    window::{WindowResized, Window, PrimaryWindow},
+    prelude::{Shader, Vec2, ResMut, Res, World, Plugin, App, default, EventReader, Assets, Image, warn, IntoSystemConfig, resource_exists, OnUpdate, IntoSystemAppConfig, in_state, CoreSet},
+    window::WindowResized,
     asset::load_internal_asset, sprite::Material2dPlugin,
 };
 
-use crate::{plugins::world::WorldData, lighting::{compositing::{PostProcessingMaterial, setup_post_processing_camera, update_image_to_window_size, update_lighting_material, update_light_map}, constants::{SHADER_HALTON, SHADER_ATTENUATION, SHADER_MATH}}, common::state::GameState};
+use crate::{plugins::{world::WorldData, camera::CameraSet, settings::Resolution}, lighting::{compositing::{PostProcessingMaterial, setup_post_processing_camera, update_image_to_window_size, update_lighting_material, update_light_map}, constants::{SHADER_HALTON, SHADER_ATTENUATION, SHADER_MATH}}, common::state::GameState};
 
 use self::{
     pipeline::{LightPassPipelineBindGroups, PipelineTargetsWrapper, system_setup_pipeline, LightPassPipeline, system_queue_bind_groups}, 
@@ -47,9 +47,14 @@ impl Plugin for LightingPlugin {
 
             .add_system(setup_post_processing_camera.run_if(resource_exists::<WorldData>()))
             .add_system(update_image_to_window_size)
-            .add_system(update_lighting_material.in_set(OnUpdate(GameState::InGame)))
-            .add_system(update_light_map.in_set(OnUpdate(GameState::InGame)))
-            .add_system(resize_primary_target);
+            .add_system(resize_lighting_target)
+            .add_system(
+                update_lighting_material
+                    .run_if(in_state(GameState::InGame))
+                    .in_base_set(CoreSet::PostUpdate)
+                    .after(CameraSet::MoveCamera)
+            )
+            .add_system(update_light_map.in_set(OnUpdate(GameState::InGame)));
 
         load_internal_asset!(
             app,
@@ -109,46 +114,43 @@ impl Plugin for LightingPlugin {
 struct LightPass2DNode {}
 
 fn detect_target_sizes(
-    query_windows: Query<&Window, With<PrimaryWindow>>,
-    mut target_sizes: ResMut<ComputedTargetSizes>
+    mut target_sizes: ResMut<ComputedTargetSizes>,
+    resolution: Res<Resolution>
 ) {
-
-    let window = query_windows.get_single().expect("No primary window");
     let primary_size = Vec2::new(
-        window.width(),
-        window.height()
+        resolution.width,
+        resolution.height
     );
     
     target_sizes.primary_target_size = primary_size;
 }
 
-fn resize_primary_target(
-    query_windows: Query<&Window, With<PrimaryWindow>>,
+fn resize_lighting_target(
     mut resize_events: EventReader<WindowResized>,
     mut target_sizes: ResMut<ComputedTargetSizes>,
     mut images: ResMut<Assets<Image>>,
     targets_wrapper: Res<PipelineTargetsWrapper>,
 ) {
-    let window = query_windows.get_single().expect("No primary window");
+    for event in resize_events.iter() {
+        if event.width > 0. && event.height > 0. {
+            target_sizes.primary_target_size = Vec2::new(
+                event.width,
+                event.height
+            );
 
-    for _ in resize_events.iter() {
-        target_sizes.primary_target_size = Vec2::new(
-            window.width(),
-            window.height()
-        );
+            if let Some(targets) = targets_wrapper.targets.as_ref() {
+                let size = target_sizes.primary_target_usize();
 
-        if let Some(targets) = targets_wrapper.targets.as_ref() {
-            let size = target_sizes.primary_target_usize();
+                let extent = Extent3d {
+                    width: size.x,
+                    height: size.y,
+                    ..default()  
+                };
 
-            let extent = Extent3d {
-                width: size.x,
-                height: size.y,
-                ..default()  
-            };
-
-            images.get_mut(&targets.lighting_target.clone_weak())
-                .unwrap()
-                .resize(extent);
+                images.get_mut(&targets.lighting_target.clone_weak())
+                    .unwrap()
+                    .resize(extent);
+            }
         }
     }
 }
