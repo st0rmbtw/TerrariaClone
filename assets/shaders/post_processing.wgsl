@@ -49,16 +49,6 @@ fn blur(texture: texture_2d<f32>, texture_sampler: sampler, resolution: vec2<f32
     return Color;
 }
 
-fn lin_to_srgb(color: vec3<f32>) -> vec3<f32> {
-    let x = color * 12.92;
-    let y = 1.055 * pow(clamp(color, vec3<f32>(0.0), vec3<f32>(1.0)), vec3<f32>(0.4166667)) - vec3<f32>(0.055);
-    var clr = color;
-    clr.x = select(x.x, y.x, (color.x < 0.0031308));
-    clr.y = select(x.y, y.y, (color.y < 0.0031308));
-    clr.z = select(x.z, y.z, (color.z < 0.0031308));
-    return clr;
-}
-
 // #define BLUR
 
 @fragment
