@@ -300,10 +300,6 @@ pub(super) fn setup_post_processing_camera(
                     target: original_target,
                     ..default()
                 },
-                projection: OrthographicProjection {
-                    scale: 0.9,
-                    ..default()
-                },
                 transform: Transform::from_xyz(0., 0., 500.),
                 ..default()
             },

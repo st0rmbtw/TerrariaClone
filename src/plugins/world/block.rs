@@ -965,11 +965,9 @@ fn get_tree_sprite_index(neighbors: &Neighbors<BlockType>, tree: Tree) -> Textur
                 Neighbors { 
                     north: None,
                     ..
-                } => {
-                    TreeFrameType::TopBare.texture_atlas_pos(tree.tree_type, tree.variant)
-                },
+                } => TreeFrameType::TopBare.texture_atlas_pos(tree.tree_type, tree.variant),
 
-                _ => panic!("{:#?}", neighbors)
+                _ => tree.frame_type.texture_atlas_pos(tree.tree_type, tree.variant)
             }
         },
         _ => tree.frame_type.texture_atlas_pos(tree.tree_type, tree.variant)

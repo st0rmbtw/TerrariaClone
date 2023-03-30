@@ -147,7 +147,7 @@ fn resize_lighting_target(
                     ..default()  
                 };
 
-                images.get_mut(&targets.lighting_target.clone_weak())
+                images.get_mut(&targets.lighting_target)
                     .unwrap()
                     .resize(extent);
             }

@@ -66,28 +66,24 @@ fn fragment(
     @builtin(position) position: vec4<f32>,
     @location(0) uv: vec2<f32>,
 ) -> @location(0) vec4<f32> {
-    let player_uv = player_position.xy / (vec2(1750. * 16., 900. * 16.) - vec2(16., 42.));
+    let player_uv = player_position.xy / (vec2(1750. * 16., 900. * 16.));
 
     let texture_diffuse = textureSample(texture, texture_sampler, uv);
     
     var light_map_uv = vec2(0.);
     {
         let size = vec2(1750. * 16., 900. * 16.);
+        let scale = view.viewport.zw / size;
 
-        let scl = view.viewport.zw / size;
-
-        let scale = scale(scl * camera_scale);
-
-        light_map_uv = (uv - 0.5) * scale;
+        light_map_uv = uv - 0.5;
+        light_map_uv += vec2(2.25, 2.25) / 16. * scale / camera_scale;
+        light_map_uv *= scale * camera_scale;
     }
 
     var in_irradiance_uv = vec2(0.);
     {
-        let size = vec2(view.viewport.z * 16., view.viewport.w * 16.);
-
-        let scl = view.viewport.zw / size;
-
-        let scale = scale(scl);
+        let size = view.viewport.zw * 16.;
+        let scale = view.viewport.zw / size;
 
         in_irradiance_uv = uv * scale;
     }
