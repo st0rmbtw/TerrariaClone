@@ -1,3 +1,4 @@
+use bevy_ecs_tilemap::{helpers::square_grid::neighbors::{SQUARE_DIRECTIONS}, tiles::TilePos};
 use ndarray::Array2;
 use super::world::WorldData;
 
@@ -48,9 +49,22 @@ pub(crate) fn propagate_light(x: usize, y: usize, light_map: &mut LightMap, worl
     if x.checked_sub(1).is_none() { return; }
     if y.checked_sub(1).is_none() { return; }
 
-    let light_pass = if world.solid_block_exists((x / CLUSTER_SIZE, y / CLUSTER_SIZE)) { 
-        50 / CLUSTER_SIZE as u8
-    } else if world.wall_exists((x / CLUSTER_SIZE, y / CLUSTER_SIZE)) {
+    let world_pos = TilePos::new((x / CLUSTER_SIZE) as u32, (y / CLUSTER_SIZE) as u32);
+
+    let light_pass = if world.solid_block_exists(world_pos) { 
+        let block_neighbors = world.get_block_neighbors(world_pos, true);
+        let wall_neighbors = world.get_wall_neighbors(world_pos);
+
+        if SQUARE_DIRECTIONS
+            .into_iter()
+            .any(|direction| block_neighbors.get(direction).is_none() && wall_neighbors.get(direction).is_none())
+        {
+            0
+        } else {
+            60 / CLUSTER_SIZE as u8
+        }
+
+    } else if world.wall_exists(world_pos) {
         38 / CLUSTER_SIZE as u8
     } else {
         light_map[(y, x)] = 255;
