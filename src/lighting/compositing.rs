@@ -52,6 +52,9 @@ pub(super) struct PostProcessingMaterial {
 
     #[uniform(7)]
     pub(super) scale: f32,
+
+    #[uniform(8)]
+    pub(super) world_size: Vec2,
 }
 
 impl Material2d for PostProcessingMaterial {
@@ -181,6 +184,7 @@ pub(super) fn setup_post_processing_camera(
     mut shadow_map_meterials: ResMut<Assets<PostProcessingMaterial>>,
     mut images: ResMut<Assets<Image>>,
     light_map: Res<LightMap>,
+    world_data: Res<WorldData>,
     gpu_targets_wrapper: Res<PipelineTargetsWrapper>,
 ) {
     for (entity, mut camera, proj) in &mut query_camera {
@@ -263,6 +267,7 @@ pub(super) fn setup_post_processing_camera(
                 .expect("Targets must be initialized")
                 .lighting_target
                 .clone(),
+            world_size: Vec2::new(world_data.size.width as f32, world_data.size.height as f32)
         });
 
         commands

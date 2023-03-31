@@ -99,8 +99,8 @@ pub(super) fn follow_player(
             }
 
             {
-                let max = -(projection_top - TILE_SIZE / 2.);
-                let min = -((world_data.size.height as f32 * 16.) + projection_top + TILE_SIZE / 2.);
+                let min = -(world_data.size.height as f32 * 16.) - projection_top - TILE_SIZE / 2.;
+                let max = -projection_top - TILE_SIZE / 2.;
                 camera_transform.translation.y = player_transform.translation.y.clamp(min, max);
             }
         }
@@ -174,8 +174,8 @@ pub(super) fn free_camera(
             let velocity = move_direction.y * camera_speed * time.delta_seconds();
             let new_position = camera_transform.translation.y + velocity;
 
-            let min = -((world_data.size.height as f32 * 16.) + projection_top + TILE_SIZE / 2.);
-            let max = -(projection_top - TILE_SIZE / 2.);
+            let min = -(world_data.size.height as f32 * 16.) - projection_top - TILE_SIZE / 2.;
+            let max = -projection_top - TILE_SIZE / 2.;
 
             camera_transform.translation.y = new_position.clamp(min, max);
         }

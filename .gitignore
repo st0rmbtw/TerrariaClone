@@ -3,5 +3,5 @@
 /wix
 Cargo.lock
 .idea/
-terra_settings.json
+settings.json
 /worlds

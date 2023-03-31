@@ -27,6 +27,9 @@ var<uniform> player_position: vec2<f32>;
 @group(1) @binding(7)
 var<uniform> camera_scale: f32;
 
+@group(1) @binding(8)
+var<uniform> world_size: vec2<f32>;
+
 const Size = 1.5; // BLUR SIZE (Radius)
 const Pi = 6.28318530718; // Pi*2
 
@@ -56,17 +59,20 @@ fn fragment(
     @builtin(position) position: vec4<f32>,
     @location(0) uv: vec2<f32>,
 ) -> @location(0) vec4<f32> {
-    let player_uv = player_position.xy / (vec2(1750. * 16., 900. * 16.));
+    // World size in pixels
+    let world_size_px = world_size * 16.;
+
+    // Light map is shifted a bit without this offset, i have no idea why this is happening
+    //                                                                      ↓
+    let player_uv = player_position.xy / (world_size_px - vec2(16., 42.));
 
     let texture_diffuse = textureSample(texture, texture_sampler, uv);
     
     var light_map_uv = vec2(0.);
     {
-        let size = vec2(1750. * 16., 900. * 16.);
-        let scale = view.viewport.zw / size;
+        let scale = view.viewport.zw / world_size_px;
 
         light_map_uv = uv - 0.5;
-        light_map_uv += vec2(2.25, 2.25) / 16. * scale / camera_scale;
         light_map_uv *= scale * camera_scale;
     }
 

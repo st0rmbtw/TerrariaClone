@@ -1,4 +1,4 @@
-use bevy_ecs_tilemap::{helpers::square_grid::neighbors::{SQUARE_DIRECTIONS}, tiles::TilePos};
+use bevy_ecs_tilemap::tiles::TilePos;
 use ndarray::Array2;
 use super::world::WorldData;
 
@@ -9,10 +9,10 @@ pub(crate) const CLUSTER_SIZE: usize = 2;
 pub(super) fn generate_light_map(world: &WorldData) -> LightMap {
     println!("Generating light map...");
 
-    let mut light_map = LightMap::default((world.size.height * CLUSTER_SIZE, world.size.width * CLUSTER_SIZE));
+    let light_map_width = world.size.width * CLUSTER_SIZE;
+    let light_map_height = world.size.height * CLUSTER_SIZE;
 
-    let light_map_width = light_map.ncols();
-    let light_map_height = light_map.nrows();
+    let mut light_map = LightMap::default((light_map_height, light_map_width));
 
     for y in 0..light_map_height {
         for x in 0..light_map_width {
@@ -52,20 +52,9 @@ pub(crate) fn propagate_light(x: usize, y: usize, light_map: &mut LightMap, worl
     let world_pos = TilePos::new((x / CLUSTER_SIZE) as u32, (y / CLUSTER_SIZE) as u32);
 
     let light_pass = if world.solid_block_exists(world_pos) { 
-        let block_neighbors = world.get_block_neighbors(world_pos, true);
-        let wall_neighbors = world.get_wall_neighbors(world_pos);
-
-        if SQUARE_DIRECTIONS
-            .into_iter()
-            .any(|direction| block_neighbors.get(direction).is_none() && wall_neighbors.get(direction).is_none())
-        {
-            0
-        } else {
-            60 / CLUSTER_SIZE as u8
-        }
-
+        50
     } else if world.wall_exists(world_pos) {
-        38 / CLUSTER_SIZE as u8
+        38
     } else {
         light_map[(y, x)] = 255;
         return;
@@ -80,5 +69,5 @@ pub(crate) fn propagate_light(x: usize, y: usize, light_map: &mut LightMap, worl
 
     let max_light = neighbors.iter().max().unwrap();
 
-    light_map[(y, x)] = max_light.saturating_sub(light_pass);
+    light_map[(y, x)] = max_light.saturating_sub(light_pass / CLUSTER_SIZE as u8);
 }

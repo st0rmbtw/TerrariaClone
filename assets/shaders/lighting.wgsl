@@ -1,6 +1,5 @@
 #import game::camera
 #import game::types
-#import game::halton
 #import game::attenuation
 
 @group(0) @binding(0) var<uniform> camera_params:         CameraParams;
@@ -35,12 +34,6 @@ fn main(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
 
         probe_irradiance += light.color * att * light.intensity;
     }
-
-    // let reservoir_size = i32(cfg.reservoir_size);
-    // let frame_index = cfg.frame_counter % reservoir_size;
-    // let halton_jitter = hammersley2d(frame_index, reservoir_size);
-    // let out_halton_jitter = pack2x16float(halton_jitter);
-    // var out_color = vec4<f32>(probe_irradiance, bitcast<f32>(out_halton_jitter));
 
     textureStore(texture, tile_xy, vec4(probe_irradiance, 1.));
 }

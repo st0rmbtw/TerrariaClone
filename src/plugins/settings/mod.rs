@@ -1,4 +1,4 @@
-use std::{fs::OpenOptions, io::{BufReader, Write}};
+use std::{fs::OpenOptions, io::{BufReader, BufWriter}, error::Error};
 
 use bevy::{prelude::{Plugin, App, OnUpdate, IntoSystemConfigs, IntoSystemConfig}, text::Text};
 use serde::{Deserialize, Serialize};
@@ -37,37 +37,37 @@ impl Default for Settings {
     }
 }
 
-fn load_settings() -> Settings {
+const SETTINGS_FILENAME: &'static str = "settings.json";
+
+fn load_settings() -> Result<Settings, Box<dyn Error>> {
     let file = OpenOptions::new()
-        .write(true)
         .read(true)
-        .create(true)
-        .truncate(false)
-        .open("terra_settings.json")
-        .unwrap();
+        .open(SETTINGS_FILENAME)?;
 
     let reader = BufReader::new(file);
 
-    serde_json::from_reader(reader).unwrap_or_default()
+    let settings: Settings = serde_json::from_reader(reader)?;
+
+    Ok(settings)
 }
 
 pub(super) fn save_settings(settings: Settings) {
-    let mut file = OpenOptions::new()
+    let file = OpenOptions::new()
         .write(true)
         .create(true)
         .truncate(true)
-        .open("terra_settings.json")
+        .open(SETTINGS_FILENAME)
         .unwrap();
 
-    file.write_all(
-        serde_json::to_string(&settings).unwrap().as_bytes()
-    ).unwrap();
+    let writer = BufWriter::new(file);
+
+    serde_json::to_writer(writer, &settings).unwrap();
 }
 
 pub(crate) struct SettingsPlugin;
 impl Plugin for SettingsPlugin {
     fn build(&self, app: &mut App) {
-        let settings = load_settings();
+        let settings = load_settings().unwrap_or_default();
 
         app.add_systems(
             (

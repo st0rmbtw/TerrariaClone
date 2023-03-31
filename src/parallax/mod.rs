@@ -1,3 +1,5 @@
+// Based on https://github.com/Corrosive-Games/bevy-parallax
+
 use std::cmp::max;
 
 use bevy::{prelude::*, window::{WindowResized, PrimaryWindow}};
