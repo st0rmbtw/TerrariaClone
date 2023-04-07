@@ -16,10 +16,10 @@ var light_map_texture: texture_2d<f32>;
 var light_map_texture_sampler: sampler;
 
 @group(1) @binding(4) 
-var in_irradiance_texture: texture_2d<f32>;
+var lighting_texture: texture_2d<f32>;
 
 @group(1) @binding(5) 
-var in_irradiance_texture_sampler: sampler;
+var lighting_texture_sampler: sampler;
 
 @group(1) @binding(6)
 var<uniform> player_position: vec2<f32>;
@@ -63,11 +63,9 @@ fn fragment(
     let world_size_px = world_size * 16.;
 
     // Light map is shifted a bit without this offset, i have no idea why this is happening
-    //                                                                      ↓
+    //                                                            ↓
     let player_uv = player_position.xy / (world_size_px - vec2(16., 42.));
 
-    let texture_diffuse = textureSample(texture, texture_sampler, uv);
-    
     var light_map_uv = vec2(0.);
     {
         let scale = view.viewport.zw / world_size_px;
@@ -76,23 +74,17 @@ fn fragment(
         light_map_uv *= scale * camera_scale;
     }
 
-    var in_irradiance_uv = vec2(0.);
-    {
-        let size = view.viewport.zw * 16.;
-        let scale = view.viewport.zw / size;
+    var lighting_uv = uv / 16.;
 
-        in_irradiance_uv = uv * scale;
-    }
-
-    var in_irradiance = vec4(0.);
+    var lighting_color = vec4(0.);
     var light_map_color = vec4(1.);
 
 #ifdef BLUR
-    if (in_irradiance_uv.x >= 0. && in_irradiance_uv.x <= 1.) && (in_irradiance_uv.y >= 0. && in_irradiance_uv.y <= 1.) {
-        in_irradiance = blur(in_irradiance_texture, in_irradiance_texture_sampler, view.viewport.zw, in_irradiance_uv, 16.0, 3.0);
+    if (lighting_uv.x >= 0. && in_irradiance_uv.x <= 1.) && (in_irradiance_uv.y >= 0. && in_irradiance_uv.y <= 1.) {
+        lighting_color = blur(lighting_texture, lighting_texture_sampler, view.viewport.zw, lighting_uv, 16.0, 3.0);
     }
 #else
-    in_irradiance = textureSample(in_irradiance_texture, in_irradiance_texture_sampler, in_irradiance_uv);
+    lighting_color = textureSample(lighting_texture, lighting_texture_sampler, lighting_uv);
 #endif
 
     {
@@ -106,10 +98,10 @@ fn fragment(
 #endif
     }
 
-    var color = texture_diffuse;
+    var color = textureSample(texture, texture_sampler, uv);
 
     if (uv.x >= 0.) && (uv.x <= 1.) && (uv.y >= 0.) && (uv.y <= 1.) {
-        color = texture_diffuse * (light_map_color + in_irradiance);
+        color *= (light_map_color + lighting_color);
     }
 
     return color;
