@@ -2,10 +2,10 @@ use bevy::{prelude::{App, Plugin,IntoSystemConfig, OnUpdate, ResMut, Commands, T
 use bevy_ecs_tilemap::{tiles::TilePos, helpers::square_grid::neighbors::Neighbors};
 use bevy_inspector_egui::{bevy_egui::{EguiPlugin, egui, EguiContexts}, egui::{Align2, CollapsingHeader, ScrollArea}, quick::WorldInspectorPlugin, reflect_inspector};
 
-use crate::{common::{state::GameState, helpers::{self, get_tile_coords}}, DebugConfiguration};
+use crate::{common::{state::GameState, helpers::{self, get_tile_pos_from_world_coords}}, DebugConfiguration, world::{block::BlockType, WorldData}};
 use bevy_prototype_debug_lines::DebugLinesPlugin;
 
-use super::{cursor::CursorPosition, assets::FontAssets, inventory::{UseItemAnimationIndex, UseItemAnimationData}, world::{WorldData, BlockType}};
+use super::{cursor::CursorPosition, assets::FontAssets, inventory::{UseItemAnimationIndex, UseItemAnimationData}};
 
 pub(crate) struct DebugPlugin;
 impl Plugin for DebugPlugin {
@@ -190,11 +190,11 @@ fn block_hover(
     world_data: Res<WorldData>,
     mut block_data: ResMut<HoverBlockData>
 ) {
-    let tile_pos = get_tile_coords(cursor.world_position);
-    let block_type = world_data.get_block(tile_pos).map(|b| b.block_type);
+    let tile_pos = get_tile_pos_from_world_coords(cursor.world_position);
+    let block_type = world_data.get_block(tile_pos).map(|b| *b);
     let neighbors = world_data.get_block_neighbors(tile_pos, true);
 
     block_data.pos = tile_pos;
-    block_data.block_type = block_type;
+    block_data.block_type = block_type.map(|b| b.block_type);
     block_data.neighbors = neighbors.map_ref(|b| b.block_type);
 }

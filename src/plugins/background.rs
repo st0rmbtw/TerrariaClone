@@ -1,6 +1,6 @@
 use crate::{
     parallax::{LayerData, ParallaxResource, LayerSpeed, follow_camera_system, ParallaxSet},
-    common::{state::GameState, conditions::in_menu_state},
+    common::{state::GameState, conditions::in_menu_state}, world::WorldData,
 };
 use bevy::{
     prelude::{default, App, Commands, Plugin, Res, ResMut, Vec2, Transform, Component, Query, Camera, GlobalTransform, With, OnEnter, OnExit, IntoSystemAppConfig, OnUpdate, IntoSystemConfig, IntoSystemConfigs, IntoSystemAppConfigs, Name},
@@ -8,7 +8,7 @@ use bevy::{
 };
 use rand::{thread_rng, Rng, seq::SliceRandom};
 
-use super::{assets::BackgroundAssets, camera::MainCamera, world::{WorldData, TILE_SIZE}};
+use super::{assets::BackgroundAssets, camera::MainCamera, world::TILE_SIZE};
 
 // region: Plugin
 pub(crate) struct BackgroundPlugin;

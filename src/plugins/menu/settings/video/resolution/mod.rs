@@ -8,11 +8,10 @@ use crate::{
         assets::FontAssets, 
         menu::{
             menu_button, control_buttons_layout, control_button, menu, MenuContainer,
-            settings::{BackButton, ApplyButton, MENU_BUTTON_FONT_SIZE}, despawn_with
+            settings::{BackButton, ApplyButton, MENU_BUTTON_FONT_SIZE}, despawn_with, TEXT_COLOR
         }, 
         settings::{FullScreen, Resolution, RESOLUTIONS}
     }, 
-    TEXT_COLOR
 };
 
 pub(super) struct ResolutionMenuPlugin;

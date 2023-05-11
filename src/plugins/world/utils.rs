@@ -1,10 +1,12 @@
-use bevy::prelude::{Vec2, OrthographicProjection, UVec2};
+use bevy::prelude::{Vec2, OrthographicProjection};
 use bevy_ecs_tilemap::tiles::TilePos;
 
-use super::{CHUNK_SIZE_U, ChunkPos, CHUNK_SIZE, Size, TILE_SIZE, CameraFov, ChunkRange};
+use crate::world::{chunk::ChunkPos, Size};
 
-pub(super) fn get_chunk_pos(pos: TilePos) -> ChunkPos {    
-    UVec2::from(pos) / CHUNK_SIZE_U
+use super::{CHUNK_SIZE_U, CHUNK_SIZE, TILE_SIZE, CameraFov, ChunkRange};
+
+pub(super) fn get_chunk_pos(pos: TilePos) -> ChunkPos {
+    ChunkPos::new(pos.x, pos.y) / CHUNK_SIZE_U
 }
 
 pub(super) fn get_chunk_tile_pos(map_tile_pos: TilePos) -> TilePos {
@@ -29,8 +31,8 @@ pub(super) fn get_chunk_range_by_camera_fov(camera_fov: CameraFov, world_size: S
     let top = (camera_fov.top / (CHUNK_SIZE * TILE_SIZE)).ceil().abs() as u32;
     let mut bottom = (camera_fov.bottom / (CHUNK_SIZE * TILE_SIZE)).floor().abs() as u32;
 
-    let max_chunk_x: u32 = world_size.width as u32 / CHUNK_SIZE_U;
-    let max_chunk_y: u32 = world_size.height as u32 / CHUNK_SIZE_U;
+    let max_chunk_x = world_size.width as u32 / CHUNK_SIZE_U;
+    let max_chunk_y = world_size.height as u32 / CHUNK_SIZE_U;
 
     if right > max_chunk_x {
         right = max_chunk_x;

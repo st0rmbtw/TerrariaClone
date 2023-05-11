@@ -3,7 +3,7 @@ use std::{io::BufReader, fs::File, error::Error};
 use bevy::prelude::Resource;
 use serde::Deserialize;
 
-use crate::{items::{Pickaxe, Tool, Item, Axe, Seed}, plugins::world::BlockType};
+use crate::{items::{Pickaxe, Tool, Item, Axe, Seed}, world::block::BlockType};
 
 pub(crate) enum Language {
     English

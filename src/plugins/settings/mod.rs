@@ -37,7 +37,29 @@ impl Default for Settings {
     }
 }
 
-const SETTINGS_FILENAME: &'static str = "settings.json";
+const SETTINGS_FILENAME: &str = "settings.json";
+
+pub(crate) struct SettingsPlugin;
+impl Plugin for SettingsPlugin {
+    fn build(&self, app: &mut App) {
+        let settings = load_settings().unwrap_or_default();
+
+        app.insert_resource(FullScreen(settings.full_screen));
+        app.insert_resource(ShowTileGrid(settings.show_tile_grid));
+        app.insert_resource(VSync(settings.vsync));
+        app.insert_resource(settings.cursor_color);
+        app.insert_resource(settings.resolution);
+
+        app.add_systems(
+            (
+                update,
+                set_btn_visibility,
+                component_animator_system::<Text>.in_set(AnimationSystemSet::AnimationUpdate)
+            )
+            .in_set(OnUpdate(GameState::InGame))
+        );
+    }
+}
 
 fn load_settings() -> Result<Settings, Box<dyn Error>> {
     let file = OpenOptions::new()
@@ -62,33 +84,6 @@ pub(super) fn save_settings(settings: Settings) {
     let writer = BufWriter::new(file);
 
     serde_json::to_writer(writer, &settings).unwrap();
-}
-
-pub(crate) struct SettingsPlugin;
-impl Plugin for SettingsPlugin {
-    fn build(&self, app: &mut App) {
-        let settings = load_settings().unwrap_or_default();
-
-        app.add_systems(
-            (
-                update,
-                set_btn_visibility
-            )
-            .in_set(OnUpdate(GameState::InGame))
-        );
-
-        app.add_system(
-            component_animator_system::<Text>
-                .in_set(OnUpdate(GameState::InGame))
-                .in_set(AnimationSystemSet::AnimationUpdate)
-        );
-
-        app.insert_resource(FullScreen(settings.full_screen));
-        app.insert_resource(ShowTileGrid(settings.show_tile_grid));
-        app.insert_resource(VSync(settings.vsync));
-        app.insert_resource(settings.cursor_color);
-        app.insert_resource(settings.resolution);
-    }
 }
 
 pub(super) const RESOLUTIONS: [Resolution; 16] = [

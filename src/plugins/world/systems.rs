@@ -20,9 +20,9 @@ use bevy_ecs_tilemap::{
 };
 use rand::{thread_rng, seq::SliceRandom};
 
-use crate::{plugins::{world::{CHUNK_SIZE, TILE_SIZE, LightMap, light::generate_light_map, WorldSize}, assets::{BlockAssets, WallAssets, SoundAssets}, camera::{MainCamera, UpdateLightEvent}}, common::state::GameState, items::Seed};
+use crate::{plugins::{world::{CHUNK_SIZE, TILE_SIZE, LightMap,}, assets::{BlockAssets, WallAssets, SoundAssets}, camera::{MainCamera, UpdateLightEvent}}, common::state::GameState, items::Seed, world::{light::generate_light_map, WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::{Tree, TreeFrameType}, generator::generate_world}};
 
-use super::{get_chunk_pos, CHUNK_SIZE_U, UpdateNeighborsEvent, WALL_SIZE, CHUNKMAP_SIZE, ChunkContainer, get_camera_fov, ChunkManager, ChunkPos, get_chunk_tile_pos, world::WorldData, block::Block, Wall, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent, BlockType, TREE_SIZE, TREE_BRANCHES_SIZE, TreeFrameType, TREE_TOPS_SIZE, ChunkType, Chunk, utils::get_chunk_range_by_camera_fov, UpdateBlockEvent, SeedEvent};
+use super::{get_chunk_pos, CHUNK_SIZE_U, UpdateNeighborsEvent, WALL_SIZE, CHUNKMAP_SIZE, get_camera_fov, ChunkManager, get_chunk_tile_pos, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent, TREE_SIZE, TREE_BRANCHES_SIZE, TREE_TOPS_SIZE, utils::get_chunk_range_by_camera_fov, UpdateBlockEvent, SeedEvent};
 
 pub(super) fn spawn_terrain(mut commands: Commands) {
     let _current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
@@ -32,15 +32,11 @@ pub(super) fn spawn_terrain(mut commands: Commands) {
 
     println!("The world's seed is {}", seed);
 
-    let world = super::generator::generate(seed, WorldSize::Tiny);
-    let light_map = generate_light_map(&world);
+    let world_data = generate_world(seed, WorldSize::Tiny);
+    let light_map = generate_light_map(&world_data);
 
-    commands.insert_resource(world);
-
-    commands.insert_resource(LightMap {
-        colors: light_map
-    });
-
+    commands.insert_resource(world_data);
+    commands.insert_resource(LightMap::new(light_map));
     commands.insert_resource(NextState(Some(GameState::InGame)));
 }
 
@@ -172,6 +168,7 @@ pub(super) fn spawn_chunk(
 
             if let Some(block) = world_data.get_block(map_tile_pos) {
                 if let BlockType::Tree(tree) = block.block_type {
+                    let tree = Tree::from(tree);
                     let index = tree.texture_atlas_pos();
                     
                     match tree.frame_type {
@@ -390,7 +387,7 @@ pub(super) fn handle_dig_block_event(
 
                         update_block_events.send(UpdateBlockEvent {
                             tile_pos,
-                            block_type: BlockType::Dirt,
+                            block_type: block.block_type,
                             update_neighbors: true
                         });
                     }
@@ -467,7 +464,7 @@ pub(super) fn handle_update_block_event(
 ) {
     for UpdateBlockEvent { tile_pos, block_type, update_neighbors } in update_block_events.iter() {
         let neighbors = world_data
-            .get_block_neighbors(*tile_pos, block_type.is_solid())
+            .get_block_neighbors(tile_pos, block_type.is_solid())
             .map_ref(|b| b.block_type);
 
         let chunk_pos = get_chunk_pos(*tile_pos);
@@ -494,14 +491,19 @@ pub(super) fn handle_seed_event(
 ) {
     let mut rng = thread_rng();
 
-    for &SeedEvent { tile_pos, seed } in seed_events.iter() {
-        if let Some(block) = world_data.get_block_mut(tile_pos) {
+    for &SeedEvent { tile_pos: world_pos, seed } in seed_events.iter() {
+        if let Some(block) = world_data.get_block_mut( world_pos) {
             if block.block_type == BlockType::Dirt {
                 let block_type = match seed {
                     Seed::Grass => BlockType::Grass,
                 };
                 block.block_type = block_type;
-                update_block_events.send(UpdateBlockEvent { tile_pos, block_type, update_neighbors: true });
+
+                update_block_events.send(UpdateBlockEvent { 
+                    tile_pos: world_pos,
+                    block_type,
+                    update_neighbors: true
+                });
 
                 audio.play(sound_assets.dig.choose(&mut rng).unwrap().clone_weak());
             }

@@ -1,8 +1,6 @@
 use bevy_ecs_tilemap::tiles::TilePos;
 
-use crate::items::{Tool, Seed};
-
-use super::{Block, BlockType};
+use crate::{items::{Tool, Seed}, world::block::{Block, BlockType}};
 
 pub(crate) struct BreakBlockEvent {
     pub(crate) tile_pos: TilePos

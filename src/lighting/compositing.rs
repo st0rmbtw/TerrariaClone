@@ -17,10 +17,12 @@ use bevy::{
 };
 
 use crate::{
+    world::light,
     plugins::{
-        world::{LightMap, WorldData, light::{propagate_light, self}, TILE_SIZE},
+        world::{LightMap, TILE_SIZE},
         camera::{MainCamera, UpdateLightEvent, LightMapCamera}
     },
+    world::WorldData
 };
 
 use super::pipeline::PipelineTargetsWrapper;
@@ -147,7 +149,7 @@ pub(super) fn update_light_map(
 
             for y in y_from..y_to {
                 for x in x_from..x_to {
-                    propagate_light(x, y, &mut light_map.colors, &world_data);
+                    light::propagate_light(x, y, &mut light_map.colors, &world_data);
 
                     if let Some(color) = light_map.colors.get((y, x)) {
                         let index = ((y * light_map.colors.ncols()) + x) * 4;
@@ -161,7 +163,7 @@ pub(super) fn update_light_map(
 
             for y in (y_from..y_to).rev() {
                 for x in (x_from..x_to).rev() {
-                    propagate_light(x, y, &mut light_map.colors, &world_data);
+                    light::propagate_light(x, y, &mut light_map.colors, &world_data);
 
                     if let Some(color) = light_map.colors.get((y, x)) {
                         let index = ((y * light_map.colors.ncols()) + x) * 4;

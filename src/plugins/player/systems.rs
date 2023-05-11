@@ -3,10 +3,10 @@ use bevy_hanabi::prelude::*;
 
 use crate::{
     plugins::{
-        world::{WorldData, TILE_SIZE},
+        world::TILE_SIZE,
         inventory::{UsedItem, SwingAnimation},
     },
-    common::{math::{move_towards, map_range_usize}, state::MovementState, rect::FRect},
+    common::{math::{move_towards, map_range_usize}, state::MovementState, rect::FRect}, world::WorldData,
 };
 
 use super::*;

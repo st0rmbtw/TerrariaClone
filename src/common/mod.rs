@@ -1,6 +1,6 @@
 use std::ops::Add;
 
-use crate::plugins::world::BlockType;
+use crate::world::block::BlockType;
 
 pub(crate) mod conditions;
 pub(crate) mod extensions;

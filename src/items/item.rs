@@ -1,6 +1,6 @@
 use bevy::{math::vec2, prelude::Vec2};
 
-use crate::plugins::world::Block;
+use crate::world::block::Block;
 
 use super::{Pickaxe, Tool, Axe, Seed};
 

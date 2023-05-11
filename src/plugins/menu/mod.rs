@@ -7,13 +7,15 @@ mod role;
 use components::*;
 use systems::*;
 
-use bevy::prelude::{Plugin, App, IntoSystemAppConfig, IntoSystemConfigs, IntoSystemConfig, OnEnter, OnExit};
+use bevy::prelude::{Plugin, App, IntoSystemAppConfig, IntoSystemConfigs, IntoSystemConfig, OnEnter, OnExit, Color};
 
 use crate::{common::{state::{GameState, MenuState}, conditions::{on_btn_clicked, in_menu_state}}, parallax::move_background_system};
 
 use self::{celestial_body::CelestialBodyPlugin, settings::SettingsMenuPlugin};
 
 use super::{camera::MainCamera, fps::FpsText, background::Star};
+
+pub(crate) const TEXT_COLOR: Color = Color::rgb(156. / 255., 156. / 255., 156. / 255.);
 
 pub(crate) struct MenuPlugin;
 impl Plugin for MenuPlugin {

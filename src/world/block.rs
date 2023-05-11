@@ -4,9 +4,11 @@ use rand::{thread_rng, Rng};
 
 use crate::{common::{helpers::get_tile_start_index, TextureAtlasPos}, items::Tool};
 
-use super::{generator::BlockId, tree::Tree, TerrariaFrame, TreeFrameType};
+use super::{tree::{Tree, TreeFrameType}, TerrariaFrame};
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) type BlockId = u16;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "debug", derive(bevy::reflect::Reflect, bevy::reflect::FromReflect))]
 pub(crate) enum BlockType {
     Dirt,
@@ -31,12 +33,11 @@ impl BlockType {
             _ => None
         }
     }
-    
-    pub(crate) const fn max_health(&self) -> i32 {
+
+    pub(crate) const fn is_solid(&self) -> bool {
         match self {
-            BlockType::Dirt | BlockType::Grass => 50,
-            BlockType::Stone => 100,
-            BlockType::Tree(_) => 500,
+            BlockType::Tree(_) => false,
+            _ => true
         }
     }
 
@@ -58,18 +59,25 @@ impl BlockType {
         }
     }
 
-    pub(crate) const fn is_solid(&self) -> bool {
+    pub(crate) const fn max_health(&self) -> i32 {
         match self {
-            BlockType::Tree(_) => false,
-            _ => true
+            BlockType::Dirt | BlockType::Grass => 50,
+            BlockType::Stone => 100,
+            BlockType::Tree(_) => 500,
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Component)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Component)]
 pub(crate) struct Block {
     pub(crate) block_type: BlockType,
     pub(crate) hp: i32
+}
+
+impl From<BlockType> for Block {
+    fn from(block_type: BlockType) -> Self {
+        Block { block_type, hp: block_type.max_health() }
+    }
 }
 
 impl Block {
@@ -121,7 +129,7 @@ impl Block {
 }
 
 impl Block {
-    pub(super) fn get_sprite_index(neighbors: &Neighbors<BlockType>, block_type: BlockType) -> u32 {
+    pub(crate) fn get_sprite_index(neighbors: &Neighbors<BlockType>, block_type: BlockType) -> u32 {
         /*
          * "$" - Any block
          * "#" - Dirt
@@ -129,7 +137,7 @@ impl Block {
         */
 
         if let BlockType::Tree(tree) = block_type {
-            return get_tree_sprite_index(neighbors, tree).to_2d_index_from_block_type(block_type);
+            return get_tree_sprite_index(neighbors, Tree::from(tree)).to_2d_index_from_block_type(block_type);
         }
 
         let variant: u32 = thread_rng().gen_range(0..3);

@@ -1,4 +1,4 @@
-use bevy::{prelude::{Plugin, App, Component, OnUpdate, IntoSystemConfig, IntoSystemAppConfig, OnEnter, Res, KeyCode, SystemSet, IntoSystemSetConfig, CoreSet, in_state}, input::common_conditions::input_just_pressed};
+use bevy::{prelude::{Plugin, App, Component, OnUpdate, IntoSystemConfig, IntoSystemAppConfig, OnEnter, Res, KeyCode, SystemSet, IntoSystemSetConfig, CoreSet, in_state, IntoSystemConfigs}, input::common_conditions::input_just_pressed};
 
 use crate::{common::{state::GameState, helpers::toggle_visibility}, DebugConfiguration};
 
@@ -26,8 +26,9 @@ pub(crate) struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.add_system(setup_camera.in_schedule(OnEnter(GameState::InGame)));
-        app.add_system(zoom.in_set(OnUpdate(GameState::InGame)));
-        app.add_system(control_mouse_light.in_set(OnUpdate(GameState::InGame)));
+        
+        app.add_systems((zoom, control_mouse_light).in_set(OnUpdate(GameState::InGame)));
+
         app.add_system(
             toggle_visibility::<MouseLight>
                 .run_if(input_just_pressed(KeyCode::F1))

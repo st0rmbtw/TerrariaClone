@@ -1,26 +1,14 @@
-mod chunk;
 mod events;
 mod resources;
 mod systems;
 mod utils;
-mod generator;
-mod world;
-mod block;
-mod wall;
-mod tree;
-pub mod light;
 
 use std::ops::RangeInclusive;
 
-use chunk::*;
 use systems::*;
 use utils::*;
 pub(crate) use events::*;
 pub(crate) use resources::*;
-pub(crate) use world::*;
-pub(crate) use block::*;
-pub(crate) use wall::*;
-pub(crate) use tree::*;
 
 use crate::common::state::GameState;
 use bevy::prelude::{Plugin, App, IntoSystemAppConfig, OnEnter, IntoSystemConfigs, OnUpdate};
@@ -39,9 +27,6 @@ const CHUNKMAP_SIZE: TilemapSize = TilemapSize {
     x: CHUNK_SIZE as u32,
     y: CHUNK_SIZE as u32,
 };
-
-pub(super) const DIRT_HILL_HEIGHT: f32 = 50.;
-pub(super) const STONE_HILL_HEIGHT: f32 = 15.;
 
 pub(crate) struct WorldPlugin;
 impl Plugin for WorldPlugin {
@@ -69,18 +54,6 @@ impl Plugin for WorldPlugin {
             )
             .in_set(OnUpdate(GameState::InGame))
         );
-    }
-}
-
-#[derive(Debug, Clone, Copy, Default)]
-pub(crate) struct TerrariaFrame {
-    pub x: u16,
-    pub y: u16
-}
-
-impl TerrariaFrame {
-    pub(crate) const fn new(x: u16, y: u16) -> Self {
-        Self { x, y }
     }
 }
 

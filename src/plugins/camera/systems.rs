@@ -9,7 +9,7 @@ use bevy::{
 };
 use rand::{thread_rng, Rng};
 
-use crate::{parallax::ParallaxCameraComponent, plugins::{world::{TILE_SIZE, WorldData}, cursor::CursorPosition}, lighting::types::LightSource, common::helpers::tile_to_world_coords};
+use crate::{parallax::ParallaxCameraComponent, plugins::{world::TILE_SIZE, cursor::CursorPosition}, lighting::types::LightSource, common::helpers::tile_pos_to_world_coords, world::WorldData};
 
 use crate::plugins::player::Player;
 
@@ -22,7 +22,7 @@ pub(super) fn setup_camera(
     mut meshes: ResMut<Assets<Mesh>>,
     world_data: Res<WorldData>
 ) {
-    let player_spawn_point = tile_to_world_coords(world_data.spawn_point);
+    let player_spawn_point = tile_pos_to_world_coords(world_data.spawn_point);
 
     commands
         .spawn((
@@ -50,7 +50,7 @@ pub(super) fn setup_camera(
             },
             ..default()
         })
-        .insert(Name::new("cursor_light"))
+        .insert(Name::new("Cursor Light"))
         .insert(LightSource {
             intensity: 10.,
             radius: 100.,

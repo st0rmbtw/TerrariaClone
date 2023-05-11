@@ -7,13 +7,13 @@ pub(crate) use components::*;
 pub(crate) use resources::*;
 use systems::*;
 
-use crate::{common::{state::GameState, helpers::tile_to_world_coords}, DebugConfiguration, plugins::player::utils::{simple_animation, is_walking, is_idle, is_flying}};
+use crate::{common::{state::GameState, helpers::tile_pos_to_world_coords}, DebugConfiguration, plugins::player::utils::{simple_animation, is_walking, is_idle, is_flying}, world::WorldData};
 use std::time::Duration;
 use bevy_hanabi::prelude::*;
 use bevy::{prelude::*, time::{Timer, TimerMode}, sprite::Anchor};
 use autodefault::autodefault;
 
-use super::{assets::PlayerAssets, world::{WorldData, TILE_SIZE}, inventory::{UseItemAnimationData, UsedItem}};
+use super::{assets::PlayerAssets, world::TILE_SIZE, inventory::{UseItemAnimationData, UsedItem}};
 
 const PLAYER_WIDTH: f32 = 22.;
 const PLAYER_HEIGHT: f32 = 42.;
@@ -109,26 +109,25 @@ impl Plugin for PlayerPlugin {
         );
 
         #[cfg(feature = "debug")]
-        app.add_system(
-            draw_hitbox
-                .run_if(|config: Res<DebugConfiguration>| config.show_hitboxes)
-                .in_set(OnUpdate(GameState::InGame))
-        );
+        {
+            use bevy::input::common_conditions::input_just_pressed;
 
-        #[cfg(feature = "debug")]
-        use bevy::input::common_conditions::input_just_pressed;
+            app.add_system(
+                draw_hitbox
+                    .run_if(|config: Res<DebugConfiguration>| config.show_hitboxes)
+                    .in_set(OnUpdate(GameState::InGame))
+            );
 
-        #[cfg(feature = "debug")]
-        app.add_system(
-            teleport_player
-                .run_if(
-                    (|config: Res<DebugConfiguration>| config.free_camera)
-                        .and_then(input_just_pressed(MouseButton::Right))
-                )
-        );
+            app.add_system(
+                teleport_player
+                    .run_if(
+                        (|config: Res<DebugConfiguration>| config.free_camera)
+                            .and_then(input_just_pressed(MouseButton::Right))
+                    )
+            );
 
-        #[cfg(feature = "debug")]
-        app.add_system(current_speed);
+            app.add_system(current_speed);
+        }
     }
 }
 
@@ -140,7 +139,7 @@ fn spawn_player(
     world_data: Res<WorldData>
 ) {
     let player_spawn_point = {
-        let spawn_point = tile_to_world_coords(world_data.spawn_point) + TILE_SIZE / 2.;
+        let spawn_point = tile_pos_to_world_coords(world_data.spawn_point) + TILE_SIZE / 2.;
 
         Vec2::new(spawn_point.x + PLAYER_HALF_WIDTH, spawn_point.y + PLAYER_HALF_HEIGHT)
     };
@@ -157,9 +156,9 @@ fn spawn_player(
         .with_children(|cmd| {
             // region: Hair
             cmd.spawn((
+                Name::new("Player hair"),
                 ChangeFlip,
                 PlayerBodySprite,
-                Name::new("Player hair"),
                 MovementAnimationBundle::default(),
                 SpriteSheetBundle {
                     sprite: TextureAtlasSprite {
@@ -173,9 +172,9 @@ fn spawn_player(
 
             // region: Head
             cmd.spawn((
+                Name::new("Player head"),
                 ChangeFlip,
                 PlayerBodySprite,
-                Name::new("Player head"),
                 MovementAnimationBundle::default(),
                 SpriteSheetBundle {
                     sprite: TextureAtlasSprite {
@@ -189,9 +188,9 @@ fn spawn_player(
 
             // region: Eyes
             cmd.spawn((
+                Name::new("Player left eye"),
                 ChangeFlip,
                 PlayerBodySprite,
-                Name::new("Player left eye"),
                 SpriteSheetBundle {
                     sprite: TextureAtlasSprite {
                         color: Color::WHITE,
@@ -208,9 +207,9 @@ fn spawn_player(
             ));
 
             cmd.spawn((
+                Name::new("Player right eye"),
                 ChangeFlip,
                 PlayerBodySprite,
-                Name::new("Player right eye"),
                 SpriteSheetBundle {
                     sprite: TextureAtlasSprite {
                         color: Color::rgb(89. / 255., 76. / 255., 64. / 255.),
@@ -231,9 +230,9 @@ fn spawn_player(
             // region: Arms
             // region: Left arm
             cmd.spawn((
+                Name::new("Player left shoulder"),
                 ChangeFlip,
                 PlayerBodySprite,
-                Name::new("Player left shoulder"),
                 UseItemAnimationData(2),
                 SpriteSheetBundle {
                     sprite: TextureAtlasSprite {
@@ -252,9 +251,9 @@ fn spawn_player(
             ));
 
             cmd.spawn((
+                Name::new("Player left hand"),
                 ChangeFlip,
                 PlayerBodySprite,
-                Name::new("Player left hand"),
                 UseItemAnimationData(2),
                 SpriteSheetBundle {
                     sprite: TextureAtlasSprite {
@@ -275,9 +274,9 @@ fn spawn_player(
 
             // region: Right arm
             cmd.spawn((
+                Name::new("Player right hand"),
                 ChangeFlip,
                 PlayerBodySprite,
-                Name::new("Player right hand"),
                 UseItemAnimationData(15),
                 SpriteSheetBundle {
                     sprite: TextureAtlasSprite {
@@ -298,9 +297,9 @@ fn spawn_player(
 
             // region: Chest
             cmd.spawn((
+                Name::new("Player chest"),
                 ChangeFlip,
                 PlayerBodySprite,
-                Name::new("Player chest"),
                 MovementAnimationBundle::default(),
                 SpriteSheetBundle {
                     sprite: TextureAtlasSprite {
@@ -315,9 +314,9 @@ fn spawn_player(
 
             // region: Feet
             cmd.spawn((
+                Name::new("Player feet"),
                 ChangeFlip,
                 PlayerBodySprite,
-                Name::new("Player feet"),
                 SpriteSheetBundle {
                     sprite: TextureAtlasSprite {
                         color: Color::rgb(190. / 255., 190. / 255., 156. / 255.),
@@ -338,9 +337,9 @@ fn spawn_player(
 
             // region: Used item
             cmd.spawn((
+                Name::new("Using item"),
                 ChangeFlip,
                 PlayerBodySprite,
-                Name::new("Using item"),
                 UsedItem,
                 SpriteBundle {
                     sprite: Sprite {

@@ -1,12 +1,21 @@
 use bevy::{utils::HashSet, prelude::{Resource, Query, Entity, UVec2, Commands, DespawnRecursiveExt, BuildChildren}};
-use bevy_ecs_tilemap::{tiles::{TilePos, TileStorage}};
+use bevy_ecs_tilemap::tiles::{TilePos, TileStorage};
 use ndarray::Array2;
 
-use super::{ChunkPos, Chunk, Block, systems::spawn_block, ChunkType, BlockType};
+use crate::world::{chunk::{ChunkPos, Chunk, ChunkType}, block::{BlockType, Block}};
+
+use super::{systems::spawn_block};
 
 #[derive(Resource)]
 pub(crate) struct LightMap {
     pub(crate) colors: Array2<u8>,
+}
+
+impl LightMap {
+    #[inline(always)]
+    pub(crate) fn new(colors: Array2<u8>) -> Self {
+        Self { colors }
+    }
 }
 
 #[derive(Resource, Default)]
@@ -66,7 +75,7 @@ impl ChunkManager {
         block: &Block,
         index: u32,
     ) {
-        let filtered_chunks = query_chunk
+        let filtered_chunks: Option<(&Chunk, bevy::prelude::Mut<TileStorage>, Entity)> = query_chunk
             .iter_mut()
             .find(|(chunk, _, _)| {
                 ChunkManager::filter_chunk(chunk, chunk_pos, block.block_type)

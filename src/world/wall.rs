@@ -3,7 +3,7 @@ use rand::{thread_rng, Rng};
 
 use crate::common::{helpers::get_wall_start_index, TextureAtlasPos};
 
-use super::generator::WallId;
+pub(crate) type WallId = u16;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Wall {
@@ -12,16 +12,14 @@ pub(crate) enum Wall {
 }
 
 impl Wall {
-    pub(crate) const fn id(&self) -> WallId {
+    pub(crate) fn id(&self) -> WallId {
         match self {
             Wall::Stone => 1,
             Wall::Dirt => 2,
         }
     }
-}
 
-impl Wall {
-    pub(super) fn get_sprite_index(neighbors: Neighbors<Wall>, wall: Wall) -> TextureAtlasPos {
+    pub(crate) fn get_sprite_index(neighbors: Neighbors<Wall>, wall: Wall) -> TextureAtlasPos {
         let rand: u32 = thread_rng().gen_range(0..3);
 
         get_wall_start_index(wall) + match neighbors {

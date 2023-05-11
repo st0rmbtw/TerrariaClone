@@ -20,6 +20,7 @@ simdnoise = "3.1.6"
 autodefault = "2.0.0"
 serde = { version = "1.0.156", features = ["derive"] }
 serde_json = "1.0.94"
+image = { version = "0.24.5", optional = true }
 
 [profile.dev]
 opt-level = 0
@@ -34,3 +35,4 @@ opt-level = 3
 
 [features]
 debug = ["dep:bevy_prototype_debug_lines", "dep:bevy-inspector-egui"]
+test-world-generator = ["dep:image"]

@@ -13,8 +13,8 @@ use rand::seq::SliceRandom;
 
 use crate::items::{Item, Pickaxe, Tool, Axe, Seed};
 use crate::common::state::{GameState, MenuState};
-
-use super::world::{Wall, BlockType};
+use crate::world::block::BlockType;
+use crate::world::wall::Wall;
 
 macro_rules! handles {
     (
@@ -351,8 +351,8 @@ pub(crate) struct SoundAssets {
 }
 
 impl WallAssets {
-    pub(crate) fn get_by_wall(&self, id: Wall) -> Option<Handle<Image>> {
-        match id {
+    pub(crate) fn get_by_wall(&self, wall: Wall) -> Option<Handle<Image>> {
+        match wall {
             Wall::Dirt => Some(self.wall_2.clone_weak()),
             _ => None,
         }
@@ -378,7 +378,7 @@ impl ItemAssets {
 
 impl BlockAssets {
     pub(crate) fn get_by_block(&self, block: BlockType) -> Option<Handle<Image>> {
-        match block {
+        match block.into() {
             BlockType::Dirt => Some(self.dirt.clone_weak()),
             BlockType::Stone => Some(self.stone.clone_weak()),
             BlockType::Grass => Some(self.grass.clone_weak()),

@@ -2,8 +2,8 @@ use crate::common::TextureAtlasPos;
 
 use super::TerrariaFrame;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "debug", derive(bevy::reflect::Reflect, bevy::reflect::FromReflect))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq,)]
 pub(crate) enum TreeFrameType {
     // A trunk
     TrunkPlain,
@@ -93,13 +93,14 @@ impl TreeFrameType {
     }
 }
 
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "debug", derive(bevy::reflect::Reflect, bevy::reflect::FromReflect))]
 pub(crate) enum TreeType {
     Forest
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq)]
 #[cfg_attr(feature = "debug", derive(bevy::reflect::Reflect, bevy::reflect::FromReflect))]
 pub(crate) struct Tree {
     pub(crate) tree_type: TreeType,
@@ -130,14 +131,3 @@ impl PartialEq for Tree {
         self.tree_type == other.tree_type
     }
 }
-
-macro_rules! tree {
-    ($tree_type: path, $frame_type: ident, $variant: ident) => {
-        Block {
-            block_type: crate::plugins::world::block::BlockType::Tree(crate::plugins::world::tree::Tree::new($tree_type, $frame_type, $variant)),
-            hp: crate::plugins::world::block::BlockType::Tree(crate::plugins::world::tree::Tree::new($tree_type, $frame_type, $variant)).max_health()
-        }
-    };
-}
-
-pub(super) use tree;
