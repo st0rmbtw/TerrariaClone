@@ -1,16 +1,22 @@
 use bevy::prelude::Component;
 
 #[derive(Component)]
-pub struct HoveredInfoMarker;
+pub(super) struct HoverableInfoMarker;
 
 #[derive(Component)]
-pub struct TileGrid;
+pub(super) struct TileGrid;
 
 #[derive(Component)]
-pub struct CursorContainer;
+pub(super) struct CursorContainer;
 
 #[derive(Component)]
-pub struct CursorBackground;
+pub(super) struct CursorBackground;
 
 #[derive(Component)]
-pub struct CursorForeground;
+pub(super) struct CursorForeground;
+
+#[derive(Component)]
+pub(crate) enum Hoverable {
+    None,
+    SimpleText(String)
+}

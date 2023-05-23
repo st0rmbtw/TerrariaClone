@@ -1,12 +1,12 @@
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Res, NodeBundle, Name, Input, BuildChildren, EventWriter, ResMut, KeyCode, Query, Visibility, With}, ui::{Style, Size, FlexDirection, Val, JustifyContent, AlignItems, UiRect}};
+use bevy::{prelude::{Commands, Res, NodeBundle, Name, BuildChildren, EventWriter, ResMut, Visibility, With, Audio, DetectChanges, Query}, ui::{Style, Size, FlexDirection, Val, JustifyContent, AlignItems, UiRect}};
 
-use crate::{plugins::{assets::{FontAssets, UiAssets}, fps::spawn_fps_text, inventory::spawn_inventory_ui, settings::spawn_ingame_settings_button}, language::LanguageContent};
+use crate::{plugins::{assets::{FontAssets, UiAssets, SoundAssets}, fps::spawn_fps_text, inventory::spawn_inventory_ui, settings::spawn_ingame_settings_button}, language::LanguageContent, common::helpers};
 
 use super::{MainUiContainer, ToggleExtraUiEvent, ExtraUiVisibility, UiVisibility};
 
 #[autodefault(except(UiContainer))]
-pub fn spawn_ui_container(
+pub(crate) fn spawn_ui_container(
     mut commands: Commands,
     font_assets: Res<FontAssets>,
     ui_assets: Res<UiAssets>,
@@ -90,31 +90,34 @@ pub fn spawn_ui_container(
     commands.entity(main_id).push_children(&[left_id, right_id]);
 }
 
-pub fn toggle_extra_ui(
-    input: Res<Input<KeyCode>>,
+pub(super) fn toggle_extra_ui(
     mut events: EventWriter<ToggleExtraUiEvent>,
     mut extra_ui_visibility: ResMut<ExtraUiVisibility>,
+    sounds: Res<SoundAssets>,
+    audio: Res<Audio>
 ) {
-    if input.just_pressed(KeyCode::Escape) {
-        let visibility = !extra_ui_visibility.0;
-        extra_ui_visibility.0 = visibility;
-        events.send(ToggleExtraUiEvent(visibility));
+    let visibility = !extra_ui_visibility.0;
+    extra_ui_visibility.0 = visibility;
+    events.send(ToggleExtraUiEvent(visibility));
+
+    if visibility {
+        audio.play(sounds.menu_open.clone_weak());
+    } else {
+        audio.play(sounds.menu_close.clone_weak());
     }
 }
 
-pub fn toggle_ui(input: Res<Input<KeyCode>>, mut ui_visibility: ResMut<UiVisibility>) {
-    if input.just_pressed(KeyCode::F11) {
-        ui_visibility.0 = !ui_visibility.0;
-    }
+pub(super) fn toggle_ui(mut ui_visibility: ResMut<UiVisibility>) {
+    ui_visibility.0 = !ui_visibility.0;
 }
 
-pub fn set_main_container_visibility(
+pub(super) fn set_main_container_visibility(
     ui_visibility: Res<UiVisibility>,
     mut query: Query<&mut Visibility, With<MainUiContainer>>,
 ) {
     if ui_visibility.is_changed() {
-        for mut visibility in &mut query {
-            visibility.is_visible = ui_visibility.0;
+        for visibility in &mut query {
+            helpers::set_visibility(visibility, ui_visibility.0);
         }
     }
 }

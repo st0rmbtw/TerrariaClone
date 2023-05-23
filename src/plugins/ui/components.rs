@@ -1,4 +1,4 @@
 use bevy::prelude::Component;
 
 #[derive(Component)]
-pub struct MainUiContainer;
+pub(super) struct MainUiContainer;

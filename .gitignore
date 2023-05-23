@@ -1,6 +1,7 @@
-/target
-.DS_Store
-/wix
-Cargo.lock
 .idea/
-terra_settings.json
+.DS_Store
+target/
+/worlds
+settings.json
+Cargo.lock
+world.png

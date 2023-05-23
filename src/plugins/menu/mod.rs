@@ -1,32 +1,49 @@
+mod settings;
+mod celestial_body;
 mod components;
 mod systems;
+mod role;
 
-pub use components::*;
-use iyes_loopless::prelude::{ConditionSet, AppLooplessStateExt, IntoConditionalSystem};
-pub use systems::*;
+use components::*;
+use systems::*;
 
-use bevy::prelude::{Plugin, App};
+use bevy::prelude::{Plugin, App, IntoSystemAppConfig, IntoSystemConfigs, IntoSystemConfig, OnEnter, OnExit, Color};
 
-use crate::{state::GameState, util::on_btn_clicked, parallax::move_background_system};
+use crate::{common::{state::{GameState, MenuState}, conditions::{on_btn_clicked, in_menu_state}}, parallax::move_background_system};
 
-use super::camera::MainCamera;
+use self::{celestial_body::CelestialBodyPlugin, settings::SettingsMenuPlugin};
 
-pub struct MenuPlugin;
+use super::{camera::MainCamera, fps::FpsText, background::Star};
 
+pub(crate) const TEXT_COLOR: Color = Color::rgb(156. / 255., 156. / 255., 156. / 255.);
+
+pub(crate) struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(setup_camera)
-            .add_enter_system(GameState::MainMenu, setup_main_menu)
-            .add_system_set(
-                ConditionSet::new()
-                    .run_in_state(GameState::MainMenu)
-                    .with_system(move_background_system())
-                    .with_system(update_buttons)
-                    .with_system(single_player_btn.run_if(on_btn_clicked::<SinglePlayerButton>))
-                    .with_system(exit_btn.run_if(on_btn_clicked::<ExitButton>))
-                    .into(),
+        app.add_plugin(CelestialBodyPlugin);
+        app.add_plugin(SettingsMenuPlugin);
+
+        app.add_system(setup_camera.on_startup());
+        app.add_system(spawn_menu_container.in_schedule(OnExit(GameState::AssetLoading)));
+        app.add_system(setup_main_menu.in_schedule(OnEnter(GameState::Menu(MenuState::Main))));
+
+        app.add_system(despawn_with::<MainCamera>.in_schedule(OnEnter(GameState::InGame)));
+        app.add_system(despawn_with::<MenuContainer>.in_schedule(OnEnter(GameState::InGame)));
+        app.add_system(despawn_with::<FpsText>.in_schedule(OnEnter(GameState::InGame)));
+        app.add_system(despawn_with::<Star>.in_schedule(OnEnter(GameState::InGame)));
+
+        app.add_system(despawn_with::<Menu>.in_schedule(OnExit(GameState::Menu(MenuState::Main))));
+
+        app.add_system(move_background_system().run_if(in_menu_state));
+        app.add_system(update_buttons.run_if(in_menu_state));
+
+        app.add_systems(
+            (
+                single_player_clicked.run_if(on_btn_clicked::<SinglePlayerButton>),
+                settings_clicked.run_if(on_btn_clicked::<SettingsButton>),
+                exit_clicked.run_if(on_btn_clicked::<ExitButton>),
             )
-            .add_exit_system(GameState::MainMenu, despawn_with::<MainCamera>)
-            .add_exit_system(GameState::MainMenu, despawn_with::<Menu>);
+            .distributive_run_if(in_menu_state)
+        );
     }
 }

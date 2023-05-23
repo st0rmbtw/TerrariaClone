@@ -1,0 +1,13 @@
+{
+    "wgsl-analyzer.customImports": {
+        "game::camera": "file:///D:/TerrariaClone/src/lighting/shaders/camera.wgsl",
+        "game::types": "file:///D:/TerrariaClone/src/lighting/shaders/types.wgsl",
+        "game::halton": "file:///D:/TerrariaClone/src/lighting/shaders/halton.wgsl",
+        "game::math": "file:///D:/TerrariaClone/src/lighting/shaders/math.wgsl",
+        "game::attenuation": "file:///D:/TerrariaClone/src/lighting/shaders/attenuation.wgsl"
+    },
+    "files.associations": {
+        "stdio.h": "c",
+        "stdlib.h": "c"
+    }
+}

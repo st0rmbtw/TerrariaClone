@@ -1,14 +1,15 @@
 use std::borrow::Cow;
 
 use autodefault::autodefault;
-use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color, MouseButton, EventWriter}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, Size, PositionType, AlignContent, Interaction, BackgroundColor, ZIndex}, text::{Text, TextStyle, TextAlignment}};
+use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color, MouseButton, EventWriter, Audio, DetectChanges, Local, Transform, Quat}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, Size, PositionType, AlignContent, Interaction, BackgroundColor, ZIndex}, text::{Text, TextStyle, TextAlignment}, sprite::TextureAtlasSprite};
+use rand::seq::SliceRandom;
 
-use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets}, cursor::{HoveredInfo, CursorPosition}, world::BlockEvent}, util::{EntityCommandsExtensions, get_tile_coords}, language::LanguageContent, items::{Item, Tool}};
+use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets, SoundAssets}, cursor::{Hoverable, CursorPosition, UpdateHoverableInfoEvent}, world::{DigBlockEvent, PlaceBlockEvent, SeedEvent}, player::{FaceDirection, Player, PlayerBodySprite}}, common::{extensions::EntityCommandsExtensions, helpers}, language::LanguageContent, items::{Item, get_animation_points, ItemStack}, DebugConfiguration, world::WorldData};
 
-use super::{Inventory, HOTBAR_LENGTH, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, KEYCODE_TO_DIGIT, CELL_COUNT_IN_ROW, INVENTORY_ROWS_COUNT, HotbarUi};
+use super::{Inventory, HOTBAR_LENGTH, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, CELL_COUNT_IN_ROW, INVENTORY_ROWS, HotbarUi, util::keycode_to_digit, SwingItemCooldown, UsedItem, UseItemAnimationIndex, PlayerUsingItem, UseItemAnimationData, SwingItemCooldownMax, ITEM_ROTATION, SwingAnimation};
 
 #[autodefault]
-pub fn spawn_inventory_ui(
+pub(crate) fn spawn_inventory_ui(
     commands: &mut Commands,
     ui_assets: &UiAssets,
     fonts: &FontAssets,
@@ -39,12 +40,12 @@ pub fn spawn_inventory_ui(
                     text: Text::from_section(
                         language_content.ui.items.clone(),
                         TextStyle {
-                            font: fonts.andy_bold.clone(),
+                            font: fonts.andy_bold.clone_weak(),
                             font_size: 20.,
                             color: Color::WHITE,
                         },
                     )
-                    .with_alignment(TextAlignment::CENTER),
+                    .with_alignment(TextAlignment::Center),
                 })
                 .insert(Name::new("Selected Item Name"))
                 .insert(SelectedItemNameMarker);
@@ -66,10 +67,10 @@ pub fn spawn_inventory_ui(
                         spawn_inventory_cell(
                             children,
                             format!("Hotbar Cell #{i}"),
-                            ui_assets.inventory_background.clone(),
+                            ui_assets.inventory_background.clone_weak(),
                             true,
                             i,
-                            &fonts,
+                            fonts,
                         );
                     }
                 })
@@ -85,10 +86,10 @@ pub fn spawn_inventory_ui(
                         align_items: AlignItems::Center,
                         justify_content: JustifyContent::Center,
                     },
-                    visibility: Visibility { is_visible: false },
+                    visibility: Visibility::Hidden,
                 })
                 .with_children(|children| {
-                    for j in 0..INVENTORY_ROWS_COUNT {
+                    for j in 0..INVENTORY_ROWS {
                         children
                             .spawn(NodeBundle {
                                 style: Style {
@@ -105,10 +106,10 @@ pub fn spawn_inventory_ui(
                                     spawn_inventory_cell(
                                         children,
                                         format!("Inventory Cell #{}", index),
-                                        ui_assets.inventory_background.clone(),
+                                        ui_assets.inventory_background.clone_weak(),
                                         false,
                                         index,
-                                        &fonts,
+                                        fonts,
                                     );
                                 }
                             });
@@ -122,7 +123,7 @@ pub fn spawn_inventory_ui(
 }
 
 #[autodefault(except(InventoryCell))]
-pub fn spawn_inventory_cell(
+fn spawn_inventory_cell(
     children: &mut ChildBuilder<'_, '_, '_>,
     name: impl Into<Cow<'static, str>>,
     cell_background: Handle<Image>,
@@ -176,7 +177,7 @@ pub fn spawn_inventory_cell(
                         text: Text::from_section(
                             ((index + 1) % HOTBAR_LENGTH).to_string(),
                             TextStyle {
-                                font: fonts.andy_bold.clone(),
+                                font: fonts.andy_bold.clone_weak(),
                                 font_size: 16.,
                                 color: Color::WHITE,
                             },
@@ -193,7 +194,7 @@ pub fn spawn_inventory_cell(
                         text: Text::from_section(
                             "",
                             TextStyle {
-                                font: fonts.andy_regular.clone(),
+                                font: fonts.andy_regular.clone_weak(),
                                 font_size: 16.,
                                 color: Color::WHITE,
                             },
@@ -211,59 +212,73 @@ pub fn spawn_inventory_cell(
         .insert(Interaction::default());
 }
 
-pub fn update_inventory_visibility(
+pub(super) fn update_inventory_visibility(
     mut query: Query<&mut Visibility, With<InventoryUi>>,
     mut events: EventReader<ToggleExtraUiEvent>,
 ) {
     for event in events.iter() {
-        for mut visibility in &mut query {
-            visibility.is_visible = event.0;
+        for visibility in &mut query {
+            helpers::set_visibility(visibility, event.0);
         }
     }
 }
 
-pub fn update_selected_cell_size(
+pub(super) fn update_selected_cell_size(
     inventory: Res<Inventory>,
     mut hotbar_cells: Query<(&InventoryCellIndex, &mut Style), With<HotbarCellMarker>>,
     visibility: Res<ExtraUiVisibility>,
 ) {
-    for (cell_index, mut style) in hotbar_cells.iter_mut() {
-        let selected = cell_index.0 == inventory.selected_slot;
-
-        style.size = match selected {
-            true if !visibility.0 => INVENTORY_CELL_SIZE_SELECTED,
-            _ => INVENTORY_CELL_SIZE,
-        };
-    }
-}
-
-pub fn update_selected_cell_image(
-    inventory: Res<Inventory>,
-    mut hotbar_cells: Query<(&InventoryCellIndex, &mut UiImage), With<HotbarCellMarker>>,
-    ui_assets: Res<UiAssets>,
-) {
-    for (cell_index, mut image) in hotbar_cells.iter_mut() {
-        let selected = cell_index.0 == inventory.selected_slot;
-
-        image.0 = if selected {
-            ui_assets.selected_inventory_background.clone()
-        } else {
-            ui_assets.inventory_background.clone()
+    if inventory.is_changed() {
+        for (cell_index, mut style) in hotbar_cells.iter_mut() {
+            let selected = cell_index.0 == inventory.selected_slot;
+            style.size = match selected {
+                true if !visibility.0 => INVENTORY_CELL_SIZE_SELECTED,
+                _ => INVENTORY_CELL_SIZE,
+            };
         }
     }
 }
 
-pub fn select_item(mut inventory: ResMut<Inventory>, input: Res<Input<KeyCode>>) {
-    let digit = input
-        .get_just_pressed()
-        .find_map(|k| KEYCODE_TO_DIGIT.get(k));
-
-    if let Some(index) = digit {
-        inventory.select_item(*index);
+pub(super) fn update_selected_cell_image(
+    inventory: Res<Inventory>,
+    mut hotbar_cells: Query<(&InventoryCellIndex, &mut UiImage), With<HotbarCellMarker>>,
+    ui_assets: Res<UiAssets>,
+) {
+    if inventory.is_changed() {
+        for (cell_index, mut image) in hotbar_cells.iter_mut() {
+            let selected = cell_index.0 == inventory.selected_slot;
+            image.texture = if selected {
+                ui_assets.selected_inventory_background.clone_weak()
+            } else {
+                ui_assets.inventory_background.clone_weak()
+            }
+        }
     }
 }
 
-pub fn scroll_select_item(mut inventory: ResMut<Inventory>, mut events: EventReader<MouseWheel>) {
+pub(super) fn select_inventory_cell(
+    mut inventory: ResMut<Inventory>, 
+    input: Res<Input<KeyCode>>,
+    sounds: Res<SoundAssets>,
+    audio: Res<Audio>
+) {
+    let digit = input
+        .get_just_pressed()
+        .find_map(keycode_to_digit);
+
+    if let Some(index) = digit {
+        if inventory.select_item(index) {
+            audio.play(sounds.menu_tick.clone_weak());
+        }
+    }
+}
+
+pub(super) fn scroll_select_inventory_item(
+    mut inventory: ResMut<Inventory>, 
+    mut events: EventReader<MouseWheel>,
+    sounds: Res<SoundAssets>,
+    audio: Res<Audio>
+) {
     for event in events.iter() {
         let selected_item_index = inventory.selected_slot as f32;
         let hotbar_length = HOTBAR_LENGTH as f32;
@@ -271,22 +286,23 @@ pub fn scroll_select_item(mut inventory: ResMut<Inventory>, mut events: EventRea
         let new_index = ((next_index % hotbar_length) + hotbar_length) % hotbar_length;
 
         inventory.select_item(new_index as usize);
+
+        audio.play(sounds.menu_tick.clone_weak());
     }
 }
 
-pub fn set_selected_item(inventory: Res<Inventory>, mut selected_item: ResMut<SelectedItem>) {
+pub(super) fn set_selected_item(inventory: Res<Inventory>, mut selected_item: ResMut<SelectedItem>) {
     if inventory.is_changed() {
         selected_item.0 = inventory.selected_item();
     }
 }
 
-pub fn update_selected_item_name_alignment(
+pub(super) fn update_selected_item_name_alignment(
     mut selected_item_name_query: Query<&mut Style, With<SelectedItemNameMarker>>,
     mut events: EventReader<ToggleExtraUiEvent>,
 ) {
-    let mut style = selected_item_name_query.single_mut();
-
     for event in events.iter() {
+        let mut style = selected_item_name_query.single_mut();
         style.align_self = if event.0 {
             AlignSelf::FlexStart
         } else {
@@ -295,7 +311,7 @@ pub fn update_selected_item_name_alignment(
     }
 }
 
-pub fn update_selected_item_name_text(
+pub(super) fn update_selected_item_name_text(
     mut selected_item_name_query: Query<&mut Text, With<SelectedItemNameMarker>>,
     current_item: Res<SelectedItem>,
     extra_ui_visibility: Res<ExtraUiVisibility>,
@@ -317,7 +333,7 @@ pub fn update_selected_item_name_text(
     }
 }
 
-pub fn update_cell(
+pub(super) fn update_cell(
     inventory: Res<Inventory>,
     mut item_images: Query<(&mut InventoryCellItemImage, &InventoryCellIndex)>,
     item_assets: Res<ItemAssets>,
@@ -327,23 +343,20 @@ pub fn update_cell(
             cell_image.0 = inventory
                 .get_item(cell_index.0)
                 .map(|item_stack| item_assets.get_by_item(item_stack.item))
-                .unwrap_or(item_assets.no_item());
+                .unwrap_or_default();
         }
     }
 }
 
-pub fn update_cell_image(
-    mut item_images: Query<
-        (&mut UiImage, &InventoryCellItemImage),
-        Changed<InventoryCellItemImage>,
-    >,
+pub(super) fn update_cell_image(
+    mut query: Query<(&mut UiImage, &InventoryCellItemImage), Changed<InventoryCellItemImage>>,
 ) {
-    for (mut image, item_image) in &mut item_images {
-        image.0 = item_image.0.clone();
+    for (mut image, item_image) in &mut query {
+        image.texture = item_image.0.clone();
     }
 }
 
-pub fn update_item_amount(
+pub(super) fn update_item_amount(
     inventory: Res<Inventory>,
     mut query: Query<(&mut InventoryItemAmount, &InventoryCellIndex)>,
 ) {
@@ -359,67 +372,225 @@ pub fn update_item_amount(
     }
 }
 
-pub fn update_item_amount_text(
+pub(super) fn update_item_amount_text(
     mut query: Query<(&mut Text, &mut Visibility, &InventoryItemAmount), Changed<InventoryItemAmount>>,
 ) {
-    for (mut text, mut visiblity, item_stack) in &mut query {
+    for (mut text, mut visibility, item_stack) in &mut query {
         if item_stack.0 > 1 {
-            text.sections[0].value = item_stack.0.to_string();
-            visiblity.is_visible = true;
+            text.sections[0].value = item_stack.0.to_string();  
+            *visibility = Visibility::Inherited;
         } else {
-            visiblity.is_visible = false;
+            *visibility = Visibility::Hidden;
         }
     }
 }
 
-pub fn inventory_cell_background_hover(
+pub(super) fn inventory_cell_background_hover(
     query: Query<(&Interaction, &InventoryCellIndex), Changed<Interaction>>,
     inventory: Res<Inventory>,
-    mut info: ResMut<HoveredInfo>,
-    language_content: Res<LanguageContent>
+    language_content: Res<LanguageContent>,
+    mut update_hoverable_info_events: EventWriter<UpdateHoverableInfoEvent>,
 ) {
     for (interaction, cell_index) in &query {
         if let Some(item_stack) = inventory.get_item(cell_index.0) {
-            info.0 = match interaction {
-                Interaction::None => "".to_string(),
+            match interaction {
+                Interaction::None => {
+                    update_hoverable_info_events.send(UpdateHoverableInfoEvent(Hoverable::None));
+                },
                 _ => {
                     let mut name = language_content.name(item_stack.item).to_owned();
                     
                     if item_stack.stack > 1 {
-                        name.push_str(&format!(" ({})", item_stack.stack.to_string()));
+                        name.push_str(&format!(" ({})", item_stack.stack));
                     }
-        
-                    name.to_string()
+
+                    update_hoverable_info_events.send(UpdateHoverableInfoEvent(
+                        Hoverable::SimpleText(name.to_string())
+                    ));
                 }
             }
         }
     }
 }
 
-pub fn use_item(
-    input: Res<Input<MouseButton>>,
+pub(super) fn use_item(
+    using_item: Res<PlayerUsingItem>,
     cursor: Res<CursorPosition>,
-    inventory: Res<Inventory>,
-    mut block_events: EventWriter<BlockEvent>,
+    debug_config: Res<DebugConfiguration>,
+    mut inventory: ResMut<Inventory>,
+    mut dig_block_events: EventWriter<DigBlockEvent>,
+    mut place_block_events: EventWriter<PlaceBlockEvent>,
+    mut seed_events: EventWriter<SeedEvent>,
+    mut use_cooldown: Local<u32>,
+    world_data: Res<WorldData>
 ) {
-    if input.pressed(MouseButton::Left) {
+    if *use_cooldown > 0 && !debug_config.instant_break {
+        *use_cooldown -= 1;
+        return;
+    }
+
+    if **using_item {
         let selected_item_index = inventory.selected_slot;
 
         if let Some(item_stack) = inventory.selected_item() {
+            let tile_pos = helpers::get_tile_pos_from_world_coords(cursor.world_position);
+
             match item_stack.item {
-                Item::Tool(Tool::Pickaxe(_)) => {
-                    let tile_pos = get_tile_coords(cursor.world_position);
-                    block_events.send(
-                        BlockEvent::Break { tile_pos }
-                    )
+                Item::Tool(tool) => {
+                    dig_block_events.send(DigBlockEvent { tile_pos, tool });
+                    *use_cooldown = tool.use_cooldown();
                 },
                 Item::Block(block) => {
-                    let tile_pos = get_tile_coords(cursor.world_position);
-                    block_events.send(
-                        BlockEvent::Place { tile_pos, block, inventory_item_index: selected_item_index }
-                    );
+                    if !world_data.block_exists(tile_pos) {
+                        place_block_events.send(PlaceBlockEvent { tile_pos, block });
+                        inventory.consume_item(selected_item_index);
+                    }
                 },
+                Item::Seed(seed) => {
+                    seed_events.send(SeedEvent { tile_pos, seed });
+                }
             }
         }
+    }
+}
+
+pub(super) fn update_swing_cooldown(
+    mut swing_cooldown: ResMut<SwingItemCooldown>
+) {
+    if **swing_cooldown > 0 {
+        **swing_cooldown -= 1;
+    }
+}
+
+pub(super) fn stop_swing_animation(
+    swing_cooldown: Res<SwingItemCooldown>,
+    mut using_item: ResMut<PlayerUsingItem>,
+    mut swing_animation: ResMut<SwingAnimation>,
+) {
+    if **swing_cooldown == 0 {
+        **swing_animation = false;
+        **using_item = false;
+    }
+}
+
+pub(super) fn set_using_item_image(
+    item_assets: Res<ItemAssets>,
+    selected_item: Res<SelectedItem>,
+    mut using_item_query: Query<&mut Handle<Image>, With<UsedItem>>,
+) {
+    if selected_item.is_changed() {
+        let mut image = using_item_query.single_mut();
+        if let Some(item_stack) = **selected_item {
+            *image = item_assets.get_by_item(item_stack.item);
+        }
+    }
+}
+
+pub(super) fn set_using_item_visibility(visible: bool) -> impl FnMut(Res<SwingAnimation>, Query<&mut Visibility, With<UsedItem>>) {
+    move |swing_animation: Res<SwingAnimation>, mut using_item_query: Query<&mut Visibility, With<UsedItem>>| {
+        if swing_animation.is_changed() && **swing_animation == visible {
+            if let Ok(visibility) = using_item_query.get_single_mut() {
+                helpers::set_visibility(visibility, visible);
+            }
+        }
+    }
+}
+
+pub(super) fn set_using_item_position(
+    index: Res<UseItemAnimationIndex>,
+    mut query_using_item: Query<&mut Transform, With<UsedItem>>,
+    query_player: Query<&FaceDirection, With<Player>>,
+) {
+    let mut transform = query_using_item.single_mut();
+    let direction = query_player.single();
+
+    let position = get_animation_points()[**index];
+
+    transform.translation.x = position.x * f32::from(*direction);
+    transform.translation.y = position.y;
+}
+
+pub(super) fn set_using_item_rotation(
+    swing_cooldown: Res<SwingItemCooldown>,
+    swing_cooldown_max: Res<SwingItemCooldownMax>,
+    mut query_using_item: Query<&mut Transform, With<UsedItem>>,
+    query_player: Query<&FaceDirection, With<Player>>,
+) {
+    let direction = query_player.single();
+    let mut transform = query_using_item.single_mut();
+
+    let direction_f = f32::from(*direction);
+
+    // 0..1
+    let rotation = (**swing_cooldown as f32) / (**swing_cooldown_max as f32);
+    // -1..1
+    let rotation = rotation * 2.0 - 1.;
+
+    let rotation = Quat::from_rotation_z(rotation * direction_f * ITEM_ROTATION + direction_f * 0.3);
+
+    transform.rotation = rotation;
+}
+
+pub(super) fn update_use_item_animation_index(
+    mut index: ResMut<UseItemAnimationIndex>,
+    swing_cooldown: Res<SwingItemCooldown>,
+    swing_cooldown_max: Res<SwingItemCooldownMax>,
+) {
+    if (**swing_cooldown as f32) < (**swing_cooldown_max as f32) * 0.333 {
+        **index = 2;
+    } else if (**swing_cooldown as f32) < (**swing_cooldown_max as f32) * 0.666 {
+        **index = 1;
+    } else {
+        **index = 0;
+    }
+}
+
+pub(super) fn update_sprite_index(
+    index: Res<UseItemAnimationIndex>,
+    mut query: Query<(&mut TextureAtlasSprite, &UseItemAnimationData), With<PlayerBodySprite>>,
+) {
+    query.for_each_mut(|(mut sprite, anim_data)| {
+        sprite.index = anim_data.0 + **index;
+    });
+}
+
+pub(super) fn play_swing_sound(
+    selected_item: Res<SelectedItem>,
+    sound_assets: Res<SoundAssets>,
+    audio: Res<Audio>,
+    swing_cooldown: Res<SwingItemCooldown>,
+    swing_cooldown_max: Res<SwingItemCooldownMax>
+) {
+    if **swing_cooldown == **swing_cooldown_max {
+        if let Some(ItemStack { item: Item::Tool(_), .. }) = **selected_item {
+            let sound = sound_assets.swing.choose(&mut rand::thread_rng()).unwrap();
+            audio.play(sound.clone_weak());
+        }
+    }
+}
+
+pub(super) fn update_player_using_item(
+    input: Res<Input<MouseButton>>,
+    selected_item: Res<SelectedItem>,
+    mut using_item: ResMut<PlayerUsingItem>,
+    mut swing_animation: ResMut<SwingAnimation>,
+    mut swing_cooldown: ResMut<SwingItemCooldown>,
+    mut swing_cooldown_max: ResMut<SwingItemCooldownMax>
+) {
+    **using_item = if input.pressed(MouseButton::Left) || input.just_pressed(MouseButton::Left) {
+        if let Some(selected_item) = **selected_item {
+            if !**swing_animation {
+                **swing_cooldown = selected_item.item.swing_cooldown();
+                **swing_cooldown_max = selected_item.item.swing_cooldown();
+            }
+
+            **swing_animation = true;
+
+            true
+        } else{
+            false
+        }
+    } else {
+        false
     }
 }

@@ -1,9 +1,11 @@
 mod item;
 mod pickaxe;
 mod tool;
-mod block;
+mod axe;
+mod seed;
 
-pub use item::*;
-pub use pickaxe::*;
-pub use tool::*;
-pub use block::*;
+pub(crate) use item::*;
+pub(crate) use pickaxe::*;
+pub(crate) use tool::*;
+pub(crate) use axe::*;
+pub(crate) use seed::*;

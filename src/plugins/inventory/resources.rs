@@ -1,16 +1,33 @@
-use bevy::prelude::{Resource, Deref, DerefMut};
+use bevy::{prelude::{Resource, Deref, DerefMut, ReflectResource}, reflect::Reflect};
 
 use crate::items::ItemStack;
 
-#[derive(Resource)]
-pub struct Inventory {
-    pub(super) items: [Option<ItemStack>; 50],
-    pub selected_slot: usize,
-}
+use super::CELL_COUNT_IN_ROW;
 
 #[derive(Resource, Default, Deref, DerefMut)]
-pub struct SelectedItem(pub Option<ItemStack>);
+pub(super) struct SelectedItem(pub Option<ItemStack>);
 
+#[derive(Resource, Default, Deref, DerefMut)]
+pub(super) struct SwingItemCooldown(pub u32);
+
+#[derive(Resource, Default, Deref, DerefMut)]
+pub(super) struct SwingItemCooldownMax(pub u32);
+
+#[derive(Resource, PartialEq, Clone, Copy, Deref, DerefMut)]
+pub(super) struct PlayerUsingItem(pub bool);
+
+#[derive(Resource, PartialEq, Clone, Copy, Deref, DerefMut)]
+pub(crate) struct SwingAnimation(pub bool);
+
+#[derive(Resource, Default, Clone, Copy, Deref, DerefMut, Reflect)]
+#[reflect(Resource)]
+pub(crate) struct UseItemAnimationIndex(usize);
+
+#[derive(Resource)]
+pub(crate) struct Inventory {
+    pub(super) items: [Option<ItemStack>; 50],
+    pub(super) selected_slot: usize,
+}
 
 impl Default for Inventory {
     fn default() -> Self {
@@ -31,9 +48,14 @@ impl Inventory {
         self.items[slot] = None;
     }
 
-    pub fn select_item(&mut self, slot: usize) {
-        assert!(slot <= 9);
-        self.selected_slot = slot;
+    /// Returns `true` if the `slot` is less than [`CELL_COUNT_IN_ROW`] and is not the same as the selected_slot
+    pub fn select_item(&mut self, slot: usize) -> bool {
+        if slot < CELL_COUNT_IN_ROW && slot != self.selected_slot {
+            self.selected_slot = slot;
+            return true;
+        }
+
+        false
     }
 
     pub fn selected_item(&self) -> Option<ItemStack> {
@@ -55,10 +77,12 @@ impl Inventory {
         for inv_item_option in self.items.iter_mut() {
             match inv_item_option {
                 Some(inv_item) if inv_item.item == item.item => {
-                    if (inv_item.stack + item.stack) < inv_item.item.max_stack() {
-                        inv_item.stack += item.stack;
+                    let new_stack = inv_item.stack + item.stack;
+
+                    if new_stack < inv_item.item.max_stack() {
+                        inv_item.stack += new_stack;
+                        break;
                     }
-                    break;
                 },
                 None => {
                     *inv_item_option = Some(item);

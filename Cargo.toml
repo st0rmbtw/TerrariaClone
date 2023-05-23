@@ -7,35 +7,32 @@ authors = ["st0rmbtw"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = { version = "0.9.1", features = ["dynamic"] }
-bevy_asset_loader = { version = "0.14.1", features = ["2d", "stageless"] }
-lazy_static = "1.4.0"
+bevy = { version = "0.10.1", features = ["dynamic_linking", "wav"] }
+bevy_asset_loader = { version = "0.16.0", features = ["2d"] }
+bevy-inspector-egui = { version = "0.18", optional = true }
+bevy_prototype_debug_lines = { version = "0.10.1", optional = true }
+bevy_hanabi = { version = "0.6", default-features = false, features = ["2d"] }
+bevy_ecs_tilemap = { git = "https://github.com/StarArawn/bevy_ecs_tilemap.git", branch = "main" }
 rand = "0.8.5"
 interpolation = "0.2.0"
 ndarray = "0.15.6"
-noise = "0.8.2"
-iyes_loopless = "0.9.1"
+simdnoise = "3.1.6"
 autodefault = "2.0.0"
-bevy_hanabi = { version = "0.5.3", default-features = false, features = ["2d"] }
-bevy-inspector-egui = "0.17.0"
-bevy_prototype_debug_lines = { version = "0.9.0", optional = true }
-bevy_ecs_tilemap = { version = "0.9.0" }
-leafwing-input-manager = "0.8.0"
-serde = { version = "1.0.152", features = ["derive"] }
-serde_json = "1.0.93"
+serde = { version = "1.0.156", features = ["derive"] }
+serde_json = "1.0.94"
+image = { version = "0.24.5", optional = true }
 
 [profile.dev]
 opt-level = 0
-incremental=false
+incremental=true
 
 [profile.release]
 opt-level = 3
+lto = true
 
 [profile.dev.package."*"]
 opt-level = 3
 
 [features]
-debug = ["dep:bevy_prototype_debug_lines"]
-debug_grid = ["dep:bevy_prototype_debug_lines"]
-debug_movement = []
-free_camera = []
+debug = ["dep:bevy_prototype_debug_lines", "dep:bevy-inspector-egui"]
+test-world-generator = ["dep:image"]

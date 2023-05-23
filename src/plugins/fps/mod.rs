@@ -1,29 +1,70 @@
-use bevy::{prelude::Plugin, diagnostic::FrameTimeDiagnosticsPlugin};
+use std::time::Duration;
 
-pub use components::*;
-use iyes_loopless::prelude::ConditionSet;
-pub use resources::*;
-pub use systems::*;
+use autodefault::autodefault;
+use bevy::{
+    prelude::{Plugin, IntoSystemConfig, resource_exists_and_equals, Condition, Component, Commands, Entity, Color, TextBundle, Res, KeyCode, Query, Visibility, With, Name},
+    text::{TextStyle, Text, TextSection, TextAlignment},
+    ui::{Style, UiRect, Val},
+    time::{common_conditions::on_timer, Time},
+    input::common_conditions::input_just_pressed,
+};
 
-use crate::state::GameState;
+use crate::common::helpers::toggle_visibility;
+use super::{assets::FontAssets, ui::UiVisibility};
 
-mod components;
-mod resources;
-mod systems;
-
-pub struct FpsPlugin;
-
+pub(crate) struct FpsPlugin;
 impl Plugin for FpsPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.init_resource::<FpsTextVisibility>()
-            .add_plugin(FrameTimeDiagnosticsPlugin)
-            .add_system_set(
-                ConditionSet::new()
-                    .run_in_state(GameState::InGame)
-                    .with_system(toggle_fps_text_visibility)
-                    .with_system(set_fps_text_visibility)
-                    .with_system(update_fps_text)
-                    .into(),
-            );
+        app.add_systems(
+            (
+                toggle_visibility::<FpsText>.run_if(input_just_pressed(KeyCode::F10)),
+                update_fps_text.run_if(
+                    resource_exists_and_equals(UiVisibility(true)).and_then(on_timer(Duration::from_secs(1)))
+                ),
+            )
+        );
     }
+}
+
+#[derive(Component)]
+pub(crate) struct FpsText;
+
+#[autodefault]
+pub(crate) fn spawn_fps_text(commands: &mut Commands, font_assets: &FontAssets) -> Entity {
+    let text_style = TextStyle {
+        font: font_assets.andy_regular.clone_weak(),
+        font_size: 20.,
+        color: Color::WHITE,
+    };
+
+    commands
+        .spawn(TextBundle {
+            style: Style {
+                margin: UiRect {
+                    left: Val::Px(5.),
+                    bottom: Val::Px(5.),
+                },
+            },
+            text: Text {
+                sections: vec![TextSection {
+                    value: "".to_string(),
+                    style: text_style,
+                }],
+                alignment: TextAlignment::Center,
+            },
+            visibility: Visibility::Hidden,
+        })
+        .insert(FpsText)
+        .insert(Name::new("FPS Text"))
+        .id()
+}
+
+fn update_fps_text(
+    time: Res<Time>,
+    mut query_fps_text: Query<&mut Text, With<FpsText>>,
+) {
+    let mut text = query_fps_text.single_mut();
+
+    let fps = 1. / time.delta_seconds();
+    text.sections[0].value = format!("{:.0}", fps);
 }

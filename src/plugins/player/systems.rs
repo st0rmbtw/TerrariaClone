@@ -1,69 +1,52 @@
 use bevy::{prelude::*, math::Vec3Swizzles};
-use bevy_ecs_tilemap::tiles::TilePos;
 use bevy_hanabi::prelude::*;
-use leafwing_input_manager::prelude::ActionState;
 
 use crate::{
-    state::MovementState,
     plugins::{
-        world::{WorldData, TILE_SIZE}, 
-        assets::ItemAssets, 
-        inventory::SelectedItem,
-    }, 
-    world_generator::{WORLD_SIZE_X, WORLD_SIZE_Y}, 
-    util::{move_towards, map_range}, 
-    items::get_animation_points, CellArrayExtensions
+        world::TILE_SIZE,
+        inventory::{UsedItem, SwingAnimation},
+    },
+    common::{math::{move_towards, map_range_usize}, state::MovementState, rect::FRect}, world::WorldData,
 };
 
 use super::*;
 
-#[cfg(feature = "debug_movement")]
-pub fn debug_horizontal_movement(
+#[cfg(feature = "debug")]
+use bevy_prototype_debug_lines::DebugLines;
+
+pub(super) fn horizontal_movement(
     axis: Res<InputAxis>,
     mut velocity: ResMut<PlayerVelocity>
 ) {
-    velocity.x = axis.x * 10.;
-}
-
-#[cfg(feature = "debug_movement")]
-pub fn debug_vertical_movement(
-    input: Res<Input<KeyCode>>,
-    mut velocity: ResMut<PlayerVelocity>
-) {
-    let up = input.pressed(KeyCode::W);
-    let down = input.pressed(KeyCode::S);
-
-    let y = -(down as i8) + up as i8;
-
-    velocity.y = y as f32 * 10.;
-}
-
-pub fn horizontal_movement(
-    axis: Res<InputAxis>,
-    mut velocity: ResMut<PlayerVelocity>
-) {
-    if axis.is_moving() {
-        velocity.x += axis.x * ACCELERATION;
+    if axis.x > 0. {
+        if velocity.x < 0. {
+            velocity.x *= 0.9;
+        }
+        velocity.x += ACCELERATION;
+        velocity.x = velocity.x.clamp(-MAX_RUN_SPEED, MAX_RUN_SPEED);
+    } else if axis.x < 0. {
+        if velocity.x > 0. {
+            velocity.x *= 0.9;
+        }
+        velocity.x -= ACCELERATION;
         velocity.x = velocity.x.clamp(-MAX_RUN_SPEED, MAX_RUN_SPEED);
     } else {
         velocity.x = move_towards(velocity.x, 0., SLOWDOWN);
     } 
 }
 
-pub fn update_jump(
-    query: Query<&ActionState<PlayerAction>, With<Player>>,
+pub(super) fn update_jump(
+    input: Res<Input<KeyCode>>,
     collisions: Res<Collisions>,
     mut velocity: ResMut<PlayerVelocity>,
     mut player_data: ResMut<PlayerData>,
 ) {
-    let input = query.single();
-
-    if input.just_pressed(PlayerAction::Jump) && collisions.bottom {
+    if input.pressed(KeyCode::Space) && collisions.bottom {
         player_data.jump = JUMP_HEIGHT;
         velocity.y = JUMP_SPEED;
     }
 
-    if input.pressed(PlayerAction::Jump) {
+    if input.pressed(KeyCode::Space) {
         if player_data.jump > 0 {
             if velocity.y == 0. {
                 player_data.jump = 0;
@@ -78,112 +61,158 @@ pub fn update_jump(
     }
 }
 
-pub fn update(
-    time: Res<Time>,
-    mut player_query: Query<&mut Transform, With<Player>>,
-    world_data: Res<WorldData>,
+pub(super) fn gravity(
+    collisions: Res<Collisions>,
+    mut player_data: ResMut<PlayerData>,
     mut velocity: ResMut<PlayerVelocity>,
-    mut collisions: ResMut<Collisions>,
-    mut player_data: ResMut<PlayerData>
+    query_player: Query<&Transform, With<Player>>
 ) {
-    const PLAYER_HALF_WIDTH: f32 = PLAYER_WIDTH / 2.;
-    const PLAYER_HALF_HEIGHT: f32 = PLAYER_HEIGHT / 2.;
-    const MIN: f32 = PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
-    const MAX: f32 = WORLD_SIZE_X as f32 * TILE_SIZE - PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
-
-    let mut transform = player_query.single_mut();
-
-    // -------- Gravity --------
     if !collisions.bottom {
-        player_data.fall_distance += GRAVITY;
-        velocity.y -= GRAVITY;
+        if velocity.y <= 0. && player_data.fall_start == 0. {
+            let transform = query_player.single();
+            player_data.fall_start = transform.translation.y;
+        }
 
-        velocity.y = velocity.y.max(MAX_FALL_SPEED);
+        velocity.y -= GRAVITY;
     }
 
-    // ------- Collisions -------
-    let position = (transform.translation.xy()).abs();
-    let next_position = (transform.translation.xy() + velocity.0).abs();
+    velocity.y = velocity.y.max(MAX_FALL_SPEED);
+}
+
+pub(super) fn detect_collisions(
+    world_data: Res<WorldData>,
+    mut collisions: ResMut<Collisions>,
+    mut velocity: ResMut<PlayerVelocity>,
+    mut player_data: ResMut<PlayerData>,
+    mut player_query: Query<&mut Transform, With<Player>>,
+    #[cfg(feature = "debug")]
+    mut debug_lines: ResMut<DebugLines>,
+    #[cfg(feature = "debug")]
+    debug_config: Res<DebugConfiguration>,
+) {
+    let mut transform = player_query.single_mut();
+
+    let position = transform.translation.xy();
+    let next_position = transform.translation.xy() + **velocity;
+
+    let player_rect = FRect::new_center(position.x, position.y, PLAYER_WIDTH, PLAYER_HEIGHT);
+    let next_player_rect = FRect::new_center(next_position.x, next_position.y, PLAYER_WIDTH, PLAYER_HEIGHT);
 
     let left = ((position.x - PLAYER_HALF_WIDTH) / TILE_SIZE) - 1.;
     let right = ((position.x + PLAYER_HALF_WIDTH) / TILE_SIZE) + 2.;
-    let mut bottom = ((position.y + PLAYER_HALF_HEIGHT) / TILE_SIZE) + 3.;
-    let mut top = ((position.y - PLAYER_HALF_HEIGHT) / TILE_SIZE) - 1.;
+    let mut top = ((position.y.abs() - PLAYER_HALF_HEIGHT) / TILE_SIZE) - 1.;
+    let mut bottom = ((position.y.abs() + PLAYER_HALF_HEIGHT) / TILE_SIZE) + 2.;
 
-    bottom = bottom.clamp(0., WORLD_SIZE_Y as f32);
+    bottom = bottom.clamp(0., world_data.size.height as f32);
     top = top.max(0.);
 
-    let uleft = left as u32;
-    let uright = right as u32;
-    let utop = top as u32;
-    let ubottom = bottom as u32;
+    let left_u32 = left as u32;
+    let right_u32 = right as u32;
+    let top_u32 = top as u32;
+    let bottom_u32 = bottom as u32;
 
     let mut new_collisions = Collisions::default();
 
-    let mut yx: i32 = -1;
-    let mut yy: i32 = -1;
-    let mut xx: i32 = -1;
-    let mut xy: i32 = -1;
+    let mut move_player_up = false;
 
-    let mut a = (bottom + 3.) * TILE_SIZE;
+    for x in left_u32..right_u32 {
+        for y in top_u32..bottom_u32 {
+            if world_data.solid_block_exists((x, y)) {
+                let tile_rect = FRect::new_center(
+                    x as f32 * TILE_SIZE,
+                    -(y as f32 * TILE_SIZE),
+                    TILE_SIZE,
+                    TILE_SIZE
+                );
 
-    for x in uleft..uright {
-        for y in utop..ubottom {
-            if world_data.tiles.tile_exists(TilePos::new(x, y)) {
-                let tile_pos = Vec2::new(x as f32 * TILE_SIZE, y as f32 * TILE_SIZE);
+                if next_player_rect.intersects(&tile_rect) {
+                    let delta_x = player_rect.centerx - tile_rect.centerx;
+                    let delta_y = if player_rect.centery < tile_rect.centery {
+                        player_rect.top().abs() + (tile_rect.top() + tile_rect.height / 2.)
+                    } else {
+                        player_rect.bottom().abs() + (tile_rect.bottom() - tile_rect.height / 2.)
+                    };
 
-                if (next_position.x + PLAYER_WIDTH / 2.) > (tile_pos.x - TILE_SIZE / 2.) && (next_position.x - PLAYER_WIDTH / 2.) < (tile_pos.x + TILE_SIZE / 2.) && (next_position.y + PLAYER_HEIGHT / 2.) > (tile_pos.y - TILE_SIZE / 2.) && (next_position.y - PLAYER_HEIGHT / 2.) < (tile_pos.y + TILE_SIZE / 2.) {
-                    if position.y + PLAYER_HEIGHT / 2. <= tile_pos.y - TILE_SIZE / 2. {
-                        new_collisions.bottom = true;
+                    if delta_x.abs() > delta_y.abs() {
+                        // Check if there is a space of 3 blocks to move the player up
+                        let is_enough_space = world_data.solid_block_not_exists((x, y - 1))
+                            && world_data.solid_block_not_exists((x, y - 2))
+                            && world_data.solid_block_not_exists((x, y - 3));
 
-                        velocity.y = 0.;
+                        // Check if the tile is on the same level as player's legs
+                        let is_bottom_tile = tile_rect.top() <= player_rect.bottom() + TILE_SIZE
+                            && tile_rect.top() > player_rect.bottom();
 
-                        if player_data.fall_distance.round() > 0. {
-                            info!(
-                                target: "fall_distance",
-                                fall_distance = player_data.fall_distance.round()
-                            );
+                        if is_enough_space && is_bottom_tile {
+                            move_player_up = true;
+                            transform.translation.y = tile_rect.top() + player_rect.height / 2.;
+                            debug!("Move player up");
+                            continue;
                         }
-                        
-                        player_data.fall_distance = 0.;
 
-                        if a > tile_pos.y {
-                            yx = x as i32;
-                            yy = y as i32;
-                            if yx != xx {
-                                velocity.y = ((tile_pos.y - TILE_SIZE / 2.) - (position.y + PLAYER_HEIGHT / 2.)) * time.delta_seconds();
-                                a = tile_pos.y;
-                            }
-                        }
-                    } else {    
-                        if position.x + PLAYER_WIDTH / 2. <= tile_pos.x - TILE_SIZE / 2. {
-                            xx = x as i32;
-                            xy = y as i32;
-                            if xy != yy {
-                                velocity.x = ((tile_pos.x - TILE_SIZE / 2.) - (position.x + PLAYER_WIDTH / 2.)) * time.delta_seconds();
-                            }
-                            if yx == xx {
-                                velocity.y = velocity.y;
+                        if delta_x > 0. {
+                            velocity.x = 0.;
+                            new_collisions.left = true;
+
+                            // If the player's left side is more to the left than the tile's right side then move the player right.
+                            transform.translation.x = tile_rect.right + player_rect.width / 2.;
+
+                            #[cfg(feature = "debug")]
+                            if debug_config.show_collisions {
+                                tile_rect.draw_right_side(&mut debug_lines, 0.1, Color::BLUE);
                             }
                         } else {
-                            if position.x - PLAYER_WIDTH / 2. >= tile_pos.x + TILE_SIZE / 2. {
-                                xx = x as i32;
-                                xy = y as i32;
-                                if xy != yy {
-                                    velocity.x = ((tile_pos.x + TILE_SIZE / 2.) - (position.x - PLAYER_WIDTH / 2.)) * time.delta_seconds();
+                            velocity.x = 0.;
+                            new_collisions.right = true;
+
+                            // If the player's right side is more to the right than the tile's left side then move the player left.
+                            transform.translation.x = tile_rect.left - player_rect.width / 2.;
+
+                            #[cfg(feature = "debug")]
+                            if debug_config.show_collisions {
+                                tile_rect.draw_left_side(&mut debug_lines, 0.1, Color::GREEN);
+                            }
+                        }
+                    } else {
+                        // Checking for collisions again with an offset to workaround the bug when the player stuck in a wall.
+                        if FRect::new_bounds_h(next_player_rect.left + 2.0, next_player_rect.top(), PLAYER_WIDTH - 4.0, PLAYER_HEIGHT).intersects(&tile_rect) {
+                            if delta_y > 0. {
+                                velocity.y = 0.;
+                                new_collisions.top = true;
+
+                                // If the player's top side is higher than the tile's bottom side then move the player down.
+                                if player_rect.top() > tile_rect.bottom() {
+                                    velocity.y = tile_rect.bottom() - player_rect.top();
                                 }
-                                if yx == xx {
-                                    velocity.y = velocity.y;
+
+                                #[cfg(feature = "debug")]
+                                if debug_config.show_collisions {
+                                    tile_rect.draw_bottom_side(&mut debug_lines, 0.1, Color::YELLOW);
                                 }
                             } else {
-                                if position.y >= tile_pos.y + TILE_SIZE / 2. {
-                                    collisions.top = true;
-                                    yx = x as i32;
-                                    yy = y as i32;
-                                    velocity.y = ((tile_pos.y + TILE_SIZE / 2.) - (position.y - PLAYER_HEIGHT / 2.) + 0.01) * time.delta_seconds();
-                                    if xx == xy {
-                                        velocity.x = velocity.x;
+                                if !new_collisions.bottom && !move_player_up {
+                                    // If the player's bottom side is lower than the tile's top side then move the player up
+                                    if player_rect.bottom() < tile_rect.top() {
+                                        velocity.y = tile_rect.top() - player_rect.bottom();
+                                    } else {
+                                        transform.translation.y = tile_rect.top() + player_rect.height / 2.;
+                                        velocity.y = 0.;
                                     }
+                                }
+
+                                new_collisions.bottom = true;
+
+                                if player_data.fall_start != 0. {
+                                    let fall_distance = ((position.y.abs() + player_data.fall_start) / TILE_SIZE).ceil();
+                                    if fall_distance > 0. {
+                                        debug!(fall_distance);
+                                    }
+                                }
+                                player_data.fall_start = 0.;
+
+                                #[cfg(feature = "debug")]
+                                if debug_config.show_collisions {
+                                    tile_rect.draw_top_side(&mut debug_lines, 0.1, Color::RED);
                                 }
                             }
                         }
@@ -194,48 +223,59 @@ pub fn update(
     }
 
     *collisions = new_collisions;
-
-    // -------- Move player --------
-    let raw = transform.translation.xy() + velocity.0;
-
-    transform.translation.x = raw.x.clamp(MIN, MAX);
-    transform.translation.y = raw.y.clamp(-(WORLD_SIZE_Y as f32) * TILE_SIZE + PLAYER_HALF_HEIGHT, -PLAYER_HALF_HEIGHT);
 }
 
-pub fn spawn_particles(
-    player: Query<(&MovementState, &FaceDirection, &PlayerParticleEffects), With<Player>>,
-    mut effects: Query<(&mut ParticleEffect, &mut Transform)>,
+#[allow(non_upper_case_globals)]
+pub(super) fn move_player(
+    world_data: Res<WorldData>,
+    velocity: Res<PlayerVelocity>,
+    mut player_query: Query<&mut Transform, With<Player>>,
+    mut player_data: ResMut<PlayerData>
 ) {
-    for (movement_state, face_direction, particle_effects) in &player {
-        let (mut effect, mut effect_transform) = effects.get_mut(particle_effects.walking).unwrap();
+    let mut transform = player_query.single_mut();
 
-        effect_transform.translation = match face_direction {
-            FaceDirection::LEFT => Vec3::new(0., -PLAYER_HEIGHT / 2., 0.),
-            FaceDirection::RIGHT => Vec3::new(0., -PLAYER_HEIGHT / 2., 0.),
-        };
+    const min_x: f32 = PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
+    let min_y: f32 = -(world_data.size.height as f32) * TILE_SIZE + PLAYER_HALF_HEIGHT;
 
-        effect
-            .maybe_spawner()
-            .unwrap()   
-            .set_active(*movement_state == MovementState::Walking);
-    }
+    let max_x = world_data.size.width as f32 * TILE_SIZE - PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
+    const max_y: f32 = -PLAYER_HALF_HEIGHT;
+
+    let new_position = (transform.translation.xy() + velocity.0).clamp(Vec2::new(min_x, min_y), Vec2::new(max_x, max_y));
+    player_data.prev_position = transform.translation.xy();
+
+    transform.translation.x = new_position.x;
+    transform.translation.y = new_position.y;
 }
 
-pub fn update_movement_state(
+pub(super) fn spawn_particles(
+    player: Query<(&MovementState, &PlayerParticleEffects), With<Player>>,
+    mut effects: Query<&mut ParticleEffect>,
+    collisions: Res<Collisions>
+) {
+    let (movement_state, particle_effects) = player.single();
+    let mut effect = effects.get_mut(particle_effects.walking).unwrap();
+
+    effect
+        .maybe_spawner()
+        .unwrap()   
+        .set_active(*movement_state == MovementState::Walking && collisions.bottom);
+}
+
+pub(super) fn update_movement_state(
+    collisions: Res<Collisions>,
     player_data: Res<PlayerData>,
     velocity: Res<PlayerVelocity>,
     mut query: Query<&mut MovementState, With<Player>>,
 ) {
     let mut movement_state = query.single_mut();
-
     *movement_state = match velocity.0 {
-        _ if player_data.fall_distance.round() > 1. || player_data.jump > 0 => MovementState::Flying,
+        _ if !collisions.bottom || player_data.jump > 0 => MovementState::Flying,
         Vec2 { x, .. } if x != 0. => MovementState::Walking,
         _ => MovementState::Idle
     };
 }
 
-pub fn update_face_direction(axis: Res<InputAxis>, mut query: Query<&mut FaceDirection>) {
+pub(super) fn update_face_direction(axis: Res<InputAxis>, mut query: Query<&mut FaceDirection>) {
     let mut direction = query.single_mut();
     let axis: &InputAxis = &axis;
 
@@ -246,18 +286,16 @@ pub fn update_face_direction(axis: Res<InputAxis>, mut query: Query<&mut FaceDir
     }
 }
 
-pub fn update_axis(query: Query<&ActionState<PlayerAction>, With<Player>>, mut axis: ResMut<InputAxis>) {
-    let input = query.single();
-
-    let left = input.pressed(PlayerAction::RunLeft);
-    let right = input.pressed(PlayerAction::RunRight);
+pub(super) fn update_input_axis(input: Res<Input<KeyCode>>, mut axis: ResMut<InputAxis>) {
+    let left = input.pressed(KeyCode::A);
+    let right = input.pressed(KeyCode::D);
 
     let x = -(left as i8) + right as i8;
 
     axis.x = x as f32;
 }
 
-pub fn update_movement_animation_timer_duration(
+pub(super) fn update_movement_animation_timer_duration(
     velocity: Res<PlayerVelocity>,
     mut timer: ResMut<AnimationTimer>,
 ) {
@@ -268,7 +306,7 @@ pub fn update_movement_animation_timer_duration(
     }
 }
 
-pub fn update_movement_animation_index(
+pub(super) fn update_movement_animation_index(
     time: Res<Time>,
     mut timer: ResMut<AnimationTimer>,
     mut index: ResMut<MovementAnimationIndex>,
@@ -278,7 +316,7 @@ pub fn update_movement_animation_index(
     }
 }
 
-pub fn flip_player(
+pub(super) fn flip_player(
     player_query: Query<&FaceDirection, (With<Player>, Changed<FaceDirection>)>,
     mut sprite_query: Query<&mut TextureAtlasSprite, With<ChangeFlip>>,
 ) {
@@ -291,188 +329,114 @@ pub fn flip_player(
     }
 }
 
-pub fn walking_animation(
-    index: Res<MovementAnimationIndex>,
-    mut query: Query<
-        (&mut TextureAtlasSprite, &WalkingAnimationData),
-        With<PlayerBodySprite>,
-    >,
-) {
-    query.for_each_mut(|(mut sprite, anim_data)| {
-        let walking_anim_offset = anim_data.offset;
-        let walking_anim_count = anim_data.count;
-
-        sprite.index = walking_anim_offset + map_range(
-            (0, WALKING_ANIMATION_MAX_INDEX),
-            (0, walking_anim_count),
-            index.0,
-        );
-    });
-}
-
-pub fn player_using_item(
-    query: Query<&ActionState<PlayerAction>, With<Player>>,
-    selected_item: Res<SelectedItem>,
-    mut anim: ResMut<UseItemAnimation>,
-) {
-    let input = query.single();
-
-    let using_item = input.pressed(PlayerAction::UseItem) && selected_item.is_some();
-
-    if using_item {
-        anim.0 = true;
-    }
-}
-
-pub fn set_using_item_visibility(
-    anim: Res<UseItemAnimation>,
-    mut using_item_query: Query<&mut Visibility, With<UsedItem>>,
-) {
-    if let Ok(mut visibility) = using_item_query.get_single_mut() {
-        visibility.is_visible = anim.0;
-    }
-}
-
-pub fn set_using_item_image(
-    item_assets: Res<ItemAssets>,
-    selected_item: Res<SelectedItem>,
-    mut using_item_query: Query<&mut Handle<Image>, With<UsedItem>>,
-) {
-    let mut image = using_item_query.single_mut();
-
-    if let Some(item_stack) = selected_item.0 {
-        *image = item_assets.get_by_item(item_stack.item);
-    }
-}
-
-pub fn set_using_item_position(
-    index: Res<UseItemAnimationIndex>,
-    selected_item: Res<SelectedItem>,
-    mut using_item_query: Query<&mut Transform, With<UsedItem>>,
-    player_query: Query<&FaceDirection, With<Player>>,
-) {
-    let mut transform = using_item_query.single_mut();
-    let direction = player_query.single();
-
-    if let Some(item_stack) = selected_item.0 {
-        let position = get_animation_points(item_stack.item)[index.0];
-
-        transform.translation.x = position.x * f32::from(*direction);
-        transform.translation.y = position.y;
-    }
-}
-
-pub fn set_using_item_rotation_on_player_direction_change(
+pub(super) fn flip_using_item(
     player_query: Query<&FaceDirection, (With<Player>, Changed<FaceDirection>)>,
-    mut using_item_query: Query<&mut Transform, With<UsedItem>>,
+    mut sprite_query: Query<&mut Sprite, With<UsedItem>>,
 ) {
-    let player_query_result = player_query.get_single();
-    let using_item_query_result = using_item_query.get_single_mut();
+    let direction = player_query.get_single();
 
-    if let Ok(mut transform) = using_item_query_result {
-        if let Ok(direction) = player_query_result {
-            transform.rotation = get_rotation_by_direction(*direction);
+    if let Ok(direction) = direction {
+        let mut sprite = sprite_query.single_mut();
+
+        match direction {
+            FaceDirection::Left => {
+                sprite.flip_x = true;
+                sprite.anchor = Anchor::BottomRight;
+            },
+            FaceDirection::Right => {
+                sprite.flip_x = false;
+                sprite.anchor = Anchor::BottomLeft;
+            },
         }
     }
 }
 
-pub fn set_using_item_rotation(
-    time: Res<Time>,
-    index: Res<UseItemAnimationIndex>,
-    selected_item: Res<SelectedItem>,
-    mut using_item_query: Query<&mut Transform, With<UsedItem>>,
-    player_query: Query<&FaceDirection, With<Player>>,
+pub(super) fn walking_animation(
+    swing_animation: Res<SwingAnimation>,
+    index: Res<MovementAnimationIndex>,
+    mut query: Query<(&mut TextureAtlasSprite, &WalkingAnimationData, Option<&UseItemAnimationData>), With<PlayerBodySprite>>,
 ) {
-    const ROTATION_STEP: f32 = -11.;
+    query.for_each_mut(|(mut sprite, anim_data, use_item_animation)| {
+        if use_item_animation.is_none() || !**swing_animation {
+            let walking_anim_offset = anim_data.offset;
+            let walking_anim_count = anim_data.count;
 
-    let direction = player_query.single();
-    let mut transform = using_item_query.single_mut();
-
-    if selected_item.is_some() {
-        let item_type = selected_item.unwrap().item;
-        let direction_f = f32::from(*direction);
-
-        let position = get_animation_points(item_type)[index.0];
-
-        if index.0 == 0 && index.is_changed() {
-            transform.rotation = get_rotation_by_direction(*direction);
+            sprite.index = walking_anim_offset + map_range_usize(
+                (0, WALKING_ANIMATION_MAX_INDEX),
+                (0, walking_anim_count),
+                index.0,
+            );
         }
-
-        transform.rotate_around(
-            position.extend(0.15),
-            Quat::from_rotation_z(ROTATION_STEP * direction_f * time.delta_seconds()),
-        );
-    }
-}
-
-pub fn update_use_item_animation_index(
-    time: Res<Time>,
-    mut index: ResMut<UseItemAnimationIndex>,
-    mut timer: ResMut<UseItemAnimationTimer>,
-    mut anim: ResMut<UseItemAnimation>,
-) {
-    if timer.tick(time.delta()).just_finished() {
-        index.0 = (index.0 + 1) % USE_ITEM_ANIMATION_FRAMES_COUNT;
-    }
-
-    if index.is_changed() && index.0 == 0 {
-        anim.0 = false;
-    }
-}
-
-pub fn use_item_animation(
-    index: Res<UseItemAnimationIndex>,
-    mut query: Query<(&mut TextureAtlasSprite, &UseItemAnimationData), With<PlayerBodySprite>>,
-) {
-    query.for_each_mut(|(mut sprite, anim_data)| {
-        sprite.index = anim_data.0 + index.0;
     });
 }
 
-
-pub fn current_speed(
-    velocity: Res<PlayerVelocity>
-) {
-    let factor = (60. * 3600.) / 42240.;
-    let velocity_x = velocity.x.abs() as f64 * factor;
-    let velocity_y = velocity.y.abs() as f64 * factor;
-
-    if velocity_x > 0. {
-        info!(
-            target: "speed",
-            horizontal = velocity_x,
-        );
-    }
-
-    if velocity_y > 0. {
-        info!(
-            target: "speed",
-            vertical = velocity_y,
-        );
-    }
-}
-
-// TODO: Debug function, remove in feature
 #[cfg(feature = "debug")]
-pub fn set_sprite_index(
-    input: Res<Input<KeyCode>>,
-    mut query: Query<(&mut TextureAtlasSprite, &WalkingAnimationData), With<PlayerBodySprite>>,
+pub(super) fn current_speed(
+    velocity: Res<PlayerVelocity>,
+    mut debug_config: ResMut<DebugConfiguration>
 ) {
-    query.for_each_mut(|(mut sprite, animation_data)| {
-        let anim_offset = animation_data.offset;
+    // https://terraria.fandom.com/wiki/Stopwatch
+    let factor = (60. * 3600.) / 42240.;
 
-        let mut new_sprite_index = sprite.index;
+    let velocity_x = velocity.x.abs() * factor;
+    let velocity_y = velocity.y.abs() * factor;
 
-        if input.just_pressed(KeyCode::J) {
-            new_sprite_index = sprite.index.checked_sub(1).unwrap_or(0);
-        }
+    debug_config.player_speed.x = velocity_x;
+    debug_config.player_speed.y = velocity_y;
+}
 
-        if input.just_pressed(KeyCode::L) {
-            new_sprite_index = sprite.index + 1;
-        }
+#[cfg(feature = "debug")]
+pub(super) fn draw_hitbox(
+    query_player: Query<&Transform, With<Player>>,
+    mut debug_lines: ResMut<DebugLines>,
+) {
+    let transform = query_player.single();
 
-        new_sprite_index = new_sprite_index.checked_sub(anim_offset).unwrap_or(0);
+    let left = transform.translation.x - PLAYER_HALF_WIDTH;
+    let right = transform.translation.x + PLAYER_HALF_WIDTH;
 
-        sprite.index = anim_offset + (new_sprite_index % WALKING_ANIMATION_MAX_INDEX);
-    });
+    let top = transform.translation.y - PLAYER_HALF_HEIGHT;
+    let bottom = transform.translation.y + PLAYER_HALF_HEIGHT;
+
+    debug_lines.line_colored(
+        Vec3::new(left, top, 10.0),
+        Vec3::new(right, top, 10.0),
+        0.,
+        Color::RED
+    );
+
+    debug_lines.line_colored(
+        Vec3::new(left, bottom, 10.0),
+        Vec3::new(right, bottom, 10.0),
+        0.,
+        Color::RED
+    );
+
+    debug_lines.line_colored(
+        Vec3::new(left, top, 10.0),
+        Vec3::new(left, bottom, 10.0),
+        0.,
+        Color::RED
+    );
+
+    debug_lines.line_colored(
+        Vec3::new(right, top, 10.0),
+        Vec3::new(right, bottom, 10.0),
+        0.,
+        Color::RED
+    );
+}
+
+#[cfg(feature = "debug")]
+use crate::plugins::cursor::CursorPosition;
+
+#[cfg(feature = "debug")]
+pub(super) fn teleport_player(
+    cursor_position: Res<CursorPosition>,
+    mut query_player: Query<&mut Transform, With<Player>>,
+) {
+    if let Ok(mut transform) = query_player.get_single_mut() {
+        transform.translation.x = cursor_position.world_position.x;
+        transform.translation.y = cursor_position.world_position.y;
+    }
 }

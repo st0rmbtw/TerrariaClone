@@ -58,16 +58,30 @@
     ],
 	"Items": {
 		"CopperPickaxe": "Copper Pickaxe",
+		"CopperAxe": "Copper Axe",
 		"DirtBlock": "Dirt Block",
 		"StoneBlock": "Stone Block",
 		"DirtWall": "Dirt Wall",
-		"StoneWall": "Stone Wall"
+		"StoneWall": "Stone Wall",
+		"GrassSeed": "Grass Seeds"
 	},
 	"UI": {
 		"Inventory": "Inventory",
 		"Items": "Items",
 		"Settings": "Settings",
 		"SinglePlayer": "Single Player",
-		"Exit": "Exit"
+		"Interface": "Interface",
+		"Video": "Video",
+		"Cursor": "Cursor",
+		"TileGrid": "Tile Grid",
+		"Exit": "Exit",
+		"On": "On",
+		"Off": "Off",
+		"Back": "Back",
+		"Apply": "Apply",
+		"Resolution": "Resolution",
+		"FullScreen": "Fullscreen",
+		"FullScreenResolution": "Fullscreen Resolution",
+		"VSync": "VSync"
 	}
 }

@@ -1,31 +1,60 @@
-use bevy::prelude::{Plugin, App};
-use iyes_loopless::prelude::{AppLooplessStateExt, IntoConditionalSystem};
-use leafwing_input_manager::prelude::InputManagerPlugin;
+use bevy::{prelude::{Plugin, App, Component, OnUpdate, IntoSystemConfig, IntoSystemAppConfig, OnEnter, Res, KeyCode, SystemSet, IntoSystemSetConfig, CoreSet, in_state, IntoSystemConfigs}, input::common_conditions::input_just_pressed};
 
-use crate::{state::GameState, labels::PlayerLabel};
+use crate::{common::{state::GameState, helpers::toggle_visibility}, DebugConfiguration};
 
-pub use components::*;
-pub use systems::*;
+pub(crate) use components::*;
+pub(crate) use events::*;
+use systems::*;
 
 mod components;
 mod systems;
+mod events;
 
-const MAX_CAMERA_ZOOM: f32 = 1.1;
-const MIN_CAMERA_ZOOM: f32 = 0.46;
-const CAMERA_ZOOM_STEP: f32 = 0.3;
+const MAX_CAMERA_ZOOM: f32 = 2.;
+const MIN_CAMERA_ZOOM: f32 = 0.2;
+const CAMERA_ZOOM_STEP: f32 = 0.5;
 
-pub struct CameraPlugin;
+#[cfg(feature = "debug")]
+const CAMERA_MOVE_SPEED: f32 = 1000.;
 
+#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
+pub(crate) enum CameraSet {
+    MoveCamera
+}
+
+pub(crate) struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_plugin(InputManagerPlugin::<MouseAction>::default())
-            .add_enter_system(GameState::InGame, setup_camera)
-            .add_system(zoom.run_in_state(GameState::InGame))
-            .add_system(
-                move_camera
-                    .run_in_state(GameState::InGame)
-                    .after(PlayerLabel::Update)
-            );
+        app.add_system(setup_camera.in_schedule(OnEnter(GameState::InGame)));
+        
+        app.add_systems((zoom, control_mouse_light).in_set(OnUpdate(GameState::InGame)));
+
+        app.add_system(
+            toggle_visibility::<MouseLight>
+                .run_if(input_just_pressed(KeyCode::F1))
+                .in_set(OnUpdate(GameState::InGame))
+        );
+        
+        app.configure_set(
+            CameraSet::MoveCamera
+                .run_if(in_state(GameState::InGame))
+                .in_base_set(CoreSet::PostUpdate)
+        );
+
+        app.add_system(
+            follow_player
+                .in_set(CameraSet::MoveCamera)
+                .run_if(|debug_config: Res<DebugConfiguration>| !debug_config.free_camera)
+        );
+
+        #[cfg(feature = "debug")]
+        app.add_system(
+            free_camera
+                .in_set(CameraSet::MoveCamera)
+                .run_if(|debug_config: Res<DebugConfiguration>| debug_config.free_camera)
+        );
     }
 }
+
+#[derive(Component)]
+pub(super) struct MouseLight;

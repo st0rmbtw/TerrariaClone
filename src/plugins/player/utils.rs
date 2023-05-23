@@ -1,21 +1,21 @@
-use bevy::{prelude::{Query, With, Component, Vec2, Quat}, sprite::TextureAtlasSprite};
+use bevy::{prelude::{Query, With, Component, Res}, sprite::TextureAtlasSprite};
 
-use crate::{state::MovementState, util::FRect};
+use crate::{common::state::MovementState, plugins::inventory::{UseItemAnimationData, SwingAnimation}};
 
-use super::{Player, AnimationData, PlayerBodySprite, PLAYER_WIDTH, PLAYER_HEIGHT, FaceDirection};
+use super::{Player, AnimationData, PlayerBodySprite};
 
-pub fn simple_animation<C: AnimationData + Component>(
-    mut query: Query<
-        (&mut TextureAtlasSprite, &C),
-        With<PlayerBodySprite>,
-    >,
+pub(super) fn simple_animation<C: AnimationData + Component>(
+    swing_animation: Res<SwingAnimation>,
+    mut query: Query<(&mut TextureAtlasSprite, &C, Option<&UseItemAnimationData>), With<PlayerBodySprite>>,
 ) {
-    query.for_each_mut(|(mut sprite, anim_data)| {
-        sprite.index = anim_data.index();
+    query.for_each_mut(|(mut sprite, anim_data, use_item_animation)| {
+        if use_item_animation.is_none() || !**swing_animation {
+            sprite.index = anim_data.index();
+        }
     });
 }
 
-pub fn is_walking(
+pub(super) fn is_walking(
     player_query: Query<&MovementState, With<Player>>,
 ) -> bool {
     if let Ok(state) = player_query.get_single() {
@@ -27,7 +27,7 @@ pub fn is_walking(
     false
 }
 
-pub fn is_idle(
+pub(super) fn is_idle(
     player_query: Query<&MovementState, With<Player>>,
 ) -> bool {
     if let Ok(state) = player_query.get_single() {
@@ -39,7 +39,7 @@ pub fn is_idle(
     false
 }
 
-pub fn is_flying(
+pub(super) fn is_flying(
     player_query: Query<&MovementState, With<Player>>,
 ) -> bool {
     if let Ok(state) = player_query.get_single() {
@@ -49,30 +49,4 @@ pub fn is_flying(
     }
 
     false
-}
-
-pub fn get_player_rect(position: Vec2, x_multiplier: f32) -> FRect {
-    FRect {
-        left: position.x - (PLAYER_WIDTH * x_multiplier) / 2.,
-        right: position.x + (PLAYER_WIDTH * x_multiplier) / 2.,
-        top: position.y - PLAYER_HEIGHT / 2.,
-        bottom: position.y + PLAYER_HEIGHT / 2.,
-    }
-}
-
-pub fn round(number: f32, multiple: f32) -> f32 {
-    let mut result = number.abs() + multiple / 2.;
-    result -= result % multiple;
-    result *= number.signum();
-
-    result
-}
-
-pub fn get_rotation_by_direction(direction: FaceDirection) -> Quat {
-    let start_rotation = match direction {
-        FaceDirection::LEFT => -0.5,
-        FaceDirection::RIGHT => 2.,
-    };
-
-    Quat::from_rotation_z(start_rotation)
 }
