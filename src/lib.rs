@@ -106,7 +106,11 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
         .insert_resource(language_content)
         .insert_resource(ClearColor(Color::BLACK))
         .insert_resource(FixedTime::new_from_secs(1. / 60.))
-        .init_resource::<DebugConfiguration>()
+        .insert_resource(DebugConfiguration {
+            #[cfg(feature = "debug")]
+            show_collisions: true,
+            ..default()
+        })
         .add_event::<UpdateLightEvent>()
         .add_state::<GameState>()
         .add_plugin(TweeningPlugin)

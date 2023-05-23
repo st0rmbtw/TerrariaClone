@@ -113,6 +113,8 @@ pub(super) fn detect_collisions(
 
     let mut new_collisions = Collisions::default();
 
+    let mut move_player_up = false;
+
     for x in left_u32..right_u32 {
         for y in top_u32..bottom_u32 {
             if world_data.solid_block_exists((x, y)) {
@@ -132,6 +134,22 @@ pub(super) fn detect_collisions(
                     };
 
                     if delta_x.abs() > delta_y.abs() {
+                        // Check if there is a space of 3 blocks to move the player up
+                        let is_enough_space = world_data.solid_block_not_exists((x, y - 1))
+                            && world_data.solid_block_not_exists((x, y - 2))
+                            && world_data.solid_block_not_exists((x, y - 3));
+
+                        // Check if the tile is on the same level as player's legs
+                        let is_bottom_tile = tile_rect.top() <= player_rect.bottom() + TILE_SIZE
+                            && tile_rect.top() > player_rect.bottom();
+
+                        if is_enough_space && is_bottom_tile {
+                            move_player_up = true;
+                            transform.translation.y = tile_rect.top() + player_rect.height / 2.;
+                            debug!("Move player up");
+                            continue;
+                        }
+
                         if delta_x > 0. {
                             velocity.x = 0.;
                             new_collisions.left = true;
@@ -172,15 +190,17 @@ pub(super) fn detect_collisions(
                                     tile_rect.draw_bottom_side(&mut debug_lines, 0.1, Color::YELLOW);
                                 }
                             } else {
-                                new_collisions.bottom = true;
-
-                                // If the player's bottom side is lower than the tile's top side then move the player up
-                                if player_rect.bottom() < tile_rect.top() {
-                                    velocity.y = tile_rect.top() - player_rect.bottom();
-                                } else {
-                                    transform.translation.y = tile_rect.top() + player_rect.height / 2.;
-                                    velocity.y = 0.;
+                                if !new_collisions.bottom && !move_player_up {
+                                    // If the player's bottom side is lower than the tile's top side then move the player up
+                                    if player_rect.bottom() < tile_rect.top() {
+                                        velocity.y = tile_rect.top() - player_rect.bottom();
+                                    } else {
+                                        transform.translation.y = tile_rect.top() + player_rect.height / 2.;
+                                        velocity.y = 0.;
+                                    }
                                 }
+
+                                new_collisions.bottom = true;
 
                                 if player_data.fall_start != 0. {
                                     let fall_distance = ((position.y.abs() + player_data.fall_start) / TILE_SIZE).ceil();

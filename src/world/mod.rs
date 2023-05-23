@@ -156,6 +156,16 @@ impl WorldData {
         if let Some(block) = self.get_block(world_pos) { *block == block_type } else { false }
     }
 
+    #[inline]
+    pub(crate) fn solid_block_exists<Pos: AsWorldPos>(&self, world_pos: Pos) -> bool {
+        if let Some(block) = self.get_block(world_pos) { block.is_solid() } else { false }
+    }
+
+    #[inline]
+    pub(crate) fn solid_block_not_exists<Pos: AsWorldPos>(&self, world_pos: Pos) -> bool {
+        !self.solid_block_exists(world_pos)
+    }
+
     #[inline(always)]
     pub(crate) fn wall_exists<Pos: AsWorldPos>(&self, world_pos: Pos) -> bool {
         self.get_wall(world_pos).is_some()
@@ -164,11 +174,6 @@ impl WorldData {
     #[inline(always)]
     pub(crate) fn wall_not_exists<Pos: AsWorldPos>(&self, world_pos: Pos) -> bool {
         !self.wall_exists(world_pos)
-    }
-
-    #[inline]
-    pub(crate) fn solid_block_exists<Pos: AsWorldPos>(&self, world_pos: Pos) -> bool {
-        if let Some(block) = self.get_block(world_pos) { block.is_solid() } else { false }
     }
 
     pub(crate) fn get_block_neighbors<Pos: AsWorldPos>(&self, world_pos: Pos, solid: bool) -> Neighbors<&Block> {
