@@ -35,10 +35,7 @@ impl BlockType {
     }
 
     pub(crate) const fn is_solid(&self) -> bool {
-        match self {
-            BlockType::Tree(_) => false,
-            _ => true
-        }
+        !matches!(self, BlockType::Tree(_))
     }
 
     pub(crate) const fn dirt_mergable(&self) -> bool {
@@ -137,7 +134,7 @@ impl Block {
         */
 
         if let BlockType::Tree(tree) = block_type {
-            return get_tree_sprite_index(neighbors, Tree::from(tree)).to_2d_index_from_block_type(block_type);
+            return get_tree_sprite_index(neighbors, tree).to_2d_index_from_block_type(block_type);
         }
 
         let variant: u32 = thread_rng().gen_range(0..3);
@@ -967,17 +964,11 @@ fn get_grass_sprite_index_by_dirt_connections(neighbors: &Neighbors<BlockType>, 
 }
 
 fn get_tree_sprite_index(neighbors: &Neighbors<BlockType>, tree: Tree) -> TextureAtlasPos {
-    match tree.frame_type {
-        TreeFrameType::TrunkPlain => {
-            match neighbors {
-                Neighbors { 
-                    north: None,
-                    ..
-                } => TreeFrameType::TopBare.texture_atlas_pos(tree.tree_type, tree.variant),
-
-                _ => tree.frame_type.texture_atlas_pos(tree.tree_type, tree.variant)
-            }
-        },
+    match (tree.frame_type, neighbors) {
+        (TreeFrameType::TrunkPlain, Neighbors {
+            north: None,
+            ..
+        }) => TreeFrameType::TopBare.texture_atlas_pos(tree.tree_type, tree.variant),
         _ => tree.frame_type.texture_atlas_pos(tree.tree_type, tree.variant)
     }
 }

@@ -168,7 +168,6 @@ pub(super) fn spawn_chunk(
 
             if let Some(block) = world_data.get_block(map_tile_pos) {
                 if let BlockType::Tree(tree) = block.block_type {
-                    let tree = Tree::from(tree);
                     let index = tree.texture_atlas_pos();
                     
                     match tree.frame_type {

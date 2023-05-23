@@ -32,7 +32,6 @@ impl Plugin for ParallaxPlugin {
                 update_window_size,
                 update_layer_textures_system.after(ParallaxSet::FollowCamera),
             )
-            .chain()
             .distributive_run_if(resource_exists::<ParallaxResource>())
         );
     }

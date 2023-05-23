@@ -378,7 +378,7 @@ impl ItemAssets {
 
 impl BlockAssets {
     pub(crate) fn get_by_block(&self, block: BlockType) -> Option<Handle<Image>> {
-        match block.into() {
+        match block {
             BlockType::Dirt => Some(self.dirt.clone_weak()),
             BlockType::Stone => Some(self.stone.clone_weak()),
             BlockType::Grass => Some(self.grass.clone_weak()),

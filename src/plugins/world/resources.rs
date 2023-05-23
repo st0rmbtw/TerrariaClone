@@ -75,7 +75,7 @@ impl ChunkManager {
         block: &Block,
         index: u32,
     ) {
-        let filtered_chunks: Option<(&Chunk, bevy::prelude::Mut<TileStorage>, Entity)> = query_chunk
+        let filtered_chunks = query_chunk
             .iter_mut()
             .find(|(chunk, _, _)| {
                 ChunkManager::filter_chunk(chunk, chunk_pos, block.block_type)
