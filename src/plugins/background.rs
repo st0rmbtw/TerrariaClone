@@ -1,9 +1,9 @@
 use crate::{
-    parallax::{LayerData, ParallaxResource, LayerSpeed, follow_camera_system, ParallaxSet},
+    parallax::{LayerData, LayerSpeed, follow_camera_system, ParallaxSet, ParallaxContainer},
     common::{state::GameState, conditions::in_menu_state}, world::WorldData,
 };
 use bevy::{
-    prelude::{default, App, Commands, Plugin, Res, ResMut, Vec2, Transform, Component, Query, Camera, GlobalTransform, With, OnEnter, OnExit, IntoSystemAppConfig, OnUpdate, IntoSystemConfig, IntoSystemConfigs, IntoSystemAppConfigs, Name},
+    prelude::{default, App, Commands, Plugin, Res, Vec2, Transform, Component, Query, Camera, GlobalTransform, With, OnEnter, OnExit, IntoSystemAppConfig, OnUpdate, IntoSystemConfig, IntoSystemConfigs, IntoSystemAppConfigs, Name, Entity, DespawnRecursiveExt, Assets, Image},
     sprite::{SpriteBundle, Anchor}, window::{Window, PrimaryWindow},
 };
 use rand::{thread_rng, Rng, seq::SliceRandom};
@@ -19,21 +19,26 @@ impl Plugin for BackgroundPlugin {
 
         app.add_systems(
             (
-                despawn_background,
-                setup_forest_background
+                despawn_menu_background,
+                setup_forest_background,
+                setup_ingame_background
             )
             .chain()
             .in_schedule(OnEnter(GameState::InGame))
         );
 
-        app.add_system(despawn_background.in_schedule(OnExit(GameState::InGame)));
+        app.add_system(despawn_menu_background.in_schedule(OnExit(GameState::InGame)));
 
         app.add_system(
             move_stars
                 .run_if(in_menu_state)
                 .before(ParallaxSet::FollowCamera)
         );
-        app.add_system(follow_camera_system.in_set(OnUpdate(GameState::InGame)));
+        app.add_system(
+            follow_camera_system
+                .in_set(OnUpdate(GameState::InGame))
+                // .after(CameraSet::MoveCamera)
+        );
     }
 }
 // endregion
@@ -43,9 +48,21 @@ pub(crate) struct Star {
     screen_position: Vec2
 }
 
-fn despawn_background(mut commands: Commands, mut parallax: ResMut<ParallaxResource>) {
-    parallax.despawn_layers(&mut commands);
-    commands.remove_resource::<ParallaxResource>();
+#[derive(Component)]
+pub(crate) struct MenuParallaxContainer;
+
+#[derive(Component)]
+pub(crate) struct BiomeParallaxContainer;
+
+#[derive(Component)]
+pub(crate) struct InGameParallaxContainer;
+
+fn despawn_menu_background(
+    mut commands: Commands,
+    query_menu_parallax_container: Query<Entity, With<MenuParallaxContainer>>
+) {
+    let entity = query_menu_parallax_container.single();
+    commands.entity(entity).despawn_recursive();
 }
 
 fn spawn_stars(
@@ -96,21 +113,21 @@ fn move_stars(
     }
 }
 
-// region: Main menu background
-
 fn setup_main_menu_background(
     mut commands: Commands,
     backgrounds: Res<BackgroundAssets>,
 ) {
     let pos = 150.;
 
-    commands.insert_resource(ParallaxResource {
-        layer_data: vec![
+    commands.spawn((
+        Name::new("Menu Parallax Container"),
+        MenuParallaxContainer,
+        ParallaxContainer::new(vec![
             LayerData {
                 speed: LayerSpeed::Horizontal(1.),
                 scale: 1.,
                 z: 0.0,
-                image: backgrounds.background_0.clone(),
+                image: backgrounds.background_0.clone_weak(),
                 fill_screen_height: true,
                 ..default()
             },
@@ -159,31 +176,58 @@ fn setup_main_menu_background(
                 position: Vec2::NEG_Y * pos + 200.,
                 ..default()
             },
-        ],
-        ..default()
-    });
+        ])
+    ));
 }
 
-// fn setup_ingame_background(
-//     mut commands: Commands,
-//     backgrounds: Res<BackgroundAssets>,
-//     world_data: Res<WorldData>
-// ) {
-//     let underground_level = world_data.layer.underground as f32 * TILE_SIZE;
-//     let cavern_level = world_data.layer.cavern as f32 * TILE_SIZE;
+fn setup_ingame_background(
+    mut commands: Commands,
+    backgrounds: Res<BackgroundAssets>,
+    world_data: Res<WorldData>,
+    images: Res<Assets<Image>>
+) {
+    let cavern_layer = world_data.layer.cavern as f32 * TILE_SIZE;
+    let world_height = world_data.size.height as f32 * TILE_SIZE;
 
-//     let tiles_count = (cavern_level - underground_level) / 96.;
+    let image = images.get(&backgrounds.background_78).unwrap();
+    let image_height = image.size().y;
 
-//     let layer_entity = commands.spawn_empty();
+    let mut layers = Vec::new();
 
-//     for y in 0..tiles_count as i32 {
-//         layer_entity.insert(SpriteBundle {
-//             transform: Transform::from_translation(),
-//             texture: backgrounds.background_74.clone_weak(),
-//             ..default()
-//         })
-//     }
-// }
+    layers.push(LayerData {
+        speed: LayerSpeed::Horizontal(0.9),
+        image: backgrounds.background_77.clone_weak(),
+        z: 0.5,
+        transition_factor: 1.2,
+        scale: 1.,
+        position: Vec2::NEG_Y * cavern_layer,
+        anchor: Anchor::BottomCenter,
+        ..default()
+    });
+
+    let mut position = cavern_layer;
+
+    while position < world_height {
+        layers.push(LayerData {
+            speed: LayerSpeed::Horizontal(0.9),
+            image: backgrounds.background_78.clone_weak(),
+            z: 0.5,
+            transition_factor: 1.2,
+            scale: 1.,
+            position: Vec2::NEG_Y * position,
+            anchor: Anchor::TopCenter,
+            ..default()
+        });
+        
+        position += image_height;
+    }
+
+    commands.spawn((
+        Name::new("InGame Parallax Container"),
+        InGameParallaxContainer,
+        ParallaxContainer::new(layers)
+    ));
+}
 
 fn setup_forest_background(
     mut commands: Commands,
@@ -191,17 +235,20 @@ fn setup_forest_background(
     world_data: Res<WorldData>
 ) {
     let cavern_layer = world_data.layer.cavern as f32 * TILE_SIZE;
+    let underground_layer = world_data.layer.underground as f32 * TILE_SIZE;
 
-    commands.insert_resource(ParallaxResource {
-        layer_data: vec![
+    commands.spawn((
+        Name::new("Biome Parallax Container"),
+        BiomeParallaxContainer,
+        ParallaxContainer::new(vec![
             LayerData {
-                speed: LayerSpeed::Bidirectional(0.9, 0.7),
+                speed: LayerSpeed::Bidirectional(0.9, 0.6),
                 image: backgrounds.background_55.clone_weak(),
                 z: 0.4,
                 transition_factor: 1.,
-                scale: 2.5,
+                scale: 2.,
                 position: Vec2::NEG_Y * cavern_layer,
-                anchor: Anchor::BottomCenter,
+                anchor: Anchor::Center,
                 ..default()
             },
             LayerData {
@@ -210,8 +257,8 @@ fn setup_forest_background(
                 z: 0.3,
                 transition_factor: 1.,
                 scale: 2.,
-                position: Vec2::NEG_Y * cavern_layer,
-                anchor: Anchor::BottomCenter,
+                position: Vec2::NEG_Y * underground_layer,
+                anchor: Anchor::Center,
                 ..default()
             },
             LayerData {
@@ -229,14 +276,11 @@ fn setup_forest_background(
                 image: backgrounds.background_0.clone_weak(),
                 z: 0.0,
                 transition_factor: 1.,
-                scale: 1.5,
+                scale: 5.,
                 position: Vec2::splat(TILE_SIZE / 2.),
                 anchor: Anchor::TopCenter,
                 ..default()
             },
-        ],
-        ..default()
-    });
+        ])
+    ));
 }
-
-// endregion

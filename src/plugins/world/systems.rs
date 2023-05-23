@@ -20,7 +20,7 @@ use bevy_ecs_tilemap::{
 };
 use rand::{thread_rng, seq::SliceRandom};
 
-use crate::{plugins::{world::{CHUNK_SIZE, TILE_SIZE, LightMap,}, assets::{BlockAssets, WallAssets, SoundAssets}, camera::{MainCamera, UpdateLightEvent}}, common::state::GameState, items::Seed, world::{light::generate_light_map, WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::{Tree, TreeFrameType}, generator::generate_world}};
+use crate::{plugins::{world::{CHUNK_SIZE, TILE_SIZE, LightMap}, assets::{BlockAssets, WallAssets, SoundAssets}, camera::{MainCamera, UpdateLightEvent}}, common::state::GameState, items::Seed, world::{light::generate_light_map, WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}};
 
 use super::{get_chunk_pos, CHUNK_SIZE_U, UpdateNeighborsEvent, WALL_SIZE, CHUNKMAP_SIZE, get_camera_fov, ChunkManager, get_chunk_tile_pos, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent, TREE_SIZE, TREE_BRANCHES_SIZE, TREE_TOPS_SIZE, utils::get_chunk_range_by_camera_fov, UpdateBlockEvent, SeedEvent};
 
@@ -530,6 +530,27 @@ fn break_tree(
                 break_tree(commands, chunks, TilePos::new(pos.x - 1, pos.y), world_data, true);
                 break_tree(commands, chunks, TilePos::new(pos.x, pos.y - 1), world_data, true);
             }
+        }
+    }
+}
+
+#[cfg(feature = "debug")]
+use bevy::prelude::{Visibility, DetectChanges};
+
+#[cfg(feature = "debug")]
+use crate::common::helpers::set_visibility;
+
+#[cfg(feature = "debug")]
+use crate::DebugConfiguration;
+
+#[cfg(feature = "debug")]
+pub(super) fn set_tiles_visibility(
+    debug_config: Res<DebugConfiguration>,
+    mut query_chunk: Query<&mut Visibility, With<ChunkContainer>>
+) {
+    if debug_config.is_changed() {
+        for visibility in &mut query_chunk {
+            set_visibility(visibility, debug_config.show_tiles);
         }
     }
 }

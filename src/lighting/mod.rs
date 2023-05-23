@@ -58,6 +58,13 @@ impl Plugin for LightingPlugin {
             )
             .add_system(update_light_map.in_set(OnUpdate(GameState::InGame)));
 
+        #[cfg(feature = "debug")] {
+            app.add_system(
+                self::compositing::set_shadow_map_visibility
+                    .in_set(OnUpdate(GameState::InGame))
+            );
+        }
+
         load_internal_asset!(
             app,
             SHADER_CAMERA,

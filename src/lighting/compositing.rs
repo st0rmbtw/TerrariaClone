@@ -22,7 +22,7 @@ use crate::{
         world::{LightMap, TILE_SIZE},
         camera::{MainCamera, UpdateLightEvent, LightMapCamera}
     },
-    world::WorldData
+    world::WorldData, DebugConfiguration
 };
 
 use super::pipeline::PipelineTargetsWrapper;
@@ -57,6 +57,9 @@ pub(super) struct PostProcessingMaterial {
 
     #[uniform(8)]
     pub(super) world_size: Vec2,
+
+    #[uniform(9)]
+    pub(super) enabled: u32
 }
 
 impl Material2d for PostProcessingMaterial {
@@ -77,6 +80,9 @@ impl Material2d for PostProcessingMaterial {
         Ok(())
     }
 }
+
+#[derive(Component)]
+pub(super) struct ShadowMap;
 
 /// Update image size to fit window
 pub(super) fn update_image_to_window_size(
@@ -105,6 +111,7 @@ pub(super) fn update_image_to_window_size(
 }
 
 pub(super) fn update_lighting_material(
+    debug_config: Res<DebugConfiguration>,
     cameras: Query<
         (
             &GlobalTransform,
@@ -269,7 +276,8 @@ pub(super) fn setup_post_processing_camera(
                 .expect("Targets must be initialized")
                 .lighting_target
                 .clone(),
-            world_size: Vec2::new(world_data.size.width as f32, world_data.size.height as f32)
+            world_size: Vec2::new(world_data.size.width as f32, world_data.size.height as f32),
+            enabled: 1
         });
 
         commands
@@ -285,6 +293,7 @@ pub(super) fn setup_post_processing_camera(
         camera.target = RenderTarget::Image(image_handle);
 
         commands.spawn((
+            ShadowMap,
             MaterialMesh2dBundle {
                 mesh: meshes.add(Mesh::from(Quad::new(Vec2::new(1., 1.)))).into(),
                 material: material_handle,
@@ -312,5 +321,20 @@ pub(super) fn setup_post_processing_camera(
             },
             post_processing_pass_layer,
         ));
+    }
+}
+
+#[cfg(feature = "debug")]
+pub(super) fn set_shadow_map_visibility(
+    debug_config: Res<DebugConfiguration>,
+    query_camera: Query<&Handle<PostProcessingMaterial>, With<MainCamera>>,
+    mut post_processing_materials: ResMut<Assets<PostProcessingMaterial>>,
+) {
+    if debug_config.is_changed() {
+        if let Ok(post_processing_material_handle) = query_camera.get_single() {
+            if let Some(mut material) = post_processing_materials.get_mut(post_processing_material_handle) {
+                material.enabled = if debug_config.shadow_tiles { 1 } else { 0 };
+            }
+        }
     }
 }

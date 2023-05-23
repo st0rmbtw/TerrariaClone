@@ -54,6 +54,11 @@ impl Plugin for WorldPlugin {
             )
             .in_set(OnUpdate(GameState::InGame))
         );
+
+        #[cfg(feature = "debug")] {
+            use bevy::prelude::IntoSystemConfig;
+            app.add_system(set_tiles_visibility.in_set(OnUpdate(GameState::InGame)));
+        }
     }
 }
 

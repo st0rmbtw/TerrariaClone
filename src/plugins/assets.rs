@@ -271,6 +271,12 @@ handles! {
         #[asset(path = "sprites/backgrounds/Background_74.png")]
         pub(crate) background_74: Handle<Image>,
 
+        #[asset(path = "sprites/backgrounds/Background_77.png")]
+        pub(crate) background_77: Handle<Image>,
+
+        #[asset(path = "sprites/backgrounds/Background_78.png")]
+        pub(crate) background_78: Handle<Image>,
+
         #[asset(path = "sprites/backgrounds/Background_55.png")]
         pub(crate) background_55: Handle<Image>,
 

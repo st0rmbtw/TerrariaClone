@@ -56,6 +56,10 @@ pub(crate) struct DebugConfiguration {
     #[cfg(feature = "debug")]
     pub(crate) show_collisions: bool,
     #[cfg(feature = "debug")]
+    pub(crate) show_tiles: bool,
+    #[cfg(feature = "debug")]
+    pub(crate) shadow_tiles: bool,
+    #[cfg(feature = "debug")]
     pub(crate) player_speed: bevy::prelude::Vec2,
 }
 
@@ -107,8 +111,9 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
         .insert_resource(ClearColor(Color::BLACK))
         .insert_resource(FixedTime::new_from_secs(1. / 60.))
         .insert_resource(DebugConfiguration {
-            #[cfg(feature = "debug")]
-            show_collisions: true,
+            #[cfg(feature = "debug")] show_collisions: true,
+            #[cfg(feature = "debug")] show_tiles: true,
+            #[cfg(feature = "debug")] shadow_tiles: true,
             ..default()
         })
         .add_event::<UpdateLightEvent>()

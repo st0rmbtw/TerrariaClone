@@ -62,6 +62,8 @@ fn debug_gui(
             ui.checkbox(&mut debug_config.free_camera, "Free Camera");
             ui.checkbox(&mut debug_config.show_hitboxes, "Show Hitboxes");
             ui.checkbox(&mut debug_config.show_collisions, "Show Collisions");
+            ui.checkbox(&mut debug_config.show_tiles, "Show Tiles");
+            ui.checkbox(&mut debug_config.shadow_tiles, "Shadow Tiles");
             ui.checkbox(&mut debug_config.instant_break, "Break tiles instantly");
 
             if let ReflectMut::Struct(str) = time.reflect_mut() {

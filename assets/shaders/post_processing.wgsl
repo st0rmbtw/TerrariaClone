@@ -30,6 +30,9 @@ var<uniform> camera_scale: f32;
 @group(1) @binding(8)
 var<uniform> world_size: vec2<f32>;
 
+@group(1) @binding(9)
+var<uniform> enabled: u32;
+
 const Size = 1.5; // BLUR SIZE (Radius)
 const Pi = 6.28318530718; // Pi*2
 
@@ -59,6 +62,12 @@ fn fragment(
     @builtin(position) position: vec4<f32>,
     @location(0) uv: vec2<f32>,
 ) -> @location(0) vec4<f32> {
+    var color = textureSample(texture, texture_sampler, uv);
+
+    if enabled == 0u {
+        return color;
+    }
+    
     // World size in pixels
     let world_size_px = world_size * 16.;
 
@@ -97,8 +106,6 @@ fn fragment(
         light_map_color = textureSample(light_map_texture, light_map_texture_sampler, uv);
 #endif
     }
-
-    var color = textureSample(texture, texture_sampler, uv);
 
     if (uv.x >= 0.) && (uv.x <= 1.) && (uv.y >= 0.) && (uv.y <= 1.) {
         color *= (light_map_color + lighting_color);
