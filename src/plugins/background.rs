@@ -1,6 +1,6 @@
 use crate::{
     parallax::{LayerData, LayerSpeed, follow_camera_system, ParallaxSet, ParallaxContainer},
-    common::{state::GameState, conditions::in_menu_state}, world::WorldData,
+    common::{state::GameState, conditions::in_menu_state}, world::{WorldData, generator::DIRT_HILL_HEIGHT},
 };
 use bevy::{
     prelude::{default, App, Commands, Plugin, Res, Vec2, Transform, Component, Query, Camera, GlobalTransform, With, OnEnter, OnExit, IntoSystemAppConfig, OnUpdate, IntoSystemConfig, IntoSystemConfigs, IntoSystemAppConfigs, Name, Entity, DespawnRecursiveExt, Assets, Image},
@@ -234,9 +234,6 @@ fn setup_forest_background(
     backgrounds: Res<BackgroundAssets>,
     world_data: Res<WorldData>
 ) {
-    let cavern_layer = world_data.layer.cavern as f32 * TILE_SIZE;
-    let underground_layer = world_data.layer.underground as f32 * TILE_SIZE;
-
     commands.spawn((
         Name::new("Biome Parallax Container"),
         BiomeParallaxContainer,
@@ -247,7 +244,7 @@ fn setup_forest_background(
                 z: 0.4,
                 transition_factor: 1.,
                 scale: 2.,
-                position: Vec2::NEG_Y * cavern_layer,
+                position: (world_data.layer.underground - world_data.layer.dirt_height + DIRT_HILL_HEIGHT as usize) as f32 * TILE_SIZE * Vec2::NEG_Y,
                 anchor: Anchor::Center,
                 ..default()
             },
@@ -257,7 +254,7 @@ fn setup_forest_background(
                 z: 0.3,
                 transition_factor: 1.,
                 scale: 2.,
-                position: Vec2::NEG_Y * underground_layer,
+                position: (world_data.layer.underground - world_data.layer.dirt_height) as f32 * TILE_SIZE * Vec2::NEG_Y,
                 anchor: Anchor::Center,
                 ..default()
             },
@@ -266,8 +263,8 @@ fn setup_forest_background(
                 image: backgrounds.background_93.clone_weak(),
                 z: 0.2,
                 transition_factor: 1.,
-                scale: 2.,
-                position: Vec2::NEG_Y * cavern_layer,
+                scale: 1.5,
+                position: (world_data.layer.underground - world_data.layer.dirt_height) as f32 * TILE_SIZE * Vec2::NEG_Y,
                 anchor: Anchor::BottomCenter,
                 ..default()
             },

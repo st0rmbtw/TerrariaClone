@@ -11,8 +11,7 @@ use super::wall::Wall;
 use super::tree::{TreeType, TreeFrameType};
 use super::{WorldSize, WorldData, Layer, BlockArray, WallArray, AsWorldPos};
 
-pub(crate) const DIRT_HILL_HEIGHT: f32 = 50.;
-pub(crate) const STONE_HILL_HEIGHT: f32 = 15.;
+pub(crate) const DIRT_HILL_HEIGHT: usize = 50;
 
 macro_rules! tree {
     ($tree_type: path, $frame_type: ident, $variant: ident) => {
@@ -32,10 +31,15 @@ pub(crate) fn generate_world(seed: u32, world_size: WorldSize) -> WorldData {
     let blocks = BlockArray::default((world_size.height, world_size.width));
     let walls = WallArray::default((world_size.height, world_size.width));
 
+    let surface = world_size.height / 10;
+    let underground = world_size.height / 2;
+    let cavern = (world_size.height as f32 / 1.5) as usize;
+
     let layer = Layer {
-        surface: world_size.height / 3,
-        underground: world_size.height / 3,
-        cavern: world_size.height / 2,
+        surface,
+        underground,
+        cavern,
+        dirt_height: (underground - surface) / 3
     };
 
     let mut world = WorldData {
@@ -46,12 +50,9 @@ pub(crate) fn generate_world(seed: u32, world_size: WorldSize) -> WorldData {
         spawn_point: TilePos::new(0, 0)
     };
 
-
     spawn_terrain(&mut world);
 
     make_hills(&mut world, seed);
-
-    stone_in_dirt(&mut world, seed);
 
     generate_walls(&mut world);
 
@@ -59,33 +60,19 @@ pub(crate) fn generate_world(seed: u32, world_size: WorldSize) -> WorldData {
 
     generate_dirt_in_rocks(&mut world, seed);
 
+    grassify(&mut world);
+
+    rough_cavern_layer_border(&mut world, seed);
+
     generate_small_caves(&mut world, seed);
 
     generate_big_caves(&mut world, seed);
 
     grow_trees(&mut world, seed);
 
-    grassify(&mut world);
-
     set_spawn_point(&mut world);
 
     world
-}
-
-fn set_spawn_point(world: &mut WorldData) {
-    let x = world.size.width / 2;
-    
-    let mut y = world.layer.underground - DIRT_HILL_HEIGHT as usize;
-
-    loop {
-        if world.block_exists((x, y)) {
-            break;
-        }
-
-        y += 1;
-    }
-
-    world.spawn_point = TilePos::new(x as u32, y as u32);
 }
 
 fn spawn_terrain(world: &mut WorldData) {
@@ -96,7 +83,7 @@ fn spawn_terrain(world: &mut WorldData) {
             *block = None;
         }
 
-        if y >= world.layer.underground {
+        if y >= world.layer.underground - world.layer.dirt_height {
             *block = Some(Block::Dirt);
         }
 
@@ -111,7 +98,7 @@ fn make_hills(world: &mut WorldData, seed: u32) {
 
     let mut rng = StdRng::seed_from_u64(seed as u64);
 
-    let level = world.layer.underground;
+    let level = world.layer.underground - world.layer.dirt_height;
     
     let noise = NoiseBuilder::gradient_1d(world.size.width)
         .with_seed(rng.gen())
@@ -132,7 +119,7 @@ fn make_hills(world: &mut WorldData, seed: u32) {
         };
 
         if *noise_value > 0. {
-            let hill_height = level - (noise_value * DIRT_HILL_HEIGHT) as usize;
+            let hill_height = level - (noise_value * DIRT_HILL_HEIGHT as f32) as usize;
 
             if block_x != x_offset {
                 world.blocks.slice_mut(s![hill_height..level, x_range]).fill(Some(Block::Dirt));
@@ -140,7 +127,7 @@ fn make_hills(world: &mut WorldData, seed: u32) {
                 world.blocks.slice_mut(s![hill_height..level, block_x]).fill(Some(Block::Dirt));
             }
         } else if *noise_value < 0. {
-            let hill_height = level + (-noise_value * DIRT_HILL_HEIGHT) as usize;
+            let hill_height = level + (-noise_value * DIRT_HILL_HEIGHT as f32) as usize;
 
             if block_x != x_offset {
                 let mut slice = world.blocks.slice_mut(s![level..hill_height, x_range.clone()]);
@@ -155,17 +142,17 @@ fn make_hills(world: &mut WorldData, seed: u32) {
     }
 }
 
-fn stone_in_dirt(world: &mut WorldData, seed: u32) {
+fn rough_cavern_layer_border(world: &mut WorldData, seed: u32) {
     let mut rng = StdRng::seed_from_u64(seed as u64);
 
+    let level = world.layer.cavern;
+    
     let noise = NoiseBuilder::gradient_1d(world.size.width)
         .with_seed(rng.gen())
-        .with_freq(1. / 100.)
+        .with_freq(0.1)
         .generate_scaled(-1., 1.);
 
-    let level = world.layer.cavern;
-
-    const OFFSET_FROM_SURFACE: usize = 10;
+    const ROUGHNESS: f32 = 20.;
 
     for (block_x, noise_value) in noise.iter().enumerate() {
         let x_offset = {
@@ -180,19 +167,15 @@ fn stone_in_dirt(world: &mut WorldData, seed: u32) {
             x_offset..=block_x
         };
 
-        let y = get_surface_y(world, block_x);
+        let hill_height = level - (noise_value.abs() * ROUGHNESS) as usize;
 
         if *noise_value > 0. {
-            let hill_height = (level - (noise_value * STONE_HILL_HEIGHT) as usize).max(y + OFFSET_FROM_SURFACE);
-
             if block_x != x_offset {
                 world.blocks.slice_mut(s![hill_height..level, x_range]).fill(Some(Block::Stone));
             } else {
                 world.blocks.slice_mut(s![hill_height..level, block_x]).fill(Some(Block::Stone));
             }
         } else if *noise_value < 0. {
-            let hill_height = (level + (-noise_value * STONE_HILL_HEIGHT) as usize).max(y + OFFSET_FROM_SURFACE);
-
             if block_x != x_offset {
                 world.blocks.slice_mut(s![level..hill_height, x_range]).fill(Some(Block::Dirt));
             } else {
@@ -205,8 +188,8 @@ fn stone_in_dirt(world: &mut WorldData, seed: u32) {
 fn generate_walls(world: &mut WorldData) {
     println!("Generating walls...");
 
-    let dirt_level = world.layer.underground - DIRT_HILL_HEIGHT as usize;
-    let cavern_layer = world.layer.cavern + STONE_HILL_HEIGHT as usize;
+    let dirt_level = world.layer.underground - world.layer.dirt_height - DIRT_HILL_HEIGHT;
+    let cavern_layer = world.layer.cavern;
 
     for ((y, x), wall) in world.walls.slice_mut(s![dirt_level..cavern_layer, ..]).indexed_iter_mut() {
         let block_not_exists = |y: usize, x: usize| -> bool {
@@ -231,48 +214,30 @@ fn generate_walls(world: &mut WorldData) {
 
 fn generate_rocks_in_dirt(world: &mut WorldData, seed: u32) {
     println!("Generating rocks in dirt...");
+    let cavern_level = world.layer.cavern;
+    let underground_level = world.layer.underground;
+    let dirt_level = underground_level - world.layer.dirt_height - DIRT_HILL_HEIGHT;
 
-    let stone_level = world.layer.cavern + STONE_HILL_HEIGHT as usize;
-    let underground_level = world.layer.underground - DIRT_HILL_HEIGHT as usize;
+    generate_rocks(world, seed, underground_level, cavern_level, 0.2, 0.4);
+    generate_rocks(world, seed, dirt_level, cavern_level, 0.1, 0.5);
+}
 
-    let mut slice = world.blocks.slice_mut(s![underground_level..stone_level, ..]);
+fn generate_rocks(world: &mut WorldData, seed: u32, from: usize, to: usize, freq: f32, prevalence: f32) {
+    let mut slice = world.blocks.slice_mut(s![from..to, ..]);
 
-    let width = slice.ncols();
-    let height = slice.nrows();
-
-    let noise = NoiseBuilder::fbm_2d(width, height)
+    let noise = NoiseBuilder::fbm_2d(slice.ncols(), slice.nrows())
         .with_seed(seed as i32)
-        .with_freq(0.1)
+        .with_freq(freq)
         .generate_scaled(-1., 1.);
 
-    let offset_from_surface = 5;
+    for ((y, x), block) in slice.indexed_iter_mut() {
+        let index = (y * world.size.width) + x;
 
-    for y in 0..height {
-        for x in 0..width {
-            let block_above = if y < offset_from_surface {
-                None
-            } else {
-                slice[(y - offset_from_surface, x)]
-            };
+        let noise_value = noise[index];
 
-            let block = slice.get_mut((y, x)).unwrap();
-
+        if noise_value >= prevalence {
             if let Some(Block::Dirt) = block {
-                if block_above.is_none() {
-                    continue;
-                }
-            }
-
-            let a = map_range_f32(0., height as f32, 0.3, 0.7, (height - y) as f32);
-
-            let index = (y * world.size.width) + x;
-
-            let noise_value = noise[index];
-
-            if noise_value >= a {
-                if let Some(Block::Dirt) = block {
-                    *block = Some(Block::Stone);
-                }
+                *block = Some(Block::Stone);
             }
         }
     }
@@ -285,7 +250,7 @@ fn generate_dirt_in_rocks(world: &mut WorldData, seed: u32) {
 
     let noise = NoiseBuilder::fbm_2d(world.size.width, world.size.height - stone_level)
         .with_seed(seed as i32)
-        .with_freq(0.1)
+        .with_freq(0.2)
         .generate_scaled(-1., 1.);
 
     let mut slice = world.blocks.slice_mut(s![stone_level.., ..]);
@@ -295,7 +260,7 @@ fn generate_dirt_in_rocks(world: &mut WorldData, seed: u32) {
 
         let noise_value = noise[index];
 
-        if noise_value > 0.3 {
+        if noise_value >= 0.4 {
             if let Some(Block::Stone) = block {
                 *block = Some(Block::Dirt);
             }
@@ -306,9 +271,9 @@ fn generate_dirt_in_rocks(world: &mut WorldData, seed: u32) {
 fn generate_small_caves(world: &mut WorldData, seed: u32) {
     println!("Generating small caves...");
 
-    let dirt_level = world.layer.underground - DIRT_HILL_HEIGHT as usize;
+    let underground_level = world.layer.underground - world.layer.dirt_height - DIRT_HILL_HEIGHT;
 
-    let height = world.size.height - dirt_level;
+    let height = world.size.height - underground_level;
 
     let mut rng = StdRng::seed_from_u64(seed as u64);
 
@@ -319,7 +284,7 @@ fn generate_small_caves(world: &mut WorldData, seed: u32) {
         .with_freq(0.04)
         .generate_scaled(-1., 1.);
 
-    for ((y, x), block) in world.blocks.slice_mut(s![dirt_level.., ..]).indexed_iter_mut() {
+    for ((y, x), block) in world.blocks.slice_mut(s![underground_level.., ..]).indexed_iter_mut() {
         let index = (y * world.size.width) + x;
 
         let noise_value = noise[index];
@@ -336,7 +301,7 @@ fn generate_small_caves(world: &mut WorldData, seed: u32) {
 fn generate_big_caves(world: &mut WorldData, seed: u32) {
     println!("Generating big caves...");
 
-    let dirt_level = world.layer.underground + DIRT_HILL_HEIGHT as usize;
+    let dirt_level = world.layer.underground;
 
     let mut rng = StdRng::seed_from_u64(seed as u64);
 
@@ -361,7 +326,10 @@ fn generate_big_caves(world: &mut WorldData, seed: u32) {
 fn grassify(world: &mut WorldData) {
     println!("Growing grass...");
 
-    for y in 0..world.size.height {
+    let dirt_level = world.layer.underground - world.layer.dirt_height - DIRT_HILL_HEIGHT;
+    let underground_layer = world.layer.underground - world.layer.dirt_height + DIRT_HILL_HEIGHT;
+
+    for y in dirt_level..underground_layer {
         for x in 0..world.size.width {
             if world.block_exists_with_type((x, y), Block::Dirt) {
                 if Neighbors::get_square_neighboring_positions(
@@ -543,7 +511,7 @@ fn grow_trees(world: &mut WorldData, seed: u32) {
 }
 
 fn get_surface_y(world: &mut WorldData, x: usize) -> usize {
-    let mut y = world.layer.underground - DIRT_HILL_HEIGHT as usize;
+    let mut y = world.layer.underground - world.layer.dirt_height - DIRT_HILL_HEIGHT;
 
     loop {
         if world.block_exists((x, y)) {
@@ -562,4 +530,11 @@ fn replace<D: Dimension>(blocks: &mut ArrayViewMut<Option<Block>, D>, old: Optio
             *block = new;
         }
     }
+}
+
+fn set_spawn_point(world: &mut WorldData) {
+    let x = world.size.width / 2;
+    let y = get_surface_y(world, x);
+
+    world.spawn_point = TilePos::new(x as u32, y as u32);
 }

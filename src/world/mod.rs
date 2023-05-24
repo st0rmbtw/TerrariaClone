@@ -20,6 +20,7 @@ pub struct Layer {
     pub(crate) surface: usize,
     pub(crate) underground: usize,
     pub(crate) cavern: usize,
+    pub(crate) dirt_height: usize
 }
 
 #[derive(Clone, Copy)]

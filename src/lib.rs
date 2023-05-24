@@ -854,7 +854,7 @@ const WALL_COLORS: [[u8; 3]; 231] = [
 #[cfg(feature = "test-world-generator")]
 pub fn test_world_generator(world_size: WorldSize, seed: u32, draw_layers: bool) -> Result<(), Box<dyn std::error::Error>> {
     use image::{RgbImage, ImageBuffer, GenericImageView, Pixel};
-    use crate::world::generator::generate_world;
+    use crate::world::{generator::generate_world, wall::Wall};
 
     fn map_range(value: f32, in_min: f32, in_max: f32, out_min: f32, out_max: f32) -> f32 {
         return out_min + (((value - in_min) / (in_max - in_min)) * (out_max - out_min))
@@ -869,6 +869,7 @@ pub fn test_world_generator(world_size: WorldSize, seed: u32, draw_layers: bool)
     let sky_image_height = sky_image.height() as usize;
     let mut image: RgbImage = ImageBuffer::new(size.width as u32, size.height as u32);
 
+    // Draw walls
     for ((y, x), wall) in world_data.walls.indexed_iter() {
         if let Some(wall) = wall {
             let color = WALL_COLORS[wall.id() as usize];
@@ -882,6 +883,15 @@ pub fn test_world_generator(world_size: WorldSize, seed: u32, draw_layers: bool)
         }
     }
 
+    // Draw background
+    for y in world_data.layer.cavern..world_data.size.height {
+        for x in 0..world_data.size.width {
+            let color = WALL_COLORS[Wall::Dirt.id() as usize];
+            image.put_pixel(x as u32, y as u32, image::Rgb(color));
+        }
+    }
+
+    // Draw blocks
     for ((y, x), block) in world_data.blocks.indexed_iter() {
         if let Some(block) = block {
             let color = BLOCK_COLORS[block.id() as usize];
@@ -890,6 +900,7 @@ pub fn test_world_generator(world_size: WorldSize, seed: u32, draw_layers: bool)
         }
     }
 
+    // Draw layer borders
     if draw_layers {
         let surface_layer = world_data.layer.surface;
         let underground_layer = world_data.layer.underground;

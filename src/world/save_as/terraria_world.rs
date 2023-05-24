@@ -1,6 +1,6 @@
 use std::{io::{BufWriter, Write}, fs::File};
 
-use crate::world::{WorldData, generator::{DIRT_HILL_HEIGHT, STONE_HILL_HEIGHT}};
+use crate::world::WorldData;
 
 use super::DefaultResult;
 
@@ -157,13 +157,13 @@ impl WorldData {
         
         // World surface
         {
-            let world_surface = (self.layer.surface + DIRT_HILL_HEIGHT as usize) as f64;
+            let world_surface = self.layer.surface as f64;
             world_writer.write_all(&world_surface.to_le_bytes())?;
         }
 
         // Rock layer
         {
-            let spawn_tile_y = (self.layer.surface + STONE_HILL_HEIGHT as usize) as f64;
+            let spawn_tile_y = self.layer.cavern as f64;
             world_writer.write_all(&spawn_tile_y.to_le_bytes())?;
         }
 
