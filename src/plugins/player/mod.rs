@@ -112,18 +112,15 @@ impl Plugin for PlayerPlugin {
         {
             use bevy::input::common_conditions::input_just_pressed;
 
-            app.add_system(
-                draw_hitbox
-                    .run_if(|config: Res<DebugConfiguration>| config.show_hitboxes)
-                    .in_set(OnUpdate(GameState::InGame))
-            );
-
-            app.add_system(
-                teleport_player
-                    .run_if(
+            app.add_systems(
+                (
+                    draw_hitbox.run_if(|config: Res<DebugConfiguration>| config.show_hitboxes),
+                    teleport_player.run_if(
                         (|config: Res<DebugConfiguration>| config.free_camera)
                             .and_then(input_just_pressed(MouseButton::Right))
                     )
+                )
+                .in_set(OnUpdate(GameState::InGame))
             );
 
             app.add_system(current_speed);

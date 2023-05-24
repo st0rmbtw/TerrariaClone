@@ -25,12 +25,10 @@ impl Plugin for ParallaxPlugin {
             speed: self.initial_speed * 1000.,
         });
 
-        app.add_system(parallax_container_added);
-
         app.add_systems(
             (
-                // update_window_size,
-                update_layer_textures_system.after(ParallaxSet::FollowCamera),
+                parallax_container_added,
+                update_layer_textures_system.after(ParallaxSet::FollowCamera)
             )
         );
     }

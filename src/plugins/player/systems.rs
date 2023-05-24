@@ -146,7 +146,7 @@ pub(super) fn detect_collisions(
                         if is_enough_space && is_bottom_tile {
                             move_player_up = true;
                             transform.translation.y = tile_rect.top() + player_rect.height / 2.;
-                            debug!("Move player up");
+                            velocity.y = 0.;
                             continue;
                         }
 

@@ -163,6 +163,11 @@ impl WorldData {
     }
 
     #[inline]
+    pub(crate) fn solid_block_exists_with_type<Pos: AsWorldPos>(&self, world_pos: Pos, block_type: Block) -> bool {
+        if let Some(block) = self.get_solid_block(world_pos) { *block == block_type } else { false }
+    }
+
+    #[inline]
     pub(crate) fn solid_block_not_exists<Pos: AsWorldPos>(&self, world_pos: Pos) -> bool {
         !self.solid_block_exists(world_pos)
     }
