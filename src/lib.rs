@@ -852,7 +852,7 @@ const WALL_COLORS: [[u8; 3]; 231] = [
 ];
 
 #[cfg(feature = "test-world-generator")]
-pub fn test_world_generator(world_size: WorldSize, seed: u32) -> Result<(), Box<dyn std::error::Error>> {
+pub fn test_world_generator(world_size: WorldSize, seed: u32, draw_layers: bool) -> Result<(), Box<dyn std::error::Error>> {
     use image::{RgbImage, ImageBuffer, GenericImageView, Pixel};
     use crate::world::generator::generate_world;
 
@@ -887,6 +887,18 @@ pub fn test_world_generator(world_size: WorldSize, seed: u32) -> Result<(), Box<
             let color = BLOCK_COLORS[block.id() as usize];
 
             image.put_pixel(x as u32, y as u32, image::Rgb(color));
+        }
+    }
+
+    if draw_layers {
+        let surface_layer = world_data.layer.surface;
+        let underground_layer = world_data.layer.underground;
+        let cavern_layer = world_data.layer.cavern;
+
+        for x in 0..world_data.size.width {
+            image.put_pixel(x as u32, surface_layer as u32, image::Rgb([255, 0, 0]));
+            image.put_pixel(x as u32, underground_layer as u32, image::Rgb([255, 0, 0]));
+            image.put_pixel(x as u32, cavern_layer as u32, image::Rgb([255, 0, 0]));
         }
     }
 

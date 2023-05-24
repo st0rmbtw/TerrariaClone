@@ -33,9 +33,9 @@ pub(crate) fn generate_world(seed: u32, world_size: WorldSize) -> WorldData {
     let walls = WallArray::default((world_size.height, world_size.width));
 
     let layer = Layer {
-        surface: 0,
-        underground: world_size.height / 5,
-        cavern: world_size.height / 4,
+        surface: world_size.height / 3,
+        underground: world_size.height / 3,
+        cavern: world_size.height / 2,
     };
 
     let mut world = WorldData {
@@ -156,8 +156,6 @@ fn make_hills(world: &mut WorldData, seed: u32) {
 }
 
 fn stone_in_dirt(world: &mut WorldData, seed: u32) {
-    println!("Making hills...");
-
     let mut rng = StdRng::seed_from_u64(seed as u64);
 
     let noise = NoiseBuilder::gradient_1d(world.size.width)
@@ -208,26 +206,24 @@ fn generate_walls(world: &mut WorldData) {
     println!("Generating walls...");
 
     let dirt_level = world.layer.underground - DIRT_HILL_HEIGHT as usize;
+    let cavern_layer = world.layer.cavern + STONE_HILL_HEIGHT as usize;
 
-    for ((y, x), wall) in world.walls.slice_mut(s![dirt_level.., ..]).indexed_iter_mut() {
-        if y < dirt_level && world.blocks[(dirt_level + y, x)].is_none() {
-            continue;
-        }
-
-        if x == 0 { continue; }
-
-        let block_exists = |y: usize, x: usize| -> bool {
+    for ((y, x), wall) in world.walls.slice_mut(s![dirt_level..cavern_layer, ..]).indexed_iter_mut() {
+        let block_not_exists = |y: usize, x: usize| -> bool {
             world.blocks.get((y, x)).and_then(|b| b.as_ref()).is_none()
         };
 
-        if block_exists(dirt_level + y - 1, x) { continue; }
-        if block_exists(dirt_level + y - 1, x) { continue; }
-        if block_exists(dirt_level + y, x - 1) { continue; }
-        if block_exists(dirt_level + y, x + 1) { continue; }
-        if block_exists(dirt_level + y - 1, x - 1) { continue; }
-        if block_exists(dirt_level + y + 1, x - 1) { continue; }
-        if block_exists(dirt_level + y + 1, x + 1) { continue; }
-        if block_exists(dirt_level + y - 1, x + 1) { continue; }
+        let prev_x = x.saturating_sub(1);
+        let next_x = (x + 1).clamp(0, world.size.width);
+
+        if block_not_exists(dirt_level + y - 1, x) { continue; }
+        if block_not_exists(dirt_level + y + 1, x) { continue; }
+        if block_not_exists(dirt_level + y, prev_x) { continue; }
+        if block_not_exists(dirt_level + y, next_x) { continue; }
+        if block_not_exists(dirt_level + y - 1, prev_x) { continue; }
+        if block_not_exists(dirt_level + y + 1, prev_x) { continue; }
+        if block_not_exists(dirt_level + y + 1, next_x) { continue; }
+        if block_not_exists(dirt_level + y - 1, next_x) { continue; }
 
         *wall = Some(Wall::Dirt);
     }
@@ -237,18 +233,22 @@ fn generate_rocks_in_dirt(world: &mut WorldData, seed: u32) {
     println!("Generating rocks in dirt...");
 
     let stone_level = world.layer.cavern + STONE_HILL_HEIGHT as usize;
+    let underground_level = world.layer.underground - DIRT_HILL_HEIGHT as usize;
 
-    let noise = NoiseBuilder::fbm_2d(world.size.width, world.size.height - stone_level)
+    let mut slice = world.blocks.slice_mut(s![underground_level..stone_level, ..]);
+
+    let width = slice.ncols();
+    let height = slice.nrows();
+
+    let noise = NoiseBuilder::fbm_2d(width, height)
         .with_seed(seed as i32)
-        .with_freq(0.2)
+        .with_freq(0.1)
         .generate_scaled(-1., 1.);
-
-    let mut slice = world.blocks.slice_mut(s![..stone_level, ..]);
 
     let offset_from_surface = 5;
 
-    for y in 0..slice.nrows() {
-        for x in 0..slice.ncols() {
+    for y in 0..height {
+        for x in 0..width {
             let block_above = if y < offset_from_surface {
                 None
             } else {
@@ -263,11 +263,13 @@ fn generate_rocks_in_dirt(world: &mut WorldData, seed: u32) {
                 }
             }
 
+            let a = map_range_f32(0., height as f32, 0.3, 0.7, (height - y) as f32);
+
             let index = (y * world.size.width) + x;
 
             let noise_value = noise[index];
 
-            if noise_value > 0.5 {
+            if noise_value >= a {
                 if let Some(Block::Dirt) = block {
                     *block = Some(Block::Stone);
                 }

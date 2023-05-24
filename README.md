@@ -1,4 +1,4 @@
-## Tasks
+## TODO
 |      Name       |                                                        Description                                                  |   Status    |
 | :---            |                                                            :---                                                     |   :---:     |
 | Settings        | Create a settings menu, make `Resolution`, `VSync`, `MSAA`, `Language`, `Show tile grid` changable from the screen. |  Completed  |

@@ -103,10 +103,10 @@ impl Plugin for LightingPlugin {
             .add_system(system_queue_bind_groups.in_set(RenderSet::Queue));
 
         let mut render_graph = render_app.world.resource_mut::<RenderGraph>();
-        render_graph.add_node("light_pass_2d", LightPass2DNode::default());
+        render_graph.add_node("light_pass", LightPass2DNode::default());
         render_graph
             .add_node_edge(
-                "light_pass_2d",
+                "light_pass",
                 bevy::render::main_graph::node::CAMERA_DRIVER,
             );
     }
@@ -183,7 +183,7 @@ impl render_graph::Node for LightPass2DNode {
                     render_context
                         .command_encoder()
                         .begin_compute_pass(&ComputePassDescriptor {
-                            label: Some("light_pass_2d"),
+                            label: Some("light_pass"),
                         });
 
                 {
