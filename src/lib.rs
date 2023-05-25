@@ -142,7 +142,7 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
     Ok(app)
 }
 
-#[cfg(feature = "test-world-generator")]
+#[cfg(feature = "world_image")]
 const BLOCK_COLORS: [[u8; 3]; 470] = [
     [151, 107, 75], // 0
     [128, 128, 128], // 1
@@ -616,7 +616,7 @@ const BLOCK_COLORS: [[u8; 3]; 470] = [
     [191, 142, 111] // 469
 ];
 
-#[cfg(feature = "test-world-generator")]
+#[cfg(feature = "world_image")]
 const WALL_COLORS: [[u8; 3]; 231] = [
     [0, 0, 0], // 0
     [52, 52, 52], // 1
@@ -851,7 +851,7 @@ const WALL_COLORS: [[u8; 3]; 231] = [
     [0, 117, 101] // 230
 ];
 
-#[cfg(feature = "test-world-generator")]
+#[cfg(feature = "world_image")]
 pub fn test_world_generator(world_size: WorldSize, seed: u32, draw_layers: bool) -> Result<(), Box<dyn std::error::Error>> {
     use image::{RgbImage, ImageBuffer, GenericImageView, Pixel};
     use crate::world::{generator::generate_world, wall::Wall};
@@ -884,7 +884,7 @@ pub fn test_world_generator(world_size: WorldSize, seed: u32, draw_layers: bool)
     }
 
     // Draw background
-    for y in world_data.layer.cavern..world_data.size.height {
+    for y in world_data.layer.underground..world_data.size.height {
         for x in 0..world_data.size.width {
             let color = WALL_COLORS[Wall::Dirt.id() as usize];
             image.put_pixel(x as u32, y as u32, image::Rgb(color));

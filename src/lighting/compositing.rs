@@ -22,7 +22,7 @@ use crate::{
         world::{LightMap, TILE_SIZE},
         camera::{MainCamera, UpdateLightEvent, LightMapCamera}
     },
-    world::WorldData, DebugConfiguration
+    world::WorldData
 };
 
 use super::pipeline::PipelineTargetsWrapper;
@@ -111,7 +111,6 @@ pub(super) fn update_image_to_window_size(
 }
 
 pub(super) fn update_lighting_material(
-    debug_config: Res<DebugConfiguration>,
     cameras: Query<
         (
             &GlobalTransform,
@@ -323,6 +322,9 @@ pub(super) fn setup_post_processing_camera(
         ));
     }
 }
+
+#[cfg(feature = "debug")]
+use crate::DebugConfiguration;
 
 #[cfg(feature = "debug")]
 pub(super) fn set_shadow_map_visibility(

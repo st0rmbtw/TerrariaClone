@@ -7,18 +7,19 @@ use bevy::{
         renderer::RenderContext, 
         render_resource::{PipelineCache, ComputePassDescriptor, Extent3d}, ExtractSchedule, RenderSet
     }, 
-    prelude::{Shader, Vec2, ResMut, Res, World, Plugin, App, default, EventReader, Assets, Image, warn, IntoSystemConfig, resource_exists, OnUpdate, IntoSystemAppConfig, in_state, CoreSet},
+    prelude::{Shader, Vec2, ResMut, Res, World, Plugin, App, default, EventReader, Assets, Image, warn, IntoSystemConfig, resource_exists, OnUpdate, IntoSystemAppConfig, in_state, CoreSet, Mesh, shape, Transform, Vec3, Name, Color, Commands, Component, Query, Input, KeyCode, MouseButton, With, OnEnter},
     window::WindowResized,
-    asset::load_internal_asset, sprite::Material2dPlugin,
+    asset::load_internal_asset, sprite::{Material2dPlugin, ColorMaterial, MaterialMesh2dBundle}, input::common_conditions::input_just_pressed,
 };
+use rand::{thread_rng, Rng};
 
-use crate::{plugins::{camera::CameraSet, settings::Resolution}, lighting::{compositing::{PostProcessingMaterial, setup_post_processing_camera, update_image_to_window_size, update_lighting_material, update_light_map}, constants::{SHADER_ATTENUATION, SHADER_MATH}}, common::state::GameState, world::WorldData};
+use crate::{plugins::{camera::CameraSet, settings::Resolution, cursor::CursorPosition}, lighting::{compositing::{PostProcessingMaterial, setup_post_processing_camera, update_image_to_window_size, update_lighting_material, update_light_map}, constants::{SHADER_ATTENUATION, SHADER_MATH}}, common::{state::GameState, helpers::toggle_visibility}, world::WorldData};
 
 use self::{
     pipeline::{LightPassPipelineBindGroups, PipelineTargetsWrapper, system_setup_pipeline, LightPassPipeline, system_queue_bind_groups}, 
     resource::{LightPassParams, ComputedTargetSizes}, 
     constants::{SHADER_CAMERA, SHADER_TYPES, SCREEN_PROBE_SIZE}, 
-    pipeline_assets::{LightPassPipelineAssets, system_extract_pipeline_assets, system_prepare_pipeline_assets}
+    pipeline_assets::{LightPassPipelineAssets, system_extract_pipeline_assets, system_prepare_pipeline_assets}, types::LightSource
 };
 
 pub mod resource;
@@ -34,29 +35,36 @@ const WORKGROUP_SIZE: u32 = 8;
 pub(crate) struct LightingPlugin;
 impl Plugin for LightingPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_plugin(ExtractResourcePlugin::<PipelineTargetsWrapper>::default())
-            .add_plugin(Material2dPlugin::<PostProcessingMaterial>::default())
+        app.add_plugin(ExtractResourcePlugin::<PipelineTargetsWrapper>::default());
+        app.add_plugin(Material2dPlugin::<PostProcessingMaterial>::default());
             
-            .init_resource::<PipelineTargetsWrapper>()
-            .init_resource::<ComputedTargetSizes>()
-            .insert_resource(LightPassParams {
-                reservoir_size: 16
-            })
+        app.init_resource::<PipelineTargetsWrapper>();
+        app.init_resource::<ComputedTargetSizes>();
+        app.insert_resource(LightPassParams {
+            reservoir_size: 16
+        });
 
-            .add_startup_system(detect_target_sizes)
-            .add_startup_system(system_setup_pipeline.after(detect_target_sizes))
+        app.add_startup_system(detect_target_sizes);
+        app.add_startup_system(system_setup_pipeline.after(detect_target_sizes));
 
-            .add_system(setup_post_processing_camera.run_if(resource_exists::<WorldData>()))
-            .add_system(update_image_to_window_size)
-            .add_system(resize_lighting_target)
-            .add_system(
-                update_lighting_material
-                    .run_if(in_state(GameState::InGame))
-                    .in_base_set(CoreSet::PostUpdate)
-                    .after(CameraSet::MoveCamera)
-            )
-            .add_system(update_light_map.in_set(OnUpdate(GameState::InGame)));
+        app.add_system(setup_post_processing_camera.run_if(resource_exists::<WorldData>()));
+        app.add_system(update_image_to_window_size);
+        app.add_system(resize_lighting_target);
+        app.add_system(update_light_map.in_set(OnUpdate(GameState::InGame)));
+        app.add_system(
+            update_lighting_material
+                .run_if(in_state(GameState::InGame))
+                .in_base_set(CoreSet::PostUpdate)
+                .after(CameraSet::MoveCamera)
+        );
+        
+        // app.add_system(spawn_mouse_light.in_schedule(OnEnter(GameState::InGame)));
+        // app.add_system(control_mouse_light.in_set(OnUpdate(GameState::InGame)));
+        // app.add_system(
+        //     toggle_visibility::<MouseLight>
+        //         .run_if(input_just_pressed(KeyCode::F1))
+        //         .in_set(OnUpdate(GameState::InGame))
+        // );
 
         #[cfg(feature = "debug")] {
             app.add_system(
@@ -154,6 +162,56 @@ fn resize_lighting_target(
                     .resize(extent);
             }
         }
+    }
+}
+
+
+#[derive(Component)]
+pub(super) struct MouseLight;
+
+fn spawn_mouse_light(
+    mut commands: Commands,
+    mut color_materials: ResMut<Assets<ColorMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+) {
+    let block_mesh = meshes.add(Mesh::from(shape::Quad::new(Vec2::ZERO)));
+
+    commands
+        .spawn(MaterialMesh2dBundle {
+            mesh: block_mesh.into(),
+            material: color_materials.add(ColorMaterial::from(Color::YELLOW)),
+            transform: Transform {
+                translation: Vec3::new(0.0, 0.0, 1000.0),
+                scale: Vec3::splat(8.0),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Name::new("Cursor Light"))
+        .insert(LightSource {
+            intensity: 10.,
+            radius: 100.,
+            jitter_intensity: 0.7,
+            jitter_translation: 0.1,
+            color: Color::rgb_u8(254, 100, 34)
+        })
+        .insert(MouseLight);
+}
+
+pub(super) fn control_mouse_light(
+    mut query: Query<(&mut Transform, &mut LightSource), With<MouseLight>>,
+    cursor_position: Res<CursorPosition>,
+    input_keyboard: Res<Input<KeyCode>>,
+    input_mouse: Res<Input<MouseButton>>,
+) {
+    let mut rng = thread_rng();
+
+    let (mut transform, mut light_source) = query.single_mut();
+
+    transform.translation = cursor_position.world_position.extend(10.);
+
+    if input_mouse.just_pressed(MouseButton::Right) && input_keyboard.pressed(KeyCode::LShift) {
+        light_source.color = Color::rgba(rng.gen(), rng.gen(), rng.gen(), 1.0);
     }
 }
 

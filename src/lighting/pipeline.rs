@@ -200,7 +200,7 @@ impl FromWorld for LightPassPipeline {
 
         let asset_server = world.resource::<AssetServer>();
 
-        let lighting = asset_server.load("shaders/lighting.wgsl");
+        let lighting = asset_server.load("shaders/mouse_light.wgsl");
 
         let pipeline_cache = world.resource::<PipelineCache>();
 

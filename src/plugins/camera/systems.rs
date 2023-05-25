@@ -2,24 +2,21 @@ use autodefault::autodefault;
 use bevy::{
     prelude::{
         Commands, Camera2dBundle, OrthographicProjection, Transform, Res, KeyCode, Query, 
-        With, default, ResMut, Assets, Vec3, Mesh, shape, Input, Color, Name, MouseButton, Vec2,
+        With, Input,
         Without, Changed
     }, 
-    time::Time, sprite::{MaterialMesh2dBundle, ColorMaterial}
+    time::Time
 };
-use rand::{thread_rng, Rng};
 
-use crate::{parallax::ParallaxCameraComponent, plugins::{world::TILE_SIZE, cursor::CursorPosition}, lighting::types::LightSource, common::helpers::tile_pos_to_world_coords, world::WorldData};
+use crate::{parallax::ParallaxCameraComponent, plugins::{world::TILE_SIZE}, common::helpers::tile_pos_to_world_coords, world::WorldData};
 
 use crate::plugins::player::Player;
 
-use super::{MainCamera, CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, MouseLight, LightMapCamera};
+use super::{MainCamera, CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, LightMapCamera};
 
 #[autodefault(except(TextureDescriptor, ShadowMapMaterial, LightMapMaterial, SunMaterial, LightingMaterial))]
 pub(super) fn setup_camera(
     mut commands: Commands,
-    mut color_materials: ResMut<Assets<ColorMaterial>>,
-    mut meshes: ResMut<Assets<Mesh>>,
     world_data: Res<WorldData>
 ) {
     let player_spawn_point = tile_pos_to_world_coords(world_data.spawn_point);
@@ -36,29 +33,6 @@ pub(super) fn setup_camera(
                 transform: Transform::from_xyz(player_spawn_point.x, player_spawn_point.y, 500.)
             }
         ));
-
-    let block_mesh = meshes.add(Mesh::from(shape::Quad::new(Vec2::ZERO)));
-
-    commands
-        .spawn(MaterialMesh2dBundle {
-            mesh: block_mesh.into(),
-            material: color_materials.add(ColorMaterial::from(Color::YELLOW)),
-            transform: Transform {
-                translation: Vec3::new(0.0, 0.0, 1000.0),
-                scale: Vec3::splat(8.0),
-                ..default()
-            },
-            ..default()
-        })
-        .insert(Name::new("Cursor Light"))
-        .insert(LightSource {
-            intensity: 10.,
-            radius: 100.,
-            jitter_intensity: 0.7,
-            jitter_translation: 0.1,
-            color: Color::rgb_u8(254, 100, 34)
-        })
-        .insert(MouseLight);
 }
 
 pub(super) fn zoom(
@@ -107,23 +81,6 @@ pub(super) fn follow_player(
     }
 }
 
-pub(super) fn control_mouse_light(
-    mut query: Query<(&mut Transform, &mut LightSource), With<MouseLight>>,
-    cursor_position: Res<CursorPosition>,
-    input_keyboard: Res<Input<KeyCode>>,
-    input_mouse: Res<Input<MouseButton>>,
-) {
-    let mut rng = thread_rng();
-
-    let (mut transform, mut light_source) = query.single_mut();
-
-    transform.translation = cursor_position.world_position.extend(10.);
-
-    if input_mouse.just_pressed(MouseButton::Right) && input_keyboard.pressed(KeyCode::LShift) {
-        light_source.color = Color::rgba(rng.gen(), rng.gen(), rng.gen(), 1.0);
-    }
-}
-
 #[cfg(feature = "debug")]
 pub(super) fn free_camera(
     time: Res<Time>,
@@ -131,6 +88,8 @@ pub(super) fn free_camera(
     input: Res<bevy::prelude::Input<KeyCode>>,
     world_data: Res<WorldData>
 ) {
+    use bevy::prelude::Vec2;
+
     use super::CAMERA_MOVE_SPEED;
 
     if let Ok((mut camera_transform, projection)) = camera.get_single_mut() {

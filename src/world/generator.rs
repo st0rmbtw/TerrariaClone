@@ -132,7 +132,7 @@ fn make_hills(world: &mut WorldData, seed: u32) {
             let hill_height = level + (-noise_value * DIRT_HILL_HEIGHT as f32) as usize;
 
             if block_x != x_offset {
-                let mut slice = world.blocks.slice_mut(s![level..hill_height, x_range.clone()]);
+                let mut slice = world.blocks.slice_mut(s![level..hill_height, x_range]);
                 replace(&mut slice, Some(Block::Dirt), None);
                 replace(&mut slice, Some(Block::Stone), Some(Block::Dirt));
             } else {
@@ -191,7 +191,7 @@ fn generate_walls(world: &mut WorldData) {
     println!("Generating walls...");
 
     let dirt_level = world.layer.underground - world.layer.dirt_height - DIRT_HILL_HEIGHT;
-    let cavern_layer = world.layer.cavern;
+    let cavern_layer = world.layer.underground;
 
     for ((y, x), wall) in world.walls.slice_mut(s![dirt_level..cavern_layer, ..]).indexed_iter_mut() {
         let block_not_exists = |y: usize, x: usize| -> bool {
@@ -355,7 +355,7 @@ fn grassify(world: &mut WorldData) {
 
         world.set_block((x, y), &Block::Grass);
     
-        while queue.len() > 0 {
+        while !queue.is_empty() {
             let coord = queue[queue.len() - 1];
             queue.pop_back();
     
@@ -417,7 +417,6 @@ fn grassify(world: &mut WorldData) {
     flood_fill(world, start_x, y);
 }
 
-#[allow(dead_code)]
 fn grow_tree(world: &mut WorldData, rng: &mut StdRng, root_pos: impl AsWorldPos) {
     let height: usize = rng.gen_range(5..=16);
 
@@ -564,7 +563,6 @@ fn grow_tree(world: &mut WorldData, rng: &mut StdRng, root_pos: impl AsWorldPos)
     world.blocks[(root_pos_y - height - 1, root_pos_x)] = Some(tree!(TreeType::Forest, frame_type, variant));
 }
 
-#[allow(dead_code)]
 fn grow_trees(world: &mut WorldData, seed: u32) {
     println!("Growing trees...");
 

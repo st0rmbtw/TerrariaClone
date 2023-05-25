@@ -28,11 +28,11 @@ incremental=true
 
 [profile.release]
 opt-level = 3
-lto = true
+lto = false
 
 [profile.dev.package."*"]
 opt-level = 3
 
 [features]
 debug = ["dep:bevy_prototype_debug_lines", "dep:bevy-inspector-egui"]
-test-world-generator = ["dep:image"]
+world_image = ["dep:image"]

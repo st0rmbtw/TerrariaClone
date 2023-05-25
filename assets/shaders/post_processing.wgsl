@@ -73,7 +73,7 @@ fn fragment(
 
     // Light map is shifted a bit without this offset, i have no idea why this is happening
     //                                                            ↓
-    let player_uv = player_position.xy / (world_size_px - vec2(16., 42.));
+    let player_uv = player_position.xy / (world_size_px - vec2(16., 16.));
 
     var light_map_uv = vec2(0.);
     {

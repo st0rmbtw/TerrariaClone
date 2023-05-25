@@ -3,7 +3,7 @@ use bevy::{prelude::*, sprite::Anchor};
 /// Layer speed type.
 /// Layers with horizontal or vertical speed are only able to travel in one direction,
 /// while bidirectional layers can be scrolled endlessly in both directions.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) enum LayerSpeed {
     Horizontal(f32),
     Vertical(f32),
@@ -11,7 +11,7 @@ pub(crate) enum LayerSpeed {
 }
 
 /// Layer initialization data
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct LayerData {
     /// Relative speed of layer to the camera movement
     pub(crate) speed: LayerSpeed,

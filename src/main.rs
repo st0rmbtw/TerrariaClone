@@ -2,13 +2,13 @@
 
 use std::error::Error;
 
-#[cfg(not(feature = "test-world-generator"))]
+#[cfg(not(feature = "world_image"))]
 fn main() -> Result<(), Box<dyn Error>> {
     game::create_app()?.run();
     Ok(())
 }
 
-#[cfg(feature = "test-world-generator")]
+#[cfg(feature = "world_image")]
 fn main() -> Result<(), Box<dyn Error>> {
     use std::time::{SystemTime, UNIX_EPOCH};
     

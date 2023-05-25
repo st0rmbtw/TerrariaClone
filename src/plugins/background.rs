@@ -20,8 +20,9 @@ impl Plugin for BackgroundPlugin {
         app.add_systems(
             (
                 despawn_menu_background,
-                setup_forest_background,
-                setup_ingame_background
+                spawn_sky_background,
+                spawn_ingame_background,
+                spawn_forest_background,
             )
             .chain()
             .in_schedule(OnEnter(GameState::InGame))
@@ -37,7 +38,6 @@ impl Plugin for BackgroundPlugin {
         app.add_system(
             follow_camera_system
                 .in_set(OnUpdate(GameState::InGame))
-                // .after(CameraSet::MoveCamera)
         );
     }
 }
@@ -180,13 +180,34 @@ fn setup_main_menu_background(
     ));
 }
 
-fn setup_ingame_background(
+fn spawn_sky_background(
+    mut commands: Commands,
+    backgrounds: Res<BackgroundAssets>,
+) {
+    commands.spawn((
+        Name::new("Sky Parallax Container"),
+        ParallaxContainer::new(vec![
+            LayerData {
+                speed: LayerSpeed::Bidirectional(1., 1.),
+                image: backgrounds.background_0.clone_weak(),
+                z: 0.0,
+                transition_factor: 1.,
+                scale: 6.,
+                position: Vec2::splat(TILE_SIZE / 2.),
+                anchor: Anchor::TopCenter,
+                ..default()
+            },
+        ])
+    ));
+}
+
+fn spawn_ingame_background(
     mut commands: Commands,
     backgrounds: Res<BackgroundAssets>,
     world_data: Res<WorldData>,
     images: Res<Assets<Image>>
 ) {
-    let cavern_layer = world_data.layer.cavern as f32 * TILE_SIZE;
+    let underground_level = world_data.layer.underground as f32 * TILE_SIZE;
     let world_height = world_data.size.height as f32 * TILE_SIZE;
 
     let image = images.get(&backgrounds.background_78).unwrap();
@@ -194,29 +215,28 @@ fn setup_ingame_background(
 
     let mut layers = Vec::new();
 
-    layers.push(LayerData {
-        speed: LayerSpeed::Horizontal(0.9),
-        image: backgrounds.background_77.clone_weak(),
+    let layer_options = LayerData {
+        speed: LayerSpeed::Horizontal(0.8),
         z: 0.5,
         transition_factor: 1.2,
         scale: 1.,
-        position: Vec2::NEG_Y * cavern_layer,
-        anchor: Anchor::BottomCenter,
         ..default()
+    };
+
+    layers.push(LayerData {
+        image: backgrounds.background_77.clone_weak(),
+        position: Vec2::NEG_Y * underground_level,
+        anchor: Anchor::BottomCenter,
+        ..layer_options.clone()
     });
 
-    let mut position = cavern_layer;
-
+    let mut position = underground_level;
     while position < world_height {
         layers.push(LayerData {
-            speed: LayerSpeed::Horizontal(0.9),
             image: backgrounds.background_78.clone_weak(),
-            z: 0.5,
-            transition_factor: 1.2,
-            scale: 1.,
             position: Vec2::NEG_Y * position,
             anchor: Anchor::TopCenter,
-            ..default()
+            ..layer_options.clone()
         });
         
         position += image_height;
@@ -229,7 +249,7 @@ fn setup_ingame_background(
     ));
 }
 
-fn setup_forest_background(
+fn spawn_forest_background(
     mut commands: Commands,
     backgrounds: Res<BackgroundAssets>,
     world_data: Res<WorldData>
@@ -244,7 +264,7 @@ fn setup_forest_background(
                 z: 0.4,
                 transition_factor: 1.,
                 scale: 2.,
-                position: (world_data.layer.underground - world_data.layer.dirt_height + DIRT_HILL_HEIGHT as usize) as f32 * TILE_SIZE * Vec2::NEG_Y,
+                position: (world_data.layer.underground - world_data.layer.dirt_height + DIRT_HILL_HEIGHT) as f32 * TILE_SIZE * Vec2::NEG_Y,
                 anchor: Anchor::Center,
                 ..default()
             },
@@ -266,16 +286,6 @@ fn setup_forest_background(
                 scale: 1.5,
                 position: (world_data.layer.underground - world_data.layer.dirt_height) as f32 * TILE_SIZE * Vec2::NEG_Y,
                 anchor: Anchor::BottomCenter,
-                ..default()
-            },
-            LayerData {
-                speed: LayerSpeed::Bidirectional(1., 1.),
-                image: backgrounds.background_0.clone_weak(),
-                z: 0.0,
-                transition_factor: 1.,
-                scale: 5.,
-                position: Vec2::splat(TILE_SIZE / 2.),
-                anchor: Anchor::TopCenter,
                 ..default()
             },
         ])

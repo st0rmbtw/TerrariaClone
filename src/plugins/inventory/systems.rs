@@ -506,7 +506,7 @@ pub(super) fn set_using_item_position(
 
     let position = get_animation_points()[**index];
 
-    transform.translation.x = position.x * f32::from(*direction);
+    transform.translation.x = position.x * f32::from(direction);
     transform.translation.y = position.y;
 }
 
@@ -519,7 +519,7 @@ pub(super) fn set_using_item_rotation(
     let direction = query_player.single();
     let mut transform = query_using_item.single_mut();
 
-    let direction_f = f32::from(*direction);
+    let direction_f = f32::from(direction);
 
     // 0..1
     let rotation = (**swing_cooldown as f32) / (**swing_cooldown_max as f32);
