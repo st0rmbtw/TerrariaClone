@@ -10,9 +10,7 @@ pub(crate) use layer::*;
 
 use crate::plugins::camera::MainCamera;
 
-pub struct ParallaxPlugin {
-    pub initial_speed: f32,
-}
+pub struct ParallaxPlugin;
 
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
 pub(crate) enum ParallaxSet {
@@ -21,10 +19,6 @@ pub(crate) enum ParallaxSet {
 
 impl Plugin for ParallaxPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(ParallaxMoveSpeed {
-            speed: self.initial_speed * 1000.,
-        });
-
         app.add_systems(
             (
                 parallax_container_added,
@@ -52,11 +46,6 @@ impl ParallaxContainer {
             processed: false
         }
     }
-}
-
-#[derive(Resource)]
-struct ParallaxMoveSpeed {
-    speed: f32,
 }
 
 fn parallax_container_added(
@@ -146,23 +135,24 @@ fn parallax_container_added(
 #[derive(Component)]
 pub(crate) struct ParallaxCameraComponent;
 
-#[inline(always)]
-pub(crate) fn move_background_system() -> impl IntoSystemConfig<()> {
-    parallax_animation_system
-        .in_set(ParallaxSet::FollowCamera)
-}
-
 /// Move camera and background layers
-fn parallax_animation_system(
-    time: Res<Time>,
-    mut camera_query: Query<&mut Transform, With<ParallaxCameraComponent>>,
-    mut layer_query: Query<(&mut Transform, &LayerComponent), Without<ParallaxCameraComponent>>,
-    parallax_speed: Res<ParallaxMoveSpeed>,
-) {
-    if let Some(mut camera_transform) = camera_query.iter_mut().next() {
-        camera_transform.translation.x += parallax_speed.speed * time.delta_seconds();
-        for (mut layer_transform, layer) in layer_query.iter_mut() {
-            layer_transform.translation.x += parallax_speed.speed * layer.speed.x * time.delta_seconds();
+pub(crate) fn parallax_animation_system(
+    speed: f32,    
+) -> impl FnMut(
+    Res<Time>,
+    Query<&mut Transform, With<ParallaxCameraComponent>>,
+    Query<(&mut Transform, &LayerComponent), Without<ParallaxCameraComponent>>
+) -> () {
+    move |
+        time: Res<Time>,
+        mut camera_query: Query<&mut Transform, With<ParallaxCameraComponent>>,
+        mut layer_query: Query<(&mut Transform, &LayerComponent), Without<ParallaxCameraComponent>>
+    | {
+        if let Some(mut camera_transform) = camera_query.iter_mut().next() {
+            camera_transform.translation.x += speed * time.delta_seconds();
+            for (mut layer_transform, layer) in layer_query.iter_mut() {
+                layer_transform.translation.x += speed * layer.speed.x * time.delta_seconds();
+            }
         }
     }
 }

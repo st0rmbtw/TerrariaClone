@@ -62,13 +62,13 @@ pub(crate) fn generate_world(seed: u32, world_size: WorldSize) -> WorldData {
 
     generate_big_caves(&mut world, seed);   
 
-    grassify(&mut world);
-
     generate_rocks_in_dirt(&mut world, seed);
 
     generate_dirt_in_rocks(&mut world, seed);
 
     rough_cavern_layer_border(&mut world, seed);
+
+    grassify(&mut world);
 
     grow_trees(&mut world, seed);
 
@@ -109,7 +109,7 @@ fn make_hills(world: &mut WorldData, seed: u32) {
 
     for (block_x, noise_value) in noise.iter().enumerate() {
         let x_offset = {
-            let offset = rng.gen_range(-5f32..5f32);
+            let offset = rng.gen_range(-20f32..20f32);
 
             ((block_x as f32 + offset) as usize).clamp(0, world.size.width - 1)
         };
@@ -327,14 +327,6 @@ fn generate_big_caves(world: &mut WorldData, seed: u32) {
 fn grassify(world: &mut WorldData) {
     println!("Growing grass...");
 
-    let mut start_x = 0usize;
-    let mut y = get_surface_y(world, start_x);
-
-    while !world.block_exists_with_type((start_x, y), Block::Dirt) {
-        start_x += 1;
-        y = get_surface_y(world, start_x);
-    }
-
     fn is_valid(world: &mut WorldData, x: usize, y: usize) -> bool {
         if x >= world.size.width { return false; }
         if y >= world.size.height { return false; }
@@ -414,7 +406,13 @@ fn grassify(world: &mut WorldData) {
         }
     }
 
-    flood_fill(world, start_x, y);
+    for x in 0..world.size.width {
+        let y = get_surface_y(world, x);
+        if world.block_exists_with_type((x, y), Block::Dirt) {
+            flood_fill(world, x, y);
+        }
+    }
+
 }
 
 fn grow_tree(world: &mut WorldData, rng: &mut StdRng, root_pos: impl AsWorldPos) {

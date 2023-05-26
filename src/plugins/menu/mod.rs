@@ -7,9 +7,9 @@ mod role;
 use components::*;
 use systems::*;
 
-use bevy::prelude::{Plugin, App, IntoSystemAppConfig, IntoSystemConfigs, IntoSystemConfig, OnEnter, OnExit, Color};
+use bevy::prelude::{Plugin, App, IntoSystemAppConfig, IntoSystemConfigs, IntoSystemConfig, OnEnter, OnExit, Color, IntoSystemAppConfigs};
 
-use crate::{common::{state::{GameState, MenuState}, conditions::{on_btn_clicked, in_menu_state}}, parallax::move_background_system};
+use crate::{common::{state::{GameState, MenuState}, conditions::{on_btn_clicked, in_menu_state}}, parallax::{parallax_animation_system, ParallaxSet}};
 
 use self::{celestial_body::CelestialBodyPlugin, settings::SettingsMenuPlugin};
 
@@ -25,17 +25,27 @@ impl Plugin for MenuPlugin {
 
         app.add_system(setup_camera.on_startup());
         app.add_system(spawn_menu_container.in_schedule(OnExit(GameState::AssetLoading)));
+
         app.add_system(setup_main_menu.in_schedule(OnEnter(GameState::Menu(MenuState::Main))));
-
-        app.add_system(despawn_with::<MainCamera>.in_schedule(OnEnter(GameState::InGame)));
-        app.add_system(despawn_with::<MenuContainer>.in_schedule(OnEnter(GameState::InGame)));
-        app.add_system(despawn_with::<FpsText>.in_schedule(OnEnter(GameState::InGame)));
-        app.add_system(despawn_with::<Star>.in_schedule(OnEnter(GameState::InGame)));
-
         app.add_system(despawn_with::<Menu>.in_schedule(OnExit(GameState::Menu(MenuState::Main))));
 
-        app.add_system(move_background_system().run_if(in_menu_state));
-        app.add_system(update_buttons.run_if(in_menu_state));
+        app.add_systems(
+            (
+                despawn_with::<MainCamera>,
+                despawn_with::<MenuContainer>,
+                despawn_with::<FpsText>,
+                despawn_with::<Star>,
+            )
+            .in_schedule(OnEnter(GameState::InGame))
+        );
+        
+        app.add_systems(
+            (
+                parallax_animation_system(150.).in_set(ParallaxSet::FollowCamera),
+                update_buttons
+            )
+            .distributive_run_if(in_menu_state)
+        );
 
         app.add_systems(
             (
