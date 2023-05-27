@@ -20,23 +20,23 @@ use bevy_ecs_tilemap::{
 };
 use rand::{thread_rng, seq::SliceRandom};
 
-use crate::{plugins::{world::{CHUNK_SIZE, TILE_SIZE, LightMap}, assets::{BlockAssets, WallAssets, SoundAssets}, camera::{MainCamera, UpdateLightEvent}}, common::state::GameState, items::Seed, world::{light::generate_light_map, WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}};
+use crate::{plugins::{world::{CHUNK_SIZE, TILE_SIZE}, assets::{BlockAssets, WallAssets, SoundAssets}, camera::{MainCamera, UpdateLightEvent}}, common::state::GameState, items::Seed, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}};
 
 use super::{get_chunk_pos, CHUNK_SIZE_U, UpdateNeighborsEvent, WALL_SIZE, CHUNKMAP_SIZE, get_camera_fov, ChunkManager, get_chunk_tile_pos, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent, TREE_SIZE, TREE_BRANCHES_SIZE, TREE_TOPS_SIZE, utils::get_chunk_range_by_camera_fov, UpdateBlockEvent, SeedEvent};
 
 pub(super) fn spawn_terrain(mut commands: Commands) {
-    let _current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+    let current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
 
-    // let seed = current_time.as_millis() as u32;
-    let seed = 2404226870;
+    let seed = current_time.as_millis() as u32;
+    // let seed = 2404226870;
 
     println!("The world's seed is {}", seed);
 
     let world_data = generate_world(seed, WorldSize::Tiny);
-    let light_map = generate_light_map(&world_data);
+    // let light_map = generate_light_map(&world_data);
 
     commands.insert_resource(world_data);
-    commands.insert_resource(LightMap::new(light_map));
+    // commands.insert_resource(LightMap::new(light_map));
     commands.insert_resource(NextState(Some(GameState::InGame)));
 }
 

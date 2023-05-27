@@ -4,7 +4,7 @@ use bevy_hanabi::prelude::*;
 use crate::{
     plugins::{
         world::TILE_SIZE,
-        inventory::{UsedItem, SwingAnimation},
+        inventory::{ItemInHand, SwingAnimation},
     },
     common::{math::{move_towards, map_range_usize}, state::MovementState, rect::FRect}, world::WorldData,
 };
@@ -230,7 +230,6 @@ pub(super) fn move_player(
     world_data: Res<WorldData>,
     velocity: Res<PlayerVelocity>,
     mut player_query: Query<&mut Transform, With<Player>>,
-    mut player_data: ResMut<PlayerData>
 ) {
     let mut transform = player_query.single_mut();
 
@@ -241,7 +240,6 @@ pub(super) fn move_player(
     const max_y: f32 = -PLAYER_HALF_HEIGHT;
 
     let new_position = (transform.translation.xy() + velocity.0).clamp(Vec2::new(min_x, min_y), Vec2::new(max_x, max_y));
-    player_data.prev_position = transform.translation.xy();
 
     transform.translation.x = new_position.x;
     transform.translation.y = new_position.y;
@@ -295,9 +293,9 @@ pub(super) fn update_input_axis(input: Res<Input<KeyCode>>, mut axis: ResMut<Inp
     axis.x = x as f32;
 }
 
-pub(super) fn update_movement_animation_timer_duration(
+pub(super) fn update_movement_animation_timer(
     velocity: Res<PlayerVelocity>,
-    mut timer: ResMut<AnimationTimer>,
+    mut timer: ResMut<MovementAnimationTimer>,
 ) {
     if velocity.x != 0. {
         let time = 100. / velocity.x.abs();
@@ -308,7 +306,7 @@ pub(super) fn update_movement_animation_timer_duration(
 
 pub(super) fn update_movement_animation_index(
     time: Res<Time>,
-    mut timer: ResMut<AnimationTimer>,
+    mut timer: ResMut<MovementAnimationTimer>,
     mut index: ResMut<MovementAnimationIndex>,
 ) {
     if timer.tick(time.delta()).just_finished() {
@@ -331,7 +329,7 @@ pub(super) fn flip_player(
 
 pub(super) fn flip_using_item(
     player_query: Query<&FaceDirection, (With<Player>, Changed<FaceDirection>)>,
-    mut sprite_query: Query<&mut Sprite, With<UsedItem>>,
+    mut sprite_query: Query<&mut Sprite, With<ItemInHand>>,
 ) {
     let direction = player_query.get_single();
 
@@ -354,7 +352,7 @@ pub(super) fn flip_using_item(
 pub(super) fn walking_animation(
     swing_animation: Res<SwingAnimation>,
     index: Res<MovementAnimationIndex>,
-    mut query: Query<(&mut TextureAtlasSprite, &WalkingAnimationData, Option<&UseItemAnimationData>), With<PlayerBodySprite>>,
+    mut query: Query<(&mut TextureAtlasSprite, &WalkingAnimationData, Option<&UseItemAnimationData>), With<PlayerSpriteBody>>,
 ) {
     query.for_each_mut(|(mut sprite, anim_data, use_item_animation)| {
         if use_item_animation.is_none() || !**swing_animation {

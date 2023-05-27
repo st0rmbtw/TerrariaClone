@@ -26,4 +26,4 @@ pub(super) struct InventoryItemAmount(pub u16);
 pub(crate) struct UseItemAnimationData(pub usize);
 
 #[derive(Component)]
-pub(crate) struct UsedItem;
+pub(crate) struct ItemInHand;

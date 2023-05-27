@@ -7,6 +7,7 @@ type LightMap = Array2::<u8>;
 
 pub(crate) const CLUSTER_SIZE: usize = 2;
 
+#[allow(dead_code)]
 pub(crate) fn generate_light_map(world: &WorldData) -> LightMap {
     println!("Generating light map...");
 

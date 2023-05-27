@@ -4,9 +4,9 @@ use autodefault::autodefault;
 use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color, MouseButton, EventWriter, Audio, DetectChanges, Local, Transform, Quat}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, Size, PositionType, AlignContent, Interaction, BackgroundColor, ZIndex}, text::{Text, TextStyle, TextAlignment}, sprite::TextureAtlasSprite};
 use rand::seq::SliceRandom;
 
-use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets, SoundAssets}, cursor::{Hoverable, CursorPosition, UpdateHoverableInfoEvent}, world::{DigBlockEvent, PlaceBlockEvent, SeedEvent}, player::{FaceDirection, Player, PlayerBodySprite}}, common::{extensions::EntityCommandsExtensions, helpers}, language::LanguageContent, items::{Item, get_animation_points, ItemStack}, DebugConfiguration, world::WorldData};
+use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets, SoundAssets}, cursor::{Hoverable, CursorPosition, UpdateHoverableInfoEvent}, world::{DigBlockEvent, PlaceBlockEvent, SeedEvent}, player::{FaceDirection, Player, PlayerSpriteBody}}, common::{extensions::EntityCommandsExtensions, helpers}, language::LanguageContent, items::{Item, get_animation_points, ItemStack}, DebugConfiguration, world::WorldData};
 
-use super::{Inventory, HOTBAR_LENGTH, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, CELL_COUNT_IN_ROW, INVENTORY_ROWS, HotbarUi, util::keycode_to_digit, SwingItemCooldown, UsedItem, UseItemAnimationIndex, PlayerUsingItem, UseItemAnimationData, SwingItemCooldownMax, ITEM_ROTATION, SwingAnimation};
+use super::{Inventory, HOTBAR_LENGTH, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, CELL_COUNT_IN_ROW, INVENTORY_ROWS, HotbarUi, util::keycode_to_digit, SwingItemCooldown, ItemInHand, UseItemAnimationIndex, PlayerUsingItem, UseItemAnimationData, SwingItemCooldownMax, ITEM_ROTATION, SwingAnimation};
 
 #[autodefault]
 pub(crate) fn spawn_inventory_ui(
@@ -476,7 +476,7 @@ pub(super) fn stop_swing_animation(
 pub(super) fn set_using_item_image(
     item_assets: Res<ItemAssets>,
     selected_item: Res<SelectedItem>,
-    mut using_item_query: Query<&mut Handle<Image>, With<UsedItem>>,
+    mut using_item_query: Query<&mut Handle<Image>, With<ItemInHand>>,
 ) {
     if selected_item.is_changed() {
         let mut image = using_item_query.single_mut();
@@ -486,8 +486,8 @@ pub(super) fn set_using_item_image(
     }
 }
 
-pub(super) fn set_using_item_visibility(visible: bool) -> impl FnMut(Res<SwingAnimation>, Query<&mut Visibility, With<UsedItem>>) {
-    move |swing_animation: Res<SwingAnimation>, mut using_item_query: Query<&mut Visibility, With<UsedItem>>| {
+pub(super) fn set_using_item_visibility(visible: bool) -> impl FnMut(Res<SwingAnimation>, Query<&mut Visibility, With<ItemInHand>>) {
+    move |swing_animation: Res<SwingAnimation>, mut using_item_query: Query<&mut Visibility, With<ItemInHand>>| {
         if swing_animation.is_changed() && **swing_animation == visible {
             if let Ok(visibility) = using_item_query.get_single_mut() {
                 helpers::set_visibility(visibility, visible);
@@ -498,7 +498,7 @@ pub(super) fn set_using_item_visibility(visible: bool) -> impl FnMut(Res<SwingAn
 
 pub(super) fn set_using_item_position(
     index: Res<UseItemAnimationIndex>,
-    mut query_using_item: Query<&mut Transform, With<UsedItem>>,
+    mut query_using_item: Query<&mut Transform, With<ItemInHand>>,
     query_player: Query<&FaceDirection, With<Player>>,
 ) {
     let mut transform = query_using_item.single_mut();
@@ -513,7 +513,7 @@ pub(super) fn set_using_item_position(
 pub(super) fn set_using_item_rotation(
     swing_cooldown: Res<SwingItemCooldown>,
     swing_cooldown_max: Res<SwingItemCooldownMax>,
-    mut query_using_item: Query<&mut Transform, With<UsedItem>>,
+    mut query_using_item: Query<&mut Transform, With<ItemInHand>>,
     query_player: Query<&FaceDirection, With<Player>>,
 ) {
     let direction = query_player.single();
@@ -547,7 +547,7 @@ pub(super) fn update_use_item_animation_index(
 
 pub(super) fn update_sprite_index(
     index: Res<UseItemAnimationIndex>,
-    mut query: Query<(&mut TextureAtlasSprite, &UseItemAnimationData), With<PlayerBodySprite>>,
+    mut query: Query<(&mut TextureAtlasSprite, &UseItemAnimationData), With<PlayerSpriteBody>>,
 ) {
     query.for_each_mut(|(mut sprite, anim_data)| {
         sprite.index = anim_data.0 + **index;

@@ -2,11 +2,11 @@ use bevy::{prelude::{Query, With, Component, Res}, sprite::TextureAtlasSprite};
 
 use crate::{common::state::MovementState, plugins::inventory::{UseItemAnimationData, SwingAnimation}};
 
-use super::{Player, AnimationData, PlayerBodySprite};
+use super::{Player, AnimationData, PlayerSpriteBody};
 
 pub(super) fn simple_animation<C: AnimationData + Component>(
     swing_animation: Res<SwingAnimation>,
-    mut query: Query<(&mut TextureAtlasSprite, &C, Option<&UseItemAnimationData>), With<PlayerBodySprite>>,
+    mut query: Query<(&mut TextureAtlasSprite, &C, Option<&UseItemAnimationData>), With<PlayerSpriteBody>>,
 ) {
     query.for_each_mut(|(mut sprite, anim_data, use_item_animation)| {
         if use_item_animation.is_none() || !**swing_animation {

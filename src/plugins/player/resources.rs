@@ -6,7 +6,7 @@ pub(super) struct InputAxis {
 }
 
 #[derive(Resource, Deref, DerefMut)]
-pub(super) struct AnimationTimer(pub Timer);
+pub(super) struct MovementAnimationTimer(pub Timer);
 
 #[derive(Resource, Default, Clone, Copy)]
 pub(super) struct MovementAnimationIndex(pub usize);
@@ -18,7 +18,6 @@ pub(crate) struct PlayerVelocity(pub Vec2);
 pub(super) struct PlayerData {
     pub(super) jump: i32,
     pub(super) fall_start: f32,
-    pub(super) prev_position: Vec2
 }
 
 #[derive(Debug, Resource, Clone, Copy, Default)]

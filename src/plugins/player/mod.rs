@@ -2,18 +2,20 @@ mod components;
 mod resources;
 mod systems;
 mod utils;
+mod body_sprites;
 
 pub(crate) use components::*;
 pub(crate) use resources::*;
+pub(crate) use body_sprites::*;
 use systems::*;
 
 use crate::{common::{state::GameState, helpers::tile_pos_to_world_coords}, DebugConfiguration, plugins::player::utils::{simple_animation, is_walking, is_idle, is_flying}, world::WorldData};
 use std::time::Duration;
 use bevy_hanabi::prelude::*;
-use bevy::{prelude::*, time::{Timer, TimerMode}, sprite::Anchor};
+use bevy::{prelude::*, time::{Timer, TimerMode}, sprite::Anchor, math::vec2};
 use autodefault::autodefault;
 
-use super::{assets::PlayerAssets, world::TILE_SIZE, inventory::{UseItemAnimationData, UsedItem}};
+use super::{assets::PlayerAssets, world::TILE_SIZE, inventory::UseItemAnimationData};
 
 const PLAYER_WIDTH: f32 = 22.;
 const PLAYER_HEIGHT: f32 = 42.;
@@ -44,9 +46,10 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(InputAxis::default());
         app.insert_resource(MovementAnimationIndex::default());
-        app.insert_resource(AnimationTimer(Timer::new(Duration::from_millis(80), TimerMode::Repeating)));
+        app.insert_resource(MovementAnimationTimer(Timer::new(Duration::from_millis(80), TimerMode::Repeating)));
         app.init_resource::<PlayerVelocity>();
         app.init_resource::<Collisions>();
+        app.init_resource::<PlayerData>();
 
         app.add_system(spawn_player.in_schedule(OnEnter(GameState::InGame)));
 
@@ -66,14 +69,13 @@ impl Plugin for PlayerPlugin {
                 update_movement_state,
                 spawn_particles
             )
-            .chain()
             .after(PhysicsSet::Update)
             .in_set(OnUpdate(GameState::InGame))
         );
 
         app.add_systems(
             (
-                update_movement_animation_timer_duration,
+                update_movement_animation_timer,
                 update_movement_animation_index,
                 walking_animation.run_if(is_walking),
                 simple_animation::<IdleAnimationData>.run_if(is_idle),
@@ -135,224 +137,7 @@ fn spawn_player(
     mut effects: ResMut<Assets<EffectAsset>>,
     world_data: Res<WorldData>
 ) {
-    let player_spawn_point = {
-        let spawn_point = tile_pos_to_world_coords(world_data.spawn_point) + TILE_SIZE / 2.;
-
-        Vec2::new(spawn_point.x + PLAYER_HALF_WIDTH, spawn_point.y + PLAYER_HALF_HEIGHT)
-    };
-
-    commands.insert_resource(PlayerData {
-        prev_position: player_spawn_point
-    });
-
-    let player = commands
-        .spawn(PlayerBundle {
-            spatial: SpatialBundle::from_transform(Transform::from_xyz(player_spawn_point.x, player_spawn_point.y, 5.)),
-            ..default()
-        })
-        .with_children(|cmd| {
-            // region: Hair
-            cmd.spawn((
-                Name::new("Player hair"),
-                ChangeFlip,
-                PlayerBodySprite,
-                MovementAnimationBundle::default(),
-                SpriteSheetBundle {
-                    sprite: TextureAtlasSprite {
-                        color: Color::rgb(0.55, 0.23, 0.14),
-                    },
-                    transform: Transform::from_xyz(0., 0., 0.1),
-                    texture_atlas: player_assets.hair.clone_weak(),
-                }
-            ));
-            // endregion
-
-            // region: Head
-            cmd.spawn((
-                Name::new("Player head"),
-                ChangeFlip,
-                PlayerBodySprite,
-                MovementAnimationBundle::default(),
-                SpriteSheetBundle {
-                    sprite: TextureAtlasSprite {
-                        color: Color::rgb(0.92, 0.45, 0.32),
-                    },
-                    texture_atlas: player_assets.head.clone_weak(),
-                    transform: Transform::from_xyz(0., 0., 0.003),
-                }
-            ));
-            // endregion
-
-            // region: Eyes
-            cmd.spawn((
-                Name::new("Player left eye"),
-                ChangeFlip,
-                PlayerBodySprite,
-                SpriteSheetBundle {
-                    sprite: TextureAtlasSprite {
-                        color: Color::WHITE,
-                    },
-                    transform: Transform::from_xyz(0., 0., 0.1),
-                    texture_atlas: player_assets.eyes_1.clone_weak(),
-                },
-                MovementAnimationBundle {
-                    walking: WalkingAnimationData {
-                        offset: 6,
-                        count: 14,
-                    }
-                }
-            ));
-
-            cmd.spawn((
-                Name::new("Player right eye"),
-                ChangeFlip,
-                PlayerBodySprite,
-                SpriteSheetBundle {
-                    sprite: TextureAtlasSprite {
-                        color: Color::rgb(89. / 255., 76. / 255., 64. / 255.),
-                    },
-                    transform: Transform::from_xyz(0., 0., 0.01),
-                    texture_atlas: player_assets.eyes_2.clone_weak(),
-                },
-                MovementAnimationBundle {
-                    walking: WalkingAnimationData {
-                        offset: 6,
-                        count: 14,
-                    }
-                }
-            ));
-
-            // endregion
-
-            // region: Arms
-            // region: Left arm
-            cmd.spawn((
-                Name::new("Player left shoulder"),
-                ChangeFlip,
-                PlayerBodySprite,
-                UseItemAnimationData(2),
-                SpriteSheetBundle {
-                    sprite: TextureAtlasSprite {
-                        color: Color::rgb(0.58, 0.55, 0.47),
-                    },
-                    transform: Transform::from_xyz(0., -8., 0.2),
-                    texture_atlas: player_assets.left_shoulder.clone_weak(),
-                },
-                MovementAnimationBundle {
-                    walking: WalkingAnimationData {
-                        offset: 13,
-                        count: 13,
-                    },
-                    flying: FlyingAnimationData(2)
-                }
-            ));
-
-            cmd.spawn((
-                Name::new("Player left hand"),
-                ChangeFlip,
-                PlayerBodySprite,
-                UseItemAnimationData(2),
-                SpriteSheetBundle {
-                    sprite: TextureAtlasSprite {
-                        color: Color::rgb(0.92, 0.45, 0.32),
-                    },
-                    transform: Transform::from_xyz(0., -8., 0.2),
-                    texture_atlas: player_assets.left_hand.clone_weak(),
-                },
-                MovementAnimationBundle {
-                    walking: WalkingAnimationData {
-                        offset: 13,
-                        count: 13,
-                    },
-                    flying: FlyingAnimationData(2)
-                }
-            ));
-            // endregion
-
-            // region: Right arm
-            cmd.spawn((
-                Name::new("Player right hand"),
-                ChangeFlip,
-                PlayerBodySprite,
-                UseItemAnimationData(15),
-                SpriteSheetBundle {
-                    sprite: TextureAtlasSprite {
-                        color: Color::rgb(0.92, 0.45, 0.32),
-                    },
-                    transform: Transform::from_xyz(0., -20., 0.001),
-                    texture_atlas: player_assets.right_arm.clone_weak(),
-                },
-                MovementAnimationBundle {
-                    walking: WalkingAnimationData { count: 13 },
-                    idle: IdleAnimationData(14),
-                    flying: FlyingAnimationData(13),
-                }
-            ));
-            // endregion
-
-            // endregion
-
-            // region: Chest
-            cmd.spawn((
-                Name::new("Player chest"),
-                ChangeFlip,
-                PlayerBodySprite,
-                MovementAnimationBundle::default(),
-                SpriteSheetBundle {
-                    sprite: TextureAtlasSprite {
-                        index: 0,
-                        color: Color::rgb(0.58, 0.55, 0.47),
-                    },
-                    transform: Transform::from_xyz(0., 0., 0.002),
-                    texture_atlas: player_assets.chest.clone_weak(),
-                },
-            ));
-            // endregion
-
-            // region: Feet
-            cmd.spawn((
-                Name::new("Player feet"),
-                ChangeFlip,
-                PlayerBodySprite,
-                SpriteSheetBundle {
-                    sprite: TextureAtlasSprite {
-                        color: Color::rgb(190. / 255., 190. / 255., 156. / 255.),
-                    },
-                    texture_atlas: player_assets.feet.clone_weak(),
-                    transform: Transform::from_xyz(0., 0., 0.15),
-                    ..default()
-                },
-                MovementAnimationBundle {
-                    walking: WalkingAnimationData {
-                        offset: 6,
-                        count: 13,
-                    },
-                    flying: FlyingAnimationData(5),
-                }
-            ));
-            // endregion
-
-            // region: Used item
-            cmd.spawn((
-                Name::new("Using item"),
-                ChangeFlip,
-                PlayerBodySprite,
-                UsedItem,
-                SpriteBundle {
-                    sprite: Sprite {
-                        anchor: Anchor::BottomLeft,
-                    },
-                    visibility: Visibility::Hidden,
-                    transform: Transform::from_xyz(0., 0., 0.15),
-                }
-            ));
-
-            // endregion
-        })
-        .id();
-
     let spawner = Spawner::rate(40.0.into());
-
     let effect = effects.add(
         EffectAsset {
             name: "PlayerFeetDust".to_string(),
@@ -391,9 +176,31 @@ fn spawn_player(
         .insert(Name::new("Particle Spawner"))
         .id();
 
-    commands.entity(player).add_child(effect_entity);
+    let spawn_point = tile_pos_to_world_coords(world_data.spawn_point) + vec2(PLAYER_HALF_WIDTH, PLAYER_HALF_HEIGHT) + TILE_SIZE / 2.;
 
-    commands.entity(player).insert(PlayerParticleEffects {
-        walking: effect_entity,
-    });
+    commands
+        .spawn((
+            PlayerBundle::new(spawn_point.x, spawn_point.y),
+            PlayerParticleEffects {
+                walking: effect_entity,
+            }
+        ))
+        .add_child(effect_entity)
+        .with_children(|cmd| {
+            use body_sprites::*;
+            spawn_player_hair(cmd, player_assets.hair.clone_weak());
+
+            spawn_player_head(cmd, player_assets.head.clone_weak());
+
+            spawn_player_eyes(cmd, player_assets.eyes_1.clone_weak(), player_assets.eyes_2.clone_weak());
+
+            spawn_player_left_hand(cmd, player_assets.left_shoulder.clone_weak(), player_assets.left_hand.clone_weak());
+            spawn_player_right_hand(cmd, player_assets.right_arm.clone_weak());
+
+            spawn_player_chest(cmd, player_assets.chest.clone_weak());
+
+            spawn_player_feet(cmd, player_assets.feet.clone_weak());
+
+            spawn_player_item_in_hand(cmd);
+        });
 }

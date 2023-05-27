@@ -1,4 +1,4 @@
-use bevy::{prelude::{Component, Entity, Bundle, Name, SpatialBundle}, utils::default};
+use bevy::{prelude::{Component, Entity, Bundle, Name, SpatialBundle, Transform}, utils::default};
 
 use crate::common::state::MovementState;
 
@@ -40,12 +40,6 @@ impl FaceDirection {
         *self == FaceDirection::Left
     }
 }
-
-#[derive(Component)]
-pub(super) struct ChangeFlip;
-
-#[derive(Component)]
-pub struct PlayerBodySprite;
 
 pub(super) trait AnimationData {
     fn index(&self) -> usize;
@@ -101,6 +95,15 @@ pub(super) struct PlayerBundle {
     pub(super) face_direction: FaceDirection,
     #[bundle]
     pub(super) spatial: SpatialBundle
+}
+
+impl PlayerBundle {
+    pub(crate) fn new(x: f32, y: f32) -> Self {
+        Self {
+            spatial: SpatialBundle::from_transform(Transform::from_xyz(x, y, 5.)),
+            ..default()
+        }
+    }
 }
 
 impl Default for PlayerBundle {
