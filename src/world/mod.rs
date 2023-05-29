@@ -142,6 +142,14 @@ impl WorldData {
         }
     }
 
+    pub(crate) fn remove_wall<Pos: AsWorldPos>(&mut self, world_pos: Pos) {
+        unsafe {
+            if let Some(wall) = self.walls.get_mut_ptr(world_pos.yx()) {
+                *wall = None;
+            }
+        }
+    }
+
     #[inline(always)]
     pub(crate) fn block_exists<Pos: AsWorldPos>(&self, world_pos: Pos) -> bool {
         self.get_block(world_pos).is_some()
@@ -160,11 +168,6 @@ impl WorldData {
     #[inline]
     pub(crate) fn solid_block_exists<Pos: AsWorldPos>(&self, world_pos: Pos) -> bool {
         if let Some(block) = self.get_block(world_pos) { block.is_solid() } else { false }
-    }
-
-    #[inline]
-    pub(crate) fn solid_block_exists_with_type<Pos: AsWorldPos>(&self, world_pos: Pos, block_type: Block) -> bool {
-        if let Some(block) = self.get_solid_block(world_pos) { *block == block_type } else { false }
     }
 
     #[inline]

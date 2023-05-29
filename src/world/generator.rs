@@ -3,17 +3,20 @@ use std::collections::VecDeque;
 use bevy_ecs_tilemap::helpers::square_grid::neighbors::Neighbors;
 use bevy_ecs_tilemap::tiles::TilePos;
 use ndarray::prelude::*;
+use noise::utils::{NoiseMapBuilder, PlaneMapBuilder};
+use noise::{Perlin, MultiFractal, Fbm, OpenSimplex};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use simdnoise::NoiseBuilder;
 
 use crate::common::math::map_range_f32;
+use crate::world::block::BlockType;
 
 use super::block::Block;
 use super::wall::Wall;
 use super::tree::{TreeType, TreeFrameType};
 use super::{WorldSize, WorldData, Layer, BlockArray, WallArray, AsWorldPos};
 
-pub(crate) const DIRT_HILL_HEIGHT: usize = 50;
+pub(crate) const DIRT_HILL_HEIGHT: usize = 75;
 
 macro_rules! tree {
     ($tree_type: path, $frame_type: ident, $variant: ident) => {
@@ -34,14 +37,14 @@ pub(crate) fn generate_world(seed: u32, world_size: WorldSize) -> WorldData {
     let walls = WallArray::default((world_size.height, world_size.width));
 
     let surface = world_size.height / 10;
-    let underground = world_size.height / 2;
-    let cavern = (world_size.height as f32 / 1.5) as usize;
+    let underground = (world_size.height as f32 / 3.) as usize;
+    let cavern = (world_size.height as f32 / 2.) as usize;
 
     let layer = Layer {
         surface,
         underground,
         cavern,
-        dirt_height: (underground - surface) / 3
+        dirt_height: (underground - surface) / 4
     };
 
     let mut world = WorldData {
@@ -62,13 +65,15 @@ pub(crate) fn generate_world(seed: u32, world_size: WorldSize) -> WorldData {
 
     generate_big_caves(&mut world, seed);   
 
-    generate_rocks_in_dirt(&mut world, seed);
-
     generate_dirt_in_rocks(&mut world, seed);
+
+    grassify(&mut world);
+
+    generate_rocks_in_dirt(&mut world, seed);
 
     rough_cavern_layer_border(&mut world, seed);
 
-    grassify(&mut world);
+    remove_walls_from_surface(&mut world);
 
     grow_trees(&mut world, seed);
 
@@ -89,7 +94,7 @@ fn spawn_terrain(world: &mut WorldData) {
             *block = Some(Block::Dirt);
         }
 
-        if y >= world.layer.cavern {
+        if y >= world.layer.underground {
             *block = Some(Block::Stone);
         }
     }
@@ -102,57 +107,35 @@ fn make_hills(world: &mut WorldData, seed: u32) {
 
     let level = world.layer.underground - world.layer.dirt_height;
     
-    let noise = NoiseBuilder::gradient_1d(world.size.width)
+    let fbm = NoiseBuilder::fbm_1d(world.size.width)
         .with_seed(rng.gen())
-        .with_freq(1. / 500.)
-        .generate_scaled(-1., 1.);
+        .with_freq(0.005)
+        .with_octaves(3)
+        .generate_scaled(0., 1.);
 
-    for (block_x, noise_value) in noise.iter().enumerate() {
-        let x_offset = {
-            let offset = rng.gen_range(-20f32..20f32);
+    let gradient = NoiseBuilder::gradient_1d(world.size.width)
+        .with_seed(rng.gen())
+        .with_freq(0.01)
+        .generate_scaled(0., 1.);
 
-            ((block_x as f32 + offset) as usize).clamp(0, world.size.width - 1)
-        };
+    for i in 0..world.size.width {
+        let block_x = i;
+        let noise_value = fbm[i] * gradient[i];
 
-        let x_range = if block_x < x_offset {
-            block_x..=x_offset
-        } else {
-            x_offset..=block_x
-        };
-
-        if *noise_value > 0. {
-            let hill_height = level - (noise_value * DIRT_HILL_HEIGHT as f32) as usize;
-
-            if block_x != x_offset {
-                world.blocks.slice_mut(s![hill_height..level, x_range]).fill(Some(Block::Dirt));
-            } else {
-                world.blocks.slice_mut(s![hill_height..level, block_x]).fill(Some(Block::Dirt));
-            }
-        } else if *noise_value < 0. {
-            let hill_height = level + (-noise_value * DIRT_HILL_HEIGHT as f32) as usize;
-
-            if block_x != x_offset {
-                let mut slice = world.blocks.slice_mut(s![level..hill_height, x_range]);
-                replace(&mut slice, Some(Block::Dirt), None);
-                replace(&mut slice, Some(Block::Stone), Some(Block::Dirt));
-            } else {
-                let mut slice = world.blocks.slice_mut(s![level..hill_height, block_x]);
-                replace(&mut slice, Some(Block::Dirt), None);
-                replace(&mut slice, Some(Block::Stone), Some(Block::Dirt));
-            }
-        }
+        let hill_height = level - (noise_value * DIRT_HILL_HEIGHT as f32) as usize;
+        world.blocks.slice_mut(s![hill_height..level, block_x]).fill(Some(Block::Dirt));
     }
 }
 
 fn rough_cavern_layer_border(world: &mut WorldData, seed: u32) {
     let mut rng = StdRng::seed_from_u64(seed as u64);
 
-    let level = world.layer.cavern;
+    let level = world.layer.underground;
     
     let noise = NoiseBuilder::gradient_1d(world.size.width)
         .with_seed(rng.gen())
         .with_freq(0.1)
-        .generate_scaled(-1., 1.);
+        .generate_scaled(-1., 0.);
 
     const ROUGHNESS: f32 = 20.;
 
@@ -170,19 +153,11 @@ fn rough_cavern_layer_border(world: &mut WorldData, seed: u32) {
         };
 
         let hill_height = level - (noise_value.abs() * ROUGHNESS) as usize;
-
-        if *noise_value > 0. {
-            if block_x != x_offset {
-                world.blocks.slice_mut(s![hill_height..level, x_range]).fill(Some(Block::Stone));
-            } else {
-                world.blocks.slice_mut(s![hill_height..level, block_x]).fill(Some(Block::Stone));
-            }
-        } else if *noise_value < 0. {
-            if block_x != x_offset {
-                world.blocks.slice_mut(s![level..hill_height, x_range]).fill(Some(Block::Dirt));
-            } else {
-                world.blocks.slice_mut(s![level..hill_height, block_x]).fill(Some(Block::Dirt));
-            }
+        
+        if block_x != x_offset {
+            world.blocks.slice_mut(s![level..hill_height, x_range]).fill(Some(Block::Dirt));
+        } else {
+            world.blocks.slice_mut(s![level..hill_height, block_x]).fill(Some(Block::Dirt));
         }
     }
 }
@@ -191,9 +166,9 @@ fn generate_walls(world: &mut WorldData) {
     println!("Generating walls...");
 
     let dirt_level = world.layer.underground - world.layer.dirt_height - DIRT_HILL_HEIGHT;
-    let cavern_layer = world.layer.underground;
+    let underground_level = world.layer.underground;
 
-    for ((y, x), wall) in world.walls.slice_mut(s![dirt_level..cavern_layer, ..]).indexed_iter_mut() {
+    for ((y, x), wall) in world.walls.slice_mut(s![dirt_level..underground_level, ..]).indexed_iter_mut() {
         let block_not_exists = |y: usize, x: usize| -> bool {
             world.blocks.get((y, x)).and_then(|b| b.as_ref()).is_none()
         };
@@ -214,57 +189,62 @@ fn generate_walls(world: &mut WorldData) {
     }
 }
 
-fn generate_rocks_in_dirt(world: &mut WorldData, seed: u32) {
+fn generate_dirt_in_rocks(world: &mut WorldData, seed: u32) {
     println!("Generating rocks in dirt...");
-    let cavern_level = world.layer.cavern;
     let underground_level = world.layer.underground;
-    let dirt_level = underground_level - world.layer.dirt_height - DIRT_HILL_HEIGHT;
+    let cavern_level = world.layer.cavern;
 
-    generate_rocks(world, seed, underground_level, cavern_level, 0.2, 0.4);
-    generate_rocks(world, seed, dirt_level, cavern_level, 0.1, 0.5);
+    generate_dirt(world, seed, underground_level, cavern_level, 0.2, 0.4, 0.9);
+    generate_dirt(world, seed, cavern_level, world.size.height, 0.3, 0.72, 0.72);
 }
 
-fn generate_rocks(world: &mut WorldData, seed: u32, from: usize, to: usize, freq: f32, prevalence: f32) {
+fn generate_dirt(world: &mut WorldData, seed: u32, from: usize, to: usize, freq: f32, min_prevalence: f32, max_prevalence: f32) {
     let mut slice = world.blocks.slice_mut(s![from..to, ..]);
 
-    let noise = NoiseBuilder::fbm_2d(slice.ncols(), slice.nrows())
+    let height = slice.nrows();
+
+    let noise = NoiseBuilder::fbm_2d(slice.ncols(), height)
         .with_seed(seed as i32)
         .with_freq(freq)
-        .generate_scaled(-1., 1.);
+        .generate_scaled(0., 1.);
 
     for ((y, x), block) in slice.indexed_iter_mut() {
         let index = (y * world.size.width) + x;
 
+        let a = map_range_f32(0., height as f32, min_prevalence, max_prevalence, y as f32);
+
         let noise_value = noise[index];
 
-        if noise_value >= prevalence {
-            if let Some(Block::Dirt) = block {
-                *block = Some(Block::Stone);
+        if noise_value >= a {
+            if let Some(Block::Stone) = block {
+                *block = Some(Block::Dirt);
             }
         }
     }
 }
 
-fn generate_dirt_in_rocks(world: &mut WorldData, seed: u32) {
+fn generate_rocks_in_dirt(world: &mut WorldData, seed: u32) {
     println!("Generating dirt in rocks...");
 
-    let stone_level = world.layer.cavern;
+    let dirt_level = world.layer.underground - world.layer.dirt_height - DIRT_HILL_HEIGHT;
+    let underground_level = world.layer.underground;
 
-    let noise = NoiseBuilder::fbm_2d(world.size.width, world.size.height - stone_level)
+    let noise = NoiseBuilder::fbm_2d(world.size.width, underground_level - dirt_level)
         .with_seed(seed as i32)
-        .with_freq(0.2)
+        .with_freq(0.15)
         .generate_scaled(-1., 1.);
 
-    let mut slice = world.blocks.slice_mut(s![stone_level.., ..]);
+    let mut slice = world.blocks.slice_mut(s![dirt_level..underground_level, ..]);
 
     for ((y, x), block) in slice.indexed_iter_mut() {
         let index = (y * world.size.width) + x;
 
         let noise_value = noise[index];
 
-        if noise_value >= 0.4 {
-            if let Some(Block::Stone) = block {
-                *block = Some(Block::Dirt);
+        if noise_value >= 0.5 {
+            let block_type = block.map(|b| b.block_type);
+            if matches!(block_type, Some(BlockType::Dirt | BlockType::Grass)) {
+                *block = Some(Block::Stone);
             }
         }
     }
@@ -277,23 +257,18 @@ fn generate_small_caves(world: &mut WorldData, seed: u32) {
 
     let height = world.size.height - dirt_level;
 
-    let mut rng = StdRng::seed_from_u64(seed as u64);
+    let noise = Fbm::<Perlin>::new(seed);
 
-    let noise = NoiseBuilder::fbm_2d(world.size.width, height)
-        .with_seed(seed as i32)
-        .with_octaves(1)
-        .with_lacunarity(2.43)
-        .with_freq(0.04)
-        .generate_scaled(-1., 1.);
+    let noise_map = PlaneMapBuilder::<_, 2>::new(noise)
+        .set_size(world.size.width, height)
+        .set_x_bounds(-15., 15.)
+        .set_y_bounds(-15., 15.)
+        .build();
 
     for ((y, x), block) in world.blocks.slice_mut(s![dirt_level.., ..]).indexed_iter_mut() {
-        let index = (y * world.size.width) + x;
+        let noise_value = noise_map.get_value(x, y) as f32;
 
-        let noise_value = noise[index];
-
-        let a = map_range_f32(0., height as f32, 0.5, 0.8, (height - y) as f32);
-
-        if noise_value < -rng.gen_range(a..=0.8) {
+        if noise_value < -0.5 {
             *block = None;
         }
     }
@@ -304,22 +279,21 @@ fn generate_big_caves(world: &mut WorldData, seed: u32) {
 
     let underground_level = world.layer.underground;
 
-    let mut rng = StdRng::seed_from_u64(seed as u64);
+    let noise = Fbm::<OpenSimplex>::new(seed)
+        .set_lacunarity(2.42)
+        .set_frequency(1.5);
 
-    let noise = NoiseBuilder::fbm_2d(world.size.width, world.size.height - underground_level)
-        .with_seed(seed as i32)
-        .with_octaves(1)
-        .with_lacunarity(2.43)
-        .with_freq(2. / 90.)
-        .generate_scaled(-1., 1.);
+    let noise_map = PlaneMapBuilder::<_, 2>::new(noise)
+        .set_size(world.size.width, world.size.height - underground_level + 10)
+        .set_x_bounds(-22.5, 22.5)
+        .set_y_bounds(-22.5, 22.5)
+        .build();
 
-    for ((y, x), block) in world.blocks.slice_mut(s![underground_level.., ..]).indexed_iter_mut() {
-        let index = (y * world.size.width) + x;
+    for ((y, x), block) in world.blocks.slice_mut(s![underground_level..world.size.height - 10, ..]).indexed_iter_mut() {
+        let noise_value = noise_map.get_value(x, y);
 
-        let noise_value = noise[index];
-
-        if noise_value < -rng.gen_range(0.65..=0.7) {
-            *block = None;
+        if noise_value < -0.2 {
+            *block = None; 
         }
     }
 }
@@ -330,7 +304,7 @@ fn grassify(world: &mut WorldData) {
     fn is_valid(world: &mut WorldData, x: usize, y: usize) -> bool {
         if x >= world.size.width { return false; }
         if y >= world.size.height { return false; }
-        if !world.solid_block_exists_with_type((x, y), Block::Dirt) { return false; }
+        if !world.block_exists_with_type((x, y), Block::Dirt) { return false; }
 
         Neighbors::get_square_neighboring_positions(
             &TilePos::new(x as u32, y as u32),
@@ -348,11 +322,8 @@ fn grassify(world: &mut WorldData) {
         world.set_block((x, y), &Block::Grass);
     
         while !queue.is_empty() {
-            let coord = queue[queue.len() - 1];
+            let (x, y) = queue[queue.len() - 1];
             queue.pop_back();
-    
-            let x = coord.0;
-            let y = coord.1;
 
             let prev_x = x.saturating_sub(1);
 
@@ -407,12 +378,72 @@ fn grassify(world: &mut WorldData) {
     }
 
     for x in 0..world.size.width {
-        let y = get_surface_y(world, x);
+        let y = get_surface_block_y(world, x);
         if world.block_exists_with_type((x, y), Block::Dirt) {
             flood_fill(world, x, y);
         }
     }
 
+}
+
+fn remove_walls_from_surface(world: &mut WorldData) {
+    fn is_valid(world: &mut WorldData, x: usize, y: usize) -> bool {
+        if x >= world.size.width { return false; }
+        if y >= world.size.height { return false; }
+
+        if world.solid_block_exists((x, y)) { return false; }
+        if world.wall_not_exists((x, y)) { return false; }
+
+        return true;
+    }
+    
+    fn flood_fill(world: &mut WorldData, x: usize, y: usize) {
+        let mut queue = VecDeque::new();
+        queue.push_back(((x, y), (0i32, 0i32)));
+
+        world.remove_wall((x, y));
+    
+        while !queue.is_empty() {
+            let ((x, y), (depth_x, depth_y)) = queue[queue.len() - 1];
+            queue.pop_back();
+
+            if depth_x.abs() >= depth_y / 2 + 5 { continue; }
+
+            let prev_x = x.saturating_sub(1);
+
+            if is_valid(world, x + 1, y) {
+                let pos = (x + 1, y);
+                world.remove_wall(pos);
+                queue.push_back((pos, (depth_x + 1, depth_y)));
+            }
+    
+            if is_valid(world, prev_x, y) {
+                let pos = (prev_x, y);
+                world.remove_wall(pos);
+                queue.push_back((pos, (depth_x - 1, depth_y)));
+            }
+    
+            if is_valid(world, x, y + 1) {
+                let pos = (x, y + 1);
+                world.remove_wall(pos);
+                queue.push_back((pos, (depth_x, depth_y + 1)));
+            }
+    
+            if is_valid(world, x, y - 1) {
+                let pos = (x, y - 1);
+                world.remove_wall(pos);
+                queue.push_back((pos, (depth_x, depth_y - 1)));
+            }
+        }
+    }
+
+    for x in 0..world.size.width {
+        let y = get_surface_wall_y(world, x);
+
+        if world.solid_block_not_exists((x, y)) {
+            flood_fill(world, x, y);
+        }
+    }
 }
 
 fn grow_tree(world: &mut WorldData, rng: &mut StdRng, root_pos: impl AsWorldPos) {
@@ -567,20 +598,31 @@ fn grow_trees(world: &mut WorldData, seed: u32) {
     let mut rng = StdRng::seed_from_u64(seed as u64);
 
     for x in 0..world.size.width {
-        let y = get_surface_y(world, x);
+        let y = get_surface_block_y(world, x);
+
         let grow = rng.gen_bool(1. / 5.);
 
         if grow {
-            grow_tree(world, &mut rng, (x, y - 1))
+            // Trees can only grow on dirt or grass
+            let appropriate_block = world.get_block((x, y))
+                .filter(|b| match b.block_type {
+                    BlockType::Dirt | BlockType::Grass => true,
+                    _ => false
+                })
+                .is_some();
+
+            if appropriate_block {
+                grow_tree(world, &mut rng, (x, y - 1))
+            }
         }
     }
 
 }
 
-fn get_surface_y(world: &mut WorldData, x: usize) -> usize {
+fn get_surface_block_y(world: &mut WorldData, x: usize) -> usize {
     let mut y = world.layer.underground - world.layer.dirt_height - DIRT_HILL_HEIGHT;
 
-    loop {
+    while y < world.size.height {
         if world.solid_block_exists((x, y)) {
             break;
         }
@@ -591,17 +633,23 @@ fn get_surface_y(world: &mut WorldData, x: usize) -> usize {
     y
 }
 
-fn replace<D: Dimension>(blocks: &mut ArrayViewMut<Option<Block>, D>, old: Option<Block>, new: Option<Block>) {
-    for block in blocks.iter_mut() {
-        if *block == old {
-            *block = new;
+fn get_surface_wall_y(world: &mut WorldData, x: usize) -> usize {
+    let mut y = world.layer.underground - world.layer.dirt_height - DIRT_HILL_HEIGHT;
+
+    while y < world.size.height {
+        if world.wall_exists((x, y)) {
+            break;
         }
+
+        y += 1;
     }
+
+    y
 }
 
 fn set_spawn_point(world: &mut WorldData) {
     let x = world.size.width / 2;
-    let y = get_surface_y(world, x);
+    let y = get_surface_block_y(world, x);
 
     world.spawn_point = TilePos::new(x as u32, y as u32);
 }
