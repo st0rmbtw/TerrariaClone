@@ -1,4 +1,4 @@
-use bevy::{prelude::{Plugin, App, OnUpdate, IntoSystemConfig, IntoSystemAppConfig, OnEnter, Res, SystemSet, IntoSystemSetConfig, CoreSet, in_state}};
+use bevy::{prelude::{Plugin, App, OnUpdate, IntoSystemConfig, IntoSystemAppConfig, OnEnter, Res, SystemSet, IntoSystemSetConfig, CoreSet, in_state}, transform::TransformSystem};
 
 use crate::{common::state::GameState, DebugConfiguration};
 
@@ -33,6 +33,7 @@ impl Plugin for CameraPlugin {
             CameraSet::MoveCamera
                 .run_if(in_state(GameState::InGame))
                 .in_base_set(CoreSet::PostUpdate)
+                .before(TransformSystem::TransformPropagate)
         );
 
         app.add_system(
