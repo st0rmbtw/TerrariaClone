@@ -25,10 +25,10 @@ use crate::{plugins::{world::{CHUNK_SIZE, TILE_SIZE}, assets::{BlockAssets, Wall
 use super::{get_chunk_pos, CHUNK_SIZE_U, UpdateNeighborsEvent, WALL_SIZE, CHUNKMAP_SIZE, get_camera_fov, ChunkManager, get_chunk_tile_pos, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent, TREE_SIZE, TREE_BRANCHES_SIZE, TREE_TOPS_SIZE, utils::get_chunk_range_by_camera_fov, UpdateBlockEvent, SeedEvent};
 
 pub(super) fn spawn_terrain(mut commands: Commands) {
-    let current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+    let _current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
 
-    let seed = current_time.as_millis() as u32;
-    // let seed = 2404226870;
+    // let seed = current_time.as_millis() as u32;
+    let seed = 1837178180;
 
     println!("The world's seed is {}", seed);
 

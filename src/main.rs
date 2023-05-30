@@ -17,6 +17,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         .unwrap()
         .as_millis() as u32;
 
+    println!("The seed of the world is {}", seed);
+
     game::test_world_generator(game::WorldSize::Tiny, seed, false)?;
 
     Ok(())

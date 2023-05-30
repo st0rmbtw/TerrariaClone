@@ -107,9 +107,10 @@ fn move_stars(
     let (camera, camera_transform) = query_camera.single();
 
     for (mut star_transform, star) in &mut query_stars {
-        let world_position = camera.viewport_to_world_2d(camera_transform, star.screen_position).unwrap();
-        star_transform.translation.x = world_position.x;
-        star_transform.translation.y = world_position.y;
+        if let Some(world_position) = camera.viewport_to_world_2d(camera_transform, star.screen_position) {
+            star_transform.translation.x = world_position.x;
+            star_transform.translation.y = world_position.y;
+        }    
     }
 }
 

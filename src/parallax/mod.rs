@@ -6,6 +6,7 @@ use bevy::{prelude::*, window::PrimaryWindow};
 
 mod layer;
 
+use interpolation::Lerp;
 pub(crate) use layer::*;
 
 use crate::plugins::camera::MainCamera;
@@ -169,8 +170,11 @@ pub(crate) fn follow_camera_system(
                     let layer_data = &parallax_container.layer_data[layer.index];
                     let camera_translation = camera_transform.translation();
 
-                    layer_transform.translation.x = camera_translation.x + (layer_data.position.x - camera_translation.x) * layer.speed.x;
-                    layer_transform.translation.y = camera_translation.y + (layer_data.position.y - camera_translation.y) * layer.speed.y;
+                    let new_translation_x = camera_translation.x + (layer_data.position.x - camera_translation.x) * layer.speed.x;
+                    let new_translation_y = camera_translation.y + (layer_data.position.y - camera_translation.y) * layer.speed.y;
+
+                    layer_transform.translation.x = layer_transform.translation.x.lerp(&new_translation_x, &1.);
+                    layer_transform.translation.y = layer_transform.translation.y.lerp(&new_translation_y, &1.);
                 }
             }
         }

@@ -7,6 +7,7 @@ use bevy::{
     }, 
     time::Time
 };
+use interpolation::Lerp;
 
 use crate::{parallax::ParallaxCameraComponent, plugins::{world::TILE_SIZE}, common::helpers::tile_pos_to_world_coords, world::WorldData};
 
@@ -69,13 +70,15 @@ pub(super) fn follow_player(
             {
                 let min = projection_left.abs() - TILE_SIZE / 2.;
                 let max = (world_data.size.width as f32 * 16.) - projection_right - TILE_SIZE / 2.;
-                camera_transform.translation.x = player_transform.translation.x.clamp(min, max);
+                camera_transform.translation.x = camera_transform.translation.x
+                    .lerp(&player_transform.translation.x.clamp(min, max), &0.5);
             }
 
             {
                 let min = -(world_data.size.height as f32 * 16.) - projection_top - TILE_SIZE / 2.;
                 let max = -projection_top - TILE_SIZE / 2.;
-                camera_transform.translation.y = player_transform.translation.y.clamp(min, max);
+                camera_transform.translation.y = camera_transform.translation.y
+                    .lerp(&player_transform.translation.y.clamp(min, max), &0.5);
             }
         }
     }

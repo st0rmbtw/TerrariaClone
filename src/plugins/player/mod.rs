@@ -176,7 +176,9 @@ fn spawn_player(
         .insert(Name::new("Particle Spawner"))
         .id();
 
-    let spawn_point = tile_pos_to_world_coords(world_data.spawn_point) + vec2(PLAYER_HALF_WIDTH, PLAYER_HALF_HEIGHT) + TILE_SIZE / 2.;
+    let spawn_point = tile_pos_to_world_coords(world_data.spawn_point) 
+        + TILE_SIZE / 2.
+        + vec2(PLAYER_HALF_WIDTH, PLAYER_HALF_HEIGHT);
 
     commands
         .spawn((
