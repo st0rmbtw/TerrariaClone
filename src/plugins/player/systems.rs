@@ -41,6 +41,7 @@ pub(super) fn update_jump(
     mut velocity: ResMut<PlayerVelocity>,
     mut player_data: ResMut<PlayerData>,
 ) {
+    // TODO: Call just_pressed instead when https://github.com/bevyengine/bevy/issues/6183 is fixed
     if input.pressed(KeyCode::Space) && collisions.bottom {
         player_data.jump = JUMP_HEIGHT;
         velocity.y = JUMP_SPEED;

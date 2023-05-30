@@ -4,7 +4,7 @@ use bevy::{
     prelude::{
         EventReader, ResMut, Query, Commands, EventWriter, Entity, BuildChildren, Transform, 
         default, SpatialBundle, DespawnRecursiveExt, OrthographicProjection, Changed, 
-        GlobalTransform, With, Res, UVec2, Audio, NextState
+        GlobalTransform, With, Res, UVec2, Audio, NextState, Vec2
     }, 
     math::Vec3Swizzles
 };
@@ -412,8 +412,8 @@ pub(super) fn handle_place_block_event(
     for &PlaceBlockEvent { tile_pos, block } in place_block_events.iter() {
         if world_data.block_exists(tile_pos) { continue; }
 
-        let tile_world_coords = tile_pos_to_world_coords(tile_pos);
-        let tile_rect = FRect::new_center(tile_world_coords.x, tile_world_coords.y, TILE_SIZE, TILE_SIZE);
+        let Vec2 { x, y } = tile_pos_to_world_coords(tile_pos);
+        let tile_rect = FRect::new_center(x, y, TILE_SIZE, TILE_SIZE);
 
         if player_rect.intersects(&tile_rect) { continue; }
         
@@ -498,7 +498,7 @@ pub(super) fn handle_seed_event(
     let mut rng = thread_rng();
 
     for &SeedEvent { tile_pos: world_pos, seed } in seed_events.iter() {
-        if let Some(block) = world_data.get_block_mut( world_pos) {
+        if let Some(block) = world_data.get_block_mut(world_pos) {
             if block.block_type == BlockType::Dirt {
                 let block_type = match seed {
                     Seed::Grass => BlockType::Grass,
@@ -545,19 +545,30 @@ fn break_tree(
 use bevy::prelude::{Visibility, DetectChanges};
 
 #[cfg(feature = "debug")]
-use crate::common::helpers::set_visibility;
-
-#[cfg(feature = "debug")]
 use crate::DebugConfiguration;
 
 #[cfg(feature = "debug")]
 pub(super) fn set_tiles_visibility(
     debug_config: Res<DebugConfiguration>,
-    mut query_chunk: Query<&mut Visibility, With<ChunkContainer>>
+    mut query_chunk: Query<(&mut Visibility, &Chunk)>
 ) {
     if debug_config.is_changed() {
-        for visibility in &mut query_chunk {
-            set_visibility(visibility, debug_config.show_tiles);
+        for (mut visibility, chunk) in &mut query_chunk {
+            if chunk.chunk_type != ChunkType::Wall {
+                if debug_config.show_tiles {
+                    *visibility = Visibility::Inherited;
+                } else {
+                    *visibility = Visibility::Hidden;
+                }
+            }
+
+            if chunk.chunk_type == ChunkType::Wall {
+                if debug_config.show_walls {
+                    *visibility = Visibility::Inherited;
+                } else {
+                    *visibility = Visibility::Hidden;
+                }
+            }
         }
     }
 }
