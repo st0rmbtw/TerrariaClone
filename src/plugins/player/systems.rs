@@ -84,18 +84,17 @@ pub(super) fn detect_collisions(
     mut collisions: ResMut<Collisions>,
     mut velocity: ResMut<PlayerVelocity>,
     mut player_data: ResMut<PlayerData>,
-    mut player_query: Query<(&mut Transform, &FaceDirection), With<Player>>,
+    mut player_query: Query<(&mut Transform, &FaceDirection, &PlayerRect), With<Player>>,
     #[cfg(feature = "debug")]
     mut debug_lines: ResMut<DebugLines>,
     #[cfg(feature = "debug")]
     debug_config: Res<DebugConfiguration>,
 ) {
-    let (mut transform, face_direction) = player_query.single_mut();
+    let (mut transform, face_direction, PlayerRect(player_rect)) = player_query.single_mut();
 
     let position = transform.translation.xy();
     let next_position = transform.translation.xy() + **velocity;
 
-    let player_rect = FRect::new_center(position.x, position.y, PLAYER_WIDTH, PLAYER_HEIGHT);
     let next_player_rect = FRect::new_center(next_position.x, next_position.y, PLAYER_WIDTH, PLAYER_HEIGHT);
 
     let left = ((position.x - PLAYER_HALF_WIDTH) / TILE_SIZE) - 1.;
@@ -239,10 +238,20 @@ pub(super) fn move_player(
     let max_x = world_data.size.width as f32 * TILE_SIZE - PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
     const max_y: f32 = -PLAYER_HALF_HEIGHT;
 
-    let new_position = (transform.translation.xy() + velocity.0).clamp(Vec2::new(min_x, min_y), Vec2::new(max_x, max_y));
+    let new_position = (transform.translation.xy() + velocity.0).clamp(vec2(min_x, min_y), vec2(max_x, max_y));
 
     transform.translation.x = new_position.x;
     transform.translation.y = new_position.y;
+}
+
+pub(super) fn update_player_rect(
+    mut player_query: Query<(&Transform, &mut PlayerRect), With<Player>>,
+) {
+    let (transform, mut player_rect) = player_query.single_mut();
+
+    let Vec2 { x, y } = transform.translation.xy();
+
+    *player_rect = PlayerRect(FRect::new_center(x, y, PLAYER_WIDTH, PLAYER_HEIGHT));
 }
 
 pub(super) fn spawn_particles(

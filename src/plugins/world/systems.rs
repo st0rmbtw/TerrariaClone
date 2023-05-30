@@ -20,7 +20,7 @@ use bevy_ecs_tilemap::{
 };
 use rand::{thread_rng, seq::SliceRandom};
 
-use crate::{plugins::{world::{CHUNK_SIZE, TILE_SIZE}, assets::{BlockAssets, WallAssets, SoundAssets}, camera::{MainCamera, UpdateLightEvent}}, common::state::GameState, items::Seed, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}};
+use crate::{plugins::{world::{CHUNK_SIZE, TILE_SIZE}, assets::{BlockAssets, WallAssets, SoundAssets}, camera::{MainCamera, UpdateLightEvent}, player::{Player, PlayerRect}}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect}, items::Seed, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}};
 
 use super::{get_chunk_pos, CHUNK_SIZE_U, UpdateNeighborsEvent, WALL_SIZE, CHUNKMAP_SIZE, get_camera_fov, ChunkManager, get_chunk_tile_pos, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent, TREE_SIZE, TREE_BRANCHES_SIZE, TREE_TOPS_SIZE, utils::get_chunk_range_by_camera_fov, UpdateBlockEvent, SeedEvent};
 
@@ -403,29 +403,36 @@ pub(super) fn handle_place_block_event(
     mut update_light_events: EventWriter<UpdateLightEvent>,
     mut update_neighbors_events: EventWriter<UpdateNeighborsEvent>,
     mut query_chunk: Query<(&Chunk, &mut TileStorage, Entity)>,
+    query_player: Query<&PlayerRect, With<Player>>,
     sound_assets: Res<SoundAssets>,
     audio: Res<Audio>
 ) {
-    let mut rng = thread_rng();
+    let player_rect = query_player.single();
 
     for &PlaceBlockEvent { tile_pos, block } in place_block_events.iter() {
-        if !world_data.block_exists(tile_pos) {
-            world_data.set_block(tile_pos, &block);
+        if world_data.block_exists(tile_pos) { continue; }
 
-            let neighbors = world_data
-                .get_block_neighbors(tile_pos, block.is_solid())
-                .map_ref(|b| b.block_type);
-            let index = Block::get_sprite_index(&neighbors, block.block_type);
-            let chunk_pos = get_chunk_pos(tile_pos);
-            let chunk_tile_pos = get_chunk_tile_pos(tile_pos);
+        let tile_world_coords = tile_pos_to_world_coords(tile_pos);
+        let tile_rect = FRect::new_center(tile_world_coords.x, tile_world_coords.y, TILE_SIZE, TILE_SIZE);
 
-            ChunkManager::spawn_block(&mut commands, &mut query_chunk, chunk_pos, chunk_tile_pos, &block, index);
+        if player_rect.intersects(&tile_rect) { continue; }
+        
+        world_data.set_block(tile_pos, &block);
 
-            update_neighbors_events.send(UpdateNeighborsEvent { tile_pos });
-            update_light_events.send(UpdateLightEvent);
+        let neighbors = world_data
+            .get_block_neighbors(tile_pos, block.is_solid())
+            .map_ref(|b| b.block_type);
+        
+        let index = Block::get_sprite_index(&neighbors, block.block_type);
+        let chunk_pos = get_chunk_pos(tile_pos);
+        let chunk_tile_pos = get_chunk_tile_pos(tile_pos);
 
-            audio.play(sound_assets.get_by_block(block.block_type, &mut rng));
-        }
+        ChunkManager::spawn_block(&mut commands, &mut query_chunk, chunk_pos, chunk_tile_pos, &block, index);
+
+        update_neighbors_events.send(UpdateNeighborsEvent { tile_pos });
+        update_light_events.send(UpdateLightEvent);
+
+        audio.play(sound_assets.get_by_block(block.block_type, &mut thread_rng()));
     }
 }
 

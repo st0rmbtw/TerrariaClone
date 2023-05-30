@@ -1,8 +1,8 @@
-use bevy::{prelude::{Component, Entity, Bundle, Name, SpatialBundle, Transform}, utils::default};
+use bevy::{prelude::{Component, Entity, Bundle, Name, SpatialBundle, Transform, Deref, DerefMut}, utils::default};
 
-use crate::common::state::MovementState;
+use crate::common::{state::MovementState, rect::FRect};
 
-use super::{InputAxis, WALKING_ANIMATION_MAX_INDEX};
+use super::{InputAxis, WALKING_ANIMATION_MAX_INDEX, PLAYER_HEIGHT, PLAYER_WIDTH};
 
 #[derive(Component, Default)]
 pub(crate) struct Player;
@@ -13,6 +13,13 @@ pub(crate) enum FaceDirection {
     Left,
     #[default]
     Right,
+}
+
+impl FaceDirection {
+    #[inline]
+    pub fn is_left(&self) -> bool {
+        *self == FaceDirection::Left
+    }
 }
 
 impl From<&InputAxis> for Option<FaceDirection> {
@@ -31,13 +38,6 @@ impl From<&FaceDirection> for f32 {
             FaceDirection::Left => -1.,
             FaceDirection::Right => 1.,
         }
-    }
-}
-
-impl FaceDirection {
-    #[inline]
-    pub fn is_left(&self) -> bool {
-        *self == FaceDirection::Left
     }
 }
 
@@ -87,12 +87,16 @@ pub(super) struct MovementAnimationBundle {
     pub(super) flying: FlyingAnimationData
 }
 
+#[derive(Component, Deref, DerefMut, Default)]
+pub(crate) struct PlayerRect(pub(crate) FRect);
+
 #[derive(Bundle)]
 pub(super) struct PlayerBundle {
     pub(super) player: Player,
     pub(super) name: Name,
     pub(super) movement_state: MovementState,
     pub(super) face_direction: FaceDirection,
+    pub(super) player_rect: PlayerRect,
     #[bundle]
     pub(super) spatial: SpatialBundle
 }
@@ -101,6 +105,7 @@ impl PlayerBundle {
     pub(crate) fn new(x: f32, y: f32) -> Self {
         Self {
             spatial: SpatialBundle::from_transform(Transform::from_xyz(x, y, 5.)),
+            player_rect: PlayerRect(FRect::new_center(x, y, PLAYER_WIDTH, PLAYER_HEIGHT)),
             ..default()
         }
     }
@@ -113,7 +118,8 @@ impl Default for PlayerBundle {
             player: default(),
             movement_state: default(),
             face_direction: default(),
-            spatial: default()
+            spatial: default(),
+            player_rect: default()
         }
     }
 }

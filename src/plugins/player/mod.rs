@@ -102,7 +102,8 @@ impl Plugin for PlayerPlugin {
             (
                 gravity,
                 detect_collisions,
-                move_player
+                move_player,
+                update_player_rect
             )
             .chain()
             .distributive_run_if(in_state(GameState::InGame))
