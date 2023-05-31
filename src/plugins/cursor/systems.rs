@@ -29,7 +29,7 @@ use crate::{
 
 use crate::plugins::player::{PlayerVelocity, MAX_RUN_SPEED, MAX_FALL_SPEED};
 
-use super::{HoverableInfoMarker, CursorContainer, CursorForeground, CursorBackground, TileGrid, MAX_TILE_GRID_OPACITY, CursorPosition, MIN_TILE_GRID_OPACITY, UpdateHoverableInfoEvent, components::Hoverable};
+use super::{HoverableInfoMarker, CursorContainer, CursorForeground, CursorBackground, TileGrid, MAX_TILE_GRID_OPACITY, CursorPosition, MIN_TILE_GRID_OPACITY, UpdateHoverableInfoEvent, components::Hoverable, CURSOR_SIZE};
 
 #[autodefault(except(TransformScaleLens, BackgroundColorLens))]
 pub(super) fn setup(
@@ -73,8 +73,6 @@ pub(super) fn setup(
         })
         .with_children(|c| {
             // region: Cursor
-
-            const CURSOR_SIZE: f32 = 22.;
 
             c.spawn(ImageBundle {
                 style: Style {

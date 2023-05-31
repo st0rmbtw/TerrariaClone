@@ -324,7 +324,7 @@ pub(super) fn setup_post_processing_camera(
 }
 
 #[cfg(feature = "debug")]
-use crate::DebugConfiguration;
+use crate::plugins::debug::DebugConfiguration;
 
 #[cfg(feature = "debug")]
 pub(super) fn set_shadow_map_visibility(

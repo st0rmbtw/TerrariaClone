@@ -9,13 +9,16 @@ pub(crate) use resources::*;
 pub(crate) use body_sprites::*;
 use systems::*;
 
-use crate::{common::{state::GameState, helpers::tile_pos_to_world_coords}, DebugConfiguration, plugins::player::utils::{simple_animation, is_walking, is_idle, is_flying}, world::WorldData};
+use crate::{common::{state::GameState, helpers::tile_pos_to_world_coords}, plugins::player::utils::{simple_animation, is_walking, is_idle, is_flying}, world::WorldData};
 use std::time::Duration;
 use bevy_hanabi::prelude::*;
 use bevy::{prelude::*, time::{Timer, TimerMode}, sprite::Anchor, math::vec2};
 use autodefault::autodefault;
 
 use super::{assets::PlayerAssets, world::TILE_SIZE, inventory::UseItemAnimationData};
+
+#[cfg(feature = "debug")]
+use crate::plugins::debug::DebugConfiguration;
 
 const PLAYER_WIDTH: f32 = 22.;
 const PLAYER_HEIGHT: f32 = 42.;
@@ -53,15 +56,20 @@ impl Plugin for PlayerPlugin {
 
         app.add_system(spawn_player.in_schedule(OnEnter(GameState::InGame)));
 
+        let flip_player_systems = (
+            update_face_direction,
+            flip_player,
+            flip_using_item
+        )
+        .chain()
+        .in_set(OnUpdate(GameState::InGame));
+
+        #[cfg(not(feature = "debug"))]
+        app.add_systems(flip_player_systems);
+
+        #[cfg(feature = "debug")]
         app.add_systems(
-            (
-                update_face_direction,
-                flip_player,
-                flip_using_item
-            )
-            .chain()
-            .in_set(OnUpdate(GameState::InGame))
-            .distributive_run_if(|config: Res<DebugConfiguration>| !config.free_camera)
+            flip_player_systems.distributive_run_if(|config: Res<DebugConfiguration>| !config.free_camera)
         );
 
         app.add_systems(
@@ -86,16 +94,22 @@ impl Plugin for PlayerPlugin {
 
         app.add_system(update_input_axis.in_set(OnUpdate(GameState::InGame)));
 
-        app.add_systems(
-            (
+        let handle_player_movement_systems = (
                 horizontal_movement,
                 update_jump,
             )
-            .distributive_run_if(in_state(GameState::InGame))
-            .distributive_run_if(|config: Res<DebugConfiguration>| !config.free_camera)
             .in_set(PhysicsSet::SetVelocity)
             .before(PhysicsSet::Update)
-            .in_schedule(CoreSchedule::FixedUpdate)
+            .distributive_run_if(in_state(GameState::InGame));
+
+        #[cfg(not(feature = "debug"))]
+        app.add_systems(handle_player_movement_systems.in_schedule(CoreSchedule::FixedUpdate));
+
+        #[cfg(feature = "debug")]
+        app.add_systems(
+            handle_player_movement_systems
+                .distributive_run_if(|config: Res<DebugConfiguration>| !config.free_camera)
+                .in_schedule(CoreSchedule::FixedUpdate)
         );
 
         app.add_systems(

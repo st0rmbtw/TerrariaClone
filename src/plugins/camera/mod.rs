@@ -1,6 +1,6 @@
-use bevy::{prelude::{Plugin, App, OnUpdate, IntoSystemConfig, IntoSystemAppConfig, OnEnter, Res, SystemSet, IntoSystemSetConfig, CoreSet, in_state}, transform::TransformSystem};
+use bevy::{prelude::{Plugin, App, OnUpdate, IntoSystemConfig, IntoSystemAppConfig, OnEnter, SystemSet, IntoSystemSetConfig, CoreSet, in_state}, transform::TransformSystem};
 
-use crate::{common::state::GameState, DebugConfiguration};
+use crate::common::state::GameState;
 
 pub(crate) use components::*;
 pub(crate) use events::*;
@@ -36,17 +36,24 @@ impl Plugin for CameraPlugin {
                 .before(TransformSystem::TransformPropagate)
         );
 
-        app.add_system(
-            follow_player
-                .in_set(CameraSet::MoveCamera)
-                .run_if(|debug_config: Res<DebugConfiguration>| !debug_config.free_camera)
-        );
+        #[cfg(not(feature = "debug"))]
+        app.add_system(follow_player.in_set(CameraSet::MoveCamera));
+        
+        #[cfg(feature = "debug")] {
+            use crate::plugins::debug::DebugConfiguration;
+            use bevy::prelude::Res;
 
-        #[cfg(feature = "debug")]
-        app.add_system(
-            free_camera
-                .in_set(CameraSet::MoveCamera)
-                .run_if(|debug_config: Res<DebugConfiguration>| debug_config.free_camera)
-        );
+            app.add_system(
+                follow_player
+                    .in_set(CameraSet::MoveCamera)
+                    .run_if(|debug_config: Res<DebugConfiguration>| !debug_config.free_camera)
+            );
+
+            app.add_system(
+                free_camera
+                    .in_set(CameraSet::MoveCamera)
+                    .run_if(|debug_config: Res<DebugConfiguration>| debug_config.free_camera)
+            );
+        }
     }
 }

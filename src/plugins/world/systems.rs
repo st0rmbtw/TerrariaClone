@@ -24,6 +24,9 @@ use crate::{plugins::{world::{CHUNK_SIZE, TILE_SIZE}, assets::{BlockAssets, Wall
 
 use super::{get_chunk_pos, CHUNK_SIZE_U, UpdateNeighborsEvent, WALL_SIZE, CHUNKMAP_SIZE, get_camera_fov, ChunkManager, get_chunk_tile_pos, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent, TREE_SIZE, TREE_BRANCHES_SIZE, TREE_TOPS_SIZE, utils::get_chunk_range_by_camera_fov, UpdateBlockEvent, SeedEvent};
 
+#[cfg(feature = "debug")]
+use crate::plugins::debug::DebugConfiguration;
+
 pub(super) fn spawn_terrain(mut commands: Commands) {
     let _current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
 
@@ -361,7 +364,7 @@ pub(super) fn handle_dig_block_event(
     sound_assets: Res<SoundAssets>,
     audio: Res<Audio>,
     #[cfg(feature = "debug")]
-    debug_config: Res<crate::DebugConfiguration>
+    debug_config: Res<DebugConfiguration>
 ) {
     let mut rng = thread_rng();
 
@@ -543,9 +546,6 @@ fn break_tree(
 
 #[cfg(feature = "debug")]
 use bevy::prelude::{Visibility, DetectChanges};
-
-#[cfg(feature = "debug")]
-use crate::DebugConfiguration;
 
 #[cfg(feature = "debug")]
 pub(super) fn set_tiles_visibility(

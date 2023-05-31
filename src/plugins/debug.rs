@@ -2,7 +2,7 @@ use bevy::{prelude::{App, Plugin,IntoSystemConfig, OnUpdate, ResMut, Commands, T
 use bevy_ecs_tilemap::{tiles::TilePos, helpers::square_grid::neighbors::Neighbors};
 use bevy_inspector_egui::{bevy_egui::{EguiPlugin, egui, EguiContexts}, egui::{Align2, CollapsingHeader, ScrollArea}, quick::WorldInspectorPlugin, reflect_inspector};
 
-use crate::{common::{state::GameState, helpers::{self, get_tile_pos_from_world_coords}}, DebugConfiguration, world::{block::BlockType, WorldData}};
+use crate::{common::{state::GameState, helpers::{self, get_tile_pos_from_world_coords}}, world::{block::BlockType, WorldData}};
 use bevy_prototype_debug_lines::DebugLinesPlugin;
 
 use super::{cursor::CursorPosition, assets::FontAssets, inventory::{UseItemAnimationIndex, UseItemAnimationData}};
@@ -29,6 +29,8 @@ impl Plugin for DebugPlugin {
             },
         });
 
+        app.insert_resource(DebugConfiguration::default());
+
         app.register_type::<CursorPosition>();
         app.register_type::<TextureAtlasSprite>();
         app.register_type::<UseItemAnimationIndex>();
@@ -41,6 +43,34 @@ impl Plugin for DebugPlugin {
         app.add_system(set_free_camera_legend_visibility.in_set(OnUpdate(GameState::InGame)));
 
         app.add_system(block_hover.in_set(OnUpdate(GameState::InGame)));
+    }
+}
+
+#[derive(Resource)]
+pub(crate) struct DebugConfiguration {
+    pub(crate) free_camera: bool,
+    pub(crate) instant_break: bool,
+
+    pub(crate) show_hitboxes: bool,
+    pub(crate) show_collisions: bool,
+    pub(crate) show_tiles: bool,
+    pub(crate) show_walls: bool,
+    pub(crate) shadow_tiles: bool,
+    pub(crate) player_speed: bevy::prelude::Vec2,
+}
+
+impl Default for DebugConfiguration {
+    fn default() -> Self {
+        Self {
+            free_camera: false,
+            instant_break: false,
+            show_hitboxes: false,
+            shadow_tiles: false,
+            show_collisions: true,
+            show_tiles: true,
+            show_walls: true,
+            player_speed: default()
+        }
     }
 }
 

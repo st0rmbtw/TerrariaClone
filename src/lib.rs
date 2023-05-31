@@ -8,8 +8,7 @@ use animation::TweeningPlugin;
 use bevy::{
     log::{Level, LogPlugin},
     prelude::{
-        default, App, AssetPlugin, ClearColor, Color, FixedTime, ImagePlugin, Msaa, PluginGroup,
-        Resource, UVec2,
+        default, App, AssetPlugin, ClearColor, Color, FixedTime, ImagePlugin, Msaa, PluginGroup, UVec2,
     },
     window::{Cursor, MonitorSelection, Window, WindowPlugin, WindowPosition, WindowResolution},
     DefaultPlugins
@@ -45,46 +44,6 @@ pub(crate) mod plugins;
 pub(crate) mod world;
 
 pub use world::WorldSize;
-
-#[derive(Resource)]
-pub(crate) struct DebugConfiguration {
-    pub(crate) free_camera: bool,
-    pub(crate) instant_break: bool,
-
-    #[cfg(feature = "debug")]
-    pub(crate) show_hitboxes: bool,
-    #[cfg(feature = "debug")]
-    pub(crate) show_collisions: bool,
-    #[cfg(feature = "debug")]
-    pub(crate) show_tiles: bool,
-    #[cfg(feature = "debug")]
-    pub(crate) show_walls: bool,
-    #[cfg(feature = "debug")]
-    pub(crate) shadow_tiles: bool,
-    #[cfg(feature = "debug")]
-    pub(crate) player_speed: bevy::prelude::Vec2,
-}
-
-impl Default for DebugConfiguration {
-    fn default() -> Self {
-        Self {
-            free_camera: false,
-            instant_break: false,
-            #[cfg(feature = "debug")]
-            show_hitboxes: false,
-            #[cfg(feature = "debug")]
-            shadow_tiles: false,
-            #[cfg(feature = "debug")]
-            show_collisions: true,
-            #[cfg(feature = "debug")]
-            show_tiles: true,
-            #[cfg(feature = "debug")]
-            show_walls: true,
-            #[cfg(feature = "debug")]
-            player_speed: default()
-        }
-    }
-}
 
 pub fn create_app() -> Result<App, Box<dyn Error>> {
     let language_content = load_language(Language::English)?;
@@ -133,7 +92,6 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
         .insert_resource(language_content)
         .insert_resource(ClearColor(Color::BLACK))
         .insert_resource(FixedTime::new_from_secs(1. / 60.))
-        .insert_resource(DebugConfiguration::default())
         .add_event::<UpdateLightEvent>()
         .add_state::<GameState>()
         .add_plugin(TweeningPlugin)

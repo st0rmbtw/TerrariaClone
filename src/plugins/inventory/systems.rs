@@ -4,7 +4,7 @@ use autodefault::autodefault;
 use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color, MouseButton, EventWriter, Audio, DetectChanges, Local, Transform, Quat}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, Size, PositionType, AlignContent, Interaction, BackgroundColor, ZIndex}, text::{Text, TextStyle, TextAlignment}, sprite::TextureAtlasSprite};
 use rand::seq::SliceRandom;
 
-use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets, SoundAssets}, cursor::{Hoverable, CursorPosition, UpdateHoverableInfoEvent}, world::{DigBlockEvent, PlaceBlockEvent, SeedEvent}, player::{FaceDirection, Player, PlayerSpriteBody}}, common::{extensions::EntityCommandsExtensions, helpers}, language::LanguageContent, items::{Item, get_animation_points, ItemStack}, DebugConfiguration, world::WorldData};
+use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets, SoundAssets}, cursor::{Hoverable, CursorPosition, UpdateHoverableInfoEvent}, world::{DigBlockEvent, PlaceBlockEvent, SeedEvent}, player::{FaceDirection, Player, PlayerSpriteBody}}, common::{extensions::EntityCommandsExtensions, helpers}, language::LanguageContent, items::{Item, get_animation_points, ItemStack}, world::WorldData};
 
 use super::{Inventory, HOTBAR_LENGTH, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, CELL_COUNT_IN_ROW, INVENTORY_ROWS, HotbarUi, util::keycode_to_digit, SwingItemCooldown, ItemInHand, UseItemAnimationIndex, PlayerUsingItem, UseItemAnimationData, SwingItemCooldownMax, ITEM_ROTATION, SwingAnimation};
 
@@ -416,15 +416,21 @@ pub(super) fn inventory_cell_background_hover(
 pub(super) fn use_item(
     using_item: Res<PlayerUsingItem>,
     cursor: Res<CursorPosition>,
-    debug_config: Res<DebugConfiguration>,
+    world_data: Res<WorldData>,
+    #[cfg(feature = "debug")]
+    debug_config: Res<crate::plugins::debug::DebugConfiguration>,
     mut inventory: ResMut<Inventory>,
     mut dig_block_events: EventWriter<DigBlockEvent>,
     mut place_block_events: EventWriter<PlaceBlockEvent>,
     mut seed_events: EventWriter<SeedEvent>,
     mut use_cooldown: Local<u32>,
-    world_data: Res<WorldData>
 ) {
-    if *use_cooldown > 0 && !debug_config.instant_break {
+    #[cfg(feature = "debug")]
+    let instant_break = debug_config.instant_break;
+    #[cfg(not(feature = "debug"))]
+    let instant_break = false;
+
+    if *use_cooldown > 0 && !instant_break {
         *use_cooldown -= 1;
         return;
     }

@@ -8,10 +8,11 @@ pub(crate) use components::*;
 pub(crate) use resources::*;
 pub(crate) use events::*;
 
-use bevy::{prelude::{Plugin, App, IntoSystemConfig, OnExit, OnEnter, IntoSystemConfigs, not, IntoSystemAppConfig, resource_equals, OnUpdate, in_state, Res, State, Condition}, ui::BackgroundColor};
-use crate::{common::state::GameState, animation::{AnimationSystemSet, component_animator_system}, DebugConfiguration};
+use bevy::{prelude::{Plugin, App, IntoSystemConfig, OnExit, OnEnter, IntoSystemConfigs, not, IntoSystemAppConfig, resource_equals, OnUpdate, in_state, Res, State, Condition, resource_changed}, ui::BackgroundColor};
+use crate::{common::state::GameState, animation::{AnimationSystemSet, component_animator_system}};
 use super::{ui::UiVisibility, settings::ShowTileGrid};
 
+const CURSOR_SIZE: f32 = 22.;
 const MAX_TILE_GRID_OPACITY: f32 = 0.8;
 const MIN_TILE_GRID_OPACITY: f32 = 0.2;
 
@@ -48,12 +49,30 @@ impl Plugin for CursorPlugin {
 
         app.add_systems(
             (
-                set_visibility::<TileGrid>,
                 set_visibility::<CursorBackground>,
-                update_tile_grid_visibility,
-                update_tile_grid_opacity.run_if(|config: Res<DebugConfiguration>| !config.free_camera)
             )
             .in_set(OnUpdate(GameState::InGame))
         );
+
+        app.add_systems(
+            (
+                set_visibility::<TileGrid>,
+                update_tile_grid_visibility,
+            )
+            .distributive_run_if(resource_changed::<ShowTileGrid>())
+            .in_set(OnUpdate(GameState::InGame))
+        );
+
+        #[cfg(not(feature = "debug"))]
+        app.add_system(
+            update_tile_grid_opacity
+                .run_if(resource_equals(ShowTileGrid(true)))
+                .in_set(OnUpdate(GameState::InGame))
+        );
+
+        #[cfg(feature = "debug")] {
+            use crate::plugins::debug::DebugConfiguration;
+            app.add_system(update_tile_grid_opacity.run_if(|config: Res<DebugConfiguration>| !config.free_camera));
+        }
     }
 }
