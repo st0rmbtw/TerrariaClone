@@ -50,3 +50,7 @@ pub(super) fn is_flying(
 
     false
 }
+
+pub(super) fn get_fall_distance(position: f32, fall_start: Option<f32>) -> f32 {
+    fall_start.map(|fs| (position - fs).abs()).unwrap_or(0.)
+}

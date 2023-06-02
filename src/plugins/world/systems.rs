@@ -336,15 +336,12 @@ pub(super) fn handle_break_block_event(
 
     for &BreakBlockEvent { tile_pos } in break_block_events.iter() {
         if let Some(&block) = world_data.get_block(tile_pos) {
-            let chunk_pos = get_chunk_pos(tile_pos);
-            let chunk_tile_pos = get_chunk_tile_pos(tile_pos);
-
             if let BlockType::Tree(_) = block.block_type {
                 break_tree(&mut commands, &mut query_chunk, tile_pos, &mut world_data, false);
             } else {
                 world_data.remove_block(tile_pos);
 
-                ChunkManager::remove_block(&mut commands, &mut query_chunk, chunk_pos, chunk_tile_pos, block.block_type);
+                ChunkManager::remove_block(&mut commands, &mut query_chunk, tile_pos, block.block_type);
 
                 update_light_events.send(UpdateLightEvent);
             }
@@ -415,10 +412,12 @@ pub(super) fn handle_place_block_event(
     for &PlaceBlockEvent { tile_pos, block } in place_block_events.iter() {
         if world_data.block_exists(tile_pos) { continue; }
 
-        let Vec2 { x, y } = tile_pos_to_world_coords(tile_pos);
-        let tile_rect = FRect::new_center(x, y, TILE_SIZE, TILE_SIZE);
-
-        if player_rect.intersects(&tile_rect) { continue; }
+        // Forbid to place a block inside the player 
+        {
+            let Vec2 { x, y } = tile_pos_to_world_coords(tile_pos);
+            let tile_rect = FRect::new_center(x, y, TILE_SIZE, TILE_SIZE);
+            if player_rect.intersects(&tile_rect) { continue; }
+        }
         
         world_data.set_block(tile_pos, &block);
 
@@ -427,10 +426,8 @@ pub(super) fn handle_place_block_event(
             .map_ref(|b| b.block_type);
         
         let index = Block::get_sprite_index(&neighbors, block.block_type);
-        let chunk_pos = get_chunk_pos(tile_pos);
-        let chunk_tile_pos = get_chunk_tile_pos(tile_pos);
 
-        ChunkManager::spawn_block(&mut commands, &mut query_chunk, chunk_pos, chunk_tile_pos, &block, index);
+        ChunkManager::spawn_block(&mut commands, &mut query_chunk, tile_pos, &block, index);
 
         update_neighbors_events.send(UpdateNeighborsEvent { tile_pos });
         update_light_events.send(UpdateLightEvent);
@@ -531,9 +528,7 @@ fn break_tree(
         if let BlockType::Tree(tree) = block.block_type {
             world_data.remove_block(pos);
 
-            let chunk_pos = get_chunk_pos(pos);
-            let chunk_tile_pos = get_chunk_tile_pos(pos);
-            ChunkManager::remove_block(commands, chunks, chunk_pos, chunk_tile_pos, block.block_type);
+            ChunkManager::remove_block(commands, chunks, pos, block.block_type);
 
             if tree.frame_type.is_stem() || tree_falling {
                 break_tree(commands, chunks, TilePos::new(pos.x + 1, pos.y), world_data, true);

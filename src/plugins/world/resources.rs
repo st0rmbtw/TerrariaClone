@@ -4,7 +4,7 @@ use ndarray::Array2;
 
 use crate::world::{chunk::{ChunkPos, Chunk, ChunkType}, block::{BlockType, Block}};
 
-use super::{systems::spawn_block};
+use super::{systems::spawn_block, utils::{get_chunk_pos, get_chunk_tile_pos}};
 
 #[derive(Resource)]
 pub(crate) struct LightMap {
@@ -50,10 +50,12 @@ impl ChunkManager {
     pub(super) fn remove_block(
         commands: &mut Commands,
         query_chunk: &mut Query<(&Chunk, &mut TileStorage)>,
-        chunk_pos: UVec2,
-        chunk_tile_pos: TilePos,
+        tile_pos: TilePos,
         block_type: BlockType
     ) {
+        let chunk_pos = get_chunk_pos(tile_pos);
+        let chunk_tile_pos = get_chunk_tile_pos(tile_pos);
+
         let filtered_chunks = query_chunk
             .iter_mut()
             .find(|(chunk, _)| {
@@ -70,11 +72,13 @@ impl ChunkManager {
     pub(super) fn spawn_block(
         commands: &mut Commands,
         query_chunk: &mut Query<(&Chunk, &mut TileStorage, Entity)>,
-        chunk_pos: UVec2,
-        chunk_tile_pos: TilePos,
+        tile_pos: TilePos,
         block: &Block,
         index: u32,
     ) {
+        let chunk_pos = get_chunk_pos(tile_pos);
+        let chunk_tile_pos = get_chunk_tile_pos(tile_pos);
+
         let filtered_chunks = query_chunk
             .iter_mut()
             .find(|(chunk, _, _)| {

@@ -47,11 +47,9 @@ impl Plugin for CursorPlugin {
                 .in_set(AnimationSystemSet::AnimationUpdate),
         );
 
-        app.add_systems(
-            (
-                set_visibility::<CursorBackground>,
-            )
-            .in_set(OnUpdate(GameState::InGame))
+        app.add_system(
+            set_visibility::<CursorBackground>
+                .in_set(OnUpdate(GameState::InGame))
         );
 
         app.add_systems(
@@ -72,7 +70,12 @@ impl Plugin for CursorPlugin {
 
         #[cfg(feature = "debug")] {
             use crate::plugins::debug::DebugConfiguration;
-            app.add_system(update_tile_grid_opacity.run_if(|config: Res<DebugConfiguration>| !config.free_camera));
+            app.add_system(
+                update_tile_grid_opacity
+                    .run_if(resource_equals(ShowTileGrid(true)))
+                    .run_if(|config: Res<DebugConfiguration>| !config.free_camera)
+                    .in_set(OnUpdate(GameState::InGame))
+            );
         }
     }
 }

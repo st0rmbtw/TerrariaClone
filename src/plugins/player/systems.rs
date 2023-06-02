@@ -9,7 +9,7 @@ use crate::{
     common::{math::{move_towards, map_range_usize}, state::MovementState, rect::FRect}, world::WorldData,
 };
 
-use super::*;
+use super::{*, utils::get_fall_distance};
 
 #[cfg(feature = "debug")]
 use bevy_prototype_debug_lines::DebugLines;
@@ -40,25 +40,27 @@ pub(super) fn update_jump(
     collisions: Res<Collisions>,
     mut velocity: ResMut<PlayerVelocity>,
     mut player_data: ResMut<PlayerData>,
+    mut jump: Local<i32>
 ) {
     // TODO: Call just_pressed instead when https://github.com/bevyengine/bevy/issues/6183 is fixed
     if input.pressed(KeyCode::Space) && collisions.bottom {
-        player_data.jump = JUMP_HEIGHT;
+        *jump = JUMP_HEIGHT;
         velocity.y = JUMP_SPEED;
+        player_data.jumping = true;
     }
 
     if input.pressed(KeyCode::Space) {
-        if player_data.jump > 0 {
+        if *jump > 0 {
             if velocity.y == 0. {
-                player_data.jump = 0;
+                *jump = 0;
             } else {
                 velocity.y = JUMP_SPEED;
 
-                player_data.jump -= 1;
+                *jump -= 1;
             }
         }
     } else {
-        player_data.jump = 0;
+        *jump = 0;
     }
 }
 
@@ -66,12 +68,12 @@ pub(super) fn gravity(
     collisions: Res<Collisions>,
     mut player_data: ResMut<PlayerData>,
     mut velocity: ResMut<PlayerVelocity>,
-    query_player: Query<&Transform, With<Player>>
+    query_player: Query<&PlayerRect, With<Player>>
 ) {
     if !collisions.bottom {
-        if velocity.y <= 0. && player_data.fall_start == 0. {
-            let transform = query_player.single();
-            player_data.fall_start = transform.translation.y;
+        if velocity.y <= 0. && player_data.fall_start.is_none() {
+            let rect = query_player.single();
+            player_data.fall_start = Some(rect.bottom());
         }
 
         velocity.y -= GRAVITY;
@@ -193,6 +195,7 @@ pub(super) fn detect_collisions(
                                 }
                             } else {
                                 new_collisions.bottom = true;
+                                player_data.jumping = false;
 
                                 if !move_player_up {
                                     // If the player's bottom side is lower than the tile's top side then move the player up
@@ -202,13 +205,12 @@ pub(super) fn detect_collisions(
                                     }
                                 }
 
-                                if player_data.fall_start != 0. {
-                                    let fall_distance = ((position.y.abs() + player_data.fall_start) / TILE_SIZE).ceil();
-                                    if fall_distance > 0. {
-                                        debug!(fall_distance);
-                                    }
+                                let fall_distance = (get_fall_distance(player_rect.bottom(), player_data.fall_start) / TILE_SIZE).ceil();
+                                if fall_distance > 0. {
+                                    debug!(fall_distance);
                                 }
-                                player_data.fall_start = 0.;
+
+                                player_data.fall_start = None;
 
                                 #[cfg(feature = "debug")]
                                 if debug_config.show_collisions {
@@ -273,11 +275,14 @@ pub(super) fn update_movement_state(
     collisions: Res<Collisions>,
     player_data: Res<PlayerData>,
     velocity: Res<PlayerVelocity>,
-    mut query: Query<&mut MovementState, With<Player>>,
+    mut query: Query<(&PlayerRect, &mut MovementState), With<Player>>,
 ) {
-    let mut movement_state = query.single_mut();
+    let (player_rect, mut movement_state) = query.single_mut();
+
+    let fall_distance = get_fall_distance(player_rect.bottom(), player_data.fall_start);
+
     *movement_state = match velocity.0 {
-        _ if !collisions.bottom || player_data.jump > 0 => MovementState::Flying,
+        _ if (!collisions.bottom && fall_distance > TILE_SIZE) || player_data.jumping => MovementState::Flying,
         Vec2 { x, .. } if x != 0. => MovementState::Walking,
         _ => MovementState::Idle
     };

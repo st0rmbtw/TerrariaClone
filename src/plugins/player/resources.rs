@@ -16,8 +16,8 @@ pub(crate) struct PlayerVelocity(pub Vec2);
 
 #[derive(Resource, Default)]
 pub(super) struct PlayerData {
-    pub(super) jump: i32,
-    pub(super) fall_start: f32,
+    pub(super) jumping: bool,
+    pub(super) fall_start: Option<f32>,
 }
 
 #[derive(Debug, Resource, Clone, Copy, Default)]
