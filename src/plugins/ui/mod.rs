@@ -20,12 +20,12 @@ impl Plugin for PlayerUiPlugin {
         app.add_system(spawn_ui_container.in_schedule(OnEnter(GameState::InGame)));
 
         app.add_system(
-            toggle_extra_ui
+            toggle_extra_ui_visibility
                 .run_if(input_just_pressed(KeyCode::Escape))
                 .in_set(OnUpdate(GameState::InGame))
         );
         app.add_system(
-            toggle_ui
+            toggle_ui_visibility
                 .run_if(input_just_pressed(KeyCode::F11))
                 .in_set(OnUpdate(GameState::InGame))
         );

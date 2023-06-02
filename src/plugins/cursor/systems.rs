@@ -5,10 +5,10 @@ use bevy::{
     prelude::{
         Res, Commands, Vec3, Color, NodeBundle, default, TextBundle, Name, ImageBundle, Transform, 
         Component, GlobalTransform, Query, With, ResMut, Camera, Visibility, 
-        BuildChildren, DetectChanges, EventReader
+        BuildChildren, DetectChanges, Changed
     }, 
     ui::{
-        Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Size, Val, AlignSelf, ZIndex, FlexDirection, UiRect
+        Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Size, Val, AlignSelf, ZIndex, FlexDirection, UiRect, Interaction
     }, 
     text::{Text, TextStyle}, 
     sprite::{SpriteBundle, Sprite}, 
@@ -29,7 +29,7 @@ use crate::{
 
 use crate::plugins::player::{PlayerVelocity, MAX_RUN_SPEED, MAX_FALL_SPEED};
 
-use super::{HoverableInfoMarker, CursorContainer, CursorForeground, CursorBackground, TileGrid, MAX_TILE_GRID_OPACITY, CursorPosition, MIN_TILE_GRID_OPACITY, UpdateHoverableInfoEvent, components::Hoverable, CURSOR_SIZE};
+use super::{CursorInfoMarker, CursorContainer, CursorForeground, CursorBackground, TileGrid, MAX_TILE_GRID_OPACITY, CursorPosition, MIN_TILE_GRID_OPACITY, components::Hoverable, CURSOR_SIZE};
 
 #[autodefault(except(TransformScaleLens, BackgroundColorLens))]
 pub(super) fn setup(
@@ -119,7 +119,7 @@ pub(super) fn setup(
                     },
                 )
             })
-            .insert(HoverableInfoMarker);
+            .insert(CursorInfoMarker);
         })
         .insert(CursorContainer)
         .insert(Name::new("Cursor Container"));
@@ -170,26 +170,8 @@ pub(super) fn set_visibility<C: Component>(
     mut query: Query<&mut Visibility, With<C>>,
 ) {
     if ui_visibility.is_changed() {
-        for visibility in &mut query {
-            helpers::set_visibility(visibility, ui_visibility.0);
-        }
-    }
-}
-
-pub(super) fn handle_update_hoverable_info_event(
-    mut events: EventReader<UpdateHoverableInfoEvent>,
-    mut query: Query<(&mut Text, &mut Visibility), With<HoverableInfoMarker>>,
-) {
-    if let Some(event) = events.iter().last() {
-        let (mut text, mut visibility) = query.single_mut();
-        match &event.0 {
-            Hoverable::SimpleText(string) => {
-                text.sections[0].value = string.clone();
-                *visibility = Visibility::Inherited;
-            },
-            Hoverable::None => {
-                *visibility = Visibility::Hidden;
-            },
+        for mut visibility in &mut query {
+            helpers::set_visibility(&mut visibility, ui_visibility.0);
         }
     }
 }
@@ -225,9 +207,31 @@ pub(super) fn update_tile_grid_opacity(
 }
 
 pub(super) fn update_tile_grid_visibility(
-    mut tile_grid: Query<&mut Visibility, With<TileGrid>>,
+    mut query_tile_grid: Query<&mut Visibility, With<TileGrid>>,
     show_tile_grid: Res<ShowTileGrid>
 ) {
-    let visibility = tile_grid.single_mut();
-    helpers::set_visibility(visibility, show_tile_grid.0);
+    let mut visibility = query_tile_grid.single_mut();
+    helpers::set_visibility(&mut visibility, show_tile_grid.0);
+}
+
+pub(super) fn update_cursor_info(
+    query_hoverable: Query<(&Hoverable, &Interaction), Changed<Interaction>>,
+    mut query_info: Query<(&mut Text, &mut Visibility), With<CursorInfoMarker>>,
+) {
+    let (mut text, mut visibility) = query_info.single_mut();
+
+    query_hoverable.for_each(|(hoverable, interaction)| {
+        helpers::set_visibility(
+            &mut visibility, 
+            !matches!(hoverable, Hoverable::None)
+                && !matches!(interaction, Interaction::None)
+        );
+
+        match (hoverable, interaction) {
+            (Hoverable::SimpleText(info), Interaction::Hovered) => {
+                text.sections[0].value = info.clone();
+            },
+            _ => {}
+        }
+    });
 }

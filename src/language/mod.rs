@@ -65,7 +65,7 @@ pub(crate) struct LanguageContent {
 }
 
 impl LanguageContent {
-    pub(crate) fn name(&self, item: Item) -> String {
+    pub(crate) fn item_name(&self, item: Item) -> String {
         match item {
             Item::Tool(tool) => self.tool_name(tool),
             Item::Block(block) => self.block_name(block.block_type),

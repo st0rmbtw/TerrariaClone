@@ -117,14 +117,14 @@ impl Plugin for PlayerInventoryPlugin {
 
         app.add_systems(
             (
-                update_inventory_visibility,
+                on_extra_ui_visibility_toggle,
                 update_selected_cell_size,
                 update_selected_cell_image,
                 update_selected_item_name_alignment,
                 update_selected_item_name_text,
                 update_cell,
                 update_cell_image,
-                inventory_cell_background_hover,
+                update_hoverable,
                 update_item_amount,
                 update_item_amount_text,
             )

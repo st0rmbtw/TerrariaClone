@@ -67,8 +67,8 @@ pub(super) fn set_btn_visibility(
     mut events: EventReader<ToggleExtraUiEvent>,
 ) {
     for event in events.iter() {
-        for visibility in &mut query {
-            helpers::set_visibility(visibility, event.0);
+        for mut visibility in &mut query {
+            helpers::set_visibility(&mut visibility, event.0);
         }
     }
 }

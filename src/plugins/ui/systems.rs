@@ -90,24 +90,21 @@ pub(crate) fn spawn_ui_container(
     commands.entity(main_id).push_children(&[left_id, right_id]);
 }
 
-pub(super) fn toggle_extra_ui(
+pub(super) fn toggle_extra_ui_visibility(
     mut events: EventWriter<ToggleExtraUiEvent>,
-    mut extra_ui_visibility: ResMut<ExtraUiVisibility>,
+    mut visibility: ResMut<ExtraUiVisibility>,
     sounds: Res<SoundAssets>,
     audio: Res<Audio>
 ) {
-    let visibility = !extra_ui_visibility.0;
-    extra_ui_visibility.0 = visibility;
-    events.send(ToggleExtraUiEvent(visibility));
+    visibility.0 = !visibility.0;
+    events.send(ToggleExtraUiEvent(visibility.0));
 
-    if visibility {
-        audio.play(sounds.menu_open.clone_weak());
-    } else {
-        audio.play(sounds.menu_close.clone_weak());
-    }
+    let sound = if visibility.0 { &sounds.menu_open } else { &sounds.menu_close };
+
+    audio.play(sound.clone_weak());
 }
 
-pub(super) fn toggle_ui(mut ui_visibility: ResMut<UiVisibility>) {
+pub(super) fn toggle_ui_visibility(mut ui_visibility: ResMut<UiVisibility>) {
     ui_visibility.0 = !ui_visibility.0;
 }
 
@@ -116,8 +113,8 @@ pub(super) fn set_main_container_visibility(
     mut query: Query<&mut Visibility, With<MainUiContainer>>,
 ) {
     if ui_visibility.is_changed() {
-        for visibility in &mut query {
-            helpers::set_visibility(visibility, ui_visibility.0);
+        for mut visibility in &mut query {
+            helpers::set_visibility(&mut visibility, ui_visibility.0);
         }
     }
 }

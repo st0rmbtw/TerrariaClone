@@ -115,9 +115,7 @@ pub(super) fn detect_collisions(
 
     let mut new_collisions = Collisions::default();
 
-    let mut move_player_up = false;
-
-    for x in left_u32..right_u32 {
+    'outer: for x in left_u32..right_u32 {
         for y in top_u32..bottom_u32 {
             if world_data.solid_block_exists((x, y)) {
                 let tile_rect = FRect::new_center(
@@ -147,11 +145,13 @@ pub(super) fn detect_collisions(
 
                         if is_enough_space && is_bottom_tile && f32::from(face_direction) == delta_x.signum() {
                             new_collisions.bottom = true;
-                            move_player_up = true;
                             transform.translation.y = tile_rect.top() + player_rect.height / 2.;
-                            // velocity.y = 3.;
-                            // velocity.x = 1. * delta_x.signum();
-                            continue;
+                            if delta_x > 0. {
+                                transform.translation.x = tile_rect.left - player_rect.width / 2. + 2.;
+                            } else if delta_x < 0. {
+                                transform.translation.x = tile_rect.right + player_rect.width / 2. - 2.;
+                            }
+                            break 'outer;
                         }
 
                         if delta_x < 0. {
@@ -196,13 +196,11 @@ pub(super) fn detect_collisions(
                             } else {
                                 new_collisions.bottom = true;
                                 player_data.jumping = false;
-
-                                if !move_player_up {
-                                    // If the player's bottom side is lower than the tile's top side then move the player up
-                                    if player_rect.bottom() >= tile_rect.top() {
-                                        transform.translation.y = tile_rect.top() + player_rect.height / 2.;
-                                        velocity.y = 0.;
-                                    }
+                                
+                                // If the player's bottom side is lower than the tile's top side then move the player up
+                                if player_rect.bottom() >= tile_rect.top() {
+                                    transform.translation.y = tile_rect.top() + player_rect.height / 2.;
+                                    velocity.y = 0.;
                                 }
 
                                 let fall_distance = (get_fall_distance(player_rect.bottom(), player_data.fall_start) / TILE_SIZE).ceil();

@@ -1,7 +1,7 @@
 use bevy::prelude::Component;
 
 #[derive(Component)]
-pub(super) struct HoverableInfoMarker;
+pub(super) struct CursorInfoMarker;
 
 #[derive(Component)]
 pub(super) struct TileGrid;

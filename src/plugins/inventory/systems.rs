@@ -1,10 +1,10 @@
 use std::borrow::Cow;
 
 use autodefault::autodefault;
-use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color, MouseButton, EventWriter, Audio, DetectChanges, Local, Transform, Quat}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, Size, PositionType, AlignContent, Interaction, BackgroundColor, ZIndex}, text::{Text, TextStyle, TextAlignment}, sprite::TextureAtlasSprite};
+use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color, MouseButton, EventWriter, Audio, DetectChanges, Local, Transform, Quat, DetectChangesMut}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, Size, PositionType, AlignContent, Interaction, BackgroundColor, ZIndex}, text::{Text, TextStyle, TextAlignment}, sprite::TextureAtlasSprite};
 use rand::seq::SliceRandom;
 
-use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets, SoundAssets}, cursor::{Hoverable, CursorPosition, UpdateHoverableInfoEvent}, world::{DigBlockEvent, PlaceBlockEvent, SeedEvent}, player::{FaceDirection, Player, PlayerSpriteBody}}, common::{extensions::EntityCommandsExtensions, helpers}, language::LanguageContent, items::{Item, get_animation_points, ItemStack}, world::WorldData};
+use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets, SoundAssets}, cursor::{Hoverable, CursorPosition}, world::{DigBlockEvent, PlaceBlockEvent, SeedEvent}, player::{FaceDirection, Player, PlayerSpriteBody}}, common::{extensions::EntityCommandsExtensions, helpers}, language::LanguageContent, items::{Item, get_animation_points, ItemStack}, world::WorldData};
 
 use super::{Inventory, HOTBAR_LENGTH, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, CELL_COUNT_IN_ROW, INVENTORY_ROWS, HotbarUi, util::keycode_to_digit, SwingItemCooldown, ItemInHand, UseItemAnimationIndex, PlayerUsingItem, UseItemAnimationData, SwingItemCooldownMax, ITEM_ROTATION, SwingAnimation};
 
@@ -143,6 +143,7 @@ fn spawn_inventory_cell(
             image: cell_background.into(),
             background_color: BackgroundColor(Color::rgba(1., 1., 1., 0.8))
         })
+        .insert(Hoverable::None)
         .with_children(|c| {
             c.spawn(ImageBundle {
                 focus_policy: FocusPolicy::Pass,
@@ -212,21 +213,24 @@ fn spawn_inventory_cell(
         .insert(Interaction::default());
 }
 
-pub(super) fn update_inventory_visibility(
-    mut query: Query<&mut Visibility, With<InventoryUi>>,
+pub(super) fn on_extra_ui_visibility_toggle(
+    mut inventory: ResMut<Inventory>,
     mut events: EventReader<ToggleExtraUiEvent>,
+    mut query_inventory_ui: Query<&mut Visibility, With<InventoryUi>>,
 ) {
-    for event in events.iter() {
-        for visibility in &mut query {
-            helpers::set_visibility(visibility, event.0);
-        }
+    let mut visibility = query_inventory_ui.single_mut();
+
+    if let Some(event) = events.iter().last() {
+        helpers::set_visibility(&mut visibility, event.0);
+        // Setting inventory resource as changed updates Inventory UI
+        inventory.set_changed();
     }
 }
 
 pub(super) fn update_selected_cell_size(
     inventory: Res<Inventory>,
-    mut hotbar_cells: Query<(&InventoryCellIndex, &mut Style), With<HotbarCellMarker>>,
     visibility: Res<ExtraUiVisibility>,
+    mut hotbar_cells: Query<(&InventoryCellIndex, &mut Style), With<HotbarCellMarker>>,
 ) {
     if inventory.is_changed() {
         for (cell_index, mut style) in hotbar_cells.iter_mut() {
@@ -297,6 +301,28 @@ pub(super) fn set_selected_item(inventory: Res<Inventory>, mut selected_item: Re
     }
 }
 
+pub(super) fn update_hoverable(
+    mut hotbar_cells: Query<(&mut Hoverable, &InventoryCellIndex), With<HotbarCellMarker>>,
+    inventory: Res<Inventory>,
+    language_content: Res<LanguageContent>
+) {
+    if inventory.is_changed() {
+        for (mut hoverable, cell_index) in &mut hotbar_cells {
+            if let Some(item) = inventory.get_item(cell_index.0) {
+                let name = if item.stack > 1 {
+                    language_content.item_name(item.item)
+                } else {
+                    format!("{} ({})", language_content.item_name(item.item), item.stack)
+                };
+
+                *hoverable = Hoverable::SimpleText(name);
+            } else {
+                *hoverable = Hoverable::None;
+            }
+        }
+    }
+}
+
 pub(super) fn update_selected_item_name_alignment(
     mut selected_item_name_query: Query<&mut Style, With<SelectedItemNameMarker>>,
     mut events: EventReader<ToggleExtraUiEvent>,
@@ -327,7 +353,7 @@ pub(super) fn update_selected_item_name_text(
                 .map(|item_stack| item_stack.item);
 
             name
-                .map(|item| language_content.name(item))
+                .map(|item| language_content.item_name(item))
                 .unwrap_or(language_content.ui.items.clone())
         }
     }
@@ -376,39 +402,9 @@ pub(super) fn update_item_amount_text(
     mut query: Query<(&mut Text, &mut Visibility, &InventoryItemAmount), Changed<InventoryItemAmount>>,
 ) {
     for (mut text, mut visibility, item_stack) in &mut query {
+        helpers::set_visibility(&mut visibility, item_stack.0 > 1);
         if item_stack.0 > 1 {
-            text.sections[0].value = item_stack.0.to_string();  
-            *visibility = Visibility::Inherited;
-        } else {
-            *visibility = Visibility::Hidden;
-        }
-    }
-}
-
-pub(super) fn inventory_cell_background_hover(
-    query: Query<(&Interaction, &InventoryCellIndex), Changed<Interaction>>,
-    inventory: Res<Inventory>,
-    language_content: Res<LanguageContent>,
-    mut update_hoverable_info_events: EventWriter<UpdateHoverableInfoEvent>,
-) {
-    for (interaction, cell_index) in &query {
-        if let Some(item_stack) = inventory.get_item(cell_index.0) {
-            match interaction {
-                Interaction::None => {
-                    update_hoverable_info_events.send(UpdateHoverableInfoEvent(Hoverable::None));
-                },
-                _ => {
-                    let mut name = language_content.name(item_stack.item).to_owned();
-                    
-                    if item_stack.stack > 1 {
-                        name.push_str(&format!(" ({})", item_stack.stack));
-                    }
-
-                    update_hoverable_info_events.send(UpdateHoverableInfoEvent(
-                        Hoverable::SimpleText(name.to_string())
-                    ));
-                }
-            }
+            text.sections[0].value = item_stack.0.to_string();
         }
     }
 }
@@ -495,8 +491,8 @@ pub(super) fn set_using_item_image(
 pub(super) fn set_using_item_visibility(visible: bool) -> impl FnMut(Res<SwingAnimation>, Query<&mut Visibility, With<ItemInHand>>) {
     move |swing_animation: Res<SwingAnimation>, mut using_item_query: Query<&mut Visibility, With<ItemInHand>>| {
         if swing_animation.is_changed() && **swing_animation == visible {
-            if let Ok(visibility) = using_item_query.get_single_mut() {
-                helpers::set_visibility(visibility, visible);
+            if let Ok(mut visibility) = using_item_query.get_single_mut() {
+                helpers::set_visibility(&mut visibility, visible);
             }
         }
     }
