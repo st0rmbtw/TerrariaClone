@@ -20,7 +20,7 @@ use bevy_ecs_tilemap::{
 };
 use rand::{thread_rng, seq::SliceRandom};
 
-use crate::{plugins::{world::{CHUNK_SIZE, TILE_SIZE}, assets::{BlockAssets, WallAssets, SoundAssets}, camera::{MainCamera, UpdateLightEvent}, player::{Player, PlayerRect}}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect}, items::Seed, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}};
+use crate::{plugins::{world::{CHUNK_SIZE, TILE_SIZE}, assets::{BlockAssets, WallAssets, SoundAssets}, camera::{MainCamera, UpdateLightEvent}, player::{Player, PlayerRect}}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}};
 
 use super::{get_chunk_pos, CHUNK_SIZE_U, UpdateNeighborsEvent, WALL_SIZE, CHUNKMAP_SIZE, get_camera_fov, ChunkManager, get_chunk_tile_pos, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent, TREE_SIZE, TREE_BRANCHES_SIZE, TREE_TOPS_SIZE, utils::get_chunk_range_by_camera_fov, UpdateBlockEvent, SeedEvent};
 
@@ -367,29 +367,29 @@ pub(super) fn handle_dig_block_event(
 
     for &DigBlockEvent { tile_pos, tool } in dig_block_events.iter() {
         if let Some(block) = world_data.get_block_mut(tile_pos) {
-            if block.check_required_tool(tool) {
-                #[cfg(feature = "debug")]
-                if debug_config.instant_break {
-                    break_block_events.send(BreakBlockEvent { tile_pos });
-                    return;
-                }
+            if !block.check_required_tool(tool) { continue; }
 
-                block.hp -= tool.power();
+            #[cfg(feature = "debug")]
+            if debug_config.instant_break {
+                break_block_events.send(BreakBlockEvent { tile_pos });
+                return;
+            }
 
-                if block.hp <= 0 {
-                    break_block_events.send(BreakBlockEvent { tile_pos });
-                } else {
-                    audio.play(sound_assets.get_by_block(block.block_type, &mut rng));
-                    
-                    if block.block_type == BlockType::Grass {
-                        block.block_type = BlockType::Dirt;
+            block.hp -= tool.power();
 
-                        update_block_events.send(UpdateBlockEvent {
-                            tile_pos,
-                            block_type: block.block_type,
-                            update_neighbors: true
-                        });
-                    }
+            if block.hp <= 0 {
+                break_block_events.send(BreakBlockEvent { tile_pos });
+            } else {
+                audio.play(sound_assets.get_by_block(block.block_type, &mut rng));
+                
+                if block.block_type == BlockType::Grass {
+                    block.block_type = BlockType::Dirt;
+
+                    update_block_events.send(UpdateBlockEvent {
+                        tile_pos,
+                        block_type: block.block_type,
+                        update_neighbors: true
+                    });
                 }
             }
         }
@@ -498,21 +498,16 @@ pub(super) fn handle_seed_event(
     let mut rng = thread_rng();
 
     for &SeedEvent { tile_pos: world_pos, seed } in seed_events.iter() {
-        if let Some(block) = world_data.get_block_mut(world_pos) {
-            if block.block_type == BlockType::Dirt {
-                let block_type = match seed {
-                    Seed::Grass => BlockType::Grass,
-                };
-                block.block_type = block_type;
+        if let Some(block) = world_data.get_block_with_type_mut(world_pos, BlockType::Dirt) {
+            block.block_type = seed.seeded_dirt();
 
-                update_block_events.send(UpdateBlockEvent { 
-                    tile_pos: world_pos,
-                    block_type,
-                    update_neighbors: true
-                });
+            update_block_events.send(UpdateBlockEvent { 
+                tile_pos: world_pos,
+                block_type: block.block_type,
+                update_neighbors: true
+            });
 
-                audio.play(sound_assets.dig.choose(&mut rng).unwrap().clone_weak());
-            }
+            audio.play(sound_assets.dig.choose(&mut rng).unwrap().clone_weak());
         }
     }
 }

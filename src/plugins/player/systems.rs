@@ -135,9 +135,9 @@ pub(super) fn detect_collisions(
 
                     if delta_x.abs() > delta_y.abs() {
                         // Check if there is a space of 3 blocks to move the player up
-                        let is_enough_space = world_data.solid_block_not_exists((x, y - 1))
-                            && world_data.solid_block_not_exists((x, y - 2))
-                            && world_data.solid_block_not_exists((x, y - 3));
+                        let is_enough_space = !world_data.solid_block_exists((x, y - 1))
+                            && !world_data.solid_block_exists((x, y - 2))
+                            && !world_data.solid_block_exists((x, y - 3));
 
                         // Check if the tile is on the same level as player's legs
                         let is_bottom_tile = tile_rect.top() <= player_rect.bottom() + TILE_SIZE

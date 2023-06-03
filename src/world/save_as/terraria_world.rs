@@ -526,10 +526,10 @@ fn write_bool<W: Write>(b: bool, writer: &mut BufWriter<W>) -> DefaultResult {
 
 #[inline(always)]
 fn write_false<W: Write>(writer: &mut BufWriter<W>) -> DefaultResult {
-    return write_bool(false, writer);
+    write_bool(false, writer)
 }
 
 #[inline(always)]
 fn write_true<W: Write>(writer: &mut BufWriter<W>) -> DefaultResult {
-    return write_bool(true, writer);
+    write_bool(true, writer)
 }

@@ -270,10 +270,8 @@ pub(super) fn select_inventory_cell(
         .get_just_pressed()
         .find_map(keycode_to_digit);
 
-    if let Some(index) = digit {
-        if inventory.select_item(index) {
-            audio.play(sounds.menu_tick.clone_weak());
-        }
+    if digit.is_some_and(|i| inventory.select_item(i)) {
+        audio.play(sounds.menu_tick.clone_weak());
     }
 }
 

@@ -304,7 +304,7 @@ fn grassify(world: &mut WorldData) {
     fn is_valid(world: &mut WorldData, x: usize, y: usize) -> bool {
         if x >= world.size.width { return false; }
         if y >= world.size.height { return false; }
-        if !world.block_exists_with_type((x, y), Block::Dirt) { return false; }
+        if !world.block_exists_with_type((x, y), BlockType::Dirt) { return false; }
 
         any_neighbor_not_exist(&world, x, y)
     }
@@ -373,7 +373,7 @@ fn grassify(world: &mut WorldData) {
 
     for x in 0..world.size.width {
         let y = get_surface_block_y(world, x);
-        if world.block_exists_with_type((x, y), Block::Dirt) {
+        if world.block_exists_with_type((x, y), BlockType::Dirt) {
             flood_fill(world, x, y);
         }
     }
@@ -385,10 +385,10 @@ fn remove_walls_from_surface(world: &mut WorldData) {
         if x >= world.size.width { return false; }
         if y >= world.size.height { return false; }
 
-        if world.wall_exists((x, y)) && any_neighbor_not_exist(&world, x, y) { return true; }
-
         if world.solid_block_exists((x, y)) { return false; }
-        if world.wall_not_exists((x, y)) { return false; }
+        if !world.wall_exists((x, y)) { return false; }
+
+        if world.wall_exists((x, y)) && any_neighbor_not_exist(&world, x, y) { return true; }
 
         return true;
     }
@@ -436,7 +436,7 @@ fn remove_walls_from_surface(world: &mut WorldData) {
     for x in 0..world.size.width {
         let y = get_surface_wall_y(world, x);
 
-        if world.solid_block_not_exists((x, y)) {
+        if !world.solid_block_exists((x, y)) {
             flood_fill(world, x, y);
         }
     }

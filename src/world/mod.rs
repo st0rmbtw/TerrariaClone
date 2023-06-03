@@ -10,7 +10,7 @@ use bevy::prelude::Resource;
 use bevy_ecs_tilemap::{tiles::TilePos, prelude::TilemapSize, helpers::square_grid::neighbors::{SquareDirection, Neighbors}};
 use ndarray::Array2;
 
-use self::{block::Block, wall::Wall};
+use self::{block::{Block, BlockType}, wall::Wall};
 
 pub(crate) type BlockArray = Array2<Option<Block>>;
 pub(crate) type WallArray = Array2<Option<Wall>>;
@@ -96,6 +96,14 @@ impl WorldData {
     }
 
     #[inline]
+    pub(crate) fn get_block_with_type<Pos: AsWorldPos>(&self, world_pos: Pos, block_type: BlockType) -> Option<&Block> {
+        self.blocks
+            .get(world_pos.yx())
+            .and_then(|b| b.as_ref())
+            .filter(|b| b.block_type == block_type)
+    }
+
+    #[inline]
     pub(crate) fn get_solid_block<Pos: AsWorldPos>(&self, world_pos: Pos) -> Option<&Block> {
         self.blocks
             .get(world_pos.yx())
@@ -106,6 +114,14 @@ impl WorldData {
     #[inline(always)]
     pub(crate) fn get_block_mut<Pos: AsWorldPos>(&mut self, world_pos: Pos) -> Option<&mut Block> {
         self.blocks.get_mut(world_pos.yx()).and_then(|b| b.as_mut())
+    }
+
+    #[inline]
+    pub(crate) fn get_block_with_type_mut<Pos: AsWorldPos>(&mut self, world_pos: Pos, block_type: BlockType) -> Option<&mut Block> {
+        self.blocks
+            .get_mut(world_pos.yx())
+            .and_then(|b| b.as_mut())
+            .filter(|b| b.block_type == block_type)
     }
 
     #[inline(always)]
@@ -155,34 +171,19 @@ impl WorldData {
         self.get_block(world_pos).is_some()
     }
 
-    #[inline(always)]
-    pub(crate) fn block_not_exists<Pos: AsWorldPos>(&self, world_pos: Pos) -> bool {
-        !self.block_exists(world_pos)
-    }
-
     #[inline]
-    pub(crate) fn block_exists_with_type<Pos: AsWorldPos>(&self, world_pos: Pos, block_type: Block) -> bool {
-        if let Some(block) = self.get_block(world_pos) { *block == block_type } else { false }
+    pub(crate) fn block_exists_with_type<Pos: AsWorldPos>(&self, world_pos: Pos, block_type: BlockType) -> bool {
+        self.get_block(world_pos).is_some_and(|b| b.block_type == block_type)
     }
 
     #[inline]
     pub(crate) fn solid_block_exists<Pos: AsWorldPos>(&self, world_pos: Pos) -> bool {
-        if let Some(block) = self.get_block(world_pos) { block.is_solid() } else { false }
-    }
-
-    #[inline]
-    pub(crate) fn solid_block_not_exists<Pos: AsWorldPos>(&self, world_pos: Pos) -> bool {
-        !self.solid_block_exists(world_pos)
+        self.get_block(world_pos).is_some_and(|b| b.is_solid())
     }
 
     #[inline(always)]
     pub(crate) fn wall_exists<Pos: AsWorldPos>(&self, world_pos: Pos) -> bool {
         self.get_wall(world_pos).is_some()
-    }
-
-    #[inline(always)]
-    pub(crate) fn wall_not_exists<Pos: AsWorldPos>(&self, world_pos: Pos) -> bool {
-        !self.wall_exists(world_pos)
     }
 
     pub(crate) fn get_block_neighbors<Pos: AsWorldPos>(&self, world_pos: Pos, solid: bool) -> Neighbors<&Block> {
