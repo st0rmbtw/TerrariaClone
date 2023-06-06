@@ -159,7 +159,9 @@ pub(super) fn detect_collisions(
                             new_collisions.left = true;
 
                             // If the player's left side is more to the left than the tile's right side then move the player right.
-                            transform.translation.x = tile_rect.right + player_rect.width / 2.;
+                            if next_player_rect.left <= tile_rect.right {
+                                transform.translation.x = tile_rect.right + player_rect.width / 2.;
+                            }
 
                             #[cfg(feature = "debug")]
                             if debug_config.show_collisions {
@@ -170,7 +172,9 @@ pub(super) fn detect_collisions(
                             new_collisions.right = true;
 
                             // If the player's right side is more to the right than the tile's left side then move the player left.
-                            transform.translation.x = tile_rect.left - player_rect.width / 2.;
+                            if next_player_rect.right >= tile_rect.left {
+                                transform.translation.x = tile_rect.left - player_rect.width / 2.;
+                            }
 
                             #[cfg(feature = "debug")]
                             if debug_config.show_collisions {
@@ -288,9 +292,8 @@ pub(super) fn update_movement_state(
 
 pub(super) fn update_face_direction(axis: Res<InputAxis>, mut query: Query<&mut FaceDirection>) {
     let mut direction = query.single_mut();
-    let axis: &InputAxis = &axis;
 
-    if let Some(new_direction) = axis.into() {
+    if let Some(new_direction) = (*axis).into() {
         if *direction != new_direction {
             *direction = new_direction;
         }
@@ -387,13 +390,9 @@ pub(super) fn current_speed(
     mut debug_config: ResMut<DebugConfiguration>
 ) {
     // https://terraria.fandom.com/wiki/Stopwatch
-    let factor = (60. * 3600.) / 42240.;
+    const FACTOR: f32 = (60. * 3600.) / 42240.;
 
-    let velocity_x = velocity.x.abs() * factor;
-    let velocity_y = velocity.y.abs() * factor;
-
-    debug_config.player_speed.x = velocity_x;
-    debug_config.player_speed.y = velocity_y;
+    debug_config.player_speed = velocity.abs() * FACTOR;
 }
 
 #[cfg(feature = "debug")]

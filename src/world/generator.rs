@@ -385,10 +385,11 @@ fn remove_walls_from_surface(world: &mut WorldData) {
         if x >= world.size.width { return false; }
         if y >= world.size.height { return false; }
 
-        if world.solid_block_exists((x, y)) { return false; }
         if !world.wall_exists((x, y)) { return false; }
 
-        if world.wall_exists((x, y)) && any_neighbor_not_exist(&world, x, y) { return true; }
+        if any_neighbor_not_exist(&world, x, y) { return true; }
+
+        if world.solid_block_exists((x, y)) { return false; }
 
         return true;
     }
@@ -436,9 +437,9 @@ fn remove_walls_from_surface(world: &mut WorldData) {
     for x in 0..world.size.width {
         let y = get_surface_wall_y(world, x);
 
-        if !world.solid_block_exists((x, y)) {
-            flood_fill(world, x, y);
-        }
+        if world.solid_block_exists((x, y)) { continue; }
+
+        flood_fill(world, x, y);
     }
 }
 

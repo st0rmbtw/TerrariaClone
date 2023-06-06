@@ -173,8 +173,8 @@ pub(crate) fn follow_camera_system(
                     let new_translation_x = camera_translation.x + (layer_data.position.x - camera_translation.x) * layer.speed.x;
                     let new_translation_y = camera_translation.y + (layer_data.position.y - camera_translation.y) * layer.speed.y;
 
-                    layer_transform.translation.x = layer_transform.translation.x.lerp(&new_translation_x, &1.);
-                    layer_transform.translation.y = layer_transform.translation.y.lerp(&new_translation_y, &1.);
+                    layer_transform.translation.x = new_translation_x;
+                    layer_transform.translation.y = new_translation_y;
                 }
             }
         }

@@ -22,8 +22,8 @@ impl FaceDirection {
     }
 }
 
-impl From<&InputAxis> for Option<FaceDirection> {
-    fn from(axis: &InputAxis) -> Self {
+impl From<InputAxis> for Option<FaceDirection> {
+    fn from(axis: InputAxis) -> Self {
         match axis.x {
             x if x > 0. => Some(FaceDirection::Right),
             x if x < 0. => Some(FaceDirection::Left),
