@@ -1,12 +1,12 @@
 use std::{io::{BufWriter, Write}, fs::File};
 
-use crate::world::WorldData;
+use rand::{thread_rng, Rng};
 
-use super::DefaultResult;
+use crate::world::WorldData;
 
 impl WorldData {
     #[allow(unused)]
-    pub(crate) fn save_as_terraria_world(&self, world_name: &str) -> DefaultResult {
+    pub(crate) fn save_as_terraria_world(&self, world_name: &str) -> std::io::Result<()> {
         println!("Saving as Terraria world...");
 
         let world_file = File::create(format!("{}.wld", world_name))?;
@@ -28,159 +28,90 @@ impl WorldData {
         write_true(&mut world_writer)?;
 
         write_string(world_name, &mut world_writer)?;
-        world_writer.write_all(&123_i32.to_le_bytes())?;
+        write_i32(123, &mut world_writer);
 
         Ok(())
     }
 
-    fn save_world_header<W: Write>(&self, world_name: &str, world_writer: &mut BufWriter<W>) -> DefaultResult {
+    fn save_world_header<W: Write>(&self, world_name: &str, world_writer: &mut BufWriter<W>) -> std::io::Result<()> {
         // Terraria world version
-        world_writer.write_all(&71_i32.to_le_bytes())?;
+        write_i32(71, world_writer)?;
         
         write_string(world_name, world_writer)?;
 
         // World Id
-        {
-            let world_id = 123_i32;
-            world_writer.write_all(&world_id.to_le_bytes())?;
-        }
+        write_i32(thread_rng().gen(), world_writer)?;
 
         // Left world
-        world_writer.write_all(&0i32.to_le_bytes())?;
+        write_i32(0, world_writer)?;
 
         // Right world
-        {
-            let right_world = (self.size.width * 16) as i32;
-            world_writer.write_all(&right_world.to_le_bytes())?;
-        }
+        write_i32((self.size.width * 16) as i32, world_writer)?;
 
         // Top world
-        world_writer.write_all(&0i32.to_le_bytes())?;
+        write_i32(0, world_writer)?;
 
         // Bottom world
-        {
-            let bottom_world = (self.size.height * 16) as i32;
-            world_writer.write_all(&bottom_world.to_le_bytes())?;
-        }
+        write_i32((self.size.height * 16) as i32, world_writer)?;
 
         // World height
-        {
-            let world_height = self.size.height as i32;
-            world_writer.write_all(&world_height.to_le_bytes())?;
-        }
+        write_i32(self.size.height as i32, world_writer)?;
 
         // World width
-        {
-            let world_width = self.size.width as i32;
-            world_writer.write_all(&world_width.to_le_bytes())?;
-        }
+        write_i32(self.size.width as i32, world_writer)?;
 
         // Moon type
-        {
-            let moon_type = 1_i8;
-            world_writer.write_all(&moon_type.to_le_bytes())?;
-        }
+        write_i8(1, world_writer)?;
 
         // Tree x
-        {    
-            let tree_x_0 = 0_i32;
-            let tree_x_1 = 0_i32;
-            let tree_x_2 = 0_i32;
-
-            world_writer.write_all(&tree_x_0.to_le_bytes())?;
-            world_writer.write_all(&tree_x_1.to_le_bytes())?;
-            world_writer.write_all(&tree_x_2.to_le_bytes())?;
-        }
+        write_i32(0, world_writer)?;
+        write_i32(0, world_writer)?;
+        write_i32(0, world_writer)?;
 
         // Tree style
-        {
-            let tree_style_0 = 0_i32;
-            let tree_style_1 = 0_i32;
-            let tree_style_2 = 0_i32;
-            let tree_style_3 = 0_i32;
-
-            world_writer.write_all(&tree_style_0.to_le_bytes())?;
-            world_writer.write_all(&tree_style_1.to_le_bytes())?;
-            world_writer.write_all(&tree_style_2.to_le_bytes())?;
-            world_writer.write_all(&tree_style_3.to_le_bytes())?;
-        }
+        write_i32(0, world_writer)?;
+        write_i32(0, world_writer)?;
+        write_i32(0, world_writer)?;
+        write_i32(0, world_writer)?;
 
         // Caveback x
-        {
-            let caveback_x_0 = (self.size.width / 2) as i32;
-            let caveback_x_1 = self.size.width as i32;
-            let caveback_x_2 = self.size.width as i32;
-
-            world_writer.write_all(&caveback_x_0.to_le_bytes())?;
-            world_writer.write_all(&caveback_x_1.to_le_bytes())?;
-            world_writer.write_all(&caveback_x_2.to_le_bytes())?;
-        }
+        write_i32((self.size.width / 2) as i32, world_writer)?;
+        write_i32(self.size.width as i32, world_writer)?;
+        write_i32(self.size.width as i32, world_writer)?;
 
         // Tree style
-        {
-            let caveback_style_0 = 0_i32;
-            let caveback_style_1 = 1_i32;
-            let caveback_style_2 = 2_i32;
-            let caveback_style_3 = 3_i32;
-
-            world_writer.write_all(&caveback_style_0.to_le_bytes())?;
-            world_writer.write_all(&caveback_style_1.to_le_bytes())?;
-            world_writer.write_all(&caveback_style_2.to_le_bytes())?;
-            world_writer.write_all(&caveback_style_3.to_le_bytes())?;
-        }
+        write_i32(0, world_writer)?;
+        write_i32(1, world_writer)?;
+        write_i32(2, world_writer)?;
+        write_i32(3, world_writer)?;
 
         // Iceback style
-        {
-            let iceback_style = 0i32;
-            world_writer.write_all(&iceback_style.to_le_bytes())?;
-        }
+        write_i32(0, world_writer)?;
 
         // Jungleback style
-        {
-            let jungleback_style = 0i32;
-            world_writer.write_all(&jungleback_style.to_le_bytes())?;
-        }
+        write_i32(0, world_writer)?;
 
         // Hellback style
-        {
-            let hellback_style = 0i32;
-            world_writer.write_all(&hellback_style.to_le_bytes())?;
-        }
+        write_i32(0, world_writer)?;
 
         // Spawn tile coords
-        {
-            world_writer.write_all(&self.spawn_point.x.to_le_bytes())?;
-            world_writer.write_all(&self.spawn_point.y.to_le_bytes())?;
-        }
+        world_writer.write_all(&self.spawn_point.x.to_le_bytes())?;
+        world_writer.write_all(&self.spawn_point.y.to_le_bytes())?;
         
         // Ground layer
-        {
-            let ground_layer = (self.layer.underground - 1) as f64;
-            world_writer.write_all(&ground_layer.to_le_bytes())?;
-        }
+        write_f64((self.layer.underground - 1) as f64, world_writer)?;
 
         // Rock layer
-        {
-            let rock_layer = self.layer.cavern as f64;
-            world_writer.write_all(&rock_layer.to_le_bytes())?;
-        }
+        write_f64(self.layer.cavern as f64, world_writer)?;
 
         // Time
-        {
-            let time = 0f64;
-            world_writer.write_all(&time.to_le_bytes())?;
-        }
+        write_f64(0., world_writer)?;
 
         // Day time
-        {
-            write_true(world_writer)?;
-        }
+        write_true(world_writer)?;
 
         // Moon phase
-        {
-            let value = 0i32;
-            world_writer.write_all(&value.to_le_bytes())?;
-        }
+        write_i32(0, world_writer)?;
 
         // Blood phase
         write_false(world_writer)?;
@@ -189,16 +120,10 @@ impl WorldData {
         write_false(world_writer)?;
 
         // Dungeon x
-        {
-            let value = 0i32;
-            world_writer.write_all(&value.to_le_bytes())?;
-        }
+        write_i32(0, world_writer)?;
 
         // Dungeon y
-        {
-            let value = 0i32;
-            world_writer.write_all(&value.to_le_bytes())?;
-        }
+        write_i32(0, world_writer)?;
 
         // Downed boss 1
         write_false(world_writer)?;
@@ -261,149 +186,81 @@ impl WorldData {
         write_false(world_writer)?;
 
         // Shadow orb count
-        {
-            let value = 100i8;
-            world_writer.write_all(&value.to_le_bytes())?;
-        }
+        write_i8(100, world_writer)?;
 
         // Altar count
-        {
-            let value = 50i32;
-            world_writer.write_all(&value.to_le_bytes())?;
-        }
+        write_i32(50, world_writer)?;
 
         // Hard mode
         write_false(world_writer)?;
 
         // Invasion delay
-        {
-            let value = 0i32;
-            world_writer.write_all(&value.to_le_bytes())?;
-        }
+        write_i32(0, world_writer)?;
 
         // Invasion size
-        {
-            let value = 0i32;
-            world_writer.write_all(&value.to_le_bytes())?;
-        }
+        write_i32(0, world_writer)?;
 
         // Invasion type
-        {
-            let value = 0i32;
-            world_writer.write_all(&value.to_le_bytes())?;
-        }
+        write_i32(0, world_writer)?;
 
         // Invasion x
-        {
-            let value = 0i32;
-            world_writer.write_all(&value.to_le_bytes())?;
-        }
+        write_i32(0, world_writer)?;
 
         // Is raining
-        {
-            write_false(world_writer)?;
-        }
+        write_false(world_writer)?;
 
         // Rain time
-        {
-            let value = 0i32;
-            world_writer.write_all(&value.to_le_bytes())?;
-        }
+        write_i32(0, world_writer)?;
 
         // Max rain
-        {
-            let value = 0f64;
-            world_writer.write_all(&value.to_le_bytes())?;
-        }
+        write_f64(0., world_writer)?;
 
         // Ore tier 1
-        {
-            let value = 0i32;
-            world_writer.write_all(&value.to_le_bytes())?;
-        }
+        write_i32(0, world_writer)?;
 
         // Ore tier 2
-        {
-            let value = 0i32;
-            world_writer.write_all(&value.to_le_bytes())?;
-        }
+        write_i32(0, world_writer)?;
 
         // Ore tier 3
-        {
-            let value = 0i32;
-            world_writer.write_all(&value.to_le_bytes())?;
-        }
+        write_i32(0, world_writer)?;
 
         // TreeBG
-        {
-            let value = 0u8;
-            world_writer.write_all(&value.to_le_bytes())?;
-        }
+        write_u8(0, world_writer)?;
         
         // CorruptBG
-        {
-            let value = 0u8;
-            world_writer.write_all(&value.to_le_bytes())?;
-        }
+        write_u8(0, world_writer)?;
 
         // JungleBG
-        {
-            let value = 0u8;
-            world_writer.write_all(&value.to_le_bytes())?;
-        }
+        write_u8(0, world_writer)?;
 
         // SnowBG
-        {
-            let value = 0u8;
-            world_writer.write_all(&value.to_le_bytes())?;
-        }
+        write_u8(0, world_writer)?;
 
         // HallowBG
-        {
-            let value = 0u8;
-            world_writer.write_all(&value.to_le_bytes())?;
-        }
+        write_u8(0, world_writer)?;
 
         // CrimsonBG
-        {
-            let value = 0u8;
-            world_writer.write_all(&value.to_le_bytes())?;
-        }
+        write_u8(0, world_writer)?;
 
         // DesertBG
-        {
-            let value = 0u8;
-            world_writer.write_all(&value.to_le_bytes())?;
-        }
+        write_u8(0, world_writer)?;
 
         // OceanBG
-        {
-            let value = 0u8;
-            world_writer.write_all(&value.to_le_bytes())?;
-        }
+        write_u8(0, world_writer)?;
 
         // Cloud BG Active
-        {
-            let value = 0i32;
-            world_writer.write_all(&value.to_le_bytes())?;
-        }
+        write_i32(0, world_writer)?;
 
         // Number of clouds
-        {
-            let value = 200i16;
-            world_writer.write_all(&value.to_le_bytes())?;
-        }
+        write_i16(200, world_writer)?;
 
         // Wind speed set
-        {
-            let value = -0.2f32;
-            world_writer.write_all(&value.to_le_bytes())?;
-        }
+        write_f32(-0.2, world_writer)?;
 
         Ok(())
     }
 
-    fn save_world_tiles<W: Write>(&self, writer: &mut BufWriter<W>) -> DefaultResult {
+    fn save_world_tiles<W: Write>(&self, writer: &mut BufWriter<W>) -> std::io::Result<()> {
         for x in 0..self.size.width {
             for y in 0..self.size.height {
                 let block = self.blocks[(y, x)];
@@ -413,7 +270,7 @@ impl WorldData {
                 write_bool(block.is_some(), writer)?;
 
                 if let Some(block) = block {                    
-                    writer.write_all(&block.id().to_le_bytes())?;
+                    write_u8(block.id(), writer)?;
                     
                     if let Some(block_frame) = block.frame() {
                         writer.write_all(&block_frame.x.to_le_bytes())?;
@@ -446,12 +303,12 @@ impl WorldData {
                 write_false(writer)?;
 
                 // Slope
-                writer.write_all(&0u8.to_le_bytes())?;
+                write_u8(0, writer)?;
 
                 write_false(writer)?;
                 write_false(writer)?;
 
-                writer.write_all(&0_i16.to_le_bytes())?;
+                write_i16(0, writer)?;
             }
         }
 
@@ -459,7 +316,7 @@ impl WorldData {
     }
 }
 
-fn save_world_chests<W: Write>(writer: &mut BufWriter<W>) -> DefaultResult {
+fn save_world_chests<W: Write>(writer: &mut BufWriter<W>) -> std::io::Result<()> {
     for _ in 0..1000 {
         write_false(writer)?;
     }
@@ -467,7 +324,7 @@ fn save_world_chests<W: Write>(writer: &mut BufWriter<W>) -> DefaultResult {
     Ok(())
 }
 
-fn save_world_signs<W: Write>(writer: &mut BufWriter<W>) -> DefaultResult {
+fn save_world_signs<W: Write>(writer: &mut BufWriter<W>) -> std::io::Result<()> {
     for _ in 0..1000 {
         write_false(writer)?;
     }
@@ -475,13 +332,11 @@ fn save_world_signs<W: Write>(writer: &mut BufWriter<W>) -> DefaultResult {
     Ok(())
 }
 
-fn save_world_npc<W: Write>(writer: &mut BufWriter<W>) -> DefaultResult {
-    write_false(writer)?;
-
-    Ok(())
+fn save_world_npc<W: Write>(writer: &mut BufWriter<W>) -> std::io::Result<()> {
+    write_false(writer)
 }
 
-fn save_world_npc_names<W: Write>(writer: &mut BufWriter<W>) -> DefaultResult {
+fn save_world_npc_names<W: Write>(writer: &mut BufWriter<W>) -> std::io::Result<()> {
     write_string("NPC 1", writer)?;
     write_string("NPC 2", writer)?;
     write_string("NPC 3", writer)?;
@@ -504,30 +359,56 @@ fn save_world_npc_names<W: Write>(writer: &mut BufWriter<W>) -> DefaultResult {
     Ok(())
 }
 
-fn write_string<W: Write>(string: &str, writer: &mut BufWriter<W>) -> DefaultResult {
+fn write_string<W: Write>(string: &str, writer: &mut BufWriter<W>) -> std::io::Result<()> {
     let length = string.len() as u8;
 
     writer.write_all(&length.to_le_bytes())?;
-    writer.write_all(string.as_bytes())?;
-
-    Ok(())
+    writer.write_all(string.as_bytes())
 }
 
-fn write_bool<W: Write>(b: bool, writer: &mut BufWriter<W>) -> DefaultResult {
+fn write_bool<W: Write>(b: bool, writer: &mut BufWriter<W>) -> std::io::Result<()> {
     use std::mem::transmute;
     unsafe {
-        writer.write_all(&transmute::<bool, [u8; 1]>(b))?;
+        writer.write_all(&transmute::<bool, [u8; 1]>(b))
     }
-
-    Ok(())
 }
 
 #[inline(always)]
-fn write_false<W: Write>(writer: &mut BufWriter<W>) -> DefaultResult {
+fn write_false<W: Write>(writer: &mut BufWriter<W>) -> std::io::Result<()> {
     write_bool(false, writer)
 }
 
 #[inline(always)]
-fn write_true<W: Write>(writer: &mut BufWriter<W>) -> DefaultResult {
+fn write_true<W: Write>(writer: &mut BufWriter<W>) -> std::io::Result<()> {
     write_bool(true, writer)
+}
+
+#[inline(always)]
+fn write_f64<W: Write>(value: f64, writer: &mut BufWriter<W>) -> std::io::Result<()> {
+    writer.write_all(&value.to_le_bytes())
+}
+
+#[inline(always)]
+fn write_f32<W: Write>(value: f32, writer: &mut BufWriter<W>) -> std::io::Result<()> {
+    writer.write_all(&value.to_le_bytes())
+}
+
+#[inline(always)]
+fn write_i32<W: Write>(value: i32, writer: &mut BufWriter<W>) -> std::io::Result<()> {
+    writer.write_all(&value.to_le_bytes())
+}
+
+#[inline(always)]
+fn write_i16<W: Write>(value: i16, writer: &mut BufWriter<W>) -> std::io::Result<()> {
+    writer.write_all(&value.to_le_bytes())
+}
+
+#[inline(always)]
+fn write_i8<W: Write>(value: i8, writer: &mut BufWriter<W>) -> std::io::Result<()> {
+    writer.write_all(&value.to_le_bytes())
+}
+
+#[inline(always)]
+fn write_u8<W: Write>(value: u8, writer: &mut BufWriter<W>) -> std::io::Result<()> {
+    writer.write_all(&value.to_le_bytes())
 }

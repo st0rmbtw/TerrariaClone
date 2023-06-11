@@ -119,11 +119,10 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
 }
 
 #[cfg(feature = "terraria_world")]
-pub fn generate_terraria_world_file(world_size: WorldSize, seed: u32, world_name: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub fn generate_terraria_world_file(world_size: WorldSize, seed: u32, world_name: &str) -> std::io::Result<()> {
     use crate::world::generator::generate_world;
 
-    let world_data = generate_world(seed, world_size);
-    world_data.save_as_terraria_world(world_name)
+    generate_world(seed, world_size).save_as_terraria_world(world_name)
 }
 
 #[cfg(feature = "world_image")]
