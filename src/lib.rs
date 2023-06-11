@@ -118,6 +118,81 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
     Ok(app)
 }
 
+#[cfg(feature = "terraria_world")]
+pub fn generate_terraria_world_file(world_size: WorldSize, seed: u32, world_name: &str) -> Result<(), Box<dyn std::error::Error>> {
+    use crate::world::generator::generate_world;
+
+    let world_data = generate_world(seed, world_size);
+    world_data.save_as_terraria_world(world_name)
+}
+
+#[cfg(feature = "world_image")]
+pub fn generate_world_image(world_size: WorldSize, seed: u32, draw_layers: bool) -> Result<(), Box<dyn std::error::Error>> {
+    use image::{RgbImage, ImageBuffer, GenericImageView, Pixel};
+    use crate::world::{generator::generate_world, wall::Wall};
+
+    fn map_range(value: f32, in_min: f32, in_max: f32, out_min: f32, out_max: f32) -> f32 {
+        return out_min + (((value - in_min) / (in_max - in_min)) * (out_max - out_min))
+    }
+
+    let world_data = generate_world(seed, world_size);
+
+    let size = world_size.size();
+
+    println!("Saving as image...");
+    let sky_image = image::io::Reader::open("assets/sprites/backgrounds/Background_0.png")?.decode()?;
+    let sky_image_height = sky_image.height() as usize;
+    let mut image: RgbImage = ImageBuffer::new(size.width as u32, size.height as u32);
+
+    // Draw walls
+    for ((y, x), wall) in world_data.walls.indexed_iter() {
+        if let Some(wall) = wall {
+            let color = WALL_COLORS[wall.id() as usize];
+            image.put_pixel(x as u32, y as u32, image::Rgb(color));
+        } else {
+            let sky_image_y = map_range(y as f32, 0., size.height as f32, 0., sky_image_height as f32);
+
+            let color = sky_image.get_pixel(0, sky_image_y as u32);
+
+            image.put_pixel(x as u32, y as u32, color.to_rgb());
+        }
+    }
+
+    // Draw background
+    for y in world_data.layer.underground..world_data.size.height {
+        for x in 0..world_data.size.width {
+            let color = WALL_COLORS[Wall::Dirt.id() as usize];
+            image.put_pixel(x as u32, y as u32, image::Rgb(color));
+        }
+    }
+
+    // Draw blocks
+    for ((y, x), block) in world_data.blocks.indexed_iter() {
+        if let Some(block) = block {
+            let color = BLOCK_COLORS[block.id() as usize];
+
+            image.put_pixel(x as u32, y as u32, image::Rgb(color));
+        }
+    }
+
+    // Draw layer borders
+    if draw_layers {
+        let surface_layer = world_data.layer.surface;
+        let underground_layer = world_data.layer.underground;
+        let cavern_layer = world_data.layer.cavern;
+
+        for x in 0..world_data.size.width {
+            image.put_pixel(x as u32, surface_layer as u32, image::Rgb([255, 0, 0]));
+            image.put_pixel(x as u32, underground_layer as u32, image::Rgb([255, 0, 0]));
+            image.put_pixel(x as u32, cavern_layer as u32, image::Rgb([255, 0, 0]));
+        }
+    }
+
+    image.save("world.png")?;
+
+    Ok(())
+}
+
 #[cfg(feature = "world_image")]
 const BLOCK_COLORS: [[u8; 3]; 470] = [
     [151, 107, 75], // 0
@@ -826,70 +901,3 @@ const WALL_COLORS: [[u8; 3]; 231] = [
     [100, 55, 164], // 229
     [0, 117, 101] // 230
 ];
-
-#[cfg(feature = "world_image")]
-pub fn test_world_generator(world_size: WorldSize, seed: u32, draw_layers: bool) -> Result<(), Box<dyn std::error::Error>> {
-    use image::{RgbImage, ImageBuffer, GenericImageView, Pixel};
-    use crate::world::{generator::generate_world, wall::Wall};
-
-    fn map_range(value: f32, in_min: f32, in_max: f32, out_min: f32, out_max: f32) -> f32 {
-        return out_min + (((value - in_min) / (in_max - in_min)) * (out_max - out_min))
-    }
-
-    let world_data = generate_world(seed, world_size);
-
-    let size = world_size.size();
-
-    println!("Saving as image...");
-    let sky_image = image::io::Reader::open("assets/sprites/backgrounds/Background_0.png")?.decode()?;
-    let sky_image_height = sky_image.height() as usize;
-    let mut image: RgbImage = ImageBuffer::new(size.width as u32, size.height as u32);
-
-    // Draw walls
-    for ((y, x), wall) in world_data.walls.indexed_iter() {
-        if let Some(wall) = wall {
-            let color = WALL_COLORS[wall.id() as usize];
-            image.put_pixel(x as u32, y as u32, image::Rgb(color));
-        } else {
-            let sky_image_y = map_range(y as f32, 0., size.height as f32, 0., sky_image_height as f32);
-
-            let color = sky_image.get_pixel(0, sky_image_y as u32);
-
-            image.put_pixel(x as u32, y as u32, color.to_rgb());
-        }
-    }
-
-    // Draw background
-    for y in world_data.layer.underground..world_data.size.height {
-        for x in 0..world_data.size.width {
-            let color = WALL_COLORS[Wall::Dirt.id() as usize];
-            image.put_pixel(x as u32, y as u32, image::Rgb(color));
-        }
-    }
-
-    // Draw blocks
-    for ((y, x), block) in world_data.blocks.indexed_iter() {
-        if let Some(block) = block {
-            let color = BLOCK_COLORS[block.id() as usize];
-
-            image.put_pixel(x as u32, y as u32, image::Rgb(color));
-        }
-    }
-
-    // Draw layer borders
-    if draw_layers {
-        let surface_layer = world_data.layer.surface;
-        let underground_layer = world_data.layer.underground;
-        let cavern_layer = world_data.layer.cavern;
-
-        for x in 0..world_data.size.width {
-            image.put_pixel(x as u32, surface_layer as u32, image::Rgb([255, 0, 0]));
-            image.put_pixel(x as u32, underground_layer as u32, image::Rgb([255, 0, 0]));
-            image.put_pixel(x as u32, cavern_layer as u32, image::Rgb([255, 0, 0]));
-        }
-    }
-
-    image.save("world.png")?;
-
-    Ok(())
-}

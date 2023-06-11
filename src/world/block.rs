@@ -6,7 +6,7 @@ use crate::{common::{helpers::get_tile_start_index, TextureAtlasPos}, items::Too
 
 use super::{tree::{Tree, TreeFrameType}, TerrariaFrame};
 
-pub(crate) type BlockId = u16;
+pub(crate) type BlockId = u8;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "debug", derive(bevy::reflect::Reflect, bevy::reflect::FromReflect))]

@@ -6,13 +6,11 @@ use super::DefaultResult;
 
 impl WorldData {
     #[allow(unused)]
-    pub(crate) fn save_as_terraria_world(&self, file_name: &str) -> DefaultResult {
+    pub(crate) fn save_as_terraria_world(&self, world_name: &str) -> DefaultResult {
         println!("Saving as Terraria world...");
 
-        let world_file = File::create(file_name)?;
+        let world_file = File::create(format!("{}.wld", world_name))?;
         let mut world_writer = BufWriter::new(world_file);
-
-        let world_name = "LOOOL";
 
         self.save_world_header(world_name, &mut world_writer)?;
 
@@ -155,16 +153,16 @@ impl WorldData {
             world_writer.write_all(&self.spawn_point.y.to_le_bytes())?;
         }
         
-        // World surface
+        // Ground layer
         {
-            let world_surface = self.layer.surface as f64;
-            world_writer.write_all(&world_surface.to_le_bytes())?;
+            let ground_layer = (self.layer.underground - 1) as f64;
+            world_writer.write_all(&ground_layer.to_le_bytes())?;
         }
 
         // Rock layer
         {
-            let spawn_tile_y = self.layer.cavern as f64;
-            world_writer.write_all(&spawn_tile_y.to_le_bytes())?;
+            let rock_layer = self.layer.cavern as f64;
+            world_writer.write_all(&rock_layer.to_le_bytes())?;
         }
 
         // Time
@@ -411,35 +409,35 @@ impl WorldData {
                 let block = self.blocks[(y, x)];
                 let wall = self.walls[(y, x)];
 
-                if let Some(block) = block {
-                    write_true(writer)?;
-                    
+                // Is active
+                write_bool(block.is_some(), writer)?;
+
+                if let Some(block) = block {                    
                     writer.write_all(&block.id().to_le_bytes())?;
                     
                     if let Some(block_frame) = block.frame() {
                         writer.write_all(&block_frame.x.to_le_bytes())?;
                         writer.write_all(&block_frame.y.to_le_bytes())?;
                     }
-
-                    write_false(writer)?;
-                } else {
+                    
+                    // Color
                     write_false(writer)?;
                 }
 
+                // Wall?
+                write_bool(wall.is_some(), writer)?;
+
                 if let Some(wall) = wall {
-                    write_true(writer)?;
                     writer.write_all(&wall.id().to_le_bytes())?;
 
                     // Color
                     write_false(writer)?;
-                } else {
-                    write_false(writer)?;
                 }
 
-                // Is liquid
+                // Is liquid?
                 write_false(writer)?;
 
-                // Is wire (red, green, blue)
+                // Is wire? (red, green, blue)
                 write_false(writer)?;
                 write_false(writer)?;
                 write_false(writer)?;

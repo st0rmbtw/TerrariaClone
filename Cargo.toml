@@ -37,3 +37,4 @@ opt-level = 3
 [features]
 debug = ["dep:bevy_prototype_debug_lines", "dep:bevy-inspector-egui"]
 world_image = ["dep:image"]
+terraria_world = []

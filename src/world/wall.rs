@@ -3,7 +3,7 @@ use rand::{thread_rng, Rng};
 
 use crate::common::{helpers::get_wall_start_index, TextureAtlasPos};
 
-pub(crate) type WallId = u16;
+pub(crate) type WallId = u8;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Wall {

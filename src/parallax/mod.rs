@@ -6,7 +6,6 @@ use bevy::{prelude::*, window::PrimaryWindow};
 
 mod layer;
 
-use interpolation::Lerp;
 pub(crate) use layer::*;
 
 use crate::plugins::camera::MainCamera;
@@ -200,10 +199,11 @@ fn update_layer_textures_system(
 
     if let Some(camera_transform) = camera_query.iter().next() {
         for (layer, children) in layer_query.iter() {
-            for &child in children.iter() {
-                let (texture_gtransform, mut texture_transform, layer_texture) =
-                    texture_query.get_mut(child).unwrap();
-
+            while let Some((
+                texture_gtransform,
+                mut texture_transform,
+                layer_texture
+            )) = texture_query.iter_many_mut(children).fetch_next() {
                 let texture_gtransform = texture_gtransform.compute_transform();
 
                 // Move right-most texture to left side of layer when camera is approaching left-most end
@@ -218,7 +218,7 @@ fn update_layer_textures_system(
                     > window_width * layer.transition_factor
                 {
                     texture_transform.translation.x += layer_texture.width * layer.texture_count;
-                }
+                }   
             }
         }
     }

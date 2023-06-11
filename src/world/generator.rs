@@ -574,7 +574,7 @@ fn grow_tree(world: &mut WorldData, rng: &mut StdRng, root_pos: impl AsWorldPos)
     // Top
     let bare = rng.gen_bool(1. / 5.);
     let frame_type = if bare {
-        let jagged = rng.gen_bool(1. / 3.);
+        let jagged = rng.gen_bool(1. - 1./3.);
         if jagged {
             TreeFrameType::TopBareJagged
         } else {
