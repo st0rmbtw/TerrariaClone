@@ -199,11 +199,10 @@ fn update_layer_textures_system(
 
     if let Some(camera_transform) = camera_query.iter().next() {
         for (layer, children) in layer_query.iter() {
-            while let Some((
-                texture_gtransform,
-                mut texture_transform,
-                layer_texture
-            )) = texture_query.iter_many_mut(children).fetch_next() {
+            for &child in children.iter() {
+                let (texture_gtransform, mut texture_transform, layer_texture) = 
+                    texture_query.get_mut(child).unwrap();
+                
                 let texture_gtransform = texture_gtransform.compute_transform();
 
                 // Move right-most texture to left side of layer when camera is approaching left-most end

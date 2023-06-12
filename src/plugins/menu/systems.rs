@@ -291,14 +291,11 @@ pub(super) fn update_buttons(
                 tweenable.set_direction(TweeningDirection::Backward);
             }
             Interaction::Clicked => {
-                match role {
-                    ButtonRole::MenuButton => {
-                        audio.play(sounds.menu_open.clone_weak());
-                    },
-                    ButtonRole::ControlButton => {
-                        audio.play(sounds.menu_close.clone_weak());
-                    },
-                }
+                let sound = match role {
+                    ButtonRole::MenuButton => &sounds.menu_open,
+                    ButtonRole::ControlButton => &sounds.menu_close,
+                };
+                audio.play(sound.clone_weak());
             }
         }
     }
