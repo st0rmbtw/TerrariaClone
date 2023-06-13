@@ -8,3 +8,6 @@ pub(crate) struct PostProcessCamera;
 
 #[derive(Component)]
 pub(crate) struct LightMapCamera;
+
+#[derive(Component)]
+pub(crate) struct BackgroundCamera;

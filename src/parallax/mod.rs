@@ -2,13 +2,13 @@
 
 use std::cmp::max;
 
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::{prelude::*, window::PrimaryWindow, render::view::RenderLayers};
 
 mod layer;
 
 pub(crate) use layer::*;
 
-use crate::plugins::camera::MainCamera;
+use crate::plugins::camera::BackgroundCamera;
 
 pub struct ParallaxPlugin;
 
@@ -36,14 +36,17 @@ pub(crate) struct ParallaxContainer {
     layer_entities: Vec<Entity>,
     
     processed: bool,
+
+    render_layer: RenderLayers
 }
 
 impl ParallaxContainer {
-    pub(crate) fn new(layers: Vec<LayerData>) -> Self {
+    pub(crate) fn new(layer: RenderLayers, layers: Vec<LayerData>) -> Self {
         Self {
             layer_data: layers,
+            render_layer: layer,
             layer_entities: Vec::new(),
-            processed: false
+            processed: false,
         }
     }
 }
@@ -119,7 +122,7 @@ fn parallax_container_added(
                             LayerTextureComponent {
                                 width: texture.size().x,
                             },
-                        );
+                        ).insert(parallax_container.render_layer);
                     }
                 })
                 .id();
@@ -159,7 +162,7 @@ pub(crate) fn parallax_animation_system(
 
 pub(crate) fn follow_camera_system(
     query_parallax_container: Query<&ParallaxContainer>,
-    camera_query: Query<&GlobalTransform, (With<ParallaxCameraComponent>, With<MainCamera>)>,
+    camera_query: Query<&GlobalTransform, (With<ParallaxCameraComponent>, With<BackgroundCamera>)>,
     mut layer_query: Query<(&mut Transform, &LayerComponent), Without<ParallaxCameraComponent>>,
 ) {
     if let Some(camera_transform) = camera_query.iter().next() {

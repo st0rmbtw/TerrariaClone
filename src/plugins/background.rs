@@ -1,21 +1,29 @@
 use crate::{
-    parallax::{LayerData, LayerSpeed, follow_camera_system, ParallaxSet, ParallaxContainer},
+    parallax::{LayerData, LayerSpeed, follow_camera_system, ParallaxSet, ParallaxContainer, ParallaxCameraComponent},
     common::{state::GameState, conditions::in_menu_state}, world::{WorldData, generator::DIRT_HILL_HEIGHT},
 };
 use bevy::{
-    prelude::{default, App, Commands, Plugin, Res, Vec2, Transform, Component, Query, Camera, GlobalTransform, With, OnEnter, OnExit, IntoSystemAppConfig, OnUpdate, IntoSystemConfig, IntoSystemConfigs, IntoSystemAppConfigs, Name, Entity, DespawnRecursiveExt, Assets, Image},
-    sprite::{SpriteBundle, Anchor}, window::{Window, PrimaryWindow},
+    prelude::{default, App, Commands, Plugin, Res, Vec2, Transform, Component, Query, Camera, GlobalTransform, With, OnEnter, OnExit, IntoSystemAppConfig, OnUpdate, IntoSystemConfig, IntoSystemConfigs, IntoSystemAppConfigs, Name, Entity, DespawnRecursiveExt, Assets, Image, Camera2dBundle, Camera2d},
+    sprite::{SpriteBundle, Anchor}, window::{Window, PrimaryWindow}, core_pipeline::clear_color::ClearColorConfig, render::view::RenderLayers,
 };
 use rand::{thread_rng, Rng, seq::SliceRandom};
 
-use super::{assets::BackgroundAssets, camera::MainCamera, world::TILE_SIZE};
+use super::{assets::BackgroundAssets, camera::{MainCamera, BackgroundCamera}, world::TILE_SIZE};
+
+const BACKGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(25);
 
 // region: Plugin
 pub(crate) struct BackgroundPlugin;
 impl Plugin for BackgroundPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(setup_main_menu_background.in_schedule(OnExit(GameState::AssetLoading)));
-        app.add_system(spawn_stars.in_schedule(OnExit(GameState::AssetLoading)));
+        app.add_systems(
+            (
+                spawn_background_camera,
+                setup_main_menu_background,
+                spawn_stars
+            )
+            .in_schedule(OnExit(GameState::AssetLoading))
+        );
 
         app.add_systems(
             (
@@ -63,6 +71,26 @@ fn despawn_menu_background(
 ) {
     let entity = query_menu_parallax_container.single();
     commands.entity(entity).despawn_recursive();
+}
+
+fn spawn_background_camera(
+    mut commands: Commands
+) {
+    commands.spawn((
+        BackgroundCamera,
+        ParallaxCameraComponent,
+        BACKGROUND_RENDER_LAYER,
+        Camera2dBundle {
+            camera: Camera {
+                order: -1,
+                ..default()
+            },
+            camera_2d: Camera2d {
+                clear_color: ClearColorConfig::Default
+            },
+            ..default()
+        },
+    ));
 }
 
 fn spawn_stars(
@@ -123,7 +151,7 @@ fn setup_main_menu_background(
     commands.spawn((
         Name::new("Menu Parallax Container"),
         MenuParallaxContainer,
-        ParallaxContainer::new(vec![
+        ParallaxContainer::new(BACKGROUND_RENDER_LAYER, vec![
             LayerData {
                 speed: LayerSpeed::Horizontal(1.),
                 scale: 1.,
@@ -187,7 +215,7 @@ fn spawn_sky_background(
 ) {
     commands.spawn((
         Name::new("Sky Parallax Container"),
-        ParallaxContainer::new(vec![
+        ParallaxContainer::new(BACKGROUND_RENDER_LAYER, vec![
             LayerData {
                 speed: LayerSpeed::Bidirectional(1., 1.),
                 image: backgrounds.background_0.clone_weak(),
@@ -246,7 +274,7 @@ fn spawn_ingame_background(
     commands.spawn((
         Name::new("InGame Parallax Container"),
         InGameParallaxContainer,
-        ParallaxContainer::new(layers)
+        ParallaxContainer::new(RenderLayers::default(), layers)
     ));
 }
 
@@ -258,7 +286,7 @@ fn spawn_forest_background(
     commands.spawn((
         Name::new("Biome Parallax Container"),
         BiomeParallaxContainer,
-        ParallaxContainer::new(vec![
+        ParallaxContainer::new(BACKGROUND_RENDER_LAYER, vec![
             LayerData {
                 speed: LayerSpeed::Bidirectional(0.9, 0.6),
                 image: backgrounds.background_55.clone_weak(),
