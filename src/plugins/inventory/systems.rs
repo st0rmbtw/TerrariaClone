@@ -322,11 +322,11 @@ pub(super) fn update_hoverable(
 }
 
 pub(super) fn update_selected_item_name_alignment(
-    mut selected_item_name_query: Query<&mut Style, With<SelectedItemNameMarker>>,
+    mut query_selected_item_name: Query<&mut Style, With<SelectedItemNameMarker>>,
     mut events: EventReader<ToggleExtraUiEvent>,
 ) {
     for event in events.iter() {
-        let mut style = selected_item_name_query.single_mut();
+        let mut style = query_selected_item_name.single_mut();
         style.align_self = if event.0 {
             AlignSelf::FlexStart
         } else {
@@ -336,13 +336,13 @@ pub(super) fn update_selected_item_name_alignment(
 }
 
 pub(super) fn update_selected_item_name_text(
-    mut selected_item_name_query: Query<&mut Text, With<SelectedItemNameMarker>>,
+    mut query_selected_item_name: Query<&mut Text, With<SelectedItemNameMarker>>,
     current_item: Res<SelectedItem>,
     extra_ui_visibility: Res<ExtraUiVisibility>,
     language_content: Res<LanguageContent>
 ) {
     if current_item.is_changed() || extra_ui_visibility.is_changed() {
-        let mut text = selected_item_name_query.single_mut();
+        let mut text = query_selected_item_name.single_mut();
 
         text.sections[0].value = if extra_ui_visibility.0 {
             language_content.ui.inventory.clone()
@@ -476,10 +476,10 @@ pub(super) fn stop_swing_animation(
 pub(super) fn set_using_item_image(
     item_assets: Res<ItemAssets>,
     selected_item: Res<SelectedItem>,
-    mut using_item_query: Query<&mut Handle<Image>, With<ItemInHand>>,
+    mut query_using_item: Query<&mut Handle<Image>, With<ItemInHand>>,
 ) {
     if selected_item.is_changed() {
-        let mut image = using_item_query.single_mut();
+        let mut image = query_using_item.single_mut();
         if let Some(item_stack) = **selected_item {
             *image = item_assets.get_by_item(item_stack.item);
         }
@@ -487,9 +487,9 @@ pub(super) fn set_using_item_image(
 }
 
 pub(super) fn set_using_item_visibility(visible: bool) -> impl FnMut(Res<SwingAnimation>, Query<&mut Visibility, With<ItemInHand>>) {
-    move |swing_animation: Res<SwingAnimation>, mut using_item_query: Query<&mut Visibility, With<ItemInHand>>| {
+    move |swing_animation: Res<SwingAnimation>, mut query_using_item: Query<&mut Visibility, With<ItemInHand>>| {
         if swing_animation.is_changed() && **swing_animation == visible {
-            if let Ok(mut visibility) = using_item_query.get_single_mut() {
+            if let Ok(mut visibility) = query_using_item.get_single_mut() {
                 helpers::set_visibility(&mut visibility, visible);
             }
         }

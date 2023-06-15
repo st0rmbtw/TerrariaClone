@@ -54,9 +54,9 @@ impl ParallaxContainer {
 
 fn parallax_container_added(
     mut commands: Commands,
-    mut query_parallax_container: Query<(&mut ParallaxContainer, Entity)>,
     images: Res<Assets<Image>>,
-    query_window: Query<&Window, With<PrimaryWindow>>
+    query_window: Query<&Window, With<PrimaryWindow>>,
+    mut query_parallax_container: Query<(&mut ParallaxContainer, Entity)>,
 ) {
     let window = query_window.single();
     let window_width = window.width();
@@ -68,69 +68,70 @@ fn parallax_container_added(
         commands.entity(entity)
             .insert(SpatialBundle::default())
             .with_children(|children| {
-            // Spawn new layers using layer_data
-            for i in 0..parallax_container.layer_data.len() {
-                let layer_data = &parallax_container.layer_data[i];
+                // Spawn new layers using layer_data
+                for i in 0..parallax_container.layer_data.len() {
+                    let layer_data = &parallax_container.layer_data[i];
 
-                let texture = images.get(&layer_data.image).unwrap();
+                    let texture = images.get(&layer_data.image).unwrap();
 
-                let spritesheet_bundle = SpriteBundle {
-                    sprite: Sprite {
-                        custom_size: layer_data.fill_screen_height.then_some(Vec2::new(texture.size().x, window_height)),
-                        anchor: layer_data.anchor.clone(),
-                        ..default()
-                    },
-                    texture: layer_data.image.clone(),
-                    ..Default::default()
-                };
-
-                let x_max_index = match layer_data.speed {
-                    LayerSpeed::Horizontal(_) | LayerSpeed::Bidirectional(..) => max(
-                        (window_width / (texture.size().x * layer_data.scale / 2.) + 1.0) as i32,
-                        1,
-                    ),
-                    LayerSpeed::Vertical(_) => 0,
-                };
-
-                let texture_count = 2.0 * x_max_index as f32 + 1.0;
-
-                children.spawn((
-                    Name::new(format!("Parallax Layer ({})", i)),
-                    SpatialBundle {
-                        transform: Transform {
-                            translation: Vec3::new(layer_data.position.x, layer_data.position.y, layer_data.z),
-                            scale: Vec3::new(layer_data.scale, layer_data.scale, layer_data.scale),
+                    let spritesheet_bundle = SpriteBundle {
+                        sprite: Sprite {
+                            custom_size: layer_data.fill_screen_height.then_some(Vec2::new(texture.size().x, window_height)),
+                            anchor: layer_data.anchor.clone(),
                             ..default()
                         },
-                        ..default()
-                    },
-                    LayerComponent {
-                        speed: match layer_data.speed {
-                            LayerSpeed::Horizontal(vx) => Vec2::new(vx, 1.0),
-                            LayerSpeed::Vertical(vy) => Vec2::new(1.0, vy),
-                            LayerSpeed::Bidirectional(vx, vy) => Vec2::new(vx, vy),
-                        },
-                        texture_count,
-                        transition_factor: layer_data.transition_factor
-                    },
-                    LayerDataComponent {
-                        fill_screen_height: layer_data.fill_screen_height,
-                        position: layer_data.position
-                    }
-                ))
-                .with_children(|parent| {
-                    for x in -x_max_index..=x_max_index {
-                        let mut adjusted_spritesheet_bundle = spritesheet_bundle.clone();
-                        adjusted_spritesheet_bundle.transform.translation.x = texture.size().x * x as f32;
-                        parent.spawn(adjusted_spritesheet_bundle).insert(
-                            LayerTextureComponent {
-                                width: texture.size().x,
+                        texture: layer_data.image.clone(),
+                        ..Default::default()
+                    };
+
+                    let x_max_index = match layer_data.speed {
+                        LayerSpeed::Horizontal(_) | LayerSpeed::Bidirectional(..) => max(
+                            (window_width / (texture.size().x * layer_data.scale / 2.) + 1.0) as i32,
+                            1,
+                        ),
+                        LayerSpeed::Vertical(_) => 0,
+                    };
+
+                    let texture_count = 2.0 * x_max_index as f32 + 1.0;
+
+                    children.spawn((
+                        Name::new(format!("Parallax Layer ({})", i)),
+                        SpatialBundle {
+                            transform: Transform {
+                                translation: Vec3::new(layer_data.position.x, layer_data.position.y, layer_data.z),
+                                scale: Vec3::new(layer_data.scale, layer_data.scale, layer_data.scale),
+                                ..default()
                             },
-                        ).insert(parallax_container.render_layer);
-                    }
-                });
+                            ..default()
+                        },
+                        LayerComponent {
+                            speed: match layer_data.speed {
+                                LayerSpeed::Horizontal(vx) => Vec2::new(vx, 1.0),
+                                LayerSpeed::Vertical(vy) => Vec2::new(1.0, vy),
+                                LayerSpeed::Bidirectional(vx, vy) => Vec2::new(vx, vy),
+                            },
+                            texture_count,
+                            transition_factor: layer_data.transition_factor
+                        },
+                        LayerDataComponent {
+                            fill_screen_height: layer_data.fill_screen_height,
+                            position: layer_data.position
+                        }
+                    ))
+                    .with_children(|parent| {
+                        for x in -x_max_index..=x_max_index {
+                            let mut adjusted_spritesheet_bundle = spritesheet_bundle.clone();
+                            adjusted_spritesheet_bundle.transform.translation.x = texture.size().x * x as f32;
+                            parent.spawn(adjusted_spritesheet_bundle).insert(
+                                LayerTextureComponent {
+                                    width: texture.size().x,
+                                },
+                            ).insert(parallax_container.render_layer);
+                        }
+                    });
+                }
             }
-        });
+        );
 
         parallax_container.processed = true;
     }
@@ -146,15 +147,15 @@ pub(crate) fn parallax_animation_system(
     Res<Time>,
     Query<&mut Transform, With<ParallaxCameraComponent>>,
     Query<(&mut Transform, &LayerComponent), Without<ParallaxCameraComponent>>
-) -> () {
+) {
     move |
         time: Res<Time>,
-        mut camera_query: Query<&mut Transform, With<ParallaxCameraComponent>>,
-        mut layer_query: Query<(&mut Transform, &LayerComponent), Without<ParallaxCameraComponent>>
+        mut query_camera: Query<&mut Transform, With<ParallaxCameraComponent>>,
+        mut query_layer: Query<(&mut Transform, &LayerComponent), Without<ParallaxCameraComponent>>
     | {
-        if let Some(mut camera_transform) = camera_query.iter_mut().next() {
+        if let Some(mut camera_transform) = query_camera.iter_mut().next() {
             camera_transform.translation.x += speed * time.delta_seconds();
-            for (mut layer_transform, layer) in layer_query.iter_mut() {
+            for (mut layer_transform, layer) in query_layer.iter_mut() {
                 layer_transform.translation.x += speed * layer.speed.x * time.delta_seconds();
             }
         }
@@ -162,11 +163,11 @@ pub(crate) fn parallax_animation_system(
 }
 
 pub(crate) fn follow_camera_system(
-    camera_query: Query<&GlobalTransform, With<ParallaxCameraComponent>>,
-    mut layer_query: Query<(&mut Transform, &LayerComponent, &LayerDataComponent)>,
-) {
-    if let Some(camera_transform) = camera_query.iter().next() {
-        for (mut layer_transform, layer, layer_data) in &mut layer_query {
+    query_parallax_camera: Query<&GlobalTransform, With<ParallaxCameraComponent>>,
+    mut query_layer: Query<(&mut Transform, &LayerComponent, &LayerDataComponent)>,
+) {    
+    if let Ok(camera_transform) = query_parallax_camera.get_single() {
+        for (mut layer_transform, layer, layer_data) in &mut query_layer {
             let camera_translation = camera_transform.translation();
 
             let new_translation_x = camera_translation.x + (layer_data.position.x - camera_translation.x) * layer.speed.x;
@@ -180,8 +181,7 @@ pub(crate) fn follow_camera_system(
 
 /// Update layer positions to keep the effect going indefinitely
 fn update_layer_textures_system(
-    layer_query: Query<(&LayerComponent, &Children)>,
-    mut texture_query: Query<
+    mut query_texture: Query<
         (
             &GlobalTransform,
             &mut Transform,
@@ -189,17 +189,18 @@ fn update_layer_textures_system(
         ),
         Without<ParallaxCameraComponent>,
     >,
-    camera_query: Query<&GlobalTransform, With<ParallaxCameraComponent>>,
+    query_layer: Query<(&LayerComponent, &Children)>,
+    query_camera: Query<&GlobalTransform, With<ParallaxCameraComponent>>,
     query_window: Query<&Window, With<PrimaryWindow>>
 ) {
     let window = query_window.single();
     let window_width = window.width();
 
-    if let Some(camera_transform) = camera_query.iter().next() {
-        for (layer, children) in layer_query.iter() {
+    if let Ok(camera_transform) = query_camera.get_single() {
+        for (layer, children) in query_layer.iter() {
             for &child in children.iter() {
                 let (texture_gtransform, mut texture_transform, layer_texture) = 
-                    texture_query.get_mut(child).unwrap();
+                    query_texture.get_mut(child).unwrap();
                 
                 let texture_gtransform = texture_gtransform.compute_transform();
 

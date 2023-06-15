@@ -87,13 +87,13 @@ pub(super) fn detect_collisions(
     mut collisions: ResMut<Collisions>,
     mut velocity: ResMut<PlayerVelocity>,
     mut player_data: ResMut<PlayerData>,
-    mut player_query: Query<(&mut Transform, &FaceDirection, &PlayerRect), With<Player>>,
+    mut query_player: Query<(&mut Transform, &FaceDirection, &PlayerRect), With<Player>>,
     #[cfg(feature = "debug")]
     mut debug_lines: ResMut<DebugLines>,
     #[cfg(feature = "debug")]
     debug_config: Res<DebugConfiguration>,
 ) {
-    let (mut transform, face_direction, PlayerRect(player_rect)) = player_query.single_mut();
+    let (mut transform, face_direction, PlayerRect(player_rect)) = query_player.single_mut();
 
     let position = transform.translation.xy();
     let next_position = transform.translation.xy() + **velocity;
@@ -233,9 +233,9 @@ pub(super) fn detect_collisions(
 pub(super) fn move_player(
     world_data: Res<WorldData>,
     velocity: Res<PlayerVelocity>,
-    mut player_query: Query<&mut Transform, With<Player>>,
+    mut query_player: Query<&mut Transform, With<Player>>,
 ) {
-    let mut transform = player_query.single_mut();
+    let mut transform = query_player.single_mut();
 
     const min_x: f32 = PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
     let min_y: f32 = -(world_data.size.height as f32) * TILE_SIZE + PLAYER_HALF_HEIGHT;
@@ -250,9 +250,9 @@ pub(super) fn move_player(
 }
 
 pub(super) fn update_player_rect(
-    mut player_query: Query<(&Transform, &mut PlayerRect), With<Player>>,
+    mut query_player: Query<(&Transform, &mut PlayerRect), With<Player>>,
 ) {
-    let (transform, mut player_rect) = player_query.single_mut();
+    let (transform, mut player_rect) = query_player.single_mut();
 
     let Vec2 { x, y } = transform.translation.xy();
 
@@ -331,26 +331,26 @@ pub(super) fn update_movement_animation_index(
 }
 
 pub(super) fn flip_player(
-    player_query: Query<&FaceDirection, (With<Player>, Changed<FaceDirection>)>,
-    mut sprite_query: Query<&mut TextureAtlasSprite, With<ChangeFlip>>,
+    query_player: Query<&FaceDirection, (With<Player>, Changed<FaceDirection>)>,
+    mut query_sprite: Query<&mut TextureAtlasSprite, With<ChangeFlip>>,
 ) {
-    let direction = player_query.get_single();
+    let direction = query_player.get_single();
 
     if let Ok(direction) = direction {
-        sprite_query.for_each_mut(|mut sprite| {
+        query_sprite.for_each_mut(|mut sprite| {
             sprite.flip_x = direction.is_left();
         });
     }
 }
 
 pub(super) fn flip_using_item(
-    player_query: Query<&FaceDirection, (With<Player>, Changed<FaceDirection>)>,
-    mut sprite_query: Query<&mut Sprite, With<ItemInHand>>,
+    query_player: Query<&FaceDirection, (With<Player>, Changed<FaceDirection>)>,
+    mut query_sprite: Query<&mut Sprite, With<ItemInHand>>,
 ) {
-    let direction = player_query.get_single();
+    let direction = query_player.get_single();
 
     if let Ok(direction) = direction {
-        let mut sprite = sprite_query.single_mut();
+        let mut sprite = query_sprite.single_mut();
 
         match direction {
             FaceDirection::Left => {

@@ -143,24 +143,24 @@ pub(super) fn spawn_tile_grid(
 }
 
 pub(super) fn update_cursor_position(
-    query_windows: Query<&Window, With<PrimaryWindow>>,
     mut cursor: ResMut<CursorPosition>,
-    camera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
-    mut cursor_query: Query<&mut Style, With<CursorContainer>>,
+    query_window: Query<&Window, With<PrimaryWindow>>,
+    query_main_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
+    mut query_cursor: Query<&mut Style, With<CursorContainer>>,
 ) {
-    if let Ok((camera, camera_transform)) = camera_query.get_single() {
-        let window = query_windows.single();
+    if let Ok((camera, camera_transform)) = query_main_camera.get_single() {
+        let window = query_window.single();
 
-        if let Some(screen_pos) = window.cursor_position() {
-            if let Ok(mut style) = cursor_query.get_single_mut() {
-                style.position.left = Val::Px(screen_pos.x);
-                style.position.top = Val::Px(window.height() - screen_pos.y);
-            }
+        let Some(screen_pos) = window.cursor_position() else { return; };
 
-            if let Some(world_pos) = camera.viewport_to_world_2d(camera_transform, screen_pos) {
-                cursor.position = screen_pos;
-                cursor.world_position = world_pos;
-            }
+        if let Ok(mut style) = query_cursor.get_single_mut() {
+            style.position.left = Val::Px(screen_pos.x);
+            style.position.top = Val::Px(window.height() - screen_pos.y);
+        }
+
+        if let Some(world_pos) = camera.viewport_to_world_2d(camera_transform, screen_pos) {
+            cursor.position = screen_pos;
+            cursor.world_position = world_pos;
         }
     }
 }
@@ -189,11 +189,11 @@ pub(super) fn update_tile_grid_position(
 
 pub(super) fn update_tile_grid_opacity(
     velocity: Res<PlayerVelocity>,
-    mut tile_grid: Query<&mut Sprite, With<TileGrid>>,
+    mut query_tile_grid: Query<&mut Sprite, With<TileGrid>>,
 ) {
     use interpolation::Lerp;
 
-    let mut sprite = tile_grid.single_mut();
+    let mut sprite = query_tile_grid.single_mut();
 
     let opacity = if velocity.x.abs() > 0. {
         MIN_TILE_GRID_OPACITY.lerp(&MAX_TILE_GRID_OPACITY, &(1. - velocity.x.abs() / MAX_RUN_SPEED))
@@ -223,15 +223,11 @@ pub(super) fn update_cursor_info(
     query_hoverable.for_each(|(hoverable, interaction)| {
         helpers::set_visibility(
             &mut visibility, 
-            !matches!(hoverable, Hoverable::None)
-                && !matches!(interaction, Interaction::None)
+            !matches!(hoverable, Hoverable::None) && !matches!(interaction, Interaction::None)
         );
 
-        match (hoverable, interaction) {
-            (Hoverable::SimpleText(info), Interaction::Hovered) => {
-                text.sections[0].value = info.clone();
-            },
-            _ => {}
+        if let (Hoverable::SimpleText(info), Interaction::Hovered) = (hoverable, interaction) {
+            text.sections[0].value = info.clone();
         }
     });
 }

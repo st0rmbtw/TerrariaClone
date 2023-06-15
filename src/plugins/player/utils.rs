@@ -16,9 +16,9 @@ pub(super) fn simple_animation<C: AnimationData + Component>(
 }
 
 pub(super) fn is_walking(
-    player_query: Query<&MovementState, With<Player>>,
+    query_player: Query<&MovementState, With<Player>>,
 ) -> bool {
-    if let Ok(state) = player_query.get_single() {
+    if let Ok(state) = query_player.get_single() {
         if *state == MovementState::Walking {
             return true;
         }
@@ -28,9 +28,9 @@ pub(super) fn is_walking(
 }
 
 pub(super) fn is_idle(
-    player_query: Query<&MovementState, With<Player>>,
+    query_player: Query<&MovementState, With<Player>>,
 ) -> bool {
-    if let Ok(state) = player_query.get_single() {
+    if let Ok(state) = query_player.get_single() {
         if *state == MovementState::Idle {
             return true;
         }
@@ -40,9 +40,9 @@ pub(super) fn is_idle(
 }
 
 pub(super) fn is_flying(
-    player_query: Query<&MovementState, With<Player>>,
+    query_player: Query<&MovementState, With<Player>>,
 ) -> bool {
-    if let Ok(state) = player_query.get_single() {
+    if let Ok(state) = query_player.get_single() {
         if *state == MovementState::Flying {
             return true;
         }

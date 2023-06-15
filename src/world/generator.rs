@@ -306,7 +306,7 @@ fn grassify(world: &mut WorldData) {
         if y >= world.size.height { return false; }
         if !world.block_exists_with_type((x, y), BlockType::Dirt) { return false; }
 
-        any_neighbor_not_exist(&world, x, y)
+        any_neighbor_not_exist(world, x, y)
     }
     
     fn flood_fill(world: &mut WorldData, x: usize, y: usize) {
@@ -387,11 +387,11 @@ fn remove_walls_from_surface(world: &mut WorldData) {
 
         if !world.wall_exists((x, y)) { return false; }
 
-        if any_neighbor_not_exist(&world, x, y) { return true; }
+        if any_neighbor_not_exist(world, x, y) { return true; }
 
         if world.solid_block_exists((x, y)) { return false; }
 
-        return true;
+        true
     }
     
     fn flood_fill(world: &mut WorldData, x: usize, y: usize) {
@@ -602,10 +602,7 @@ fn grow_trees(world: &mut WorldData, seed: u32) {
         if grow {
             // Trees can only grow on dirt or grass
             let appropriate_block = world.get_block((x, y))
-                .filter(|b| match b.block_type {
-                    BlockType::Dirt | BlockType::Grass => true,
-                    _ => false
-                })
+                .filter(|b| matches!(b.block_type, BlockType::Dirt | BlockType::Grass))
                 .is_some();
 
             if appropriate_block {

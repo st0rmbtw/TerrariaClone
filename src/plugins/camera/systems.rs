@@ -41,9 +41,9 @@ pub(super) fn setup_camera(
 pub(super) fn zoom(
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
-    mut camera_query: Query<&mut OrthographicProjection, With<MainCamera>>,
+    mut query_camera: Query<&mut OrthographicProjection, With<MainCamera>>,
 ) {
-    let mut projection = camera_query.single_mut();
+    let mut projection = query_camera.single_mut();
 
     if input.pressed(KeyCode::Equals) {
         let scale = projection.scale - (CAMERA_ZOOM_STEP * time.delta_seconds());

@@ -83,12 +83,12 @@ pub(super) fn spawn_chunks(
     wall_assets: Res<WallAssets>,
     world_data: Res<WorldData>,
     mut chunk_manager: ResMut<ChunkManager>,
-    camera_query: Query<
+    query_camera: Query<
         (&GlobalTransform, &OrthographicProjection),
         (With<MainCamera>, Changed<GlobalTransform>),
     >
 ) {
-    if let Ok((camera_transform, projection)) = camera_query.get_single() {
+    if let Ok((camera_transform, projection)) = query_camera.get_single() {
         let camera_fov = get_camera_fov(camera_transform.translation().xy(), projection);
         let chunk_range = get_chunk_range_by_camera_fov(camera_fov, world_data.size);
 
@@ -107,13 +107,13 @@ pub(super) fn despawn_chunks(
     mut commands: Commands,
     chunks: Query<(Entity, &ChunkContainer)>,
     mut chunk_manager: ResMut<ChunkManager>,
-    camera_query: Query<
+    query_camera: Query<
         (&GlobalTransform, &OrthographicProjection),
         (With<MainCamera>, Changed<GlobalTransform>),
     >,
     world_data: Res<WorldData>
 ) {
-    if let Ok((camera_transform, projection)) = camera_query.get_single() {
+    if let Ok((camera_transform, projection)) = query_camera.get_single() {
         let camera_fov = get_camera_fov(camera_transform.translation().xy(), projection);
         let chunk_range = get_chunk_range_by_camera_fov(camera_fov, world_data.size);
 
