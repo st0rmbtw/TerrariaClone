@@ -8,7 +8,7 @@ use bevy::{
 };
 use rand::{thread_rng, Rng, seq::SliceRandom};
 
-use super::{assets::BackgroundAssets, camera::{MainCamera, BackgroundCamera}, world::TILE_SIZE};
+use super::{assets::BackgroundAssets, camera::BackgroundCamera, world::TILE_SIZE};
 
 const BACKGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(25);
 
@@ -116,6 +116,7 @@ fn spawn_stars(
         let star_image = star_images.choose(&mut rng).unwrap();
 
         commands.spawn((
+            Name::new(format!("Star {i}")),
             SpriteBundle {
                 texture: star_image.clone_weak(),
                 ..default()
@@ -123,13 +124,13 @@ fn spawn_stars(
             Star {
                 screen_position: Vec2::new(x, y)
             },
-            Name::new(format!("Star {i}")),
+            BACKGROUND_RENDER_LAYER
         ));
     }
 }
 
 fn move_stars(
-    query_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
+    query_camera: Query<(&Camera, &GlobalTransform), With<BackgroundCamera>>,
     mut query_stars: Query<(&mut Transform, &Star)>
 ) {
     let (camera, camera_transform) = query_camera.single();
@@ -151,7 +152,7 @@ fn setup_main_menu_background(
     commands.spawn((
         Name::new("Menu Parallax Container"),
         MenuParallaxContainer,
-        ParallaxContainer::new(BACKGROUND_RENDER_LAYER, vec![
+        ParallaxContainer::new(vec![
             LayerData {
                 speed: LayerSpeed::Horizontal(1.),
                 scale: 1.,
@@ -206,6 +207,7 @@ fn setup_main_menu_background(
                 ..default()
             },
         ])
+        .with_render_layer(BACKGROUND_RENDER_LAYER)
     ));
 }
 
@@ -215,7 +217,7 @@ fn spawn_sky_background(
 ) {
     commands.spawn((
         Name::new("Sky Parallax Container"),
-        ParallaxContainer::new(BACKGROUND_RENDER_LAYER, vec![
+        ParallaxContainer::new(vec![
             LayerData {
                 speed: LayerSpeed::Bidirectional(1., 1.),
                 image: backgrounds.background_0.clone_weak(),
@@ -227,6 +229,7 @@ fn spawn_sky_background(
                 ..default()
             },
         ])
+        .with_render_layer(BACKGROUND_RENDER_LAYER)
     ));
 }
 
@@ -274,7 +277,7 @@ fn spawn_ingame_background(
     commands.spawn((
         Name::new("InGame Parallax Container"),
         InGameParallaxContainer,
-        ParallaxContainer::new(RenderLayers::default(), layers)
+        ParallaxContainer::new(layers)
     ));
 }
 
@@ -286,7 +289,7 @@ fn spawn_forest_background(
     commands.spawn((
         Name::new("Biome Parallax Container"),
         BiomeParallaxContainer,
-        ParallaxContainer::new(BACKGROUND_RENDER_LAYER, vec![
+        ParallaxContainer::new(vec![
             LayerData {
                 speed: LayerSpeed::Bidirectional(0.9, 0.6),
                 image: backgrounds.background_55.clone_weak(),
@@ -318,5 +321,6 @@ fn spawn_forest_background(
                 ..default()
             },
         ])
+        .with_render_layer(BACKGROUND_RENDER_LAYER)
     ));
 }

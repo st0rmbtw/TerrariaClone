@@ -55,8 +55,6 @@ pub(crate) struct LayerComponent {
     pub(crate) texture_count: f32,
     /// Number used to determine when textures are moved to opposite side of camera
     pub(crate) transition_factor: f32,
-
-    pub(crate) index: usize
 }
 
 /// Core component for layer texture
@@ -64,4 +62,11 @@ pub(crate) struct LayerComponent {
 pub(crate) struct LayerTextureComponent {
     /// Width of the texture
     pub width: f32,
+}
+
+#[derive(Component)]
+pub(crate) struct LayerDataComponent {
+    /// Width of the texture
+    pub fill_screen_height: bool,
+    pub position: Vec2
 }

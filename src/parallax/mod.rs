@@ -2,13 +2,11 @@
 
 use std::cmp::max;
 
-use bevy::{prelude::*, window::PrimaryWindow, render::view::RenderLayers};
+use bevy::{prelude::*, window::{PrimaryWindow, WindowResized}, render::view::RenderLayers};
 
 mod layer;
 
 pub(crate) use layer::*;
-
-use crate::plugins::camera::BackgroundCamera;
 
 pub struct ParallaxPlugin;
 
@@ -22,7 +20,8 @@ impl Plugin for ParallaxPlugin {
         app.add_systems(
             (
                 parallax_container_added,
-                update_layer_textures_system.after(ParallaxSet::FollowCamera)
+                update_layer_textures_system.after(ParallaxSet::FollowCamera),
+                update_full_screen_sprites.in_base_set(CoreSet::PreUpdate),
             )
         );
     }
@@ -32,8 +31,6 @@ impl Plugin for ParallaxPlugin {
 pub(crate) struct ParallaxContainer {
     /// Data to describe each layer of parallax
     layer_data: Vec<LayerData>,
-    /// Parallax layer entities
-    layer_entities: Vec<Entity>,
     
     processed: bool,
 
@@ -41,13 +38,17 @@ pub(crate) struct ParallaxContainer {
 }
 
 impl ParallaxContainer {
-    pub(crate) fn new(layer: RenderLayers, layers: Vec<LayerData>) -> Self {
+    pub(crate) fn new(layers: Vec<LayerData>) -> Self {
         Self {
             layer_data: layers,
-            render_layer: layer,
-            layer_entities: Vec::new(),
+            render_layer: Default::default(),
             processed: false,
         }
+    }
+
+    pub(crate) fn with_render_layer(mut self, layer: RenderLayers) -> Self {
+        self.render_layer = layer;
+        self
     }
 }
 
@@ -69,23 +70,23 @@ fn parallax_container_added(
             .with_children(|children| {
             // Spawn new layers using layer_data
             for i in 0..parallax_container.layer_data.len() {
-                let layer = &parallax_container.layer_data[i];
+                let layer_data = &parallax_container.layer_data[i];
 
-                let texture = images.get(&layer.image).unwrap();
+                let texture = images.get(&layer_data.image).unwrap();
 
                 let spritesheet_bundle = SpriteBundle {
                     sprite: Sprite {
-                        custom_size: if layer.fill_screen_height { Some(Vec2::new(texture.size().x, window_height)) } else { None },
-                        anchor: layer.anchor.clone(),
+                        custom_size: layer_data.fill_screen_height.then_some(Vec2::new(texture.size().x, window_height)),
+                        anchor: layer_data.anchor.clone(),
                         ..default()
                     },
-                    texture: layer.image.clone(),
+                    texture: layer_data.image.clone(),
                     ..Default::default()
                 };
 
-                let x_max_index = match layer.speed {
+                let x_max_index = match layer_data.speed {
                     LayerSpeed::Horizontal(_) | LayerSpeed::Bidirectional(..) => max(
-                        (window_width / (texture.size().x * layer.scale / 2.) + 1.0) as i32,
+                        (window_width / (texture.size().x * layer_data.scale / 2.) + 1.0) as i32,
                         1,
                     ),
                     LayerSpeed::Vertical(_) => 0,
@@ -93,25 +94,28 @@ fn parallax_container_added(
 
                 let texture_count = 2.0 * x_max_index as f32 + 1.0;
 
-                let layer_entity = children.spawn((
+                children.spawn((
                     Name::new(format!("Parallax Layer ({})", i)),
                     SpatialBundle {
                         transform: Transform {
-                            translation: Vec3::new(layer.position.x, layer.position.y, layer.z),
-                            scale: Vec3::new(layer.scale, layer.scale, layer.scale),
+                            translation: Vec3::new(layer_data.position.x, layer_data.position.y, layer_data.z),
+                            scale: Vec3::new(layer_data.scale, layer_data.scale, layer_data.scale),
                             ..default()
                         },
                         ..default()
                     },
                     LayerComponent {
-                        speed: match layer.speed {
+                        speed: match layer_data.speed {
                             LayerSpeed::Horizontal(vx) => Vec2::new(vx, 1.0),
                             LayerSpeed::Vertical(vy) => Vec2::new(1.0, vy),
                             LayerSpeed::Bidirectional(vx, vy) => Vec2::new(vx, vy),
                         },
                         texture_count,
-                        transition_factor: layer.transition_factor,
-                        index: i
+                        transition_factor: layer_data.transition_factor
+                    },
+                    LayerDataComponent {
+                        fill_screen_height: layer_data.fill_screen_height,
+                        position: layer_data.position
                     }
                 ))
                 .with_children(|parent| {
@@ -124,10 +128,7 @@ fn parallax_container_added(
                             },
                         ).insert(parallax_container.render_layer);
                     }
-                })
-                .id();
-
-                parallax_container.layer_entities.push(layer_entity);
+                });
             }
         });
 
@@ -161,24 +162,18 @@ pub(crate) fn parallax_animation_system(
 }
 
 pub(crate) fn follow_camera_system(
-    query_parallax_container: Query<&ParallaxContainer>,
-    camera_query: Query<&GlobalTransform, (With<ParallaxCameraComponent>, With<BackgroundCamera>)>,
-    mut layer_query: Query<(&mut Transform, &LayerComponent), Without<ParallaxCameraComponent>>,
+    camera_query: Query<&GlobalTransform, With<ParallaxCameraComponent>>,
+    mut layer_query: Query<(&mut Transform, &LayerComponent, &LayerDataComponent)>,
 ) {
     if let Some(camera_transform) = camera_query.iter().next() {
-        for parallax_container in &query_parallax_container {
-            for layer_entity in &parallax_container.layer_entities {
-                if let Ok((mut layer_transform, layer)) = layer_query.get_mut(*layer_entity) {
-                    let layer_data = &parallax_container.layer_data[layer.index];
-                    let camera_translation = camera_transform.translation();
+        for (mut layer_transform, layer, layer_data) in &mut layer_query {
+            let camera_translation = camera_transform.translation();
 
-                    let new_translation_x = camera_translation.x + (layer_data.position.x - camera_translation.x) * layer.speed.x;
-                    let new_translation_y = camera_translation.y + (layer_data.position.y - camera_translation.y) * layer.speed.y;
+            let new_translation_x = camera_translation.x + (layer_data.position.x - camera_translation.x) * layer.speed.x;
+            let new_translation_y = camera_translation.y + (layer_data.position.y - camera_translation.y) * layer.speed.y;
 
-                    layer_transform.translation.x = new_translation_x;
-                    layer_transform.translation.y = new_translation_y;
-                }
-            }
+            layer_transform.translation.x = new_translation_x;
+            layer_transform.translation.y = new_translation_y;
         }
     }
 }
@@ -221,6 +216,26 @@ fn update_layer_textures_system(
                 {
                     texture_transform.translation.x += layer_texture.width * layer.texture_count;
                 }   
+            }
+        }
+    }
+}
+
+pub(super) fn update_full_screen_sprites(
+    mut window_resize_events: EventReader<WindowResized>,
+    query_layer: Query<(&LayerDataComponent, &Children), With<LayerComponent>>,
+    mut query_texture_layer: Query<&mut Sprite, With<LayerTextureComponent>>
+) {
+    for event in window_resize_events.iter() {
+        for (layer_data, children) in &query_layer {
+            if !layer_data.fill_screen_height { continue; }
+
+            for &entity in children.iter() {
+                if let Ok(mut sprite) = query_texture_layer.get_mut(entity) {
+                    if let Some(size) = sprite.custom_size.as_mut() {
+                        size.y = event.height;
+                    }
+                }
             }
         }
     }
