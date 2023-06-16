@@ -5,7 +5,7 @@ use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveE
 use interpolation::EaseFunction;
 
 use crate::{animation::{Tween, Animator, AnimatorState, TweeningDirection, RepeatStrategy, Tweenable, EaseMethod, RepeatCount}, plugins::{camera::MainCamera, assets::{FontAssets, UiAssets, SoundAssets}, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor}, fps::FpsText}, common::{state::{GameState, SettingsMenuState, MenuState}, lens::{TextFontSizeLens, TransformLens}}, language::LanguageContent};
-use super::{Menu, SinglePlayerButton, SettingsButton, ExitButton, MenuContainer, role::ButtonRole, settings::MENU_BUTTON_FONT_SIZE, TEXT_COLOR};
+use super::{Menu, SinglePlayerButton, SettingsButton, ExitButton, MenuContainer, role::ButtonRole, settings::MENU_BUTTON_FONT_SIZE, TEXT_COLOR, DespawnOnMenuExit};
 
 pub(super) fn despawn_with<C: Component>(query: Query<Entity, With<C>>, mut commands: Commands) {
     for entity in &query {
@@ -27,14 +27,16 @@ fn text_tween(initial_font_size: f32) -> Tween<Text> {
 }
 
 pub(super) fn setup_camera(mut commands: Commands) {
-    commands
-        .spawn(Camera2dBundle {
+    commands.spawn((
+        MainCamera,
+        DespawnOnMenuExit,
+        Camera2dBundle {
             camera_2d: Camera2d {
                 clear_color: ClearColorConfig::None
             },
             ..default()
-        })
-        .insert(MainCamera);
+        },
+    ));
 }
 
 #[autodefault]
@@ -197,6 +199,8 @@ pub(super) fn spawn_menu_container(
 
     commands
         .spawn((
+            MenuContainer,
+            DespawnOnMenuExit,
             NodeBundle {
                 style: Style {
                     size: Size {
@@ -208,11 +212,11 @@ pub(super) fn spawn_menu_container(
                     ..default()
                 },
                 ..default()
-            },
-            MenuContainer
+            }
         ))
         .with_children(|children| {
             children.spawn((
+                Animator::new(logo_animation),
                 ImageBundle {
                     style: Style {
                         position_type: PositionType::Absolute,
@@ -225,7 +229,6 @@ pub(super) fn spawn_menu_container(
                     },
                     ..default()
                 },
-                Animator::new(logo_animation)
             ));
         });
 }

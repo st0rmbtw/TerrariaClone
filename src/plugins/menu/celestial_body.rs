@@ -1,31 +1,69 @@
 use std::time::Duration;
 
-use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, Local, Input, MouseButton, Color, Vec4, IntoSystemConfig, DetectChanges, IntoSystemConfigs, IntoSystemAppConfig, OnExit, Name}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas}, window::{Window, PrimaryWindow}, utils::default};
+use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, Local, Input, MouseButton, Color, Vec4, IntoSystemConfig, DetectChanges, IntoSystemConfigs, OnExit, Name, IntoSystemAppConfigs}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas, SpriteBundle}, window::{Window, PrimaryWindow}, utils::default};
 use bevy_hanabi::Gradient;
 use interpolation::Lerp;
+use rand::{thread_rng, Rng, seq::SliceRandom};
 
-use crate::{plugins::{assets::{CelestialBodyAssets}, camera::MainCamera, cursor::CursorPosition, background::Star}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystemSet, AnimatorState}, common::state::GameState, common::{math::map_range_f32, rect::FRect}, parallax::LayerTextureComponent};
+use crate::{plugins::{assets::{CelestialBodyAssets, BackgroundAssets}, camera::BackgroundCamera, background::{BACKGROUND_RENDER_LAYER, BackgroundPlugin}}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystemSet, AnimatorState}, common::state::GameState, common::{math::map_range_f32, rect::FRect}, parallax::{LayerTextureComponent, ParallaxSet}};
 
-use super::in_menu_state;
+use super::{in_menu_state, DespawnOnMenuExit};
 
 pub(super) struct CelestialBodyPlugin;
 impl Plugin for CelestialBodyPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<TimeType>();
-        app.add_system(setup.in_schedule(OnExit(GameState::AssetLoading)));
-        app.add_system(component_animator_system::<CelestialBody>.in_set(AnimationSystemSet::AnimationUpdate));
+        // This plugin depends on resources and components that BackgroundPlugin creates
+        if !app.get_added_plugins::<BackgroundPlugin>().is_empty() {
+            app.init_resource::<TimeType>();
+            app.insert_resource(Gradients {
+                night: {
+                    let mut gradient = Gradient::<Vec4>::new();
+                    gradient.add_key(0., Color::rgb_u8(0, 54, 107).into());
+                    gradient.add_key(0.2, Color::rgb(0.2, 0.2, 0.2).into());
+                    gradient.add_key(0.5, Color::rgb(0.2, 0.2, 0.2).into());
+                    gradient.add_key(0.8, Color::rgb(0.2, 0.2, 0.2).into());
+                    gradient.add_key(1.0, Color::rgb(0.3, 0.2, 0.3).into());
+                    gradient
+                },
+                day: {
+                    let mut gradient = Gradient::<Vec4>::new();
+                    gradient.add_key(0., Color::rgb_u8(0, 54, 107).into());
+                    gradient.add_key(0.2, Color::WHITE.into());
+                    gradient.add_key(0.5, Color::WHITE.into());
+                    gradient.add_key(0.8, Color::WHITE.into());
+                    gradient.add_key(1.0, Color::rgb(0.3, 0.2, 0.3).into());
+                    gradient
+                }
+            });
 
-        app.add_systems(
-            (
-                update_celestial_type,
-                update_time_type,
-                move_celestial_body,
-                drag_celestial_body,
-                update_sprites_color,
-                change_visibility_of_stars,
-            )
-            .distributive_run_if(in_menu_state)
-        );
+            app.add_system(component_animator_system::<CelestialBody>.in_set(AnimationSystemSet::AnimationUpdate));
+
+            app.add_systems(
+                (
+                    spawn_celestial_body,
+                    spawn_stars
+                )
+                .in_schedule(OnExit(GameState::AssetLoading))
+            );
+
+            app.add_system(
+                move_stars
+                    .run_if(in_menu_state)
+                    .before(ParallaxSet::FollowCamera)
+            );
+
+            app.add_systems(
+                (
+                    update_celestial_type,
+                    update_time_type,
+                    move_celestial_body,
+                    drag_celestial_body,
+                    update_sprites_color,
+                    change_visibility_of_stars,
+                )
+                .distributive_run_if(in_menu_state)
+            );
+        }
     }
 }
 
@@ -36,6 +74,11 @@ const MOON_SIZE: f32 = 50.;
 #[derive(Component, Clone, Copy, Default, PartialEq)]
 struct CelestialBody {
     position: Vec2
+}
+
+#[derive(Component)]
+struct Star {
+    screen_position: Vec2
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -60,31 +103,10 @@ struct Gradients {
 const SUNRISE_THRESHOLD: f32 = 0.2;
 const SUNSET_THRESHOLD: f32 = 0.8;
 
-fn setup(
+fn spawn_celestial_body(
     mut commands: Commands,
     celestial_body_assets: Res<CelestialBodyAssets>
 ) {
-    commands.insert_resource(Gradients {
-        night: {
-            let mut gradient = Gradient::<Vec4>::new();
-            gradient.add_key(0., Color::rgb_u8(0, 54, 107).into());
-            gradient.add_key(0.2, Color::rgb(0.2, 0.2, 0.2).into());
-            gradient.add_key(0.5, Color::rgb(0.2, 0.2, 0.2).into());
-            gradient.add_key(0.8, Color::rgb(0.2, 0.2, 0.2).into());
-            gradient.add_key(1.0, Color::rgb(0.3, 0.2, 0.3).into());
-            gradient
-        },
-        day: {
-            let mut gradient = Gradient::<Vec4>::new();
-            gradient.add_key(0., Color::rgb_u8(0, 54, 107).into());
-            gradient.add_key(0.2, Color::WHITE.into());
-            gradient.add_key(0.5, Color::WHITE.into());
-            gradient.add_key(0.8, Color::WHITE.into());
-            gradient.add_key(1.0, Color::rgb(0.3, 0.2, 0.3).into());
-            gradient
-        }
-    });
-
     let celestial_body_animation = Tween::new(
         EaseMethod::Linear,
         RepeatStrategy::Repeat,
@@ -98,6 +120,11 @@ fn setup(
     .with_completed_event(CELESTIAL_BODY_ANIMATION_COMPLETED);
 
     commands.spawn((
+        Name::new("Celestial Body"),
+        CelestialBody::default(),
+        DespawnOnMenuExit,
+        Animator::new(celestial_body_animation),
+        BACKGROUND_RENDER_LAYER,
         SpriteSheetBundle {
             sprite: TextureAtlasSprite {
                 index: 0,
@@ -107,10 +134,58 @@ fn setup(
             transform: Transform::IDENTITY,
             ..default()
         },
-        Animator::new(celestial_body_animation),
-        CelestialBody::default(),
-        Name::new("Celestial Body")
     ));
+}
+
+fn spawn_stars(
+    mut commands: Commands,
+    query_windows: Query<&Window, With<PrimaryWindow>>,
+    background_assets: Res<BackgroundAssets>
+) {
+    let mut rng = thread_rng();
+    let window = query_windows.single();
+
+    let star_images = [
+        background_assets.star_0.clone_weak(),
+        background_assets.star_1.clone_weak(),
+        background_assets.star_2.clone_weak(),
+        background_assets.star_3.clone_weak(),
+        background_assets.star_4.clone_weak(),
+    ];
+
+    for i in 0..100 {
+        let x = rng.gen_range(0f32..window.width());
+        let y = rng.gen_range(0f32..window.height());
+
+        let star_image = star_images.choose(&mut rng).unwrap();
+
+        commands.spawn((
+            Name::new(format!("Star {i}")),
+            DespawnOnMenuExit,
+            SpriteBundle {
+                texture: star_image.clone_weak(),
+                ..default()
+            },
+            Star {
+                screen_position: Vec2::new(x, y)
+            },
+            BACKGROUND_RENDER_LAYER
+        ));
+    }
+}
+
+fn move_stars(
+    query_camera: Query<(&Camera, &GlobalTransform), With<BackgroundCamera>>,
+    mut query_stars: Query<(&mut Transform, &Star)>
+) {
+    let (camera, camera_transform) = query_camera.single();
+
+    for (mut star_transform, star) in &mut query_stars {
+        if let Some(world_position) = camera.viewport_to_world_2d(camera_transform, star.screen_position) {
+            star_transform.translation.x = world_position.x;
+            star_transform.translation.y = world_position.y;
+        }    
+    }
 }
 
 fn change_visibility_of_stars(
@@ -145,7 +220,7 @@ fn change_visibility_of_stars(
 
 fn move_celestial_body(
     query_windows: Query<&Window, With<PrimaryWindow>>,
-    query_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
+    query_camera: Query<(&Camera, &GlobalTransform), With<BackgroundCamera>>,
     mut query_celestial_body: Query<(&mut Transform, &CelestialBody)>
 ) {
     let window = query_windows.single();
@@ -175,14 +250,18 @@ fn update_time_type(
 }
 
 fn drag_celestial_body(
-    query_windows: Query<&Window>,
+    query_window: Query<&Window, With<PrimaryWindow>>,
     input: Res<Input<MouseButton>>,
-    cursor_position: Res<CursorPosition>,
     time_type: Res<TimeType>,
     mut query_celestial_body: Query<(&mut Transform, &mut Animator<CelestialBody>, &mut CelestialBody)>,
+    query_background_camera: Query<(&Camera, &GlobalTransform), With<BackgroundCamera>>,
     mut dragging: Local<bool>,
 ) {
-    let window = query_windows.single();
+    let window = query_window.single();
+
+    let Ok((camera, camera_transform)) = query_background_camera.get_single() else { return; };
+    let Some(cursor_position) = window.cursor_position() else { return; };
+    let Some(cursor_world_position) = camera.viewport_to_world_2d(camera_transform, cursor_position) else { return; };
 
     let (mut celestial_body_transform, mut animator, mut celestial_body) = query_celestial_body.single_mut();
 
@@ -198,16 +277,16 @@ fn drag_celestial_body(
         celestial_body_size
     );
 
-    let cursor_is_on_celestial_body = cb_rect.inside((cursor_position.world_position.x, cursor_position.world_position.y));
+    let cursor_is_on_celestial_body = cb_rect.inside((cursor_world_position.x, cursor_world_position.y));
 
     if input.pressed(MouseButton::Left) && (cursor_is_on_celestial_body || *dragging) {
-        celestial_body_transform.translation.x = cursor_position.world_position.x;
-        celestial_body_transform.translation.y = cursor_position.world_position.y;
-        celestial_body.position.x = cursor_position.position.x / window.width();
-        celestial_body.position.y = cursor_position.position.y / window.height();
+        celestial_body_transform.translation.x = cursor_world_position.x;
+        celestial_body_transform.translation.y = cursor_world_position.y;
+        celestial_body.position.x = cursor_position.x / window.width();
+        celestial_body.position.y = cursor_position.y / window.height();
 
         let tween = animator.tweenable_mut();
-        tween.set_progress(cursor_position.position.x / window.width());
+        tween.set_progress(cursor_position.x / window.width());
 
         *dragging = true;
         animator.state = AnimatorState::Paused;

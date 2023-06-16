@@ -1,16 +1,15 @@
 use crate::{
-    parallax::{LayerData, LayerSpeed, follow_camera_system, ParallaxSet, ParallaxContainer, ParallaxCameraComponent},
-    common::{state::GameState, conditions::in_menu_state}, world::{WorldData, generator::DIRT_HILL_HEIGHT},
+    parallax::{LayerData, LayerSpeed, follow_camera_system, ParallaxContainer, ParallaxCameraComponent},
+    common::state::GameState, world::WorldData,
 };
 use bevy::{
-    prelude::{default, App, Commands, Plugin, Res, Vec2, Transform, Component, Query, Camera, GlobalTransform, With, OnEnter, OnExit, IntoSystemAppConfig, OnUpdate, IntoSystemConfig, IntoSystemConfigs, IntoSystemAppConfigs, Name, Entity, DespawnRecursiveExt, Assets, Image, Camera2dBundle, Camera2d},
-    sprite::{SpriteBundle, Anchor}, window::{Window, PrimaryWindow}, core_pipeline::clear_color::ClearColorConfig, render::view::RenderLayers,
+    prelude::{default, App, Commands, Plugin, Res, Vec2, Component, Query, Camera, With, OnEnter, OnExit, IntoSystemAppConfig, OnUpdate, IntoSystemConfig, IntoSystemConfigs, IntoSystemAppConfigs, Name, Entity, DespawnRecursiveExt, Assets, Image, Camera2dBundle, Camera2d},
+    sprite::Anchor, core_pipeline::clear_color::ClearColorConfig, render::view::RenderLayers,
 };
-use rand::{thread_rng, Rng, seq::SliceRandom};
 
 use super::{assets::BackgroundAssets, camera::BackgroundCamera, world::TILE_SIZE};
 
-const BACKGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(25);
+pub(crate) const BACKGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(25);
 
 // region: Plugin
 pub(crate) struct BackgroundPlugin;
@@ -19,8 +18,7 @@ impl Plugin for BackgroundPlugin {
         app.add_systems(
             (
                 spawn_background_camera,
-                setup_main_menu_background,
-                spawn_stars
+                setup_main_menu_background
             )
             .in_schedule(OnExit(GameState::AssetLoading))
         );
@@ -39,22 +37,12 @@ impl Plugin for BackgroundPlugin {
         app.add_system(despawn_menu_background.in_schedule(OnExit(GameState::InGame)));
 
         app.add_system(
-            move_stars
-                .run_if(in_menu_state)
-                .before(ParallaxSet::FollowCamera)
-        );
-        app.add_system(
             follow_camera_system
                 .in_set(OnUpdate(GameState::InGame))
         );
     }
 }
 // endregion
-
-#[derive(Component)]
-pub(crate) struct Star {
-    screen_position: Vec2
-}
 
 #[derive(Component)]
 pub(crate) struct MenuParallaxContainer;
@@ -91,56 +79,6 @@ fn spawn_background_camera(
             ..default()
         },
     ));
-}
-
-fn spawn_stars(
-    mut commands: Commands,
-    query_windows: Query<&Window, With<PrimaryWindow>>,
-    background_assets: Res<BackgroundAssets>
-) {
-    let mut rng = thread_rng();
-    let window = query_windows.single();
-
-    let star_images = [
-        background_assets.star_0.clone_weak(),
-        background_assets.star_1.clone_weak(),
-        background_assets.star_2.clone_weak(),
-        background_assets.star_3.clone_weak(),
-        background_assets.star_4.clone_weak(),
-    ];
-
-    for i in 0..100 {
-        let x = rng.gen_range(0f32..window.width());
-        let y = rng.gen_range(0f32..window.height());
-
-        let star_image = star_images.choose(&mut rng).unwrap();
-
-        commands.spawn((
-            Name::new(format!("Star {i}")),
-            SpriteBundle {
-                texture: star_image.clone_weak(),
-                ..default()
-            },
-            Star {
-                screen_position: Vec2::new(x, y)
-            },
-            BACKGROUND_RENDER_LAYER
-        ));
-    }
-}
-
-fn move_stars(
-    query_camera: Query<(&Camera, &GlobalTransform), With<BackgroundCamera>>,
-    mut query_stars: Query<(&mut Transform, &Star)>
-) {
-    let (camera, camera_transform) = query_camera.single();
-
-    for (mut star_transform, star) in &mut query_stars {
-        if let Some(world_position) = camera.viewport_to_world_2d(camera_transform, star.screen_position) {
-            star_transform.translation.x = world_position.x;
-            star_transform.translation.y = world_position.y;
-        }    
-    }
 }
 
 fn setup_main_menu_background(
@@ -213,19 +151,18 @@ fn setup_main_menu_background(
 
 fn spawn_sky_background(
     mut commands: Commands,
-    backgrounds: Res<BackgroundAssets>,
-) {
+    backgrounds: Res<BackgroundAssets>
+) { 
     commands.spawn((
         Name::new("Sky Parallax Container"),
         ParallaxContainer::new(vec![
             LayerData {
-                speed: LayerSpeed::Bidirectional(1., 1.),
+                speed: LayerSpeed::Bidirectional(1., 0.),
                 image: backgrounds.background_0.clone_weak(),
-                z: 0.0,
-                transition_factor: 1.,
-                scale: 6.,
-                position: Vec2::splat(TILE_SIZE / 2.),
-                anchor: Anchor::TopCenter,
+                z: 0.,
+                scale: 1.,
+                position: Vec2::ZERO,
+                anchor: Anchor::Center,
                 ..default()
             },
         ])
@@ -296,12 +233,12 @@ fn spawn_forest_background(
                 z: 0.4,
                 transition_factor: 1.,
                 scale: 2.,
-                position: (world_data.layer.underground - world_data.layer.dirt_height + DIRT_HILL_HEIGHT) as f32 * TILE_SIZE * Vec2::NEG_Y,
+                position: (world_data.layer.underground - world_data.layer.dirt_height) as f32 * TILE_SIZE * Vec2::NEG_Y,
                 anchor: Anchor::Center,
                 ..default()
             },
             LayerData {
-                speed: LayerSpeed::Bidirectional(0.6, 0.5),
+                speed: LayerSpeed::Bidirectional(0.4, 0.5),
                 image: backgrounds.background_114.clone_weak(),
                 z: 0.3,
                 transition_factor: 1.,
@@ -311,13 +248,13 @@ fn spawn_forest_background(
                 ..default()
             },
             LayerData {
-                speed: LayerSpeed::Bidirectional(0.4, 0.4),
+                speed: LayerSpeed::Bidirectional(0.2, 0.4),
                 image: backgrounds.background_93.clone_weak(),
                 z: 0.2,
                 transition_factor: 1.,
-                scale: 1.5,
+                scale: 2.,
                 position: (world_data.layer.underground - world_data.layer.dirt_height) as f32 * TILE_SIZE * Vec2::NEG_Y,
-                anchor: Anchor::BottomCenter,
+                anchor: Anchor::Center,
                 ..default()
             },
         ])

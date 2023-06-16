@@ -5,10 +5,12 @@ use crate::world::{chunk::ChunkPos, Size};
 
 use super::{CHUNK_SIZE_U, CHUNK_SIZE, TILE_SIZE, CameraFov, ChunkRange};
 
+#[inline]
 pub(super) fn get_chunk_pos(pos: TilePos) -> ChunkPos {
     ChunkPos::new(pos.x, pos.y) / CHUNK_SIZE_U
 }
 
+#[inline]
 pub(super) fn get_chunk_tile_pos(map_tile_pos: TilePos) -> TilePos {
     TilePos { 
         x: map_tile_pos.x % CHUNK_SIZE_U, 
@@ -16,6 +18,7 @@ pub(super) fn get_chunk_tile_pos(map_tile_pos: TilePos) -> TilePos {
     }
 }
 
+#[inline]
 pub(super) fn get_camera_fov(camera_pos: Vec2, projection: &OrthographicProjection) -> CameraFov {
     CameraFov {
         left: camera_pos.x + projection.area.min.x,
