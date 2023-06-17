@@ -18,20 +18,17 @@ impl Plugin for CelestialBodyPlugin {
             app.insert_resource(Gradients {
                 night: {
                     let mut gradient = Gradient::<Vec4>::new();
-                    gradient.add_key(0., Color::rgb_u8(0, 54, 107).into());
-                    gradient.add_key(0.2, Color::rgb(0.2, 0.2, 0.2).into());
-                    gradient.add_key(0.5, Color::rgb(0.2, 0.2, 0.2).into());
-                    gradient.add_key(0.8, Color::rgb(0.2, 0.2, 0.2).into());
-                    gradient.add_key(1.0, Color::rgb(0.3, 0.2, 0.3).into());
+                    gradient.add_key(0.0, Color::rgb(0.07, 0.07, 0.07).into());
+                    gradient.add_key(0.8, Color::rgb(0.07, 0.07, 0.07).into());
+                    gradient.add_key(1., Color::rgb_u8(0, 54, 107).into());
                     gradient
                 },
                 day: {
                     let mut gradient = Gradient::<Vec4>::new();
                     gradient.add_key(0., Color::rgb_u8(0, 54, 107).into());
                     gradient.add_key(0.2, Color::WHITE.into());
-                    gradient.add_key(0.5, Color::WHITE.into());
                     gradient.add_key(0.8, Color::WHITE.into());
-                    gradient.add_key(1.0, Color::rgb(0.3, 0.2, 0.3).into());
+                    gradient.add_key(1.0, Color::rgb(0.07, 0.07, 0.07).into());
                     gradient
                 }
             });
@@ -153,25 +150,29 @@ fn spawn_stars(
         background_assets.star_4.clone_weak(),
     ];
 
-    for i in 0..100 {
-        let x = rng.gen_range(0f32..window.width());
-        let y = rng.gen_range(0f32..window.height());
+    let bundles = (0..100)
+        .map(|i| {
+            let x = rng.gen_range(0f32..window.width());
+            let y = rng.gen_range((window.height() / 2.)..window.height());
 
-        let star_image = star_images.choose(&mut rng).unwrap();
+            let star_image = star_images.choose(&mut rng).unwrap();
 
-        commands.spawn((
-            Name::new(format!("Star {i}")),
-            DespawnOnMenuExit,
-            SpriteBundle {
-                texture: star_image.clone_weak(),
-                ..default()
-            },
-            Star {
-                screen_position: Vec2::new(x, y)
-            },
-            BACKGROUND_RENDER_LAYER
-        ));
-    }
+            (
+                Name::new(format!("Star {i}")),
+                DespawnOnMenuExit,
+                BACKGROUND_RENDER_LAYER,
+                SpriteBundle {
+                    texture: star_image.clone_weak(),
+                    ..default()
+                },
+                Star {
+                    screen_position: Vec2::new(x, y)
+                }
+            )
+        })
+        .collect::<Vec<_>>();
+
+    commands.spawn_batch(bundles)
 }
 
 fn move_stars(

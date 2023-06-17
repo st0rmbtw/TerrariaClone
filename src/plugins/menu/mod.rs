@@ -15,7 +15,7 @@ use self::{settings::SettingsMenuPlugin, celestial_body::CelestialBodyPlugin};
 
 use super::{camera::MainCamera, fps::FpsText};
 
-pub(crate) const TEXT_COLOR: Color = Color::rgb(156. / 255., 156. / 255., 156. / 255.);
+pub(crate) const TEXT_COLOR: Color = Color::rgb(0.58, 0.58, 0.58);
 
 #[derive(Component)]
 pub(crate) struct DespawnOnMenuExit;
