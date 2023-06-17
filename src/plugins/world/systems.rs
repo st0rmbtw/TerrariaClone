@@ -360,21 +360,11 @@ pub(super) fn handle_dig_block_event(
     mut dig_block_events: EventReader<DigBlockEvent>,
     sound_assets: Res<SoundAssets>,
     audio: Res<Audio>,
-    #[cfg(feature = "debug")]
-    debug_config: Res<DebugConfiguration>
 ) {
     let mut rng = thread_rng();
 
     for &DigBlockEvent { tile_pos, tool } in dig_block_events.iter() {
         if let Some(block) = world_data.get_block_mut(tile_pos) {
-            if !block.check_required_tool(tool) { continue; }
-
-            #[cfg(feature = "debug")]
-            if debug_config.instant_break {
-                break_block_events.send(BreakBlockEvent { tile_pos });
-                return;
-            }
-
             block.hp -= tool.power();
 
             if block.hp <= 0 {

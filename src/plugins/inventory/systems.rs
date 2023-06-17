@@ -4,7 +4,7 @@ use autodefault::autodefault;
 use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color, MouseButton, EventWriter, Audio, DetectChanges, Local, Transform, Quat, DetectChangesMut}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, Size, PositionType, AlignContent, Interaction, BackgroundColor, ZIndex}, text::{Text, TextStyle, TextAlignment}, sprite::TextureAtlasSprite};
 use rand::seq::SliceRandom;
 
-use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets, SoundAssets}, cursor::{Hoverable, CursorPosition}, world::{DigBlockEvent, PlaceBlockEvent, SeedEvent}, player::{FaceDirection, Player, PlayerSpriteBody}}, common::{extensions::EntityCommandsExtensions, helpers}, language::LanguageContent, items::{Item, get_animation_points, ItemStack}, world::WorldData};
+use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets, SoundAssets}, cursor::{Hoverable, CursorPosition}, world::{DigBlockEvent, PlaceBlockEvent, SeedEvent, BreakBlockEvent}, player::{FaceDirection, Player, PlayerSpriteBody}}, common::{extensions::EntityCommandsExtensions, helpers}, language::LanguageContent, items::{Item, get_animation_points, ItemStack}, world::WorldData};
 
 use super::{Inventory, HOTBAR_LENGTH, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, CELL_COUNT_IN_ROW, INVENTORY_ROWS, HotbarUi, util::keycode_to_digit, SwingItemCooldown, ItemInHand, UseItemAnimationIndex, PlayerUsingItem, UseItemAnimationData, SwingItemCooldownMax, ITEM_ROTATION, SwingAnimation};
 
@@ -415,6 +415,7 @@ pub(super) fn use_item(
     debug_config: Res<crate::plugins::debug::DebugConfiguration>,
     mut inventory: ResMut<Inventory>,
     mut dig_block_events: EventWriter<DigBlockEvent>,
+    mut break_block_events: EventWriter<BreakBlockEvent>,
     mut place_block_events: EventWriter<PlaceBlockEvent>,
     mut seed_events: EventWriter<SeedEvent>,
     mut use_cooldown: Local<u32>,
@@ -437,8 +438,14 @@ pub(super) fn use_item(
 
             match item_stack.item {
                 Item::Tool(tool) => {
-                    dig_block_events.send(DigBlockEvent { tile_pos, tool });
                     *use_cooldown = tool.use_cooldown();
+                    if !world_data.get_block(tile_pos).is_some_and(|b| b.check_required_tool(tool)) { return; }
+                    
+                    if instant_break {
+                        break_block_events.send(BreakBlockEvent { tile_pos });    
+                    } else {
+                        dig_block_events.send(DigBlockEvent { tile_pos, tool });
+                    }
                 },
                 Item::Block(block) => {
                     if !world_data.block_exists(tile_pos) {
