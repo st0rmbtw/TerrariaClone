@@ -3,11 +3,11 @@ use crate::{
     common::state::GameState, world::WorldData,
 };
 use bevy::{
-    prelude::{default, App, Commands, Plugin, Res, Vec2, Component, Query, Camera, With, OnEnter, OnExit, IntoSystemAppConfig, OnUpdate, IntoSystemConfig, IntoSystemConfigs, IntoSystemAppConfigs, Name, Entity, DespawnRecursiveExt, Assets, Image, Camera2dBundle, Camera2d},
+    prelude::{default, App, Commands, Plugin, Res, Vec2, Component, Query, Camera, With, OnEnter, OnExit, IntoSystemAppConfig, IntoSystemConfig, IntoSystemConfigs, IntoSystemAppConfigs, Name, Entity, DespawnRecursiveExt, Assets, Image, Camera2dBundle, Camera2d, UiCameraConfig, CoreSet, in_state},
     sprite::Anchor, core_pipeline::clear_color::ClearColorConfig, render::view::RenderLayers,
 };
 
-use super::{assets::BackgroundAssets, camera::BackgroundCamera, world::TILE_SIZE};
+use super::{assets::BackgroundAssets, camera::{BackgroundCamera, CameraSet}, world::TILE_SIZE};
 
 pub(crate) const BACKGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(25);
 
@@ -38,7 +38,9 @@ impl Plugin for BackgroundPlugin {
 
         app.add_system(
             follow_camera_system
-                .in_set(OnUpdate(GameState::InGame))
+                .run_if(in_state(GameState::InGame))
+                .after(CameraSet::MoveCamera)
+                .in_base_set(CoreSet::PostUpdate)
         );
     }
 }
@@ -68,6 +70,7 @@ fn spawn_background_camera(
         BackgroundCamera,
         ParallaxCameraComponent,
         BACKGROUND_RENDER_LAYER,
+        UiCameraConfig { show_ui: false },
         Camera2dBundle {
             camera: Camera {
                 order: -1,
