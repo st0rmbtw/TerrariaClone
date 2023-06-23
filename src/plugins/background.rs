@@ -67,6 +67,7 @@ fn spawn_background_camera(
     mut commands: Commands
 ) {
     commands.spawn((
+        Name::new("BackgroundCamera"),
         BackgroundCamera,
         ParallaxCameraComponent,
         BACKGROUND_RENDER_LAYER,

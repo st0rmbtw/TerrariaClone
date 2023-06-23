@@ -4,7 +4,7 @@ use bevy::{
     prelude::{
         EventReader, ResMut, Query, Commands, EventWriter, Entity, BuildChildren, Transform, 
         default, SpatialBundle, DespawnRecursiveExt, OrthographicProjection, Changed, 
-        GlobalTransform, With, Res, UVec2, Audio, NextState, Vec2
+        GlobalTransform, With, Res, UVec2, Audio, NextState, Vec2, Name
     }, 
     math::Vec3Swizzles
 };
@@ -135,12 +135,15 @@ pub(super) fn spawn_chunk(
     world_data: &WorldData,
     chunk_pos: ChunkPos,
 ) { 
-    let chunk = commands.spawn(SpatialBundle {
-        transform: Transform::from_xyz(chunk_pos.x as f32 * CHUNK_SIZE * TILE_SIZE, -(chunk_pos.y as f32 + 1.) * CHUNK_SIZE * TILE_SIZE + TILE_SIZE, 0.),
-        ..default()
-        })
-        .insert(ChunkContainer { pos: chunk_pos })
-        .id();
+    let chunk = commands.spawn((
+        Name::new("ChunkContainer"),
+        ChunkContainer { pos: chunk_pos },
+        SpatialBundle {
+            transform: Transform::from_xyz(chunk_pos.x as f32 * CHUNK_SIZE * TILE_SIZE, -(chunk_pos.y as f32 + 1.) * CHUNK_SIZE * TILE_SIZE + TILE_SIZE, 0.),
+            ..default()
+        }
+    ))
+    .id();
 
     let tilemap_entity = commands.spawn_empty().id();
     let mut tile_storage = TileStorage::empty(CHUNKMAP_SIZE);

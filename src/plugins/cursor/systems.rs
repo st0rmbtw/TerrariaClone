@@ -130,16 +130,18 @@ pub(super) fn spawn_tile_grid(
     mut commands: Commands, 
     ui_assets: Res<UiAssets>
 ) {
-    commands
-        .spawn(SpriteBundle {
+    commands.spawn((
+        Name::new("TileGrid"),
+        TileGrid,
+        SpriteBundle {
             sprite: Sprite {
                 color: Color::rgba(1., 1., 1., MAX_TILE_GRID_OPACITY),
             },
             texture: ui_assets.radial.clone_weak(),
             transform: Transform::from_xyz(0., 0., 5.),
             visibility: Visibility::Hidden
-        })
-        .insert(TileGrid);
+        }
+    ));
 }
 
 pub(super) fn update_cursor_position(

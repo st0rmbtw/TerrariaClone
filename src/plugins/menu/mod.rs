@@ -7,13 +7,11 @@ mod role;
 use components::*;
 use systems::*;
 
-use bevy::prelude::{Plugin, App, IntoSystemAppConfig, IntoSystemConfigs, IntoSystemConfig, OnEnter, OnExit, Color, IntoSystemAppConfigs, Component};
+use bevy::prelude::{Plugin, App, IntoSystemAppConfig, IntoSystemConfigs, IntoSystemConfig, OnEnter, OnExit, Color, Component};
 
 use crate::{common::{state::{GameState, MenuState}, conditions::{on_btn_clicked, in_menu_state}}, parallax::{parallax_animation_system, ParallaxSet}};
 
 use self::{settings::SettingsMenuPlugin, celestial_body::CelestialBodyPlugin};
-
-use super::{camera::MainCamera, fps::FpsText};
 
 pub(crate) const TEXT_COLOR: Color = Color::rgb(0.58, 0.58, 0.58);
 
@@ -32,13 +30,8 @@ impl Plugin for MenuPlugin {
         app.add_system(setup_main_menu.in_schedule(OnEnter(GameState::Menu(MenuState::Main))));
         app.add_system(despawn_with::<Menu>.in_schedule(OnExit(GameState::Menu(MenuState::Main))));
 
-        app.add_systems(
-            (
-                despawn_with::<MainCamera>,
-                despawn_with::<MenuContainer>,
-                despawn_with::<FpsText>,
-            )
-            .in_schedule(OnEnter(GameState::InGame))
+        app.add_system(
+            despawn_with::<DespawnOnMenuExit>.in_schedule(OnEnter(GameState::InGame))
         );
         
         app.add_systems(

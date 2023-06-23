@@ -10,7 +10,7 @@ use bevy::{
 };
 
 use crate::common::helpers::toggle_visibility;
-use super::{assets::FontAssets, ui::UiVisibility, menu::DespawnOnMenuExit};
+use super::{assets::FontAssets, ui::UiVisibility};
 
 pub(crate) struct FpsPlugin;
 impl Plugin for FpsPlugin {
@@ -39,7 +39,6 @@ pub(crate) fn spawn_fps_text(commands: &mut Commands, font_assets: &FontAssets) 
 
     commands.spawn((
         FpsText,
-        DespawnOnMenuExit,
         Name::new("FPS Text"),
         TextBundle {
             style: Style {

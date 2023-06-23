@@ -1,8 +1,8 @@
-use bevy::{prelude::{App, Plugin,IntoSystemConfig, OnUpdate, ResMut, Commands, TextBundle, Res, Color, IntoSystemAppConfig, OnEnter, Component, Query, Visibility, With, DetectChanges, Name, AppTypeRegistry, Resource}, utils::default, text::{Text, TextSection, TextStyle}, ui::{Style, UiRect, Val, PositionType}, sprite::TextureAtlasSprite, time::Time, reflect::{Reflect, ReflectMut}};
+use bevy::{prelude::{App, Plugin,IntoSystemConfig, OnUpdate, ResMut, Commands, TextBundle, Res, Color, IntoSystemAppConfig, OnEnter, Component, Query, Visibility, With, DetectChanges, Name, AppTypeRegistry, Resource, Vec2}, utils::default, text::{Text, TextSection, TextStyle}, ui::{Style, UiRect, Val, PositionType}, sprite::TextureAtlasSprite, time::Time, reflect::{Reflect, ReflectMut}};
 use bevy_ecs_tilemap::{tiles::TilePos, helpers::square_grid::neighbors::Neighbors};
 use bevy_inspector_egui::{bevy_egui::{EguiPlugin, egui, EguiContexts}, egui::{Align2, CollapsingHeader, ScrollArea}, quick::WorldInspectorPlugin, reflect_inspector};
 
-use crate::{common::{state::GameState, helpers::{self, get_tile_pos_from_world_coords}}, world::{block::BlockType, WorldData}};
+use crate::{common::{state::GameState, helpers::{self, get_tile_pos_from_world_coords}}, world::{block::BlockType, WorldData, chunk::ChunkContainer}};
 use bevy_prototype_debug_lines::DebugLinesPlugin;
 
 use super::{cursor::CursorPosition, assets::FontAssets, inventory::{UseItemAnimationIndex, UseItemAnimationData}};
@@ -56,7 +56,7 @@ pub(crate) struct DebugConfiguration {
     pub(crate) show_tiles: bool,
     pub(crate) show_walls: bool,
     pub(crate) shadow_tiles: bool,
-    pub(crate) player_speed: bevy::prelude::Vec2,
+    pub(crate) player_speed: Vec2,
 }
 
 impl Default for DebugConfiguration {
@@ -82,7 +82,10 @@ fn debug_gui(
     mut debug_config: ResMut<DebugConfiguration>,
     mut time: ResMut<Time>,
     type_registry: Res<AppTypeRegistry>,
+    query_chunk: Query<&ChunkContainer>
 ) {
+    let chunk_count = query_chunk.iter().count();
+
     let egui_context = contexts.ctx_mut();
 
     egui::Window::new("Debug Menu")
@@ -116,6 +119,12 @@ fn debug_gui(
                 columns[0].label("Vertical:");
                 reflect_inspector::ui_for_value_readonly(&debug_config.player_speed.y, &mut columns[1], &type_registry.0.read());
             });
+
+            ui.separator();
+            ui.columns(2, |columns| {
+                columns[0].label("Chunks:");
+                reflect_inspector::ui_for_value_readonly(&chunk_count, &mut columns[1], &type_registry.0.read());
+            });
         });
 }
 
@@ -140,6 +149,8 @@ fn spawn_free_camera_legend(
     };
 
     commands.spawn((
+        Name::new("Free Camera Legend Text"),
+        FreeCameraLegendText,
         TextBundle {
             style: Style {
                 position: UiRect::new(Val::Px(20.), Val::Undefined, Val::Undefined, Val::Px(50.)),
@@ -152,8 +163,6 @@ fn spawn_free_camera_legend(
             visibility: Visibility::Hidden,
             ..default()
         },
-        Name::new("Free Camera Legend Text"),
-        FreeCameraLegendText
     ));
 }
 

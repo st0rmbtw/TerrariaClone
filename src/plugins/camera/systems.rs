@@ -3,7 +3,7 @@ use bevy::{
     prelude::{
         Commands, Camera2dBundle, OrthographicProjection, Transform, Res, KeyCode, Query, 
         With, Input,
-        Without, Changed, Camera2d,
+        Without, Changed, Camera2d, Name,
     }, 
     time::Time, core_pipeline::clear_color::ClearColorConfig
 };
@@ -24,6 +24,7 @@ pub(super) fn setup_camera(
 
     commands
         .spawn((
+            Name::new("MainCamera"),
             MainCamera,
             LightMapCamera,
             Camera2dBundle {

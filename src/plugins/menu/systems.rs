@@ -28,6 +28,7 @@ fn text_tween(initial_font_size: f32) -> Tween<Text> {
 
 pub(super) fn setup_camera(mut commands: Commands) {
     commands.spawn((
+        Name::new("MainCamera"),
         MainCamera,
         DespawnOnMenuExit,
         Camera2dBundle {
@@ -173,6 +174,9 @@ pub(super) fn spawn_menu_container(
     };
 
     commands.spawn((
+        FpsText,
+        DespawnOnMenuExit,
+        Name::new("FPS Text"),
         TextBundle {
             style: Style {
                 position_type: PositionType::Absolute,
@@ -193,14 +197,13 @@ pub(super) fn spawn_menu_container(
             visibility: Visibility::Hidden,
             ..default()
         },
-        FpsText,
-        Name::new("FPS Text")
     ));
 
     commands
         .spawn((
             MenuContainer,
             DespawnOnMenuExit,
+            Name::new("MenuContainer"),
             NodeBundle {
                 style: Style {
                     size: Size {
@@ -262,7 +265,7 @@ pub(super) fn setup_main_menu(
         );
         menu_button(
             builder, 
-            text_style.clone(), 
+            text_style, 
             language_content.ui.exit.clone(), 
             ExitButton,
         );
