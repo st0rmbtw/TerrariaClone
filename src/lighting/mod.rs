@@ -5,15 +5,15 @@ use bevy::{
         extract_resource::ExtractResourcePlugin, RenderApp,
         render_graph::{RenderGraph, self}, 
         renderer::RenderContext, 
-        render_resource::{PipelineCache, ComputePassDescriptor, Extent3d}, ExtractSchedule, RenderSet
+        render_resource::{PipelineCache, ComputePassDescriptor, Extent3d}, ExtractSchedule, RenderSet, Render
     }, 
-    prelude::{Shader, Vec2, ResMut, Res, World, Plugin, App, default, EventReader, Assets, Image, warn, IntoSystemConfig, resource_exists, OnUpdate, IntoSystemAppConfig, in_state, CoreSet, Mesh, shape, Transform, Vec3, Name, Color, Commands, Component, Query, Input, KeyCode, MouseButton, With, OnEnter},
+    prelude::{Shader, Vec2, ResMut, Res, World, Plugin, App, default, EventReader, Assets, Image, warn, resource_exists, in_state, Mesh, shape, Transform, Vec3, Name, Color, Commands, Component, Query, Input, KeyCode, MouseButton, With, Startup, Update, PostUpdate, IntoSystemConfigs},
     window::WindowResized,
-    asset::load_internal_asset, sprite::{Material2dPlugin, ColorMaterial, MaterialMesh2dBundle}, input::common_conditions::input_just_pressed,
+    asset::load_internal_asset, sprite::{Material2dPlugin, ColorMaterial, MaterialMesh2dBundle},
 };
 use rand::{thread_rng, Rng};
 
-use crate::{plugins::{camera::CameraSet, settings::Resolution, cursor::CursorPosition}, lighting::{compositing::{PostProcessingMaterial, setup_post_processing_camera, update_image_to_window_size, update_lighting_material, update_light_map}, constants::{SHADER_ATTENUATION, SHADER_MATH}}, common::{state::GameState, helpers::toggle_visibility}, world::WorldData};
+use crate::{plugins::{camera::CameraSet, settings::Resolution, cursor::CursorPosition}, lighting::{compositing::{PostProcessingMaterial, setup_post_processing_camera, update_image_to_window_size, update_lighting_material, update_light_map}, constants::{SHADER_ATTENUATION, SHADER_MATH}}, common::state::GameState, world::WorldData};
 
 use self::{
     pipeline::{LightPassPipelineBindGroups, PipelineTargetsWrapper, system_setup_pipeline, LightPassPipeline, system_queue_bind_groups}, 
@@ -44,32 +44,34 @@ impl Plugin for LightingPlugin {
             reservoir_size: 16
         });
 
-        app.add_startup_system(detect_target_sizes);
-        app.add_startup_system(system_setup_pipeline.after(detect_target_sizes));
+        app.add_systems(Startup, detect_target_sizes);
+        app.add_systems(Startup, system_setup_pipeline.after(detect_target_sizes));
 
-        app.add_system(setup_post_processing_camera.run_if(resource_exists::<WorldData>()));
-        app.add_system(update_image_to_window_size);
-        app.add_system(resize_lighting_target);
-        app.add_system(update_light_map.in_set(OnUpdate(GameState::InGame)));
-        app.add_system(
+        app.add_systems(Update, setup_post_processing_camera.run_if(resource_exists::<WorldData>()));
+        app.add_systems(Update, update_image_to_window_size);
+        app.add_systems(Update, resize_lighting_target);
+        app.add_systems(Update, update_light_map.run_if(in_state(GameState::InGame)));
+        
+        app.add_systems(
+            PostUpdate,
             update_lighting_material
                 .run_if(in_state(GameState::InGame))
-                .in_base_set(CoreSet::PostUpdate)
                 .after(CameraSet::MoveCamera)
         );
         
-        // app.add_system(spawn_mouse_light.in_schedule(OnEnter(GameState::InGame)));
-        // app.add_system(control_mouse_light.in_set(OnUpdate(GameState::InGame)));
-        // app.add_system(
+        // app.add_systems(OnEnter(GameState::InGame), spawn_mouse_light);
+        // app.add_systems(Update, control_mouse_light.run_if(in_state(GameState::InGame)));
+        // app.add_systems(Update,
         //     toggle_visibility::<MouseLight>
+        //         .run_if(GameState::InGame)
         //         .run_if(input_just_pressed(KeyCode::F1))
-        //         .in_set(OnUpdate(GameState::InGame))
         // );
 
         #[cfg(feature = "debug")] {
-            app.add_system(
+            app.add_systems(
+                Update,
                 self::compositing::set_shadow_map_visibility
-                    .in_set(OnUpdate(GameState::InGame))
+                    .run_if(in_state(GameState::InGame))
             );
         }
 
@@ -106,9 +108,9 @@ impl Plugin for LightingPlugin {
             .init_resource::<LightPassPipeline>()
             .init_resource::<LightPassPipelineAssets>()
             .init_resource::<ComputedTargetSizes>()
-            .add_system(system_extract_pipeline_assets.in_schedule(ExtractSchedule))
-            .add_system(system_prepare_pipeline_assets.in_set(RenderSet::Prepare))
-            .add_system(system_queue_bind_groups.in_set(RenderSet::Queue));
+            .add_systems(ExtractSchedule, system_extract_pipeline_assets.in_schedule(ExtractSchedule))
+            .add_systems(Render, system_prepare_pipeline_assets.in_set(RenderSet::Prepare))
+            .add_systems(Render, system_queue_bind_groups.in_set(RenderSet::Queue));
 
         let mut render_graph = render_app.world.resource_mut::<RenderGraph>();
         render_graph.add_node("light_pass", LightPass2DNode::default());
@@ -210,7 +212,7 @@ pub(super) fn control_mouse_light(
 
     transform.translation = cursor_position.world_position.extend(10.);
 
-    if input_mouse.just_pressed(MouseButton::Right) && input_keyboard.pressed(KeyCode::LShift) {
+    if input_mouse.just_pressed(MouseButton::Right) && input_keyboard.pressed(KeyCode::ShiftLeft) {
         light_source.color = Color::rgba(rng.gen(), rng.gen(), rng.gen(), 1.0);
     }
 }

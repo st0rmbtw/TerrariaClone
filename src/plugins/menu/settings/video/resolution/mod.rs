@@ -1,5 +1,5 @@
 use autodefault::autodefault;
-use bevy::{prelude::{Component, Commands, Res, ResMut, Query, With, Local, NextState, Entity, Plugin, App, OnEnter, OnExit, OnUpdate, IntoSystemConfig, IntoSystemAppConfig, IntoSystemConfigs}, text::{TextStyle, Text}, window::{Window, WindowResolution}};
+use bevy::{prelude::{Component, Commands, Res, ResMut, Query, With, Local, NextState, Entity, Plugin, App, OnEnter, OnExit,IntoSystemConfigs, in_state, Update}, text::{TextStyle, Text}, window::{Window, WindowResolution}};
 
 use crate::{
     language::LanguageContent,
@@ -17,10 +17,11 @@ use crate::{
 pub(super) struct ResolutionMenuPlugin;
 impl Plugin for ResolutionMenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(setup_resolution_menu.in_schedule(OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution)))));
-        app.add_system(despawn_with::<ResolutionMenu>.in_schedule(OnExit(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution)))));
+        app.add_systems(OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution))), setup_resolution_menu);
+        app.add_systems(OnExit(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution))), despawn_with::<ResolutionMenu>);
 
         app.add_systems(
+            Update,
             (
                 update_fullscreen_resolution_button_text,
                 update_resolution_button_text,
@@ -29,7 +30,7 @@ impl Plugin for ResolutionMenuPlugin {
                 apply_clicked.run_if(on_btn_clicked::<ApplyButton>),
                 back_clicked.run_if(on_btn_clicked::<BackButton>),
             )
-            .in_set(OnUpdate(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution))))
+            .run_if(in_state(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution))))
         );
     }
 }

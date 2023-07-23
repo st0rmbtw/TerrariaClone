@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use autodefault::autodefault;
 use bevy::{
-    prelude::{Plugin, IntoSystemConfig, resource_exists_and_equals, Condition, Component, Commands, Entity, Color, TextBundle, Res, KeyCode, Query, Visibility, With, Name},
+    prelude::{Plugin, resource_exists_and_equals, Condition, Component, Commands, Entity, Color, TextBundle, Res, KeyCode, Query, Visibility, With, Name, Update, IntoSystemConfigs},
     text::{TextStyle, Text, TextSection, TextAlignment},
     ui::{Style, UiRect, Val},
     time::{common_conditions::on_timer, Time},
@@ -16,6 +16,7 @@ pub(crate) struct FpsPlugin;
 impl Plugin for FpsPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_systems(
+            Update,
             (
                 toggle_visibility::<FpsText>.run_if(input_just_pressed(KeyCode::F10)),
                 update_fps_text.run_if(

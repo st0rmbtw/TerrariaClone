@@ -4,7 +4,7 @@ use bevy::{
     prelude::{
         EventReader, ResMut, Query, Commands, EventWriter, Entity, BuildChildren, Transform, 
         default, SpatialBundle, DespawnRecursiveExt, OrthographicProjection, Changed, 
-        GlobalTransform, With, Res, UVec2, Audio, NextState, Vec2, Name
+        GlobalTransform, With, Res, UVec2, NextState, Vec2, Name, AudioBundle, PlaybackSettings
     }, 
     math::Vec3Swizzles
 };
@@ -333,7 +333,6 @@ pub(super) fn handle_break_block_event(
     mut update_neighbors_ew: EventWriter<UpdateNeighborsEvent>,
     mut query_chunk: Query<(&Chunk, &mut TileStorage)>,
     sound_assets: Res<SoundAssets>,
-    audio: Res<Audio>
 ) {
     let mut rng = thread_rng();
 
@@ -349,7 +348,10 @@ pub(super) fn handle_break_block_event(
                 update_light_events.send(UpdateLightEvent);
             }
 
-            audio.play(sound_assets.get_by_block(block.block_type, &mut rng));
+            commands.spawn(AudioBundle {
+                source: sound_assets.get_by_block(block.block_type, &mut rng),
+                settings: PlaybackSettings::DESPAWN
+            });
 
             update_neighbors_ew.send(UpdateNeighborsEvent { tile_pos });
         }
@@ -357,12 +359,12 @@ pub(super) fn handle_break_block_event(
 }
 
 pub(super) fn handle_dig_block_event(
+    mut commands: Commands,
     mut world_data: ResMut<WorldData>,
     mut break_block_events: EventWriter<BreakBlockEvent>,
     mut update_block_events: EventWriter<UpdateBlockEvent>,
     mut dig_block_events: EventReader<DigBlockEvent>,
     sound_assets: Res<SoundAssets>,
-    audio: Res<Audio>,
 ) {
     let mut rng = thread_rng();
 
@@ -373,7 +375,10 @@ pub(super) fn handle_dig_block_event(
             if block.hp <= 0 {
                 break_block_events.send(BreakBlockEvent { tile_pos });
             } else {
-                audio.play(sound_assets.get_by_block(block.block_type, &mut rng));
+                commands.spawn(AudioBundle {
+                    source: sound_assets.get_by_block(block.block_type, &mut rng),
+                    settings: PlaybackSettings::DESPAWN
+                });
                 
                 if block.block_type == BlockType::Grass {
                     block.block_type = BlockType::Dirt;
@@ -398,7 +403,6 @@ pub(super) fn handle_place_block_event(
     mut query_chunk: Query<(&Chunk, &mut TileStorage, Entity)>,
     query_player: Query<&PlayerRect, With<Player>>,
     sound_assets: Res<SoundAssets>,
-    audio: Res<Audio>
 ) {
     let player_rect = query_player.single();
 
@@ -425,7 +429,10 @@ pub(super) fn handle_place_block_event(
         update_neighbors_events.send(UpdateNeighborsEvent { tile_pos });
         update_light_events.send(UpdateLightEvent);
 
-        audio.play(sound_assets.get_by_block(block.block_type, &mut thread_rng()));
+        commands.spawn(AudioBundle {
+            source: sound_assets.get_by_block(block.block_type, &mut thread_rng()),
+            settings: PlaybackSettings::DESPAWN
+        });
     }
 }
 
@@ -482,11 +489,11 @@ pub(super) fn handle_update_block_event(
 }
 
 pub(super) fn handle_seed_event(
+    mut commands: Commands,
     mut seed_events: EventReader<SeedEvent>,
     mut update_block_events: EventWriter<UpdateBlockEvent>,
     mut world_data: ResMut<WorldData>,
     sound_assets: Res<SoundAssets>,
-    audio: Res<Audio>
 ) {
     let mut rng = thread_rng();
 
@@ -500,7 +507,10 @@ pub(super) fn handle_seed_event(
                 update_neighbors: true
             });
 
-            audio.play(sound_assets.dig.choose(&mut rng).unwrap().clone_weak());
+            commands.spawn(AudioBundle {
+                source: sound_assets.dig.choose(&mut rng).unwrap().clone_weak(),
+                settings: PlaybackSettings::DESPAWN
+            });
         }
     }
 }

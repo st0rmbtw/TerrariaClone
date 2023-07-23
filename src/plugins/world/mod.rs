@@ -11,7 +11,7 @@ pub(crate) use events::*;
 pub(crate) use resources::*;
 
 use crate::common::state::GameState;
-use bevy::prelude::{Plugin, App, IntoSystemAppConfig, OnEnter, IntoSystemConfigs, OnUpdate};
+use bevy::prelude::{Plugin, App, OnEnter, IntoSystemConfigs, in_state, Update};
 use bevy_ecs_tilemap::prelude::{TilemapSize, TilemapTileSize};
 
 pub(crate) const TILE_SIZE: f32 = 16.;
@@ -39,9 +39,10 @@ impl Plugin for WorldPlugin {
         app.add_event::<UpdateBlockEvent>();
         app.add_event::<SeedEvent>();
 
-        app.add_system(spawn_terrain.in_schedule(OnEnter(GameState::WorldLoading)));
+        app.add_systems(OnEnter(GameState::WorldLoading), spawn_terrain);
 
         app.add_systems(
+            Update,
             (
                 spawn_chunks,
                 despawn_chunks,
@@ -52,12 +53,11 @@ impl Plugin for WorldPlugin {
                 handle_update_block_event,
                 handle_seed_event
             )
-            .in_set(OnUpdate(GameState::InGame))
+            .run_if(in_state(GameState::InGame))
         );
 
         #[cfg(feature = "debug")] {
-            use bevy::prelude::IntoSystemConfig;
-            app.add_system(set_tiles_visibility.in_set(OnUpdate(GameState::InGame)));
+            app.add_systems(Update, set_tiles_visibility.run_if(in_state(GameState::InGame)));
         }
     }
 }

@@ -329,26 +329,24 @@ fn lerp_val(start: &Val, end: &Val, ratio: f32) -> Val {
 
 impl Lens<Style> for UiPositionLens {
     fn lerp(&mut self, target: &mut Style, ratio: f32) {
-        target.position = UiRect {
-            left: lerp_val(&self.start.left, &self.end.left, ratio),
-            right: lerp_val(&self.start.right, &self.end.right, ratio),
-            top: lerp_val(&self.start.top, &self.end.top, ratio),
-            bottom: lerp_val(&self.start.bottom, &self.end.bottom, ratio),
-        };
+        target.left = lerp_val(&self.start.left, &self.end.left, ratio);
+        target.right = lerp_val(&self.start.right, &self.end.right, ratio);
+        target.top = lerp_val(&self.start.top, &self.end.top, ratio);
+        target.bottom = lerp_val(&self.start.bottom, &self.end.bottom, ratio);
     }
 }
 
 impl Lens<Style> for UiPositionHorizontalLens {
     fn lerp(&mut self, target: &mut Style, ratio: f32) {
-        target.position.left = lerp_val(&self.start.left, &self.end.left, ratio);
-        target.position.right = lerp_val(&self.start.right, &self.end.right, ratio);
+        target.left = lerp_val(&self.start.left, &self.end.left, ratio);
+        target.right = lerp_val(&self.start.right, &self.end.right, ratio);
     }
 }
 
 impl Lens<Style> for UiPositionVerticalLens {
     fn lerp(&mut self, target: &mut Style, ratio: f32) {
-        target.position.top = lerp_val(&self.start.top, &self.end.top, ratio);
-        target.position.bottom = lerp_val(&self.start.bottom, &self.end.bottom, ratio);
+        target.top = lerp_val(&self.start.top, &self.end.top, ratio);
+        target.bottom = lerp_val(&self.start.bottom, &self.end.bottom, ratio);
     }
 }
 

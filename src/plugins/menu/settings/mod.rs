@@ -2,7 +2,7 @@ pub(super) mod interface;
 pub(super) mod video;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Res, Plugin, App, Component, IntoSystemAppConfig, OnEnter, OnExit, OnUpdate, IntoSystemConfig, IntoSystemConfigs, NextState, ResMut, Query, Entity, With}, text::TextStyle};
+use bevy::{prelude::{Commands, Res, Plugin, App, Component, OnEnter, OnExit, IntoSystemConfigs, NextState, ResMut, Query, Entity, With, Update, in_state}, text::TextStyle};
 
 use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button}}, language::LanguageContent, common::{conditions::on_btn_clicked, state::{SettingsMenuState, GameState, MenuState}}};
 
@@ -27,17 +27,18 @@ impl Plugin for SettingsMenuPlugin {
         app.add_plugin(InterfaceMenuPlugin);
         app.add_plugin(VideoMenuPlugin);
 
-        app.add_system(setup_settings_menu.in_schedule(OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Main)))));
-        app.add_system(despawn_with::<SettingsMenu>.in_schedule(OnExit(GameState::Menu(MenuState::Settings(SettingsMenuState::Main)))));
+        app.add_systems(OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Main))), setup_settings_menu);
+        app.add_systems(OnExit(GameState::Menu(MenuState::Settings(SettingsMenuState::Main))), despawn_with::<SettingsMenu>);
 
         app.add_systems(
+            Update,
             (
                 interface_clicked.run_if(on_btn_clicked::<InterfaceButton>),
                 video_clicked.run_if(on_btn_clicked::<VideoButton>),
                 cursor_clicked.run_if(on_btn_clicked::<CursorButton>),
                 back_clicked.run_if(on_btn_clicked::<BackButton>),
             )
-            .in_set(OnUpdate(GameState::Menu(MenuState::Settings(SettingsMenuState::Main))))
+            .run_if(in_state(GameState::Menu(MenuState::Settings(SettingsMenuState::Main))))
         );
     }
 }

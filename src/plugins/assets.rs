@@ -1,4 +1,4 @@
-use bevy::prelude::{Resource, AudioSource, IntoSystemAppConfig, OnExit};
+use bevy::prelude::{Resource, AudioSource, OnExit};
 use bevy::utils::default;
 use bevy::{
     math::Vec2,
@@ -64,7 +64,7 @@ impl Plugin for AssetsPlugin {
         app.add_collection_to_loading_state::<_, BackgroundAssets>(GameState::AssetLoading);
         app.add_collection_to_loading_state::<_, CelestialBodyAssets>(GameState::AssetLoading);
         
-        app.add_system(setup.in_schedule(OnExit(GameState::AssetLoading)));
+        app.add_systems(OnExit(GameState::AssetLoading), setup);
     }
 }
 

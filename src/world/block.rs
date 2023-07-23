@@ -9,7 +9,7 @@ use super::{tree::{Tree, TreeFrameType}, TerrariaFrame};
 pub(crate) type BlockId = u8;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "debug", derive(bevy::reflect::Reflect, bevy::reflect::FromReflect))]
+#[cfg_attr(feature = "debug", derive(bevy::reflect::Reflect))]
 pub(crate) enum BlockType {
     Dirt,
     Stone,

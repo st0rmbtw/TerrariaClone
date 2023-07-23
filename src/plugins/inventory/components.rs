@@ -1,9 +1,9 @@
 use bevy::{prelude::{Component, Handle, Image, ReflectComponent}, reflect::Reflect};
 
-#[derive(Component, Default)]
+#[derive(Component)]
 pub(super) struct InventoryUi;
 
-#[derive(Component, Default)]
+#[derive(Component)]
 pub(super) struct HotbarUi;
 
 #[derive(Component)]

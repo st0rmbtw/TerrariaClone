@@ -1,7 +1,7 @@
 pub mod resolution;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Res, Component, ResMut, Query, With, NextState, Entity, Plugin, IntoSystemAppConfig, OnEnter, OnExit, IntoSystemConfig, OnUpdate, IntoSystemConfigs, App}, text::{TextStyle, Text}, window::Window};
+use bevy::{prelude::{Commands, Res, Component, ResMut, Query, With, NextState, Entity, Plugin, OnEnter, OnExit, IntoSystemConfigs, App, in_state, Update}, text::{TextStyle, Text}, window::Window};
 
 use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button, menu, MenuContainer, despawn_with, TEXT_COLOR}, settings::VSync}, language::LanguageContent, common::{state::{SettingsMenuState, MenuState, GameState}, conditions::on_btn_clicked}};
 use self::resolution::ResolutionMenuPlugin;
@@ -11,19 +11,20 @@ use super::{MENU_BUTTON_FONT_SIZE, BackButton};
 pub(super) struct VideoMenuPlugin;
 impl Plugin for VideoMenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugin(ResolutionMenuPlugin);
+        app.add_plugins(ResolutionMenuPlugin);
 
-        app.add_system(setup_video_menu.in_schedule(OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Video)))));
-        app.add_system(despawn_with::<VideoMenu>.in_schedule(OnExit(GameState::Menu(MenuState::Settings(SettingsMenuState::Video)))));
+        app.add_systems(OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Video))), setup_video_menu);
+        app.add_systems(OnExit(GameState::Menu(MenuState::Settings(SettingsMenuState::Video))), despawn_with::<VideoMenu>);
 
         app.add_systems(
+            Update,
             (
                 update_vsync_button_text,
                 resolution_clicked.run_if(on_btn_clicked::<ResolutionButton>),
                 vsync_clicked.run_if(on_btn_clicked::<VSyncButton>),
                 back_clicked.run_if(on_btn_clicked::<BackButton>),
             )
-            .in_set(OnUpdate(GameState::Menu(MenuState::Settings(SettingsMenuState::Video))))
+            .run_if(in_state(GameState::Menu(MenuState::Settings(SettingsMenuState::Video))))
         );
     }
 }

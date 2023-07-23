@@ -13,7 +13,6 @@ use crate::{common::{state::GameState, helpers::tile_pos_to_world_coords}, plugi
 use std::time::Duration;
 use bevy_hanabi::prelude::*;
 use bevy::{prelude::*, time::{Timer, TimerMode}, sprite::Anchor, math::vec2};
-use autodefault::autodefault;
 
 use super::{assets::PlayerAssets, world::TILE_SIZE, inventory::UseItemAnimationData};
 
@@ -54,7 +53,7 @@ impl Plugin for PlayerPlugin {
         app.init_resource::<Collisions>();
         app.init_resource::<PlayerData>();
 
-        app.add_system(spawn_player.in_schedule(OnEnter(GameState::InGame)));
+        app.add_systems(OnEnter(GameState::InGame), spawn_player);
 
         let flip_player_systems = (
             update_face_direction,
@@ -62,26 +61,29 @@ impl Plugin for PlayerPlugin {
             flip_using_item
         )
         .chain()
-        .in_set(OnUpdate(GameState::InGame));
+        .run_if(in_state(GameState::InGame));
 
         #[cfg(not(feature = "debug"))]
-        app.add_systems(flip_player_systems);
+        app.add_systems(Update, flip_player_systems);
 
         #[cfg(feature = "debug")]
         app.add_systems(
+            Update,
             flip_player_systems.distributive_run_if(|config: Res<DebugConfiguration>| !config.free_camera)
         );
 
         app.add_systems(
+            Update,
             (
                 update_movement_state,
                 spawn_particles
             )
             .after(PhysicsSet::Update)
-            .in_set(OnUpdate(GameState::InGame))
+            .run_if(in_state(GameState::InGame))
         );
 
         app.add_systems(
+            Update,
             (
                 update_movement_animation_timer,
                 update_movement_animation_index,
@@ -89,10 +91,10 @@ impl Plugin for PlayerPlugin {
                 simple_animation::<IdleAnimationData>.run_if(is_idle),
                 simple_animation::<FlyingAnimationData>.run_if(is_flying)
             )
-            .in_set(OnUpdate(GameState::InGame))
+            .run_if(in_state(GameState::InGame))
         );
 
-        app.add_system(update_input_axis.in_set(OnUpdate(GameState::InGame)));
+        app.add_systems(Update, update_input_axis.run_if(in_state(GameState::InGame)));
 
         let handle_player_movement_systems = (
                 horizontal_movement,
@@ -103,16 +105,16 @@ impl Plugin for PlayerPlugin {
             .distributive_run_if(in_state(GameState::InGame));
 
         #[cfg(not(feature = "debug"))]
-        app.add_systems(handle_player_movement_systems.in_schedule(CoreSchedule::FixedUpdate));
+        app.add_systems(FixedUpdate, handle_player_movement_systems);
 
         #[cfg(feature = "debug")]
         app.add_systems(
-            handle_player_movement_systems
-                .distributive_run_if(|config: Res<DebugConfiguration>| !config.free_camera)
-                .in_schedule(CoreSchedule::FixedUpdate)
+            FixedUpdate,
+            handle_player_movement_systems.run_if(|config: Res<DebugConfiguration>| !config.free_camera)
         );
 
         app.add_systems(
+            FixedUpdate,
             (
                 gravity,
                 detect_collisions,
@@ -120,9 +122,8 @@ impl Plugin for PlayerPlugin {
                 update_player_rect
             )
             .chain()
-            .distributive_run_if(in_state(GameState::InGame))
+            .run_if(in_state(GameState::InGame))
             .in_set(PhysicsSet::Update)
-            .in_schedule(CoreSchedule::FixedUpdate)
         );
 
         #[cfg(feature = "debug")]
@@ -130,53 +131,57 @@ impl Plugin for PlayerPlugin {
             use bevy::input::common_conditions::input_just_pressed;
 
             app.add_systems(
+                Update,
                 (
+                    current_speed,
                     draw_hitbox.run_if(|config: Res<DebugConfiguration>| config.show_hitboxes),
                     teleport_player.run_if(
                         (|config: Res<DebugConfiguration>| config.free_camera)
                             .and_then(input_just_pressed(MouseButton::Right))
                     )
                 )
-                .in_set(OnUpdate(GameState::InGame))
+                .run_if(in_state(GameState::InGame))
             );
-
-            app.add_system(current_speed);
         }
     }
 }
 
-#[autodefault(except(GroundSensor, PlayerParticleEffects))]
 fn spawn_player(
     mut commands: Commands,
     player_assets: Res<PlayerAssets>,
     mut effects: ResMut<Assets<EffectAsset>>,
     world_data: Res<WorldData>
 ) {
+    let mut module = Module::default();
+    let init_position_cone3d = SetPositionCone3dModifier {
+        base_radius: module.lit(5.),
+        top_radius: module.lit(5.),
+        height: module.lit(1.),
+        dimension: ShapeDimension::Surface,
+    };
+    let init_velocity = SetVelocitySphereModifier {
+        speed: module.lit(10.),
+        center: module.lit(Vec3::splat(0.))
+    };
+    let init_lifetime = SetAttributeModifier {
+        attribute: Attribute::LIFETIME,
+        value: module.lit(0.2),
+    };
+
     let spawner = Spawner::rate(40.0.into());
     let effect = effects.add(
-        EffectAsset {
-            name: "PlayerFeetDust".to_string(),
-            capacity: 50,
-            spawner,
-            z_layer_2d: 10.,
-        }
-        .init(InitPositionCone3dModifier {
-            base_radius: 5.,
-            top_radius: 5.,
-            height: 1.,
-            dimension: ShapeDimension::Surface,
-        })
-        .init(InitVelocitySphereModifier {
-            speed: 10.0.into()
-        })
-        .init(InitSizeModifier {
-            size: DimValue::D1(Value::Uniform((0.8, 2.)))
-        })
-        .update(AccelModifier::constant(Vec3::new(0., 0., 0.)))
-        .init(InitLifetimeModifier { lifetime: 0.2.into() })
-        .render(ColorOverLifetimeModifier { 
-            gradient: Gradient::constant(Vec4::new(114. / 255., 81. / 255., 56. / 255., 1.))
-        }),
+        EffectAsset::new(50, spawner, module)
+            .with_name("PlayerFeetDust")
+            .init(init_position_cone3d)
+            .init(init_velocity)
+            .init(init_lifetime)
+            .render(SetSizeModifier {
+                size: CpuValue::Single(Vec2::new(0.8, 2.)),
+                screen_space_size: true
+            })
+            .render(ColorOverLifetimeModifier { 
+                gradient: Gradient::constant(Vec4::new(114. / 255., 81. / 255., 56. / 255., 1.))
+            }),
     );
 
     let effect_entity = commands

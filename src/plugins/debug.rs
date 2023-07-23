@@ -1,18 +1,18 @@
-use bevy::{prelude::{App, Plugin,IntoSystemConfig, OnUpdate, ResMut, Commands, TextBundle, Res, Color, IntoSystemAppConfig, OnEnter, Component, Query, Visibility, With, DetectChanges, Name, AppTypeRegistry, Resource, Vec2}, utils::default, text::{Text, TextSection, TextStyle}, ui::{Style, UiRect, Val, PositionType}, sprite::TextureAtlasSprite, time::Time, reflect::{Reflect, ReflectMut}};
+use bevy::{prelude::{App, Plugin, ResMut, Commands, TextBundle, Res, Color, OnEnter, Component, Query, Visibility, With, DetectChanges, Name, AppTypeRegistry, Resource, Vec2, Update, IntoSystemConfigs, in_state}, utils::default, text::{Text, TextSection, TextStyle}, ui::{Style, Val, PositionType}, sprite::TextureAtlasSprite, time::Time, reflect::{Reflect, ReflectMut}};
 use bevy_ecs_tilemap::{tiles::TilePos, helpers::square_grid::neighbors::Neighbors};
 use bevy_inspector_egui::{bevy_egui::{EguiPlugin, egui, EguiContexts}, egui::{Align2, CollapsingHeader, ScrollArea}, quick::WorldInspectorPlugin, reflect_inspector};
 
 use crate::{common::{state::GameState, helpers::{self, get_tile_pos_from_world_coords}}, world::{block::BlockType, WorldData, chunk::ChunkContainer}};
-use bevy_prototype_debug_lines::DebugLinesPlugin;
 
 use super::{cursor::CursorPosition, assets::FontAssets, inventory::{UseItemAnimationIndex, UseItemAnimationData}};
 
 pub(crate) struct DebugPlugin;
 impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugin(EguiPlugin);
-        app.add_plugin(DebugLinesPlugin::default());
-        app.add_plugin(WorldInspectorPlugin::new());
+        app.add_plugins((
+            EguiPlugin,
+            WorldInspectorPlugin::new()
+        ));
 
         app.insert_resource(HoverBlockData {
             pos: TilePos::default(),
@@ -36,13 +36,17 @@ impl Plugin for DebugPlugin {
         app.register_type::<UseItemAnimationIndex>();
         app.register_type::<UseItemAnimationData>();
 
-        app.add_system(debug_gui.in_set(OnUpdate(GameState::InGame)));
-        app.add_system(block_gui.in_set(OnUpdate(GameState::InGame)));
-
-        app.add_system(spawn_free_camera_legend.in_schedule(OnEnter(GameState::InGame)));
-        app.add_system(set_free_camera_legend_visibility.in_set(OnUpdate(GameState::InGame)));
-
-        app.add_system(block_hover.in_set(OnUpdate(GameState::InGame)));
+        app.add_systems(OnEnter(GameState::InGame), spawn_free_camera_legend);
+        app.add_systems(
+            Update,
+            (
+                debug_gui,
+                block_gui,
+                set_free_camera_legend_visibility,
+                block_hover,
+            )
+            .run_if(in_state(GameState::InGame))
+        );
     }
 }
 
@@ -152,8 +156,10 @@ fn spawn_free_camera_legend(
         Name::new("Free Camera Legend Text"),
         FreeCameraLegendText,
         TextBundle {
+            
             style: Style {
-                position: UiRect::new(Val::Px(20.), Val::Undefined, Val::Undefined, Val::Px(50.)),
+                left: Val::Px(20.),
+                bottom: Val::Px(50.),
                 position_type: PositionType::Absolute,
                 ..default()
             },

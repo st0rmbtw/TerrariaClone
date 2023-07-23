@@ -11,9 +11,6 @@ use crate::{
 
 use super::{*, utils::get_fall_distance};
 
-#[cfg(feature = "debug")]
-use bevy_prototype_debug_lines::DebugLines;
-
 pub(super) fn horizontal_movement(
     axis: Res<InputAxis>,
     mut velocity: ResMut<PlayerVelocity>
@@ -89,7 +86,7 @@ pub(super) fn detect_collisions(
     mut player_data: ResMut<PlayerData>,
     mut query_player: Query<(&mut Transform, &FaceDirection, &PlayerRect), With<Player>>,
     #[cfg(feature = "debug")]
-    mut debug_lines: ResMut<DebugLines>,
+    mut gizmos: Gizmos,
     #[cfg(feature = "debug")]
     debug_config: Res<DebugConfiguration>,
 ) {
@@ -165,7 +162,7 @@ pub(super) fn detect_collisions(
 
                             #[cfg(feature = "debug")]
                             if debug_config.show_collisions {
-                                tile_rect.draw_right_side(&mut debug_lines, 0.1, Color::BLUE);
+                                tile_rect.draw_right_side(&mut gizmos, Color::BLUE);
                             }
                         } else {
                             velocity.x = 0.;
@@ -178,7 +175,7 @@ pub(super) fn detect_collisions(
 
                             #[cfg(feature = "debug")]
                             if debug_config.show_collisions {
-                                tile_rect.draw_left_side(&mut debug_lines, 0.1, Color::GREEN);
+                                tile_rect.draw_left_side(&mut gizmos, Color::GREEN);
                             }
                         }
                     } else {
@@ -195,7 +192,7 @@ pub(super) fn detect_collisions(
 
                                 #[cfg(feature = "debug")]
                                 if debug_config.show_collisions {
-                                    tile_rect.draw_bottom_side(&mut debug_lines, 0.1, Color::YELLOW);
+                                    tile_rect.draw_bottom_side(&mut gizmos, Color::YELLOW);
                                 }
                             } else {
                                 new_collisions.bottom = true;
@@ -216,7 +213,7 @@ pub(super) fn detect_collisions(
 
                                 #[cfg(feature = "debug")]
                                 if debug_config.show_collisions {
-                                    tile_rect.draw_top_side(&mut debug_lines, 0.1, Color::RED);
+                                    tile_rect.draw_top_side(&mut gizmos, Color::RED);
                                 }
                             }
                         }
@@ -261,16 +258,14 @@ pub(super) fn update_player_rect(
 
 pub(super) fn spawn_particles(
     player: Query<(&MovementState, &PlayerParticleEffects), With<Player>>,
-    mut effects: Query<&mut ParticleEffect>,
+    mut effect_spawners: Query<&mut EffectSpawner>,
     collisions: Res<Collisions>
 ) {
     let (movement_state, particle_effects) = player.single();
-    let mut effect = effects.get_mut(particle_effects.walking).unwrap();
 
-    effect
-        .maybe_spawner()
-        .unwrap()   
-        .set_active(*movement_state == MovementState::Walking && collisions.bottom);
+    if let Ok(mut spawner) = effect_spawners.get_mut(particle_effects.walking) {
+        spawner.set_active(*movement_state == MovementState::Walking && collisions.bottom);
+    }
 }
 
 pub(super) fn update_movement_state(
@@ -398,7 +393,7 @@ pub(super) fn current_speed(
 #[cfg(feature = "debug")]
 pub(super) fn draw_hitbox(
     query_player: Query<&Transform, With<Player>>,
-    mut debug_lines: ResMut<DebugLines>,
+    mut gizmos: Gizmos
 ) {
     let transform = query_player.single();
 
@@ -408,31 +403,27 @@ pub(super) fn draw_hitbox(
     let top = transform.translation.y - PLAYER_HALF_HEIGHT;
     let bottom = transform.translation.y + PLAYER_HALF_HEIGHT;
 
-    debug_lines.line_colored(
-        Vec3::new(left, top, 10.0),
-        Vec3::new(right, top, 10.0),
-        0.,
+    gizmos.line_2d(
+        Vec2::new(left, top),
+        Vec2::new(right, top),
         Color::RED
     );
 
-    debug_lines.line_colored(
-        Vec3::new(left, bottom, 10.0),
-        Vec3::new(right, bottom, 10.0),
-        0.,
+    gizmos.line_2d(
+        Vec2::new(left, bottom),
+        Vec2::new(right, bottom),
         Color::RED
     );
 
-    debug_lines.line_colored(
-        Vec3::new(left, top, 10.0),
-        Vec3::new(left, bottom, 10.0),
-        0.,
+    gizmos.line_2d(
+        Vec2::new(left, top),
+        Vec2::new(left, bottom),
         Color::RED
     );
 
-    debug_lines.line_colored(
-        Vec3::new(right, top, 10.0),
-        Vec3::new(right, bottom, 10.0),
-        0.,
+    gizmos.line_2d(
+        Vec2::new(right, top),
+        Vec2::new(right, bottom),
         Color::RED
     );
 }

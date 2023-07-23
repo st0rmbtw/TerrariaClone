@@ -115,9 +115,9 @@ pub(super) fn free_camera(
 
     use super::{CAMERA_MOVE_SPEED, CAMERA_MOVE_SPEED_SLOWER, CAMERA_MOVE_SPEED_FASTER};
 
-    let camera_speed = if input.pressed(KeyCode::LShift) {
+    let camera_speed = if input.pressed(KeyCode::ShiftLeft) {
         CAMERA_MOVE_SPEED_FASTER
-    } else if input.pressed(KeyCode::LAlt) {
+    } else if input.pressed(KeyCode::AltLeft) {
         CAMERA_MOVE_SPEED_SLOWER
     } else {
         CAMERA_MOVE_SPEED

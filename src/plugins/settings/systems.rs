@@ -1,14 +1,12 @@
 use std::time::Duration;
 
-use autodefault::autodefault;
-use bevy::{prelude::{Query, Visibility, With, EventReader, Name, Color, TextBundle, Entity, Commands, NodeBundle, BuildChildren, Changed, Res, Audio}, ui::{Interaction, Style, UiRect, Val, AlignItems, JustifyContent, Size}, text::{TextAlignment, TextStyle, Text}};
+use bevy::{prelude::{Query, Visibility, With, EventReader, Name, Color, TextBundle, Entity, Commands, NodeBundle, BuildChildren, Changed, Res, PlaybackSettings, AudioBundle}, ui::{Interaction, Style, UiRect, Val, AlignItems, JustifyContent}, text::{TextAlignment, TextStyle, Text}, utils::default};
 use interpolation::EaseFunction;
 
 use crate::{plugins::{ui::ToggleExtraUiEvent, assets::{FontAssets, SoundAssets}}, animation::{Animator, Tween, TweeningDirection, RepeatStrategy, Tweenable}, language::LanguageContent, common::{lens::TextFontSizeLens, helpers}};
 
 use super::{SettingsButtonContainer, SettingsButtonText};
 
-#[autodefault(except(TextFontSizeLens))]
 pub(crate) fn spawn_ingame_settings_button(
     commands: &mut Commands, 
     fonts: &FontAssets,
@@ -30,12 +28,12 @@ pub(crate) fn spawn_ingame_settings_button(
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 padding: UiRect::all(Val::Px(10.)),
-                size: Size {
-                    width: Val::Px(100.),
-                    height: Val::Px(38.),
-                },
+                width: Val::Px(100.),
+                height: Val::Px(38.),
+                ..default()
             },
             visibility: Visibility::Hidden,
+            ..default()
         })
         .insert(SettingsButtonContainer)
         .with_children(|c| {
@@ -43,6 +41,7 @@ pub(crate) fn spawn_ingame_settings_button(
                 style: Style {
                     margin: UiRect::all(Val::Auto),
                     flex_shrink: 0.,
+                    ..default()
                 },
                 text: Text::from_section(
                     language_content.ui.settings.clone(),
@@ -51,8 +50,8 @@ pub(crate) fn spawn_ingame_settings_button(
                         font_size: 32.,
                         color: Color::WHITE,
                     },
-                )
-                .with_alignment(TextAlignment::Center),
+                ).with_alignment(TextAlignment::Center),
+                ..default()
             })
             .insert(Name::new("Settings button"))
             .insert(Interaction::default())
@@ -74,17 +73,20 @@ pub(super) fn set_btn_visibility(
 }
 
 pub(super) fn update(
+    mut commands: Commands,
     mut query: Query<
         (&Interaction, &mut Animator<Text>),
         (With<SettingsButtonText>, Changed<Interaction>),
     >,
-    audio: Res<Audio>,
-    sounds: Res<SoundAssets>
+    sound_assets: Res<SoundAssets>
 ) {
     for (interaction, mut animator) in query.iter_mut() {
         match interaction {
             Interaction::Hovered => {
-                audio.play(sounds.menu_tick.clone_weak());
+                commands.spawn(AudioBundle {
+                    source: sound_assets.menu_tick.clone_weak(),
+                    settings: PlaybackSettings::DESPAWN
+                });
 
                 animator.start();
 

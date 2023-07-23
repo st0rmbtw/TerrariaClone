@@ -1,7 +1,7 @@
 use bevy::{
     math::Vec3Swizzles,
     prelude::{*, shape::Quad},
-    reflect::TypeUuid,
+    reflect::{TypeUuid, TypePath},
     render::{
         camera::RenderTarget,
         mesh::{InnerMeshVertexBufferLayout},
@@ -34,7 +34,7 @@ pub(super) struct FitToWindowSize {
     pub(super) image: Handle<Image>,
 }
 
-#[derive(AsBindGroup, TypeUuid, Clone)]
+#[derive(AsBindGroup, TypePath, TypeUuid, Clone)]
 #[uuid = "9114bbd2-1bb3-4b5a-a710-8965798db745"]
 pub(super) struct PostProcessingMaterial {
     #[texture(0)]
@@ -201,20 +201,14 @@ pub(super) fn setup_post_processing_camera(
         let window = query_windows.single();
 
         // Get the size the camera is rendering to
-        let size = match &camera.target {
-            RenderTarget::Window(_) => {
-                Extent3d {
-                    width: window.width() as u32,
-                    height: window.height() as u32,
-                    ..Default::default()
-                }
+        let size = if let RenderTarget::Window(_) = &camera.target {
+            Extent3d {
+                width: window.width() as u32,
+                height: window.height() as u32,
+                ..Default::default()
             }
-            RenderTarget::Image(handle) => {
-                let image = images.get(handle).expect(
-                "PostProcessingCamera is rendering to an Image, but this Image could not be found",
-                );
-                image.texture_descriptor.size
-            }
+        } else { 
+            panic!("PostProcessingCamera isn't rendering to a camera") 
         };
 
         let mut bytes = vec![0; light_map.colors.len() * 4];

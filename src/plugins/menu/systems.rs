@@ -1,10 +1,10 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveExt, Camera2dBundle, ChildBuilder, NodeBundle, BuildChildren, TextBundle, Button, Res, default, Changed, EventWriter, Color, ImageBundle, Transform, Quat, Vec3, Audio, NextState, ResMut, Visibility, Name, Camera2d}, text::{Text, TextStyle, TextSection}, ui::{Style, JustifyContent, AlignItems, UiRect, FocusPolicy, PositionType, Interaction, Size, Val, FlexDirection, AlignSelf, UiImage}, app::AppExit, core_pipeline::clear_color::ClearColorConfig};
+use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveExt, Camera2dBundle, ChildBuilder, NodeBundle, BuildChildren, TextBundle, Button, Res, default, Changed, EventWriter, Color, ImageBundle, Transform, Quat, Vec3, NextState, ResMut, Visibility, Name, Camera2d, AudioBundle, PlaybackSettings}, text::{Text, TextStyle, TextSection}, ui::{Style, JustifyContent, AlignItems, UiRect, FocusPolicy, PositionType, Interaction, Val, FlexDirection, AlignSelf, UiImage}, app::AppExit, core_pipeline::clear_color::ClearColorConfig};
 use interpolation::EaseFunction;
 
-use crate::{animation::{Tween, Animator, AnimatorState, TweeningDirection, RepeatStrategy, Tweenable, EaseMethod, RepeatCount}, plugins::{camera::MainCamera, assets::{FontAssets, UiAssets, SoundAssets}, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor}, fps::FpsText}, common::{state::{GameState, SettingsMenuState, MenuState}, lens::{TextFontSizeLens, TransformLens}}, language::LanguageContent};
+use crate::{animation::{Tween, Animator, AnimatorState, TweeningDirection, RepeatStrategy, Tweenable, EaseMethod, RepeatCount}, plugins::{camera::MainCamera, assets::{FontAssets, UiAssets, SoundAssets}, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor}, fps::FpsText,}, common::{state::{GameState, SettingsMenuState, MenuState}, lens::{TextFontSizeLens, TransformLens}}, language::LanguageContent};
 use super::{Menu, SinglePlayerButton, SettingsButton, ExitButton, MenuContainer, role::ButtonRole, settings::MENU_BUTTON_FONT_SIZE, TEXT_COLOR, DespawnOnMenuExit};
 
 pub(super) fn despawn_with<C: Component>(query: Query<Entity, With<C>>, mut commands: Commands) {
@@ -28,7 +28,7 @@ fn text_tween(initial_font_size: f32) -> Tween<Text> {
 
 pub(super) fn setup_camera(mut commands: Commands) {
     commands.spawn((
-        Name::new("MainCamera"),
+        Name::new("MenuCamera"),
         MainCamera,
         DespawnOnMenuExit,
         Camera2dBundle {
@@ -58,9 +58,9 @@ pub(super) fn menu_button(
         .with_children(|b| {
             b.spawn(TextBundle {
                 style: Style {
-                    position_type: PositionType::Absolute
+                    position_type: PositionType::Absolute,
                 },
-                text: Text::from_section(button_name, text_style.clone()),
+                text: Text::from_section(button_name, text_style.clone()).with_no_wrap(),
             })
             .insert(Button)
             .insert(Interaction::default())
@@ -82,7 +82,7 @@ pub(super) fn control_buttons_layout(
                 align_items: AlignItems::Center,
                 flex_direction: FlexDirection::Column,
                 margin: UiRect::vertical(Val::Px(40.)),
-                gap: Size::new(Val::Px(0.), Val::Px(50.)),
+                column_gap: Val::Px(50.)
             },
             focus_policy: FocusPolicy::Pass
         }).with_children(spawn_builder);
@@ -122,14 +122,12 @@ pub(super) fn menu(marker: impl Component, commands: &mut Commands, container: E
     let menu = commands.spawn((
         NodeBundle {
             style: Style {
-                size: Size {
-                    width: Val::Percent(100.),
-                    height: Val::Percent(100.),
-                },
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 flex_direction: FlexDirection::Column,
-                gap: Size::new(Val::Px(0.), Val::Px(gap)),
+                row_gap: Val::Px(gap),
                 ..default()
             },
             ..default()
@@ -206,10 +204,8 @@ pub(super) fn spawn_menu_container(
             Name::new("MenuContainer"),
             NodeBundle {
                 style: Style {
-                    size: Size {
-                        width: Val::Percent(100.),
-                        height: Val::Percent(100.),
-                    },
+                    width: Val::Percent(100.),
+                    height: Val::Percent(100.),
                     padding: UiRect::all(Val::Px(50.)),
                     flex_direction: FlexDirection::Column,
                     ..default()
@@ -273,17 +269,20 @@ pub(super) fn setup_main_menu(
 }
 
 pub(super) fn update_buttons(
+    mut commands: Commands,
     mut query: Query<
         (&Interaction, &mut Text, &mut Animator<Text>, &ButtonRole),
         (With<Button>, Changed<Interaction>),
     >,
-    audio: Res<Audio>,
-    sounds: Res<SoundAssets>
+    sound_assets: Res<SoundAssets>
 ) {
     for (interaction, mut text, mut animator, role) in query.iter_mut() {
         match interaction {
             Interaction::Hovered => {
-                audio.play(sounds.menu_tick.clone_weak());
+                commands.spawn(AudioBundle {
+                    source: sound_assets.menu_tick.clone_weak(),
+                    settings: PlaybackSettings::DESPAWN
+                });
 
                 text.sections[0].style.color = Color::YELLOW;
 
@@ -300,12 +299,15 @@ pub(super) fn update_buttons(
                 tweenable.set_progress(1. - tweenable.progress());
                 tweenable.set_direction(TweeningDirection::Backward);
             }
-            Interaction::Clicked => {
+            Interaction::Pressed => {
                 let sound = match role {
-                    ButtonRole::MenuButton => &sounds.menu_open,
-                    ButtonRole::ControlButton => &sounds.menu_close,
+                    ButtonRole::MenuButton => &sound_assets.menu_open,
+                    ButtonRole::ControlButton => &sound_assets.menu_close,
                 };
-                audio.play(sound.clone_weak());
+                commands.spawn(AudioBundle {
+                    source: sound.clone_weak(),
+                    settings: PlaybackSettings::DESPAWN
+                });
             }
         }
     }

@@ -3,7 +3,7 @@ use crate::{
     common::state::GameState, world::WorldData,
 };
 use bevy::{
-    prelude::{default, App, Commands, Plugin, Res, Vec2, Component, Query, Camera, With, OnEnter, OnExit, IntoSystemAppConfig, IntoSystemConfig, IntoSystemConfigs, IntoSystemAppConfigs, Name, Entity, DespawnRecursiveExt, Assets, Image, Camera2dBundle, Camera2d, UiCameraConfig, CoreSet, in_state},
+    prelude::{default, App, Commands, Plugin, Res, Vec2, Component, Query, Camera, With, OnEnter, OnExit, IntoSystemConfigs, Name, Entity, DespawnRecursiveExt, Assets, Image, Camera2dBundle, Camera2d, UiCameraConfig, in_state, PostUpdate},
     sprite::Anchor, core_pipeline::clear_color::ClearColorConfig, render::view::RenderLayers,
 };
 
@@ -16,14 +16,15 @@ pub(crate) struct BackgroundPlugin;
 impl Plugin for BackgroundPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
+            OnExit(GameState::AssetLoading),
             (
                 spawn_background_camera,
                 setup_main_menu_background
             )
-            .in_schedule(OnExit(GameState::AssetLoading))
         );
 
         app.add_systems(
+            OnEnter(GameState::InGame),
             (
                 despawn_menu_background,
                 spawn_sky_background,
@@ -31,16 +32,15 @@ impl Plugin for BackgroundPlugin {
                 spawn_forest_background,
             )
             .chain()
-            .in_schedule(OnEnter(GameState::InGame))
         );
 
-        app.add_system(despawn_menu_background.in_schedule(OnExit(GameState::InGame)));
+        app.add_systems(OnExit(GameState::InGame), despawn_menu_background);
 
-        app.add_system(
+        app.add_systems(
+            PostUpdate,
             follow_camera_system
                 .run_if(in_state(GameState::InGame))
                 .after(CameraSet::MoveCamera)
-                .in_base_set(CoreSet::PostUpdate)
         );
     }
 }

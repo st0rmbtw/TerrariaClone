@@ -18,12 +18,13 @@ pub(crate) enum ParallaxSet {
 impl Plugin for ParallaxPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
+            Update,
             (
                 parallax_container_added,
                 update_layer_textures_system.after(ParallaxSet::FollowCamera),
-                update_full_screen_sprites.in_base_set(CoreSet::PreUpdate),
             )
         );
+        app.add_systems(PreUpdate, update_full_screen_sprites);
     }
 }
 

@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use autodefault::autodefault;
-use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color, MouseButton, EventWriter, Audio, DetectChanges, Local, Transform, Quat, DetectChangesMut}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, Size, PositionType, AlignContent, Interaction, BackgroundColor, ZIndex}, text::{Text, TextStyle, TextAlignment}, sprite::TextureAtlasSprite};
+use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color, MouseButton, EventWriter, DetectChanges, Local, Transform, Quat, DetectChangesMut, AudioBundle, PlaybackSettings}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, PositionType, AlignContent, Interaction, BackgroundColor, ZIndex}, text::{Text, TextStyle, TextAlignment}, sprite::TextureAtlasSprite, utils::default};
 use rand::seq::SliceRandom;
 
 use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets, SoundAssets}, cursor::{Hoverable, CursorPosition}, world::{DigBlockEvent, PlaceBlockEvent, SeedEvent, BreakBlockEvent}, player::{FaceDirection, Player, PlayerSpriteBody}}, common::{extensions::EntityCommandsExtensions, helpers}, language::LanguageContent, items::{Item, get_animation_points, ItemStack}, world::WorldData};
@@ -74,7 +74,7 @@ pub(crate) fn spawn_inventory_ui(
                         );
                     }
                 })
-                .insert(HotbarUi::default());
+                .insert(HotbarUi);
 
             // endregion
 
@@ -85,6 +85,10 @@ pub(crate) fn spawn_inventory_ui(
                         flex_direction: FlexDirection::Column,
                         align_items: AlignItems::Center,
                         justify_content: JustifyContent::Center,
+                        margin: UiRect {
+                            top: Val::Px(2.),
+                            ..default()
+                        }
                     },
                     visibility: Visibility::Hidden,
                 })
@@ -116,13 +120,12 @@ pub(crate) fn spawn_inventory_ui(
                     }
                 })
                 .insert(Name::new("Inventory"))
-                .insert(InventoryUi::default());
+                .insert(InventoryUi);
             // endregion
         })
         .id()
 }
 
-#[autodefault(except(InventoryCell))]
 fn spawn_inventory_cell(
     children: &mut ChildBuilder<'_, '_, '_>,
     name: impl Into<Cow<'static, str>>,
@@ -135,22 +138,24 @@ fn spawn_inventory_cell(
         .spawn(ImageBundle {
             style: Style {
                 margin: UiRect::horizontal(Val::Px(2.)),
-                size: INVENTORY_CELL_SIZE,
+                width: Val::Px(INVENTORY_CELL_SIZE),
+                height: Val::Px(INVENTORY_CELL_SIZE),
                 align_self: AlignSelf::Center,
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
+                padding: UiRect::all(Val::Px(8.)),
+                ..default()
             },
             image: cell_background.into(),
-            background_color: BackgroundColor(Color::rgba(1., 1., 1., 0.8))
+            background_color: BackgroundColor(Color::rgba(1., 1., 1., 0.8)),
+            ..default()
         })
         .insert(Hoverable::None)
         .with_children(|c| {
             c.spawn(ImageBundle {
                 focus_policy: FocusPolicy::Pass,
-                style: Style {
-                    margin: UiRect::all(Val::Px(8.)),
-                },
-                z_index: ZIndex::Global(2)
+                z_index: ZIndex::Global(2),
+                ..default()
             })
             .insert(InventoryCellIndex(index))
             .insert(InventoryCellItemImage::default());
@@ -159,20 +164,24 @@ fn spawn_inventory_cell(
                 c.spawn(NodeBundle {
                     style: Style {
                         padding: UiRect::all(Val::Px(5.)),
-                        size: Size::new(Val::Percent(100.), Val::Percent(100.)),
+                        width: Val::Percent(100.),
+                        height: Val::Percent(100.),
                         position_type: PositionType::Absolute,
                         flex_direction: FlexDirection::Column,
                         justify_content: JustifyContent::SpaceBetween,
                         align_items: AlignItems::FlexStart,
                         align_content: AlignContent::FlexStart,
+                        ..default()
                     },
                     focus_policy: FocusPolicy::Pass,
-                    z_index: ZIndex::Global(3)
+                    z_index: ZIndex::Global(3),
+                    ..default()
                 }).with_children(|c| {
                     // Hotbar cell index
                     c.spawn(TextBundle {
                         style: Style {
                             align_self: AlignSelf::FlexEnd,
+                            ..default()
                         },
                         focus_policy: FocusPolicy::Pass,
                         text: Text::from_section(
@@ -183,13 +192,15 @@ fn spawn_inventory_cell(
                                 color: Color::WHITE,
                             },
                         ),
-                        z_index: ZIndex::Global(4)
+                        z_index: ZIndex::Global(4),
+                        ..default()
                     });
 
                     // Item stack
                     c.spawn(TextBundle {
                         style: Style {
                             align_self: AlignSelf::Center,
+                            ..default()
                         },
                         focus_policy: FocusPolicy::Pass,
                         text: Text::from_section(
@@ -200,7 +211,8 @@ fn spawn_inventory_cell(
                                 color: Color::WHITE,
                             },
                         ),
-                        z_index: ZIndex::Global(4)
+                        z_index: ZIndex::Global(4),
+                        ..default()
                     })
                     .insert(InventoryCellIndex(index))
                     .insert(InventoryItemAmount::default());
@@ -235,9 +247,15 @@ pub(super) fn update_selected_cell_size(
     if inventory.is_changed() {
         for (cell_index, mut style) in hotbar_cells.iter_mut() {
             let selected = cell_index.0 == inventory.selected_slot;
-            style.size = match selected {
-                true if !visibility.0 => INVENTORY_CELL_SIZE_SELECTED,
-                _ => INVENTORY_CELL_SIZE,
+            match selected {
+                true if !visibility.0 => {
+                    style.width = Val::Px(INVENTORY_CELL_SIZE_SELECTED);
+                    style.height = Val::Px(INVENTORY_CELL_SIZE_SELECTED);
+                },
+                _ => {
+                    style.width = Val::Px(INVENTORY_CELL_SIZE);
+                    style.height = Val::Px(INVENTORY_CELL_SIZE);
+                },
             };
         }
     }
@@ -261,25 +279,28 @@ pub(super) fn update_selected_cell_image(
 }
 
 pub(super) fn select_inventory_cell(
+    mut commands: Commands,
     mut inventory: ResMut<Inventory>, 
     input: Res<Input<KeyCode>>,
-    sounds: Res<SoundAssets>,
-    audio: Res<Audio>
+    sound_assets: Res<SoundAssets>
 ) {
     let digit = input
         .get_just_pressed()
         .find_map(keycode_to_digit);
 
     if digit.is_some_and(|i| inventory.select_item(i)) {
-        audio.play(sounds.menu_tick.clone_weak());
+        commands.spawn(AudioBundle {
+            source: sound_assets.menu_tick.clone_weak(),
+            settings: PlaybackSettings::DESPAWN
+        });
     }
 }
 
 pub(super) fn scroll_select_inventory_item(
+    mut commands: Commands,
     mut inventory: ResMut<Inventory>, 
     mut events: EventReader<MouseWheel>,
-    sounds: Res<SoundAssets>,
-    audio: Res<Audio>
+    sound_assets: Res<SoundAssets>
 ) {
     for event in events.iter() {
         let selected_item_index = inventory.selected_slot as f32;
@@ -289,7 +310,10 @@ pub(super) fn scroll_select_inventory_item(
 
         inventory.select_item(new_index as usize);
 
-        audio.play(sounds.menu_tick.clone_weak());
+        commands.spawn(AudioBundle {
+            source: sound_assets.menu_tick.clone_weak(),
+            settings: PlaybackSettings::DESPAWN
+        });
     }
 }
 
@@ -562,16 +586,19 @@ pub(super) fn update_sprite_index(
 }
 
 pub(super) fn play_swing_sound(
+    mut commands: Commands,
     selected_item: Res<SelectedItem>,
     sound_assets: Res<SoundAssets>,
-    audio: Res<Audio>,
     swing_cooldown: Res<SwingItemCooldown>,
     swing_cooldown_max: Res<SwingItemCooldownMax>
 ) {
     if **swing_cooldown == **swing_cooldown_max {
         if let Some(ItemStack { item: Item::Tool(_), .. }) = **selected_item {
             let sound = sound_assets.swing.choose(&mut rand::thread_rng()).unwrap();
-            audio.play(sound.clone_weak());
+            commands.spawn(AudioBundle {
+                source: sound.clone_weak(),
+                settings: PlaybackSettings::DESPAWN,
+            });
         }
     }
 }

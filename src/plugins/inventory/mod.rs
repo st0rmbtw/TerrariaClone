@@ -3,7 +3,7 @@ mod resources;
 mod systems;
 mod util;
 
-use bevy::{ui::{Val, Size}, prelude::{Plugin, App, OnUpdate, IntoSystemConfigs, IntoSystemAppConfig, CoreSchedule, IntoSystemConfig, Res, in_state, IntoSystemAppConfigs, SystemSet}};
+use bevy::prelude::{Plugin, App, IntoSystemConfigs, Res, in_state, SystemSet, Update, FixedUpdate};
 pub(crate) use components::*;
 pub(crate) use resources::*;
 pub(crate) use systems::*;
@@ -16,11 +16,8 @@ use super::ui::UiVisibility;
 const INVENTORY_ROWS: usize = 5 - 1;
 
 // region: Inventory cell size
-const INVENTORY_CELL_SIZE_F: f32 = 40.;
-const INVENTORY_CELL_SIZE_BIGGER_F: f32 = INVENTORY_CELL_SIZE_F * 1.3;
-
-const INVENTORY_CELL_SIZE: Size = Size::all(Val::Px(INVENTORY_CELL_SIZE_F));
-const INVENTORY_CELL_SIZE_SELECTED: Size = Size::all(Val::Px(INVENTORY_CELL_SIZE_BIGGER_F));
+const INVENTORY_CELL_SIZE: f32 = 40.;
+const INVENTORY_CELL_SIZE_SELECTED: f32 = INVENTORY_CELL_SIZE * 1.3;
 // endregion
 
 pub(self) const CELL_COUNT_IN_ROW: usize = 10;
@@ -57,41 +54,39 @@ impl Plugin for PlayerInventoryPlugin {
                 inventory
             });
 
-        app.add_system(scroll_select_inventory_item.in_set(OnUpdate(GameState::InGame)));
-        app.add_system(select_inventory_cell.in_set(OnUpdate(GameState::InGame)));
-        app.add_system(set_selected_item.in_set(OnUpdate(GameState::InGame)));
+        app.add_systems(Update, scroll_select_inventory_item.run_if(in_state(GameState::InGame)));
+        app.add_systems(Update, select_inventory_cell.run_if(in_state(GameState::InGame)));
+        app.add_systems(Update, set_selected_item.run_if(in_state(GameState::InGame)));
 
-        app.add_system(
-            use_item
-                .in_schedule(CoreSchedule::FixedUpdate)
-                .run_if(in_state(GameState::InGame))
-        );
+        app.add_systems(FixedUpdate, use_item.run_if(in_state(GameState::InGame)));
 
         app.add_systems(
+            Update,
             (
                 update_player_using_item,
                 set_using_item_image,
                 set_using_item_visibility(false),
             )
-            .in_set(OnUpdate(GameState::InGame))
+            .run_if(in_state(GameState::InGame))
         );
 
-        app.add_system(
+        app.add_systems(
+            FixedUpdate,
             play_swing_sound
                 .run_if(in_state(GameState::InGame))
                 .run_if(|res: Res<SwingAnimation>| **res == true)
-                .in_schedule(CoreSchedule::FixedUpdate)
         );
 
-        app.add_system(
+        app.add_systems(
+            FixedUpdate,
             update_swing_cooldown
                 .run_if(in_state(GameState::InGame))
                 .in_set(UseItemAnimationSet::UpdateSwingCooldown)
-                .in_schedule(CoreSchedule::FixedUpdate)
                 .after(play_swing_sound)
         );
 
         app.add_systems(
+            FixedUpdate,
             (
                 update_use_item_animation_index,
                 set_using_item_position,
@@ -100,22 +95,22 @@ impl Plugin for PlayerInventoryPlugin {
                 update_sprite_index,
             )
             .chain()
-            .distributive_run_if(|res: Res<SwingAnimation>| **res == true)
+            .run_if(|res: Res<SwingAnimation>| **res == true)
             .in_set(UseItemAnimationSet::PlayAnimation)
             .after(UseItemAnimationSet::UpdateSwingCooldown)
-            .in_schedule(CoreSchedule::FixedUpdate)
         );
 
-        app.add_system(
+        app.add_systems(
+            FixedUpdate,
             stop_swing_animation
                 .run_if(|res: Res<SwingAnimation>| **res == true)
                 .run_if(in_state(GameState::InGame))
-                .in_schedule(CoreSchedule::FixedUpdate)
                 .in_set(UseItemAnimationSet::SetCooldown)
                 .after(UseItemAnimationSet::PlayAnimation)
         );
 
         app.add_systems(
+            Update,
             (
                 on_extra_ui_visibility_toggle,
                 update_selected_cell_size,
@@ -129,8 +124,8 @@ impl Plugin for PlayerInventoryPlugin {
                 update_item_amount_text,
             )
             .chain()
-            .in_set(OnUpdate(GameState::InGame))
-            .distributive_run_if(|res: Res<UiVisibility>| *res == UiVisibility::default())
+            .run_if(in_state(GameState::InGame))
+            .run_if(|res: Res<UiVisibility>| *res == UiVisibility::default())
         );
     }
 }

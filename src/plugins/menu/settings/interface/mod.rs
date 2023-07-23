@@ -1,5 +1,5 @@
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Res, With, Query, ResMut, Component, NextState, Entity, Plugin, App, OnUpdate, IntoSystemAppConfig, OnEnter, OnExit, IntoSystemConfig, IntoSystemConfigs}, text::{TextStyle, Text}};
+use bevy::{prelude::{Commands, Res, With, Query, ResMut, Component, NextState, Entity, Plugin, App, OnEnter, OnExit, IntoSystemConfigs, Update, in_state}, text::{TextStyle, Text}};
 
 use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button, menu, MenuContainer, despawn_with, TEXT_COLOR}, settings::ShowTileGrid}, language::LanguageContent, common::{state::{SettingsMenuState, GameState, MenuState}, conditions::on_btn_clicked}};
 
@@ -8,16 +8,17 @@ use super::{MENU_BUTTON_FONT_SIZE, BackButton};
 pub(super) struct InterfaceMenuPlugin;
 impl Plugin for InterfaceMenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(setup_interface_menu.in_schedule(OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface)))));
-        app.add_system(despawn_with::<InterfaceMenu>.in_schedule(OnExit(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface)))));
+        app.add_systems(OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface))), setup_interface_menu);
+        app.add_systems(OnExit(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface))), despawn_with::<InterfaceMenu>);
 
         app.add_systems(
+            Update,
             (
                 update_toggle_tile_grid_button_text,
                 toggle_tile_grid_clicked.run_if(on_btn_clicked::<ToggleTileGridButton>),
                 back_clicked.run_if(on_btn_clicked::<BackButton>),
             )
-            .in_set(OnUpdate(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface))))
+            .run_if(in_state(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface))))
         );
     }
 }

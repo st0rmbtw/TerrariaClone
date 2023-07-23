@@ -1,6 +1,6 @@
 use std::{fs::OpenOptions, io::{BufReader, BufWriter}, error::Error};
 
-use bevy::{prelude::{Plugin, App, OnUpdate, IntoSystemConfigs, IntoSystemConfig}, text::Text};
+use bevy::{prelude::{Plugin, App, IntoSystemConfigs, in_state, Update}, text::Text};
 use serde::{Deserialize, Serialize};
 
 use crate::{common::state::GameState, animation::{component_animator_system, AnimationSystemSet}};
@@ -51,12 +51,13 @@ impl Plugin for SettingsPlugin {
         app.insert_resource(settings.resolution);
 
         app.add_systems(
+            Update,
             (
                 update,
                 set_btn_visibility,
                 component_animator_system::<Text>.in_set(AnimationSystemSet::AnimationUpdate)
             )
-            .in_set(OnUpdate(GameState::InGame))
+            .run_if(in_state(GameState::InGame))
         );
     }
 }

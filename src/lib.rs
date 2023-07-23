@@ -2,7 +2,7 @@
 #![allow(clippy::needless_update)]
 #![allow(clippy::too_many_arguments)]
 
-use std::error::Error;
+use std::{error::Error, time::Duration};
 
 use animation::TweeningPlugin;
 use bevy::{
@@ -11,7 +11,7 @@ use bevy::{
         default, App, AssetPlugin, ClearColor, Color, FixedTime, ImagePlugin, Msaa, PluginGroup, UVec2,
     },
     window::{Cursor, MonitorSelection, Window, WindowPlugin, WindowPosition, WindowResolution},
-    DefaultPlugins
+    DefaultPlugins, asset::ChangeWatcher
 };
 use bevy_ecs_tilemap::{prelude::TilemapRenderSettings, TilemapPlugin};
 use bevy_hanabi::HanabiPlugin;
@@ -51,7 +51,7 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
 
     let mut app = App::new();
 
-    app.add_plugin(SettingsPlugin);
+    app.add_plugins(SettingsPlugin);
 
     let resolution = *app.world.resource::<Resolution>();
     let vsync = *app.world.resource::<VSync>();
@@ -76,7 +76,7 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
                 ..default()
             })
             .set(AssetPlugin {
-                watch_for_changes: true,
+                watch_for_changes: ChangeWatcher::with_delay(Duration::from_millis(50)),
                 ..default()
             })
             .set(LogPlugin {
@@ -94,25 +94,26 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
         .insert_resource(FixedTime::new_from_secs(1. / 60.))
         .add_event::<UpdateLightEvent>()
         .add_state::<GameState>()
-        .add_plugin(TweeningPlugin)
-        .add_plugin(TilemapPlugin)
-        .add_plugin(AssetsPlugin)
-        .add_plugin(HanabiPlugin)
-        .add_plugin(CursorPlugin)
-        .add_plugin(CameraPlugin)
-        // .add_plugin(LightingPlugin)
-        .add_plugin(ParallaxPlugin)
-        .add_plugin(BackgroundPlugin)
-        .add_plugin(PlayerUiPlugin)
-        .add_plugin(MenuPlugin)
-        .add_plugin(WorldPlugin)
-        .add_plugin(PlayerInventoryPlugin)
-        .add_plugin(FpsPlugin)
-        .add_plugin(PlayerPlugin);
+        .add_plugins((
+            TweeningPlugin,
+            TilemapPlugin,
+            AssetsPlugin,
+            HanabiPlugin,
+            CursorPlugin,
+            CameraPlugin,
+            ParallaxPlugin,
+            BackgroundPlugin,
+            PlayerUiPlugin,
+            MenuPlugin,
+            WorldPlugin,
+            PlayerInventoryPlugin,
+            FpsPlugin,
+            PlayerPlugin
+        ));
 
     #[cfg(feature = "debug")] {
         use plugins::debug::DebugPlugin;
-        app.add_plugin(DebugPlugin);
+        app.add_plugins(DebugPlugin);
     }
 
     Ok(app)

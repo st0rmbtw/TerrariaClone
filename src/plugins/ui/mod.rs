@@ -8,7 +8,7 @@ pub(crate) use events::*;
 pub(crate) use resources::*;
 pub(crate) use systems::*;
 
-use bevy::{prelude::{Plugin, App, IntoSystemAppConfig, OnEnter, OnUpdate, IntoSystemConfig, KeyCode}, input::common_conditions::input_just_pressed};
+use bevy::{prelude::{Plugin, App, OnEnter, KeyCode, Update, in_state, IntoSystemConfigs}, input::common_conditions::input_just_pressed};
 use crate::common::state::GameState;
 
 pub(crate) struct PlayerUiPlugin;
@@ -17,18 +17,15 @@ impl Plugin for PlayerUiPlugin {
         app.add_event::<ToggleExtraUiEvent>();
         app.init_resource::<ExtraUiVisibility>();
         app.init_resource::<UiVisibility>();
-        app.add_system(spawn_ui_container.in_schedule(OnEnter(GameState::InGame)));
 
-        app.add_system(
-            toggle_extra_ui_visibility
-                .run_if(input_just_pressed(KeyCode::Escape))
-                .in_set(OnUpdate(GameState::InGame))
+        app.add_systems(OnEnter(GameState::InGame), spawn_ui_container);
+        app.add_systems(Update,
+            (
+                toggle_extra_ui_visibility.run_if(input_just_pressed(KeyCode::Escape)),
+                toggle_ui_visibility.run_if(input_just_pressed(KeyCode::F11)),
+                set_main_container_visibility
+            )
+            .run_if(in_state(GameState::InGame))
         );
-        app.add_system(
-            toggle_ui_visibility
-                .run_if(input_just_pressed(KeyCode::F11))
-                .in_set(OnUpdate(GameState::InGame))
-        );
-        app.add_system(set_main_container_visibility.in_set(OnUpdate(GameState::InGame)));
     }
 }

@@ -97,7 +97,6 @@ pub(super) struct PlayerBundle {
     pub(super) movement_state: MovementState,
     pub(super) face_direction: FaceDirection,
     pub(super) player_rect: PlayerRect,
-    #[bundle]
     pub(super) spatial: SpatialBundle
 }
 

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, Local, Input, MouseButton, Color, Vec4, IntoSystemConfig, DetectChanges, IntoSystemConfigs, OnExit, Name, IntoSystemAppConfigs}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas, SpriteBundle}, window::{Window, PrimaryWindow}, utils::default};
+use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, Local, Input, MouseButton, Color, Vec4, DetectChanges, IntoSystemConfigs, OnExit, Name, Update}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas, SpriteBundle}, window::{Window, PrimaryWindow}, utils::default};
 use bevy_hanabi::Gradient;
 use interpolation::Lerp;
 use rand::{thread_rng, Rng, seq::SliceRandom};
@@ -33,23 +33,25 @@ impl Plugin for CelestialBodyPlugin {
                 }
             });
 
-            app.add_system(component_animator_system::<CelestialBody>.in_set(AnimationSystemSet::AnimationUpdate));
+            app.add_systems(Update, component_animator_system::<CelestialBody>.in_set(AnimationSystemSet::AnimationUpdate));
 
             app.add_systems(
+                OnExit(GameState::AssetLoading),
                 (
                     spawn_celestial_body,
                     spawn_stars
                 )
-                .in_schedule(OnExit(GameState::AssetLoading))
             );
 
-            app.add_system(
+            app.add_systems(
+                Update,
                 move_stars
                     .run_if(in_menu_state)
                     .before(ParallaxSet::FollowCamera)
             );
 
             app.add_systems(
+                Update,
                 (
                     update_celestial_type,
                     update_time_type,

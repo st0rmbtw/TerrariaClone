@@ -8,7 +8,7 @@ use bevy::{
         BuildChildren, DetectChanges, Changed
     }, 
     ui::{
-        Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Size, Val, AlignSelf, ZIndex, FlexDirection, UiRect, Interaction
+        Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Val, AlignSelf, ZIndex, FlexDirection, UiRect, Interaction
     }, 
     text::{Text, TextStyle}, 
     sprite::{SpriteBundle, Sprite}, 
@@ -31,7 +31,6 @@ use crate::plugins::player::{PlayerVelocity, MAX_RUN_SPEED, MAX_FALL_SPEED};
 
 use super::{CursorInfoMarker, CursorContainer, CursorForeground, CursorBackground, TileGrid, MAX_TILE_GRID_OPACITY, CursorPosition, MIN_TILE_GRID_OPACITY, components::Hoverable, CURSOR_SIZE};
 
-#[autodefault(except(TransformScaleLens, BackgroundColorLens))]
 pub(super) fn setup(
     mut commands: Commands, 
     cursor_assets: Res<CursorAssets>, 
@@ -79,11 +78,14 @@ pub(super) fn setup(
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
                     align_self: AlignSelf::FlexStart,
-                    size: Size::new(Val::Px(CURSOR_SIZE), Val::Px(CURSOR_SIZE)),
+                    width: Val::Px(CURSOR_SIZE),
+                    height: Val::Px(CURSOR_SIZE),
+                    ..default()
                 },
                 focus_policy: FocusPolicy::Pass,
                 image: cursor_assets.cursor_background.clone_weak().into(),
                 background_color: cursor_color.background_color.into(),
+                ..default()
             })
             .insert(CursorBackground)
             .insert(Animator::new(animate_scale))
@@ -93,11 +95,14 @@ pub(super) fn setup(
                         justify_content: JustifyContent::Center,
                         align_items: AlignItems::Center,
                         align_self: AlignSelf::Center,
-                        size: Size::new(Val::Px(16.), Val::Px(16.)),
+                        width: Val::Px(16.),
+                        height: Val::Px(16.),
+                        ..default()
                     },
                     focus_policy: FocusPolicy::Pass,
                     image: cursor_assets.cursor.clone_weak().into(),
                     background_color: cursor_color.foreground_color.into(),
+                    ..default()
                 })
                 .insert(CursorForeground)
                 .insert(Animator::new(animate_color));
@@ -108,7 +113,8 @@ pub(super) fn setup(
             c.spawn(TextBundle {
                 style: Style {
                     align_self: AlignSelf::FlexEnd,
-                    margin: UiRect::left(Val::Px(CURSOR_SIZE))
+                    margin: UiRect::left(Val::Px(CURSOR_SIZE)),
+                    ..default()
                 },
                 text: Text::from_section(
                     "",
@@ -117,7 +123,8 @@ pub(super) fn setup(
                         font_size: 22.,
                         color: Color::WHITE,
                     },
-                )
+                ),
+                ..default()
             })
             .insert(CursorInfoMarker);
         })
@@ -156,8 +163,8 @@ pub(super) fn update_cursor_position(
         let Some(screen_pos) = window.cursor_position() else { return; };
 
         if let Ok(mut style) = query_cursor.get_single_mut() {
-            style.position.left = Val::Px(screen_pos.x);
-            style.position.top = Val::Px(window.height() - screen_pos.y);
+            style.left = Val::Px(screen_pos.x);
+            style.top = Val::Px(screen_pos.y);
         }
 
         if let Some(world_pos) = camera.viewport_to_world_2d(camera_transform, screen_pos) {

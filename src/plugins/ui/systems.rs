@@ -1,11 +1,9 @@
-use autodefault::autodefault;
-use bevy::{prelude::{Commands, Res, NodeBundle, Name, BuildChildren, EventWriter, ResMut, Visibility, With, Audio, DetectChanges, Query}, ui::{Style, Size, FlexDirection, Val, JustifyContent, AlignItems, UiRect}};
+use bevy::{prelude::{Commands, Res, NodeBundle, Name, BuildChildren, EventWriter, ResMut, Visibility, With, DetectChanges, Query, AudioBundle, PlaybackSettings}, ui::{Style, FlexDirection, Val, JustifyContent, AlignItems, UiRect}, utils::default};
 
 use crate::{plugins::{assets::{FontAssets, UiAssets, SoundAssets}, fps::spawn_fps_text, inventory::spawn_inventory_ui, settings::spawn_ingame_settings_button}, language::LanguageContent, common::helpers};
 
 use super::{MainUiContainer, ToggleExtraUiEvent, ExtraUiVisibility, UiVisibility};
 
-#[autodefault(except(UiContainer))]
 pub(crate) fn spawn_ui_container(
     mut commands: Commands,
     font_assets: Res<FontAssets>,
@@ -15,12 +13,12 @@ pub(crate) fn spawn_ui_container(
     let main_id = commands
         .spawn(NodeBundle {
             style: Style {
-                size: Size {
-                    width: Val::Percent(100.),
-                    height: Val::Percent(100.),
-                },
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
                 flex_direction: FlexDirection::Row,
-            }
+                ..default()
+            },
+            ..default()
         })
         .insert(MainUiContainer)
         .insert(Name::new("Main UI Container"))
@@ -30,14 +28,14 @@ pub(crate) fn spawn_ui_container(
     let left_id = commands
         .spawn(NodeBundle {
             style: Style {
-                size: Size {
-                    width: Val::Percent(100.),
-                    height: Val::Percent(100.),
-                },
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
                 flex_direction: FlexDirection::Column,
                 justify_content: JustifyContent::SpaceBetween,
                 align_items: AlignItems::FlexStart,
+                ..default()
             },
+            ..default()
         })
         .insert(Name::new("Left UI Container"))
         .id();
@@ -46,10 +44,8 @@ pub(crate) fn spawn_ui_container(
     let right_id = commands
         .spawn(NodeBundle {
             style: Style {
-                size: Size {
-                    width: Val::Percent(100.),
-                    height: Val::Percent(100.),
-                },
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
                 flex_direction: FlexDirection::Column,
                 justify_content: JustifyContent::SpaceBetween,
                 align_items: AlignItems::FlexEnd,
@@ -57,7 +53,9 @@ pub(crate) fn spawn_ui_container(
                     right: Val::Px(20.),
                     ..UiRect::vertical(Val::Px(5.))
                 },
-            }
+                ..default()
+            },
+            ..default()
         })
         .insert(Name::new("Right UI Container"))
         .id();
@@ -70,11 +68,11 @@ pub(crate) fn spawn_ui_container(
     let health_bar = commands
         .spawn(NodeBundle {
             style: Style {
-                size: Size {
-                    width: Val::Px(10.),
-                    height: Val::Px(2.),
-                },
-            }
+                width: Val::Px(10.),
+                height: Val::Px(2.),
+                ..default()
+            },
+            ..default()
         })
         .insert(Name::new("Stub"))
         .id();
@@ -91,17 +89,20 @@ pub(crate) fn spawn_ui_container(
 }
 
 pub(super) fn toggle_extra_ui_visibility(
+    mut commands: Commands,
     mut events: EventWriter<ToggleExtraUiEvent>,
     mut visibility: ResMut<ExtraUiVisibility>,
     sounds: Res<SoundAssets>,
-    audio: Res<Audio>
 ) {
     visibility.0 = !visibility.0;
     events.send(ToggleExtraUiEvent(visibility.0));
 
     let sound = if visibility.0 { &sounds.menu_open } else { &sounds.menu_close };
 
-    audio.play(sound.clone_weak());
+    commands.spawn(AudioBundle {
+        source: sound.clone_weak(),
+        settings: PlaybackSettings::DESPAWN
+    });
 }
 
 pub(super) fn toggle_ui_visibility(mut ui_visibility: ResMut<UiVisibility>) {

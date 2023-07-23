@@ -1,4 +1,4 @@
-use bevy::{prelude::{Plugin, App, OnUpdate, IntoSystemConfig, IntoSystemAppConfig, OnEnter, SystemSet, IntoSystemSetConfig, CoreSet, in_state, IntoSystemConfigs}, transform::TransformSystem};
+use bevy::{prelude::{Plugin, App, OnEnter, SystemSet, IntoSystemSetConfig, in_state, IntoSystemConfigs, Update, PostUpdate}, transform::TransformSystem};
 
 use crate::common::state::GameState;
 
@@ -29,18 +29,16 @@ pub(crate) enum CameraSet {
 pub(crate) struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(setup_camera.in_schedule(OnEnter(GameState::InGame)));
-        
-        app.add_system(zoom.in_set(OnUpdate(GameState::InGame)));
-        
-        app.configure_set(
+        app.configure_set(PostUpdate,
             CameraSet::MoveCamera
                 .run_if(in_state(GameState::InGame))
-                .in_base_set(CoreSet::PostUpdate)
                 .before(TransformSystem::TransformPropagate)
         );
 
+        app.add_systems(OnEnter(GameState::InGame), setup_camera);
+        app.add_systems(Update, zoom.run_if(in_state(GameState::InGame)));
         app.add_systems(
+            PostUpdate,
             (
                 move_camera,
                 keep_camera_inside_world_bounds
