@@ -24,11 +24,16 @@ pub(super) const MENU_BUTTON_FONT_SIZE: f32 = 42.;
 pub(super) struct SettingsMenuPlugin;
 impl Plugin for SettingsMenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugin(InterfaceMenuPlugin);
-        app.add_plugin(VideoMenuPlugin);
+        app.add_plugins((InterfaceMenuPlugin, VideoMenuPlugin));
 
-        app.add_systems(OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Main))), setup_settings_menu);
-        app.add_systems(OnExit(GameState::Menu(MenuState::Settings(SettingsMenuState::Main))), despawn_with::<SettingsMenu>);
+        app.add_systems(
+            OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Main))),
+            setup_settings_menu
+        );
+        app.add_systems(
+            OnExit(GameState::Menu(MenuState::Settings(SettingsMenuState::Main))),
+            despawn_with::<SettingsMenu>
+        );
 
         app.add_systems(
             Update,

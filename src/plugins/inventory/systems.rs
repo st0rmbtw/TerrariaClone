@@ -80,47 +80,49 @@ pub(crate) fn spawn_inventory_ui(
 
             // region: Inventory
             children
-                .spawn(NodeBundle {
-                    style: Style {
-                        flex_direction: FlexDirection::Column,
-                        align_items: AlignItems::Center,
-                        justify_content: JustifyContent::Center,
-                        margin: UiRect {
-                            top: Val::Px(2.),
-                            ..default()
-                        }
-                    },
-                    visibility: Visibility::Hidden,
-                })
+                .spawn((
+                    Name::new("Inventory"),
+                    InventoryUi,
+                    NodeBundle {
+                        style: Style {
+                            flex_direction: FlexDirection::Column,
+                            align_items: AlignItems::Center,
+                            justify_content: JustifyContent::Center,
+                            margin: UiRect {
+                                top: Val::Px(2.),
+                                ..default()
+                            }
+                        },
+                        visibility: Visibility::Hidden,
+                    }
+                ))
                 .with_children(|children| {
                     for j in 0..INVENTORY_ROWS {
-                        children
-                            .spawn(NodeBundle {
+                        children.spawn((
+                            Name::new(format!("Inventory Row #{}", j)),
+                            NodeBundle {
                                 style: Style {
                                     margin: UiRect::vertical(Val::Px(2.)),
                                     align_items: AlignItems::Center,
                                     justify_content: JustifyContent::Center,
                                 },
-                            })
-                            .insert(Name::new(format!("Inventory Row #{}", j)))
-                            .with_children(|children| {
-                                for i in 0..CELL_COUNT_IN_ROW {
-                                    let index = ((j * CELL_COUNT_IN_ROW) + i) + CELL_COUNT_IN_ROW;
+                            }
+                        )).with_children(|children| {
+                            for i in 0..CELL_COUNT_IN_ROW {
+                                let index = ((j * CELL_COUNT_IN_ROW) + i) + CELL_COUNT_IN_ROW;
 
-                                    spawn_inventory_cell(
-                                        children,
-                                        format!("Inventory Cell #{}", index),
-                                        ui_assets.inventory_background.clone_weak(),
-                                        false,
-                                        index,
-                                        fonts,
-                                    );
-                                }
-                            });
+                                spawn_inventory_cell(
+                                    children,
+                                    format!("Inventory Cell #{}", index),
+                                    ui_assets.inventory_background.clone_weak(),
+                                    false,
+                                    index,
+                                    fonts,
+                                );
+                            }
+                        });
                     }
-                })
-                .insert(Name::new("Inventory"))
-                .insert(InventoryUi);
+                });
             // endregion
         })
         .id()
@@ -135,30 +137,38 @@ fn spawn_inventory_cell(
     fonts: &FontAssets,
 ) {
     children
-        .spawn(ImageBundle {
-            style: Style {
-                margin: UiRect::horizontal(Val::Px(2.)),
-                width: Val::Px(INVENTORY_CELL_SIZE),
-                height: Val::Px(INVENTORY_CELL_SIZE),
-                align_self: AlignSelf::Center,
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                padding: UiRect::all(Val::Px(8.)),
+        .spawn((
+            Hoverable::None,
+            Name::new(name),
+            InventoryCellIndex(index),
+            Interaction::default(),
+            ImageBundle {
+                style: Style {
+                    margin: UiRect::horizontal(Val::Px(2.)),
+                    width: Val::Px(INVENTORY_CELL_SIZE),
+                    height: Val::Px(INVENTORY_CELL_SIZE),
+                    align_self: AlignSelf::Center,
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    padding: UiRect::all(Val::Px(8.)),
+                    ..default()
+                },
+                image: cell_background.into(),
+                background_color: BackgroundColor(Color::rgba(1., 1., 1., 0.8)),
                 ..default()
-            },
-            image: cell_background.into(),
-            background_color: BackgroundColor(Color::rgba(1., 1., 1., 0.8)),
-            ..default()
-        })
-        .insert(Hoverable::None)
+            }
+        ))
+        .insert_if(HotbarCellMarker, hotbar_cell)
         .with_children(|c| {
-            c.spawn(ImageBundle {
-                focus_policy: FocusPolicy::Pass,
-                z_index: ZIndex::Global(2),
-                ..default()
-            })
-            .insert(InventoryCellIndex(index))
-            .insert(InventoryCellItemImage::default());
+            c.spawn((
+                InventoryCellIndex(index),
+                InventoryCellItemImage::default(),
+                ImageBundle {
+                    focus_policy: FocusPolicy::Pass,
+                    z_index: ZIndex::Global(2),
+                    ..default()
+                }
+            ));
 
             if hotbar_cell {
                 c.spawn(NodeBundle {
@@ -197,32 +207,30 @@ fn spawn_inventory_cell(
                     });
 
                     // Item stack
-                    c.spawn(TextBundle {
-                        style: Style {
-                            align_self: AlignSelf::Center,
-                            ..default()
-                        },
-                        focus_policy: FocusPolicy::Pass,
-                        text: Text::from_section(
-                            "",
-                            TextStyle {
-                                font: fonts.andy_regular.clone_weak(),
-                                font_size: 16.,
-                                color: Color::WHITE,
+                    c.spawn((
+                        InventoryCellIndex(index),
+                        InventoryItemAmount::default(),
+                        TextBundle {
+                            style: Style {
+                                align_self: AlignSelf::Center,
+                                ..default()
                             },
-                        ),
-                        z_index: ZIndex::Global(4),
-                        ..default()
-                    })
-                    .insert(InventoryCellIndex(index))
-                    .insert(InventoryItemAmount::default());
+                            focus_policy: FocusPolicy::Pass,
+                            text: Text::from_section(
+                                "",
+                                TextStyle {
+                                    font: fonts.andy_regular.clone_weak(),
+                                    font_size: 16.,
+                                    color: Color::WHITE,
+                                },
+                            ),
+                            z_index: ZIndex::Global(4),
+                            ..default()
+                        }
+                    ));
                 });
             }
-        })
-        .insert(Name::new(name))
-        .insert(InventoryCellIndex(index))
-        .insert_if(HotbarCellMarker, hotbar_cell)
-        .insert(Interaction::default());
+        });
 }
 
 pub(super) fn on_extra_ui_visibility_toggle(

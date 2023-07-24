@@ -17,8 +17,14 @@ use crate::{
 pub(super) struct ResolutionMenuPlugin;
 impl Plugin for ResolutionMenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution))), setup_resolution_menu);
-        app.add_systems(OnExit(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution))), despawn_with::<ResolutionMenu>);
+        app.add_systems(
+            OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution))),
+            setup_resolution_menu
+        );
+        app.add_systems(
+            OnExit(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution))),
+            despawn_with::<ResolutionMenu>
+        );
 
         app.add_systems(
             Update,

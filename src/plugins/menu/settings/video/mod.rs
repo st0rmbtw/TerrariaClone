@@ -13,8 +13,14 @@ impl Plugin for VideoMenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(ResolutionMenuPlugin);
 
-        app.add_systems(OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Video))), setup_video_menu);
-        app.add_systems(OnExit(GameState::Menu(MenuState::Settings(SettingsMenuState::Video))), despawn_with::<VideoMenu>);
+        app.add_systems(
+            OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Video))),
+            setup_video_menu
+        );
+        app.add_systems(
+            OnExit(GameState::Menu(MenuState::Settings(SettingsMenuState::Video))),
+            despawn_with::<VideoMenu>
+        );
 
         app.add_systems(
             Update,

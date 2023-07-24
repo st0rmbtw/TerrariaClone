@@ -8,8 +8,14 @@ use super::{MENU_BUTTON_FONT_SIZE, BackButton};
 pub(super) struct InterfaceMenuPlugin;
 impl Plugin for InterfaceMenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface))), setup_interface_menu);
-        app.add_systems(OnExit(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface))), despawn_with::<InterfaceMenu>);
+        app.add_systems(
+            OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface))),
+            setup_interface_menu
+        );
+        app.add_systems(
+            OnExit(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface))),
+            despawn_with::<InterfaceMenu>
+        );
 
         app.add_systems(
             Update,
