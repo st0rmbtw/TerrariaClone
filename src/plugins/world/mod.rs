@@ -3,15 +3,13 @@ mod resources;
 mod systems;
 mod utils;
 
-use std::ops::RangeInclusive;
-
 use systems::*;
 use utils::*;
 pub(crate) use events::*;
 pub(crate) use resources::*;
 
 use crate::common::state::GameState;
-use bevy::prelude::{Plugin, App, OnEnter, IntoSystemConfigs, in_state, Update};
+use bevy::{prelude::{Plugin, App, OnEnter, IntoSystemConfigs, in_state, Update}, math::URect};
 use bevy_ecs_tilemap::prelude::{TilemapSize, TilemapTileSize};
 
 pub(crate) const TILE_SIZE: f32 = 16.;
@@ -56,9 +54,8 @@ impl Plugin for WorldPlugin {
             .run_if(in_state(GameState::InGame))
         );
 
-        #[cfg(feature = "debug")] {
-            app.add_systems(Update, set_tiles_visibility.run_if(in_state(GameState::InGame)));
-        }
+        #[cfg(feature = "debug")]
+        app.add_systems(Update, set_tiles_visibility.run_if(in_state(GameState::InGame)));
     }
 }
 
@@ -70,8 +67,4 @@ pub(super) struct CameraFov {
     pub bottom: f32,
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub(super) struct ChunkRange {
-    pub x: RangeInclusive<u32>,
-    pub y: RangeInclusive<u32>
-}
+pub(super) type ChunkRange = URect;

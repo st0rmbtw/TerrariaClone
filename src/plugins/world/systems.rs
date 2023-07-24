@@ -92,8 +92,8 @@ pub(super) fn spawn_chunks(
         let camera_fov = get_camera_fov(camera_transform.translation().xy(), projection);
         let chunk_range = get_chunk_range_by_camera_fov(camera_fov, world_data.size);
 
-        for y in chunk_range.y {
-            for x in chunk_range.x.clone() {
+        for y in chunk_range.min.y..=chunk_range.max.y {
+            for x in chunk_range.min.x..=chunk_range.max.x {
                 let chunk_pos = UVec2::new(x, y);
                 if chunk_manager.spawned_chunks.insert(chunk_pos) {
                     spawn_chunk(&mut commands, &block_assets, &wall_assets, &world_data, chunk_pos);
@@ -117,11 +117,9 @@ pub(super) fn despawn_chunks(
         let camera_fov = get_camera_fov(camera_transform.translation().xy(), projection);
         let chunk_range = get_chunk_range_by_camera_fov(camera_fov, world_data.size);
 
-        for (entity, ChunkContainer { pos: chunk_pos }) in chunks.iter() {
-            if (chunk_pos.x < *chunk_range.x.start() || chunk_pos.x > *chunk_range.x.end()) ||
-               (chunk_pos.y > *chunk_range.y.end() || chunk_pos.y < *chunk_range.y.start()) 
-            {
-                chunk_manager.spawned_chunks.remove(chunk_pos);
+        for (entity, ChunkContainer { pos }) in chunks.iter() {
+            if !chunk_range.contains(*pos) {
+                chunk_manager.spawned_chunks.remove(pos);
                 commands.entity(entity).despawn_recursive();
             }
         }

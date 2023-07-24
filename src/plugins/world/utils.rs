@@ -1,4 +1,4 @@
-use bevy::prelude::{Vec2, OrthographicProjection};
+use bevy::prelude::{Vec2, OrthographicProjection, UVec2};
 use bevy_ecs_tilemap::tiles::TilePos;
 
 use crate::world::{chunk::ChunkPos, Size};
@@ -46,7 +46,7 @@ pub(super) fn get_chunk_range_by_camera_fov(camera_fov: CameraFov, world_size: S
     }
 
     ChunkRange {
-        x: left..=right,
-        y: top..=bottom
+        min: UVec2::new(left, top),
+        max: UVec2::new(right, bottom),
     }
 }

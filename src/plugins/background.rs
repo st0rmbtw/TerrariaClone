@@ -3,7 +3,7 @@ use crate::{
     common::state::GameState, world::WorldData,
 };
 use bevy::{
-    prelude::{default, App, Commands, Plugin, Res, Vec2, Component, Query, Camera, With, OnEnter, OnExit, IntoSystemConfigs, Name, Entity, DespawnRecursiveExt, Assets, Image, Camera2dBundle, Camera2d, UiCameraConfig, in_state, PostUpdate},
+    prelude::{default, App, Commands, Plugin, Res, Vec2, Component, Query, Camera, With, OnExit, IntoSystemConfigs, Name, Entity, DespawnRecursiveExt, Assets, Image, Camera2dBundle, Camera2d, UiCameraConfig, in_state, PostUpdate},
     sprite::Anchor, core_pipeline::clear_color::ClearColorConfig, render::view::RenderLayers,
 };
 
@@ -24,14 +24,13 @@ impl Plugin for BackgroundPlugin {
         );
 
         app.add_systems(
-            OnEnter(GameState::InGame),
+            OnExit(GameState::WorldLoading),
             (
                 despawn_menu_background,
                 spawn_sky_background,
                 spawn_ingame_background,
                 spawn_forest_background,
             )
-            .chain()
         );
 
         app.add_systems(OnExit(GameState::InGame), despawn_menu_background);

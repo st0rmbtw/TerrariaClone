@@ -37,12 +37,6 @@ const JUMP_SPEED: f32 = 5.01;
 pub(crate) const MAX_RUN_SPEED: f32 = 3.;
 pub(crate) const MAX_FALL_SPEED: f32 = -10.;
 
-#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
-enum PhysicsSet {
-    SetVelocity,
-    Update
-}
-
 pub(crate) struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
@@ -60,16 +54,14 @@ impl Plugin for PlayerPlugin {
             flip_player,
             flip_using_item
         )
-        .chain()
-        .run_if(in_state(GameState::InGame));
-
-        #[cfg(not(feature = "debug"))]
-        app.add_systems(Update, flip_player_systems);
+        .chain();
 
         #[cfg(feature = "debug")]
+        let flip_player_systems = flip_player_systems.run_if(|config: Res<DebugConfiguration>| !config.free_camera);
+        
         app.add_systems(
             Update,
-            flip_player_systems.distributive_run_if(|config: Res<DebugConfiguration>| !config.free_camera)
+            flip_player_systems.run_if(in_state(GameState::InGame))
         );
 
         app.add_systems(
@@ -78,7 +70,6 @@ impl Plugin for PlayerPlugin {
                 update_movement_state,
                 spawn_particles
             )
-            .after(PhysicsSet::Update)
             .run_if(in_state(GameState::InGame))
         );
 
@@ -97,33 +88,26 @@ impl Plugin for PlayerPlugin {
         app.add_systems(Update, update_input_axis.run_if(in_state(GameState::InGame)));
 
         let handle_player_movement_systems = (
-                horizontal_movement,
-                update_jump,
-            )
-            .in_set(PhysicsSet::SetVelocity)
-            .before(PhysicsSet::Update)
-            .distributive_run_if(in_state(GameState::InGame));
-
-        #[cfg(not(feature = "debug"))]
-        app.add_systems(FixedUpdate, handle_player_movement_systems);
+            horizontal_movement,
+            update_jump,
+        );
 
         #[cfg(feature = "debug")]
-        app.add_systems(
-            FixedUpdate,
-            handle_player_movement_systems.run_if(|config: Res<DebugConfiguration>| !config.free_camera)
-        );
+        let handle_player_movement_systems = handle_player_movement_systems.run_if(|config: Res<DebugConfiguration>| !config.free_camera);
 
         app.add_systems(
             FixedUpdate,
             (
-                gravity,
-                detect_collisions,
-                move_player,
-                update_player_rect
+                handle_player_movement_systems,
+                (
+                    gravity,
+                    detect_collisions,
+                    move_player,
+                    update_player_rect
+                )
+                .chain()
             )
-            .chain()
             .run_if(in_state(GameState::InGame))
-            .in_set(PhysicsSet::Update)
         );
 
         #[cfg(feature = "debug")]
@@ -185,15 +169,14 @@ fn spawn_player(
     );
 
     let effect_entity = commands
-        .spawn(
+        .spawn((
+            Name::new("Particle Spawner"),
             ParticleEffectBundle {
                 effect: ParticleEffect::new(effect),
                 transform: Transform::from_xyz(0., -(TILE_SIZE * 3. / 2.), 0.),
                 ..default()
             }
-            .with_spawner(spawner)
-        )
-        .insert(Name::new("Particle Spawner"))
+        ))
         .id();
 
     let spawn_point = tile_pos_to_world_coords(world_data.spawn_point) 
