@@ -8,7 +8,7 @@ use animation::TweeningPlugin;
 use bevy::{
     log::{Level, LogPlugin},
     prelude::{
-        default, App, AssetPlugin, ClearColor, Color, FixedTime, ImagePlugin, Msaa, PluginGroup, UVec2,
+        default, App, AssetPlugin, ClearColor, Color, FixedTime, ImagePlugin, Msaa, PluginGroup, UVec2, GizmoConfig,
     },
     window::{Cursor, MonitorSelection, Window, WindowPlugin, WindowPosition, WindowResolution},
     DefaultPlugins, asset::ChangeWatcher
@@ -94,6 +94,11 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
         .insert_resource(FixedTime::new_from_secs(1. / 60.))
         .add_event::<UpdateLightEvent>()
         .add_state::<GameState>()
+        .insert_resource(GizmoConfig {
+            line_width: 1.,
+            depth_bias: -1.,
+            ..default()
+        })
         .add_plugins((
             TweeningPlugin,
             TilemapPlugin,

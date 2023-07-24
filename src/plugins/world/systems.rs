@@ -85,7 +85,7 @@ pub(super) fn spawn_chunks(
     mut chunk_manager: ResMut<ChunkManager>,
     query_camera: Query<
         (&GlobalTransform, &OrthographicProjection),
-        (With<MainCamera>, Changed<GlobalTransform>),
+        (With<MainCamera>, Changed<Transform>),
     >
 ) {
     if let Ok((camera_transform, projection)) = query_camera.get_single() {
@@ -118,7 +118,9 @@ pub(super) fn despawn_chunks(
         let chunk_range = get_chunk_range_by_camera_fov(camera_fov, world_data.size);
 
         for (entity, ChunkContainer { pos }) in chunks.iter() {
-            if !chunk_range.contains(*pos) {
+            if (pos.x < chunk_range.min.x || pos.x > chunk_range.max.x) ||
+               (pos.y < chunk_range.min.y || pos.y > chunk_range.max.y)
+            {
                 chunk_manager.spawned_chunks.remove(pos);
                 commands.entity(entity).despawn_recursive();
             }
@@ -134,7 +136,7 @@ pub(super) fn spawn_chunk(
     chunk_pos: ChunkPos,
 ) { 
     let chunk = commands.spawn((
-        Name::new("ChunkContainer"),
+        Name::new(format!("ChunkContainer {}", chunk_pos)),
         ChunkContainer { pos: chunk_pos },
         SpatialBundle {
             transform: Transform::from_xyz(chunk_pos.x as f32 * CHUNK_SIZE * TILE_SIZE, -(chunk_pos.y as f32 + 1.) * CHUNK_SIZE * TILE_SIZE + TILE_SIZE, 0.),
@@ -551,9 +553,7 @@ pub(super) fn set_tiles_visibility(
                 } else {
                     *visibility = Visibility::Hidden;
                 }
-            }
-
-            if chunk.chunk_type == ChunkType::Wall {
+            } else {
                 if debug_config.show_walls {
                     *visibility = Visibility::Inherited;
                 } else {

@@ -9,7 +9,7 @@ pub(crate) use events::*;
 pub(crate) use resources::*;
 
 use crate::common::state::GameState;
-use bevy::{prelude::{Plugin, App, OnEnter, IntoSystemConfigs, in_state, Update}, math::URect};
+use bevy::{prelude::{Plugin, App, OnEnter, IntoSystemConfigs, in_state, Update, Rect}, math::URect};
 use bevy_ecs_tilemap::prelude::{TilemapSize, TilemapTileSize};
 
 pub(crate) const TILE_SIZE: f32 = 16.;
@@ -59,12 +59,5 @@ impl Plugin for WorldPlugin {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, Default)]
-pub(super) struct CameraFov {
-    pub left: f32,
-    pub right: f32,
-    pub top: f32,
-    pub bottom: f32,
-}
-
+pub(super) type CameraFov = Rect;
 pub(super) type ChunkRange = URect;
