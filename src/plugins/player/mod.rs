@@ -14,7 +14,7 @@ use std::time::Duration;
 use bevy_hanabi::prelude::*;
 use bevy::{prelude::*, time::{Timer, TimerMode}, sprite::Anchor, math::vec2};
 
-use super::{assets::PlayerAssets, world::TILE_SIZE, inventory::UseItemAnimationData};
+use super::{assets::PlayerAssets, world::constants::TILE_SIZE, inventory::UseItemAnimationData};
 
 #[cfg(feature = "debug")]
 use crate::plugins::debug::DebugConfiguration;

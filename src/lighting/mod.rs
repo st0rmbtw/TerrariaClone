@@ -13,7 +13,7 @@ use bevy::{
 };
 use rand::{thread_rng, Rng};
 
-use crate::{plugins::{camera::CameraSet, settings::Resolution, cursor::CursorPosition}, lighting::{compositing::{PostProcessingMaterial, setup_post_processing_camera, update_image_to_window_size, update_lighting_material, update_light_map}, constants::{SHADER_ATTENUATION, SHADER_MATH}}, common::state::GameState, world::WorldData};
+use crate::{plugins::{camera::CameraSet, settings::Resolution, cursor::resources::CursorPosition}, lighting::{compositing::{PostProcessingMaterial, setup_post_processing_camera, update_image_to_window_size, update_lighting_material, update_light_map}, constants::{SHADER_ATTENUATION, SHADER_MATH}}, common::state::GameState, world::WorldData};
 
 use self::{
     pipeline::{LightPassPipelineBindGroups, PipelineTargetsWrapper, system_setup_pipeline, LightPassPipeline, system_queue_bind_groups}, 
@@ -35,8 +35,10 @@ const WORKGROUP_SIZE: u32 = 8;
 pub(crate) struct LightingPlugin;
 impl Plugin for LightingPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugin(ExtractResourcePlugin::<PipelineTargetsWrapper>::default());
-        app.add_plugin(Material2dPlugin::<PostProcessingMaterial>::default());
+        app.add_plugins((
+            ExtractResourcePlugin::<PipelineTargetsWrapper>::default(),
+            Material2dPlugin::<PostProcessingMaterial>::default()
+        ));
             
         app.init_resource::<PipelineTargetsWrapper>();
         app.init_resource::<ComputedTargetSizes>();
@@ -108,7 +110,7 @@ impl Plugin for LightingPlugin {
             .init_resource::<LightPassPipeline>()
             .init_resource::<LightPassPipelineAssets>()
             .init_resource::<ComputedTargetSizes>()
-            .add_systems(ExtractSchedule, system_extract_pipeline_assets.in_schedule(ExtractSchedule))
+            .add_systems(ExtractSchedule, system_extract_pipeline_assets)
             .add_systems(Render, system_prepare_pipeline_assets.in_set(RenderSet::Prepare))
             .add_systems(Render, system_queue_bind_groups.in_set(RenderSet::Queue));
 

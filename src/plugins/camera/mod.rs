@@ -1,15 +1,12 @@
-use bevy::{prelude::{Plugin, App, OnEnter, SystemSet, IntoSystemSetConfig, in_state, IntoSystemConfigs, Update, PostUpdate}, transform::TransformSystem};
+use bevy::{prelude::{Plugin, App, OnEnter, SystemSet, IntoSystemSetConfig, in_state, Update, PostUpdate, IntoSystemConfigs}, transform::TransformSystem};
 
 use crate::common::state::GameState;
 
-pub(crate) use components::*;
-pub(crate) use events::*;
-use systems::*;
-
-mod components;
+pub(crate) mod components;
+pub(crate) mod events;
 mod systems;
-mod events;
 
+const INITIAL_ZOOM: f32 = 0.9;
 const MAX_CAMERA_ZOOM: f32 = 2.;
 const MIN_CAMERA_ZOOM: f32 = 0.2;
 const CAMERA_ZOOM_STEP: f32 = 0.5;
@@ -35,13 +32,13 @@ impl Plugin for CameraPlugin {
                 .before(TransformSystem::TransformPropagate)
         );
 
-        app.add_systems(OnEnter(GameState::InGame), setup_camera);
-        app.add_systems(Update, zoom.run_if(in_state(GameState::InGame)));
+        app.add_systems(OnEnter(GameState::InGame), systems::setup_camera);
+        app.add_systems(Update, systems::zoom.run_if(in_state(GameState::InGame)));
         app.add_systems(
             PostUpdate,
             (
-                move_camera,
-                keep_camera_inside_world_bounds
+                systems::move_camera,
+                systems::keep_camera_inside_world_bounds
             )
             .chain()
             .in_set(CameraSet::MoveCamera)

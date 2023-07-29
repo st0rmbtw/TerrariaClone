@@ -1,7 +1,7 @@
 use bevy::{prelude::{Visibility, Component, With, Query, Vec2}, math::vec2};
 use bevy_ecs_tilemap::tiles::TilePos;
 
-use crate::{plugins::world::TILE_SIZE, world::{block::BlockType, wall::Wall}};
+use crate::{plugins::world::constants::TILE_SIZE, world::{block::BlockType, wall::Wall}};
 
 use super::TextureAtlasPos;
 

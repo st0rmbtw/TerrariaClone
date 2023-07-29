@@ -19,9 +19,9 @@ use interpolation::EaseFunction;
 use crate::{
     plugins::{
         assets::{FontAssets, CursorAssets, UiAssets}, 
-        camera::MainCamera, 
+        camera::components::MainCamera, 
         ui::UiVisibility, 
-        world::TILE_SIZE, settings::{ShowTileGrid, CursorColor}
+        world::constants::TILE_SIZE, settings::{ShowTileGrid, CursorColor}
     }, 
     animation::{Tween, lens::TransformScaleLens, Animator, RepeatStrategy, RepeatCount}, 
     common::{lens::BackgroundColorLens, helpers},
@@ -29,7 +29,7 @@ use crate::{
 
 use crate::plugins::player::{PlayerVelocity, MAX_RUN_SPEED, MAX_FALL_SPEED};
 
-use super::{CursorInfoMarker, CursorContainer, CursorForeground, CursorBackground, TileGrid, MAX_TILE_GRID_OPACITY, CursorPosition, MIN_TILE_GRID_OPACITY, components::Hoverable, CURSOR_SIZE};
+use super::{MAX_TILE_GRID_OPACITY, MIN_TILE_GRID_OPACITY, CURSOR_SIZE, components::{Hoverable, CursorBackground, CursorForeground, CursorInfoMarker, CursorContainer, TileGrid}, resources::CursorPosition};
 
 pub(super) fn setup(
     mut commands: Commands, 

@@ -163,23 +163,6 @@ pub(crate) fn parallax_animation_system(
     }
 }
 
-pub(crate) fn follow_camera_system(
-    query_parallax_camera: Query<&GlobalTransform, With<ParallaxCameraComponent>>,
-    mut query_layer: Query<(&mut Transform, &LayerComponent, &LayerDataComponent)>,
-) {    
-    if let Ok(camera_transform) = query_parallax_camera.get_single() {
-        for (mut layer_transform, layer, layer_data) in &mut query_layer {
-            let camera_translation = camera_transform.translation();
-
-            let new_translation_x = camera_translation.x + (layer_data.position.x - camera_translation.x) * layer.speed.x;
-            let new_translation_y = camera_translation.y + (layer_data.position.y - camera_translation.y) * layer.speed.y;
-
-            layer_transform.translation.x = new_translation_x;
-            layer_transform.translation.y = new_translation_y;
-        }
-    }
-}
-
 /// Update layer positions to keep the effect going indefinitely
 fn update_layer_textures_system(
     mut query_texture: Query<

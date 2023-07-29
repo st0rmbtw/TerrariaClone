@@ -8,11 +8,11 @@ use bevy::{
     time::Time, core_pipeline::clear_color::ClearColorConfig
 };
 
-use crate::{plugins::world::TILE_SIZE, common::helpers::tile_pos_to_world_coords, world::WorldData};
+use crate::{plugins::world::constants::TILE_SIZE, common::helpers::tile_pos_to_world_coords, world::WorldData};
 
 use crate::plugins::player::Player;
 
-use super::{MainCamera, CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, LightMapCamera, BackgroundCamera};
+use super::{CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, components::{MainCamera, LightMapCamera, BackgroundCamera}, INITIAL_ZOOM};
 
 #[autodefault(except(TextureDescriptor, ShadowMapMaterial, LightMapMaterial, SunMaterial, LightingMaterial))]
 pub(super) fn setup_camera(
@@ -28,7 +28,7 @@ pub(super) fn setup_camera(
             LightMapCamera,
             Camera2dBundle {
                 projection: OrthographicProjection { 
-                    scale: 0.9
+                    scale: INITIAL_ZOOM
                 },
                 transform: Transform::from_xyz(player_spawn_point.x, player_spawn_point.y, 500.),
                 camera_2d: Camera2d {

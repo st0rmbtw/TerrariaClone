@@ -3,7 +3,7 @@ use bevy_ecs_tilemap::tiles::TilePos;
 
 use crate::world::{chunk::ChunkPos, Size};
 
-use super::{CHUNK_SIZE_U, CHUNK_SIZE, TILE_SIZE, CameraFov, ChunkRange};
+use super::{constants::{CHUNK_SIZE_U, CHUNK_SIZE, TILE_SIZE}, CameraFov, ChunkRange};
 
 #[inline]
 pub(super) fn get_chunk_pos(pos: TilePos) -> ChunkPos {

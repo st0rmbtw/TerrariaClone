@@ -1,11 +1,11 @@
 use std::time::Duration;
 
-use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, Local, Input, MouseButton, Color, Vec4, DetectChanges, IntoSystemConfigs, OnExit, Name, Update}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas, SpriteBundle}, window::{Window, PrimaryWindow}, utils::default};
+use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, Local, Input, MouseButton, Color, Vec4, DetectChanges, IntoSystemConfigs, OnExit, Name, Update, Vec3}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas, SpriteBundle}, window::{Window, PrimaryWindow}, utils::default};
 use bevy_hanabi::Gradient;
 use interpolation::Lerp;
 use rand::{thread_rng, Rng, seq::SliceRandom};
 
-use crate::{plugins::{assets::{CelestialBodyAssets, BackgroundAssets}, camera::BackgroundCamera, background::{BACKGROUND_RENDER_LAYER, BackgroundPlugin}}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystemSet, AnimatorState}, common::state::GameState, common::{math::map_range_f32, rect::FRect}, parallax::{LayerTextureComponent, ParallaxSet}};
+use crate::{plugins::{assets::{CelestialBodyAssets, BackgroundAssets}, camera::components::BackgroundCamera, background::{BACKGROUND_RENDER_LAYER, BackgroundPlugin}}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystemSet, AnimatorState}, common::state::GameState, common::{math::map_range_f32, rect::FRect}, parallax::{LayerTextureComponent, ParallaxSet}};
 
 use super::{in_menu_state, DespawnOnMenuExit};
 
@@ -60,7 +60,7 @@ impl Plugin for CelestialBodyPlugin {
                     update_sprites_color,
                     change_visibility_of_stars,
                 )
-                .distributive_run_if(in_menu_state)
+                .run_if(in_menu_state)
             );
         }
     }
@@ -111,8 +111,8 @@ fn spawn_celestial_body(
         RepeatStrategy::Repeat,
         Duration::from_secs(25),
         CelestialBodyPositionLens {
-            start: Vec2::new(-0.1, 1. * 0.7),
-            end: Vec2::new(1.1, 1.)
+            start: Vec2::new(-0.1, 0.3),
+            end: Vec2::new(1.1, 0.)
         }
     )
     .with_repeat_count(RepeatCount::Infinite)
@@ -130,7 +130,7 @@ fn spawn_celestial_body(
                 ..default()
             },
             texture_atlas: celestial_body_assets.sun.clone_weak(),
-            transform: Transform::IDENTITY,
+            transform: Transform::from_translation(Vec3::new(0., 0., 0.5)),
             ..default()
         },
     ));
@@ -155,7 +155,7 @@ fn spawn_stars(
     let bundles = (0..100)
         .map(|i| {
             let x = rng.gen_range(0f32..window.width());
-            let y = rng.gen_range((window.height() / 2.)..window.height());
+            let y = rng.gen_range(0f32..window.height() / 2.);
 
             let star_image = star_images.choose(&mut rng).unwrap();
 
@@ -165,6 +165,7 @@ fn spawn_stars(
                 BACKGROUND_RENDER_LAYER,
                 SpriteBundle {
                     texture: star_image.clone_weak(),
+                    transform: Transform::from_translation(Vec3::new(0., 0., 0.1)),
                     ..default()
                 },
                 Star {

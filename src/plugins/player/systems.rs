@@ -3,7 +3,7 @@ use bevy_hanabi::prelude::*;
 
 use crate::{
     plugins::{
-        world::TILE_SIZE,
+        world::constants::TILE_SIZE,
         inventory::{ItemInHand, SwingAnimation},
     },
     common::{math::{move_towards, map_range_usize}, state::MovementState, rect::FRect}, world::WorldData,
@@ -429,7 +429,7 @@ pub(super) fn draw_hitbox(
 }
 
 #[cfg(feature = "debug")]
-use crate::plugins::cursor::CursorPosition;
+use crate::plugins::cursor::resources::CursorPosition;
 
 #[cfg(feature = "debug")]
 pub(super) fn teleport_player(

@@ -4,12 +4,12 @@ use bevy::{
     reflect::{TypeUuid, TypePath},
     render::{
         camera::RenderTarget,
-        mesh::{InnerMeshVertexBufferLayout},
+        mesh::InnerMeshVertexBufferLayout,
         render_resource::{
             AsBindGroup, Extent3d, ShaderRef,
             TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, SpecializedMeshPipelineError, RenderPipelineDescriptor, PrimitiveState,
         },
-        texture::{BevyDefault},
+        texture::BevyDefault,
         view::RenderLayers,
     },
     sprite::{Material2d, MaterialMesh2dBundle, Material2dKey},
@@ -19,8 +19,8 @@ use bevy::{
 use crate::{
     world::light,
     plugins::{
-        world::{LightMap, TILE_SIZE},
-        camera::{MainCamera, UpdateLightEvent, LightMapCamera}
+        world::{resources::LightMap, constants::TILE_SIZE},
+        camera::{components::{MainCamera, LightMapCamera}, events::UpdateLightEvent}
     },
     world::WorldData
 };

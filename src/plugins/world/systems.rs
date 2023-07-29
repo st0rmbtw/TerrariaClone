@@ -20,9 +20,14 @@ use bevy_ecs_tilemap::{
 };
 use rand::{thread_rng, seq::SliceRandom};
 
-use crate::{plugins::{world::{CHUNK_SIZE, TILE_SIZE}, assets::{BlockAssets, WallAssets, SoundAssets}, camera::{MainCamera, UpdateLightEvent}, player::{Player, PlayerRect}}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}};
+use crate::{plugins::{assets::{BlockAssets, WallAssets, SoundAssets}, camera::{components::MainCamera, events::UpdateLightEvent}, player::{Player, PlayerRect}}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}};
 
-use super::{get_chunk_pos, CHUNK_SIZE_U, UpdateNeighborsEvent, WALL_SIZE, CHUNKMAP_SIZE, get_camera_fov, ChunkManager, get_chunk_tile_pos, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent, TREE_SIZE, TREE_BRANCHES_SIZE, TREE_TOPS_SIZE, utils::get_chunk_range_by_camera_fov, UpdateBlockEvent, SeedEvent};
+use super::{
+    utils::{get_chunk_pos, get_camera_fov, get_chunk_tile_pos, get_chunk_range_by_camera_fov}, 
+    events::{UpdateNeighborsEvent, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent, UpdateBlockEvent, SeedEvent},
+    resources::ChunkManager, 
+    constants::{CHUNK_SIZE_U, WALL_SIZE, CHUNKMAP_SIZE, TREE_SIZE, TREE_BRANCHES_SIZE, TREE_TOPS_SIZE, CHUNK_SIZE, TILE_SIZE}
+};
 
 #[cfg(feature = "debug")]
 use crate::plugins::debug::DebugConfiguration;
@@ -117,14 +122,12 @@ pub(super) fn despawn_chunks(
         let camera_fov = get_camera_fov(camera_transform.translation().xy(), projection);
         let chunk_range = get_chunk_range_by_camera_fov(camera_fov, world_data.size);
 
-        for (entity, ChunkContainer { pos }) in chunks.iter() {
-            if (pos.x < chunk_range.min.x || pos.x > chunk_range.max.x) ||
-               (pos.y < chunk_range.min.y || pos.y > chunk_range.max.y)
-            {
+        chunks.for_each(|(entity, ChunkContainer { pos })| {
+            if !chunk_range.contains(*pos) {
                 chunk_manager.spawned_chunks.remove(pos);
                 commands.entity(entity).despawn_recursive();
             }
-        }
+        });
     }
 }
 

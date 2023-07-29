@@ -4,7 +4,7 @@ use bevy::render::renderer::{RenderDevice, RenderQueue};
 use bevy::render::Extract;
 use rand::{thread_rng, Rng};
 
-use crate::plugins::camera::MainCamera;
+use crate::plugins::camera::components::MainCamera;
 use super::constants::SCREEN_PROBE_SIZE;
 use super::resource::{ComputedTargetSizes, LightPassParams};
 use super::types::LightSource;

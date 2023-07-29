@@ -1,10 +1,6 @@
-mod components;
-mod resources;
+pub(crate) mod components;
+pub(crate) mod resources;
 mod systems;
-
-use systems::*;
-pub(crate) use components::*;
-pub(crate) use resources::*;
 
 use bevy::{prelude::{Plugin, App, OnExit, OnEnter, IntoSystemConfigs, not, resource_equals, in_state, Condition, resource_changed, Update}, ui::BackgroundColor};
 use crate::{common::state::GameState, animation::{AnimationSystemSet, component_animator_system}};
@@ -17,23 +13,23 @@ const MIN_TILE_GRID_OPACITY: f32 = 0.2;
 pub struct CursorPlugin;
 impl Plugin for CursorPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(CursorPosition::default());
+        app.insert_resource(resources::CursorPosition::default());
 
-        app.add_systems(OnExit(GameState::AssetLoading), setup);
-        app.add_systems(OnEnter(GameState::InGame), spawn_tile_grid);
+        app.add_systems(OnExit(GameState::AssetLoading), systems::setup);
+        app.add_systems(OnEnter(GameState::InGame), systems::spawn_tile_grid);
 
         app.add_systems(
             Update,
             (
-                update_cursor_position,
-                update_cursor_info
+                systems::update_cursor_position,
+                systems::update_cursor_info
             )
-            .distributive_run_if(not(in_state(GameState::AssetLoading)))
+            .run_if(not(in_state(GameState::AssetLoading)))
         );
 
         app.add_systems(
             Update,
-            update_tile_grid_position
+            systems::update_tile_grid_position
                 .run_if(in_state(GameState::InGame))
                 .run_if(resource_equals(UiVisibility(true)).and_then(resource_equals(ShowTileGrid(true))))
         );
@@ -48,26 +44,25 @@ impl Plugin for CursorPlugin {
 
         app.add_systems(
             Update,
-            set_visibility::<CursorBackground>
-                .run_if(in_state(GameState::InGame))
+            systems::set_visibility::<components::CursorBackground>.run_if(in_state(GameState::InGame))
         );
 
         app.add_systems(
             Update,
             (
-                set_visibility::<TileGrid>,
-                update_tile_grid_visibility,
+                systems::set_visibility::<components::TileGrid>,
+                systems::update_tile_grid_visibility,
             )
-            .distributive_run_if(resource_changed::<ShowTileGrid>())
             .run_if(in_state(GameState::InGame))
+            .run_if(resource_changed::<ShowTileGrid>())
         );
 
         #[cfg(not(feature = "debug"))]
         app.add_systems(
             Update,
-            update_tile_grid_opacity
-                .run_if(resource_equals(ShowTileGrid(true)))
+            systems::update_tile_grid_opacity
                 .run_if(in_state(GameState::InGame))
+                .run_if(resource_equals(ShowTileGrid(true)))
         );
 
         #[cfg(feature = "debug")] {
@@ -75,7 +70,7 @@ impl Plugin for CursorPlugin {
             use bevy::prelude::Res;
             app.add_systems(
                 Update,
-                update_tile_grid_opacity
+                systems::update_tile_grid_opacity
                     .run_if(in_state(GameState::InGame))
                     .run_if(resource_equals(ShowTileGrid(true)))
                     .run_if(|config: Res<DebugConfiguration>| !config.free_camera)

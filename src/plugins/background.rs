@@ -1,13 +1,13 @@
 use crate::{
-    parallax::{LayerData, LayerSpeed, follow_camera_system, ParallaxContainer, ParallaxCameraComponent},
+    parallax::{LayerData, LayerSpeed, ParallaxContainer, ParallaxCameraComponent, LayerComponent, LayerDataComponent},
     common::state::GameState, world::WorldData,
 };
 use bevy::{
-    prelude::{default, App, Commands, Plugin, Res, Vec2, Component, Query, Camera, With, OnExit, IntoSystemConfigs, Name, Entity, DespawnRecursiveExt, Assets, Image, Camera2dBundle, Camera2d, UiCameraConfig, in_state, PostUpdate},
+    prelude::{default, App, Commands, Plugin, Res, Vec2, Component, Query, Camera, With, OnExit, IntoSystemConfigs, Name, Entity, DespawnRecursiveExt, Assets, Image, Camera2dBundle, Camera2d, UiCameraConfig, in_state, PostUpdate, GlobalTransform, Transform},
     sprite::Anchor, core_pipeline::clear_color::ClearColorConfig, render::view::RenderLayers,
 };
 
-use super::{assets::BackgroundAssets, camera::{BackgroundCamera, CameraSet}, world::TILE_SIZE};
+use super::{assets::BackgroundAssets, camera::{components::BackgroundCamera, CameraSet}, world::constants::TILE_SIZE};
 
 pub(crate) const BACKGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(25);
 
@@ -62,6 +62,21 @@ fn despawn_menu_background(
     commands.entity(entity).despawn_recursive();
 }
 
+fn follow_camera_system(
+    query_parallax_camera: Query<&GlobalTransform, With<ParallaxCameraComponent>>,
+    mut query_layer: Query<(&mut Transform, &LayerComponent, &LayerDataComponent)>,
+) {    
+    if let Ok(camera_transform) = query_parallax_camera.get_single() {
+        for (mut layer_transform, layer, layer_data) in &mut query_layer {
+            let camera_translation = camera_transform.translation().truncate();
+            let new_translation = camera_translation + (layer_data.position - camera_translation) * layer.speed;
+
+            layer_transform.translation.x = new_translation.x;
+            layer_transform.translation.y = new_translation.y;
+        }
+    }
+}
+
 fn spawn_background_camera(
     mut commands: Commands
 ) {
@@ -105,7 +120,7 @@ fn setup_main_menu_background(
             LayerData {
                 speed: LayerSpeed::Horizontal(0.9),
                 image: backgrounds.background_7.clone_weak(),
-                z: 0.1,
+                z: 1.,
                 transition_factor: 1.,
                 position: Vec2::NEG_Y * pos,
                 scale: 1.5,
@@ -114,7 +129,7 @@ fn setup_main_menu_background(
             LayerData {
                 speed: LayerSpeed::Horizontal(0.8),
                 image: backgrounds.background_90.clone_weak(),
-                z: 1.0,
+                z: 2.0,
                 transition_factor: 1.,
                 position: Vec2::NEG_Y * pos - 200.,
                 scale: 1.5,
@@ -123,7 +138,7 @@ fn setup_main_menu_background(
             LayerData {
                 speed: LayerSpeed::Horizontal(0.7),
                 image: backgrounds.background_91.clone_weak(),
-                z: 2.0,
+                z: 3.0,
                 transition_factor: 1.,
                 position: Vec2::NEG_Y * pos - 300.,
                 scale: 1.5,
@@ -132,7 +147,7 @@ fn setup_main_menu_background(
             LayerData {
                 speed: LayerSpeed::Horizontal(0.6),
                 image: backgrounds.background_92.clone_weak(),
-                z: 3.0,
+                z: 4.0,
                 transition_factor: 1.,
                 position: Vec2::NEG_Y * pos - 400.,
                 scale: 1.5,
@@ -141,7 +156,7 @@ fn setup_main_menu_background(
             LayerData {
                 speed: LayerSpeed::Horizontal(0.7),
                 image: backgrounds.background_112.clone_weak(),
-                z: 4.0,
+                z: 5.0,
                 transition_factor: 1.,
                 scale: 1.2,
                 position: Vec2::NEG_Y * pos + 200.,

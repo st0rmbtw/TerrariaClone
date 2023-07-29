@@ -1,8 +1,8 @@
-use bevy::{prelude::{Commands, Res, NodeBundle, Name, BuildChildren, EventWriter, ResMut, Visibility, With, DetectChanges, Query, AudioBundle, PlaybackSettings}, ui::{Style, FlexDirection, Val, JustifyContent, AlignItems, UiRect}, utils::default};
+use bevy::{prelude::{Commands, Res, NodeBundle, Name, BuildChildren, EventWriter, ResMut, Visibility, With, Query, AudioBundle, PlaybackSettings}, ui::{Style, FlexDirection, Val, JustifyContent, AlignItems, UiRect}, utils::default};
 
 use crate::{plugins::{assets::{FontAssets, UiAssets, SoundAssets}, fps::spawn_fps_text, inventory::spawn_inventory_ui, settings::spawn_ingame_settings_button}, language::LanguageContent, common::helpers};
 
-use super::{MainUiContainer, ToggleExtraUiEvent, ExtraUiVisibility, UiVisibility};
+use super::{components::MainUiContainer, events::ToggleExtraUiEvent, resources::{ExtraUiVisibility, UiVisibility}};
 
 pub(crate) fn spawn_ui_container(
     mut commands: Commands,
@@ -113,9 +113,7 @@ pub(super) fn set_main_container_visibility(
     ui_visibility: Res<UiVisibility>,
     mut query: Query<&mut Visibility, With<MainUiContainer>>,
 ) {
-    if ui_visibility.is_changed() {
-        for mut visibility in &mut query {
-            helpers::set_visibility(&mut visibility, ui_visibility.0);
-        }
+    for mut visibility in &mut query {
+        helpers::set_visibility(&mut visibility, ui_visibility.0);
     }
 }

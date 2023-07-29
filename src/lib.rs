@@ -22,7 +22,7 @@ use parallax::ParallaxPlugin;
 use plugins::{
     assets::AssetsPlugin,
     background::BackgroundPlugin,
-    camera::{CameraPlugin, UpdateLightEvent},
+    camera::{CameraPlugin, events::UpdateLightEvent},
     cursor::CursorPlugin,
     fps::FpsPlugin,
     inventory::PlayerInventoryPlugin,
@@ -104,9 +104,11 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
             TilemapPlugin,
             AssetsPlugin,
             HanabiPlugin,
+            ParallaxPlugin,
+        ))
+        .add_plugins((
             CursorPlugin,
             CameraPlugin,
-            ParallaxPlugin,
             BackgroundPlugin,
             PlayerUiPlugin,
             MenuPlugin,
