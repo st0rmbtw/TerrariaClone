@@ -6,7 +6,7 @@ use rand::seq::SliceRandom;
 
 use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets, SoundAssets}, cursor::{components::Hoverable, resources::CursorPosition}, world::events::{DigBlockEvent, PlaceBlockEvent, SeedEvent, BreakBlockEvent}, player::{FaceDirection, Player, PlayerSpriteBody}}, common::{extensions::EntityCommandsExtensions, helpers}, language::LanguageContent, items::{Item, get_animation_points, ItemStack}, world::WorldData};
 
-use super::{Inventory, HOTBAR_LENGTH, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, CELL_COUNT_IN_ROW, INVENTORY_ROWS, HotbarUi, util::keycode_to_digit, SwingItemCooldown, ItemInHand, UseItemAnimationIndex, PlayerUsingItem, UseItemAnimationData, SwingItemCooldownMax, ITEM_ROTATION, SwingAnimation};
+use super::{Inventory, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, CELL_COUNT_IN_ROW, INVENTORY_ROWS, HotbarUi, util::keycode_to_digit, SwingItemCooldown, ItemInHand, UseItemAnimationIndex, PlayerUsingItem, UseItemAnimationData, SwingItemCooldownMax, ITEM_ROTATION, SwingAnimation};
 
 #[autodefault]
 pub(crate) fn spawn_inventory_ui(
@@ -16,52 +16,59 @@ pub(crate) fn spawn_inventory_ui(
     language_content: &LanguageContent
 ) -> Entity {
     commands
-        .spawn(NodeBundle {
-            style: Style {
-                flex_direction: FlexDirection::Column,
-                margin: UiRect {
-                    left: Val::Px(20.),
-                    top: Val::Px(5.),
-                }
-            },
-        })
-        .insert(Name::new("Inventory Container"))
+        .spawn((
+            Name::new("Inventory Container"),
+            NodeBundle {
+                style: Style {
+                    flex_direction: FlexDirection::Column,
+                    margin: UiRect {
+                        left: Val::Px(20.),
+                        top: Val::Px(5.),
+                    }
+                },
+            }
+        ))
         .with_children(|children| {
             // region: Selected Item Name
 
             children
-                .spawn(TextBundle {
-                    style: Style {
-                        margin: UiRect {
-                            ..UiRect::horizontal(Val::Px(10.))
+                .spawn((
+                    Name::new("Selected Item Name"),
+                    SelectedItemNameMarker,
+                    TextBundle {
+                        style: Style {
+                            margin: UiRect {
+                                ..UiRect::horizontal(Val::Px(10.))
+                            },
+                            align_self: AlignSelf::Center,
                         },
-                        align_self: AlignSelf::Center,
-                    },
-                    text: Text::from_section(
-                        language_content.ui.items.clone(),
-                        TextStyle {
-                            font: fonts.andy_bold.clone_weak(),
-                            font_size: 20.,
-                            color: Color::WHITE,
-                        },
-                    )
-                    .with_alignment(TextAlignment::Center),
-                })
-                .insert(Name::new("Selected Item Name"))
-                .insert(SelectedItemNameMarker);
+                        text: Text::from_section(
+                            language_content.ui.items.clone(),
+                            TextStyle {
+                                font: fonts.andy_bold.clone_weak(),
+                                font_size: 20.,
+                                color: Color::WHITE,
+                            },
+                        )
+                        .with_alignment(TextAlignment::Center),
+                    }
+                ));
 
             // endregion
 
             // region: Hotbar
 
             children
-                .spawn(NodeBundle {
-                    style: Style {
-                        align_items: AlignItems::Center,
-                        justify_content: JustifyContent::Center,
+                .spawn((
+                    Name::new("Hotbar"),
+                    HotbarUi,
+                    NodeBundle {
+                        style: Style {
+                            align_items: AlignItems::Center,
+                            justify_content: JustifyContent::Center,
+                        }
                     }
-                })
-                .insert(Name::new("Hotbar"))
+                ))
                 .with_children(|children| {
                     for i in 0..CELL_COUNT_IN_ROW {
                         spawn_inventory_cell(
@@ -73,8 +80,7 @@ pub(crate) fn spawn_inventory_ui(
                             fonts,
                         );
                     }
-                })
-                .insert(HotbarUi);
+                });
 
             // endregion
 
@@ -195,7 +201,7 @@ fn spawn_inventory_cell(
                         },
                         focus_policy: FocusPolicy::Pass,
                         text: Text::from_section(
-                            ((index + 1) % HOTBAR_LENGTH).to_string(),
+                            ((index + 1) % CELL_COUNT_IN_ROW).to_string(),
                             TextStyle {
                                 font: fonts.andy_bold.clone_weak(),
                                 font_size: 16.,
@@ -312,7 +318,7 @@ pub(super) fn scroll_select_inventory_item(
 ) {
     for event in events.iter() {
         let selected_item_index = inventory.selected_slot as f32;
-        let hotbar_length = HOTBAR_LENGTH as f32;
+        let hotbar_length = CELL_COUNT_IN_ROW as f32;
         let next_index = selected_item_index - event.y.signum();
         let new_index = ((next_index % hotbar_length) + hotbar_length) % hotbar_length;
 
@@ -379,11 +385,8 @@ pub(super) fn update_selected_item_name_text(
         text.sections[0].value = if extra_ui_visibility.0 {
             language_content.ui.inventory.clone()
         } else {
-            let name = current_item.0
-                .map(|item_stack| item_stack.item);
-
-            name
-                .map(|item| language_content.item_name(item))
+            current_item.0
+                .map(|item_stack| language_content.item_name(item_stack.item))
                 .unwrap_or(language_content.ui.items.clone())
         }
     }
@@ -471,7 +474,9 @@ pub(super) fn use_item(
             match item_stack.item {
                 Item::Tool(tool) => {
                     *use_cooldown = tool.use_cooldown();
-                    if !world_data.get_block(tile_pos).is_some_and(|b| b.check_required_tool(tool)) { return; }
+                    if !world_data.get_block(tile_pos).is_some_and(|b| b.check_required_tool(tool)) {
+                        return;
+                    }
                     
                     if instant_break {
                         break_block_events.send(BreakBlockEvent { tile_pos });    
@@ -517,11 +522,9 @@ pub(super) fn set_using_item_image(
     selected_item: Res<SelectedItem>,
     mut query_using_item: Query<&mut Handle<Image>, With<ItemInHand>>,
 ) {
-    if selected_item.is_changed() {
-        let mut image = query_using_item.single_mut();
-        if let Some(item_stack) = **selected_item {
-            *image = item_assets.get_by_item(item_stack.item);
-        }
+    let mut image = query_using_item.single_mut();
+    if let Some(item_stack) = **selected_item {
+        *image = item_assets.get_by_item(item_stack.item);
     }
 }
 
@@ -541,11 +544,12 @@ pub(super) fn set_using_item_position(
     query_player: Query<&FaceDirection, With<Player>>,
 ) {
     let mut transform = query_using_item.single_mut();
-    let direction = query_player.single();
+    let face_direction = query_player.single();
+    let direction = f32::from(face_direction);
 
     let position = get_animation_points()[**index];
 
-    transform.translation.x = position.x * f32::from(direction);
+    transform.translation.x = position.x * direction;
     transform.translation.y = position.y;
 }
 
@@ -555,17 +559,17 @@ pub(super) fn set_using_item_rotation(
     mut query_using_item: Query<&mut Transform, With<ItemInHand>>,
     query_player: Query<&FaceDirection, With<Player>>,
 ) {
-    let direction = query_player.single();
+    let face_direction = query_player.single();
     let mut transform = query_using_item.single_mut();
 
-    let direction_f = f32::from(direction);
+    let direction = f32::from(face_direction);
 
     // 0..1
     let rotation = (**swing_cooldown as f32) / (**swing_cooldown_max as f32);
     // -1..1
     let rotation = rotation * 2.0 - 1.;
 
-    let rotation = Quat::from_rotation_z(rotation * direction_f * ITEM_ROTATION + direction_f * 0.3);
+    let rotation = Quat::from_rotation_z(rotation * direction * ITEM_ROTATION + direction * 0.3);
 
     transform.rotation = rotation;
 }
@@ -600,6 +604,7 @@ pub(super) fn play_swing_sound(
     swing_cooldown: Res<SwingItemCooldown>,
     swing_cooldown_max: Res<SwingItemCooldownMax>
 ) {
+    println!("{}", **swing_cooldown);
     if **swing_cooldown == **swing_cooldown_max {
         if let Some(ItemStack { item: Item::Tool(_), .. }) = **selected_item {
             let sound = sound_assets.swing.choose(&mut rand::thread_rng()).unwrap();
@@ -629,7 +634,7 @@ pub(super) fn update_player_using_item(
             **swing_animation = true;
 
             true
-        } else{
+        } else {
             false
         }
     } else {

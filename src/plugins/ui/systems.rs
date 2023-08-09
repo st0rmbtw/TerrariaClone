@@ -106,7 +106,7 @@ pub(super) fn toggle_extra_ui_visibility(
 }
 
 pub(super) fn toggle_ui_visibility(mut ui_visibility: ResMut<UiVisibility>) {
-    ui_visibility.0 = !ui_visibility.0;
+    *ui_visibility = !*ui_visibility;
 }
 
 pub(super) fn set_main_container_visibility(
@@ -114,6 +114,6 @@ pub(super) fn set_main_container_visibility(
     mut query: Query<&mut Visibility, With<MainUiContainer>>,
 ) {
     for mut visibility in &mut query {
-        helpers::set_visibility(&mut visibility, ui_visibility.0);
+        helpers::set_visibility(&mut visibility, ui_visibility.is_visible());
     }
 }

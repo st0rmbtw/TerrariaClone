@@ -123,7 +123,7 @@ pub(super) fn update_lighting_material(
 ) {
     if let Ok((transform, proj, lighting_material_handle)) = cameras.get_single() {
         let camera_position = transform.translation().xy().abs();
-        let mut lighting_material = post_processing_materials
+        let lighting_material = post_processing_materials
             .get_mut(lighting_material_handle)
             .unwrap();
 
@@ -328,7 +328,7 @@ pub(super) fn set_shadow_map_visibility(
 ) {
     if debug_config.is_changed() {
         if let Ok(post_processing_material_handle) = query_camera.get_single() {
-            if let Some(mut material) = post_processing_materials.get_mut(post_processing_material_handle) {
+            if let Some(material) = post_processing_materials.get_mut(post_processing_material_handle) {
                 material.enabled = if debug_config.shadow_tiles { 1 } else { 0 };
             }
         }

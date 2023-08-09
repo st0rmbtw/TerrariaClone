@@ -20,7 +20,7 @@ impl Plugin for FpsPlugin {
             (
                 toggle_visibility::<FpsText>.run_if(input_just_pressed(KeyCode::F10)),
                 update_fps_text.run_if(
-                    resource_exists_and_equals(UiVisibility(true)).and_then(on_timer(Duration::from_secs(1)))
+                    resource_exists_and_equals(UiVisibility::VISIBLE).and_then(on_timer(Duration::from_secs(1)))
                 ),
             )
         );

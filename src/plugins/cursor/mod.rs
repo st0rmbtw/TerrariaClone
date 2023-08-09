@@ -31,14 +31,14 @@ impl Plugin for CursorPlugin {
             Update,
             systems::update_tile_grid_position
                 .run_if(in_state(GameState::InGame))
-                .run_if(resource_equals(UiVisibility(true)).and_then(resource_equals(ShowTileGrid(true))))
+                .run_if(resource_equals(UiVisibility::VISIBLE).and_then(resource_equals(ShowTileGrid(true))))
         );
 
         app.add_systems(
             Update,
             component_animator_system::<BackgroundColor>
                 .run_if(not(in_state(GameState::AssetLoading)))
-                .run_if(resource_equals(UiVisibility(true)))
+                .run_if(resource_equals(UiVisibility::VISIBLE))
                 .in_set(AnimationSystemSet::AnimationUpdate),
         );
 

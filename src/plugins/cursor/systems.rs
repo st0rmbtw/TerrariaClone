@@ -180,7 +180,7 @@ pub(super) fn set_visibility<C: Component>(
 ) {
     if ui_visibility.is_changed() {
         for mut visibility in &mut query {
-            helpers::set_visibility(&mut visibility, ui_visibility.0);
+            helpers::set_visibility(&mut visibility, ui_visibility.is_visible());
         }
     }
 }
