@@ -3,6 +3,12 @@ use bevy::prelude::Resource;
 #[derive(Resource, Clone, Copy, Default)]
 pub(crate) struct ExtraUiVisibility(pub bool);
 
+impl ExtraUiVisibility {
+    pub(crate) fn is_visible(&self) -> bool {
+        self.0
+    }
+}
+
 #[derive(Resource, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct UiVisibility(bool);
 

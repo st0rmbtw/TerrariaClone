@@ -1,10 +1,10 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveExt, Camera2dBundle, ChildBuilder, NodeBundle, BuildChildren, TextBundle, Button, Res, default, Changed, EventWriter, Color, ImageBundle, Transform, Quat, Vec3, NextState, ResMut, Visibility, Name, Camera2d, AudioBundle, PlaybackSettings}, text::{Text, TextStyle, TextSection}, ui::{Style, JustifyContent, AlignItems, UiRect, FocusPolicy, PositionType, Interaction, Val, FlexDirection, AlignSelf, UiImage}, app::AppExit, core_pipeline::clear_color::ClearColorConfig};
+use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveExt, Camera2dBundle, ChildBuilder, NodeBundle, BuildChildren, TextBundle, Button, Res, default, Changed, EventWriter, Color, ImageBundle, Transform, Quat, Vec3, NextState, ResMut, Visibility, Name, Camera2d}, text::{Text, TextStyle, TextSection}, ui::{Style, JustifyContent, AlignItems, UiRect, FocusPolicy, PositionType, Interaction, Val, FlexDirection, AlignSelf, UiImage}, app::AppExit, core_pipeline::clear_color::ClearColorConfig};
 use interpolation::EaseFunction;
 
-use crate::{animation::{Tween, Animator, AnimatorState, TweeningDirection, RepeatStrategy, Tweenable, EaseMethod, RepeatCount}, plugins::{camera::components::MainCamera, assets::{FontAssets, UiAssets, SoundAssets}, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor}, fps::FpsText,}, common::{state::{GameState, SettingsMenuState, MenuState}, lens::{TextFontSizeLens, TransformLens}}, language::LanguageContent};
+use crate::{animation::{Tween, Animator, AnimatorState, TweeningDirection, RepeatStrategy, Tweenable, EaseMethod, RepeatCount}, plugins::{camera::components::MainCamera, assets::{FontAssets, UiAssets}, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor}, fps::FpsText, audio::{PlaySoundEvent, SoundType},}, common::{state::{GameState, SettingsMenuState, MenuState}, lens::{TextFontSizeLens, TransformLens}}, language::LanguageContent};
 use super::{Menu, SinglePlayerButton, SettingsButton, ExitButton, MenuContainer, role::ButtonRole, settings::MENU_BUTTON_FONT_SIZE, TEXT_COLOR, DespawnOnMenuExit};
 
 pub(super) fn despawn_with<C: Component>(query: Query<Entity, With<C>>, mut commands: Commands) {
@@ -269,20 +269,16 @@ pub(super) fn setup_main_menu(
 }
 
 pub(super) fn update_buttons(
-    mut commands: Commands,
     mut query: Query<
         (&Interaction, &mut Text, &mut Animator<Text>, &ButtonRole),
         (With<Button>, Changed<Interaction>),
     >,
-    sound_assets: Res<SoundAssets>
+    mut play_sound: EventWriter<PlaySoundEvent>
 ) {
     for (interaction, mut text, mut animator, role) in query.iter_mut() {
         match interaction {
             Interaction::Hovered => {
-                commands.spawn(AudioBundle {
-                    source: sound_assets.menu_tick.clone_weak(),
-                    settings: PlaybackSettings::DESPAWN
-                });
+                play_sound.send(PlaySoundEvent(SoundType::MenuTick));
 
                 text.sections[0].style.color = Color::YELLOW;
 
@@ -301,13 +297,11 @@ pub(super) fn update_buttons(
             }
             Interaction::Pressed => {
                 let sound = match role {
-                    ButtonRole::MenuButton => &sound_assets.menu_open,
-                    ButtonRole::ControlButton => &sound_assets.menu_close,
+                    ButtonRole::MenuButton => SoundType::MenuOpen,
+                    ButtonRole::ControlButton => SoundType::MenuClose,
                 };
-                commands.spawn(AudioBundle {
-                    source: sound.clone_weak(),
-                    settings: PlaybackSettings::DESPAWN
-                });
+
+                play_sound.send(PlaySoundEvent(sound));
             }
         }
     }

@@ -8,7 +8,7 @@ use animation::TweeningPlugin;
 use bevy::{
     log::{Level, LogPlugin},
     prelude::{
-        default, App, AssetPlugin, ClearColor, Color, FixedTime, ImagePlugin, Msaa, PluginGroup, UVec2, GizmoConfig, Res, Resource, ResMut,
+        default, App, AssetPlugin, ClearColor, Color, FixedTime, ImagePlugin, Msaa, PluginGroup, UVec2, GizmoConfig,
     },
     window::{Cursor, MonitorSelection, Window, WindowPlugin, WindowPosition, WindowResolution},
     DefaultPlugins, asset::ChangeWatcher
@@ -30,7 +30,7 @@ use plugins::{
     player::PlayerPlugin,
     settings::{FullScreen, Resolution, SettingsPlugin, VSync},
     ui::PlayerUiPlugin,
-    world::WorldPlugin,
+    world::WorldPlugin, audio::AudioPlugin,
 };
 use rand::seq::SliceRandom;
 
@@ -107,6 +107,7 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
             ParallaxPlugin,
         ))
         .add_plugins((
+            AudioPlugin,
             CursorPlugin,
             CameraPlugin,
             BackgroundPlugin,

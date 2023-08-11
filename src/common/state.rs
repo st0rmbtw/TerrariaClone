@@ -10,22 +10,6 @@ pub(crate) enum GameState {
     Paused
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd)]
-pub(crate) enum MenuState {
-    Main,
-    Settings(SettingsMenuState)
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, PartialOrd)]
-pub(crate) enum SettingsMenuState {
-    #[default]
-    Main,
-    Interface,
-    Video,
-    Resolution,
-    Cursor,
-}
-
 impl States for GameState {
     type Iter = std::array::IntoIter<GameState, 10>;
 
@@ -42,6 +26,21 @@ impl States for GameState {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd)]
+pub(crate) enum MenuState {
+    Main,
+    Settings(SettingsMenuState)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, PartialOrd)]
+pub(crate) enum SettingsMenuState {
+    #[default]
+    Main,
+    Interface,
+    Video,
+    Resolution,
+    Cursor,
+}
 
 #[derive(Default, Clone, Copy, PartialEq, Eq, Component)]
 #[cfg_attr(feature = "debug", derive(bevy_inspector_egui::InspectorOptions))]

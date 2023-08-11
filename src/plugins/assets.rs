@@ -8,13 +8,15 @@ use bevy::{
     text::Font,
 };
 use bevy_asset_loader::prelude::{AssetCollection, LoadingState, LoadingStateAppExt};
-use rand::RngCore;
+use rand::{RngCore, thread_rng};
 use rand::seq::SliceRandom;
 
 use crate::items::{Item, Pickaxe, Tool, Axe, Seed};
 use crate::common::state::{GameState, MenuState};
 use crate::world::block::BlockType;
 use crate::world::wall::Wall;
+
+use super::audio::SoundType;
 
 macro_rules! handles {
     (
@@ -394,7 +396,18 @@ impl BlockAssets {
 }
 
 impl SoundAssets {
-    pub(crate) fn get_by_block<Rng: RngCore>(&self, block: BlockType, rng: &mut Rng) -> Handle<AudioSource> {
+    pub(crate) fn get_handle_by_sound_type(&self, sound_type: SoundType) -> Handle<AudioSource> {
+        match sound_type {
+            SoundType::MenuTick => self.menu_tick.clone_weak(),
+            SoundType::MenuOpen => self.menu_open.clone_weak(),
+            SoundType::MenuClose => self.menu_close.clone_weak(),
+            SoundType::BlockHit(block_type) => self.get_by_block(block_type, &mut thread_rng()),
+            SoundType::BlockPlace(block_type) => self.get_by_block(block_type, &mut thread_rng()),
+            SoundType::ToolSwing(_tool) => self.swing.choose(&mut thread_rng()).unwrap().clone_weak(),
+        }
+    }
+    
+    fn get_by_block<Rng: RngCore>(&self, block: BlockType, rng: &mut Rng) -> Handle<AudioSource> {
         match block {
             BlockType::Stone => self.tink.choose(rng).unwrap().clone_weak(),
             _ => self.dig.choose(rng).unwrap().clone_weak()

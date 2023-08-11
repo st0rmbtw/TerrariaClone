@@ -4,7 +4,7 @@ use bevy::{
     prelude::{
         EventReader, ResMut, Query, Commands, EventWriter, Entity, BuildChildren, Transform, 
         default, SpatialBundle, DespawnRecursiveExt, OrthographicProjection, Changed, 
-        GlobalTransform, With, Res, UVec2, NextState, Vec2, Name, AudioBundle, PlaybackSettings
+        GlobalTransform, With, Res, UVec2, NextState, Vec2, Name
     }, 
     math::Vec3Swizzles
 };
@@ -18,9 +18,8 @@ use bevy_ecs_tilemap::{
     }, 
     TilemapBundle, helpers::square_grid::neighbors::Neighbors
 };
-use rand::{thread_rng, seq::SliceRandom};
 
-use crate::{plugins::{assets::{BlockAssets, WallAssets, SoundAssets}, camera::{components::MainCamera, events::UpdateLightEvent}, player::{Player, PlayerRect}}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}};
+use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::{components::MainCamera, events::UpdateLightEvent}, player::{Player, PlayerRect}, audio::{PlaySoundEvent, SoundType}}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}};
 
 use super::{
     utils::{get_chunk_pos, get_camera_fov, get_chunk_tile_pos, get_chunk_range_by_camera_fov}, 
@@ -330,16 +329,14 @@ pub(super) fn spawn_chunk(
 
 pub(super) fn handle_break_block_event(
     mut commands: Commands,
-    mut world_data: ResMut<WorldData>,
-    mut break_block_events: EventReader<BreakBlockEvent>,
-    mut update_light_events: EventWriter<UpdateLightEvent>,
-    mut update_neighbors_ew: EventWriter<UpdateNeighborsEvent>,
     mut query_chunk: Query<(&Chunk, &mut TileStorage)>,
-    sound_assets: Res<SoundAssets>,
+    mut world_data: ResMut<WorldData>,
+    mut break_block: EventReader<BreakBlockEvent>,
+    mut update_light: EventWriter<UpdateLightEvent>,
+    mut update_neighbors: EventWriter<UpdateNeighborsEvent>,
+    mut play_sound: EventWriter<PlaySoundEvent>
 ) {
-    let mut rng = thread_rng();
-
-    for &BreakBlockEvent { tile_pos } in break_block_events.iter() {
+    for &BreakBlockEvent { tile_pos } in break_block.iter() {
         if let Some(&block) = world_data.get_block(tile_pos) {
             if let BlockType::Tree(_) = block.block_type {
                 break_tree(&mut commands, &mut query_chunk, tile_pos, &mut world_data, false);
@@ -348,29 +345,22 @@ pub(super) fn handle_break_block_event(
 
                 ChunkManager::remove_block(&mut commands, &mut query_chunk, tile_pos, block.block_type);
 
-                update_light_events.send(UpdateLightEvent);
+                update_light.send(UpdateLightEvent);
             }
 
-            commands.spawn(AudioBundle {
-                source: sound_assets.get_by_block(block.block_type, &mut rng),
-                settings: PlaybackSettings::DESPAWN
-            });
-
-            update_neighbors_ew.send(UpdateNeighborsEvent { tile_pos });
+            play_sound.send(PlaySoundEvent(SoundType::BlockHit(block.block_type)));
+            update_neighbors.send(UpdateNeighborsEvent { tile_pos });
         }
     }
 }
 
 pub(super) fn handle_dig_block_event(
-    mut commands: Commands,
     mut world_data: ResMut<WorldData>,
     mut break_block_events: EventWriter<BreakBlockEvent>,
     mut update_block_events: EventWriter<UpdateBlockEvent>,
     mut dig_block_events: EventReader<DigBlockEvent>,
-    sound_assets: Res<SoundAssets>,
+    mut play_sound: EventWriter<PlaySoundEvent>
 ) {
-    let mut rng = thread_rng();
-
     for &DigBlockEvent { tile_pos, tool } in dig_block_events.iter() {
         if let Some(block) = world_data.get_block_mut(tile_pos) {
             block.hp -= tool.power();
@@ -378,10 +368,7 @@ pub(super) fn handle_dig_block_event(
             if block.hp <= 0 {
                 break_block_events.send(BreakBlockEvent { tile_pos });
             } else {
-                commands.spawn(AudioBundle {
-                    source: sound_assets.get_by_block(block.block_type, &mut rng),
-                    settings: PlaybackSettings::DESPAWN
-                });
+                play_sound.send(PlaySoundEvent(SoundType::BlockHit(block.block_type)));
                 
                 if block.block_type == BlockType::Grass {
                     block.block_type = BlockType::Dirt;
@@ -399,17 +386,17 @@ pub(super) fn handle_dig_block_event(
 
 pub(super) fn handle_place_block_event(
     mut commands: Commands,
-    mut world_data: ResMut<WorldData>,
-    mut place_block_events: EventReader<PlaceBlockEvent>,
-    mut update_light_events: EventWriter<UpdateLightEvent>,
-    mut update_neighbors_events: EventWriter<UpdateNeighborsEvent>,
-    mut query_chunk: Query<(&Chunk, &mut TileStorage, Entity)>,
     query_player: Query<&PlayerRect, With<Player>>,
-    sound_assets: Res<SoundAssets>,
+    mut query_chunk: Query<(&Chunk, &mut TileStorage, Entity)>,
+    mut world_data: ResMut<WorldData>,
+    mut place_block: EventReader<PlaceBlockEvent>,
+    mut update_light: EventWriter<UpdateLightEvent>,
+    mut update_neighbors: EventWriter<UpdateNeighborsEvent>,
+    mut play_sound: EventWriter<PlaySoundEvent>
 ) {
     let player_rect = query_player.single();
 
-    for &PlaceBlockEvent { tile_pos, block } in place_block_events.iter() {
+    for &PlaceBlockEvent { tile_pos, block } in place_block.iter() {
         if world_data.block_exists(tile_pos) { continue; }
 
         // Forbid to place a block inside the player 
@@ -429,13 +416,9 @@ pub(super) fn handle_place_block_event(
 
         ChunkManager::spawn_block(&mut commands, &mut query_chunk, tile_pos, &block, index);
 
-        update_neighbors_events.send(UpdateNeighborsEvent { tile_pos });
-        update_light_events.send(UpdateLightEvent);
-
-        commands.spawn(AudioBundle {
-            source: sound_assets.get_by_block(block.block_type, &mut thread_rng()),
-            settings: PlaybackSettings::DESPAWN
-        });
+        update_neighbors.send(UpdateNeighborsEvent { tile_pos });
+        update_light.send(UpdateLightEvent);
+        play_sound.send(PlaySoundEvent(SoundType::BlockHit(block.block_type)));
     }
 }
 
@@ -492,27 +475,21 @@ pub(super) fn handle_update_block_event(
 }
 
 pub(super) fn handle_seed_event(
-    mut commands: Commands,
     mut seed_events: EventReader<SeedEvent>,
     mut update_block_events: EventWriter<UpdateBlockEvent>,
     mut world_data: ResMut<WorldData>,
-    sound_assets: Res<SoundAssets>,
+    mut play_sound: EventWriter<PlaySoundEvent>
 ) {
-    let mut rng = thread_rng();
-
     for &SeedEvent { tile_pos: world_pos, seed } in seed_events.iter() {
         if let Some(block) = world_data.get_block_with_type_mut(world_pos, BlockType::Dirt) {
+            play_sound.send(PlaySoundEvent(SoundType::BlockPlace(block.block_type)));
+            
             block.block_type = seed.seeded_dirt();
 
             update_block_events.send(UpdateBlockEvent { 
                 tile_pos: world_pos,
                 block_type: block.block_type,
                 update_neighbors: true
-            });
-
-            commands.spawn(AudioBundle {
-                source: sound_assets.dig.choose(&mut rng).unwrap().clone_weak(),
-                settings: PlaybackSettings::DESPAWN
             });
         }
     }

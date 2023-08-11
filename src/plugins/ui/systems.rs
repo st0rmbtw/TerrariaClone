@@ -1,6 +1,6 @@
-use bevy::{prelude::{Commands, Res, NodeBundle, Name, BuildChildren, EventWriter, ResMut, Visibility, With, Query, AudioBundle, PlaybackSettings}, ui::{Style, FlexDirection, Val, JustifyContent, AlignItems, UiRect}, utils::default};
+use bevy::{prelude::{Commands, Res, NodeBundle, Name, BuildChildren, EventWriter, ResMut, Visibility, With, Query}, ui::{Style, FlexDirection, Val, JustifyContent, AlignItems, UiRect}, utils::default};
 
-use crate::{plugins::{assets::{FontAssets, UiAssets, SoundAssets}, fps::spawn_fps_text, inventory::spawn_inventory_ui, settings::spawn_ingame_settings_button}, language::LanguageContent, common::helpers};
+use crate::{plugins::{assets::{FontAssets, UiAssets}, fps::spawn_fps_text, inventory::spawn_inventory_ui, settings::spawn_ingame_settings_button, audio::{PlaySoundEvent, SoundType}}, language::LanguageContent, common::helpers};
 
 use super::{components::MainUiContainer, events::ToggleExtraUiEvent, resources::{ExtraUiVisibility, UiVisibility}};
 
@@ -89,20 +89,19 @@ pub(crate) fn spawn_ui_container(
 }
 
 pub(super) fn toggle_extra_ui_visibility(
-    mut commands: Commands,
-    mut events: EventWriter<ToggleExtraUiEvent>,
     mut visibility: ResMut<ExtraUiVisibility>,
-    sounds: Res<SoundAssets>,
+    mut toggle_extra_ui: EventWriter<ToggleExtraUiEvent>,
+    mut play_sound: EventWriter<PlaySoundEvent>
 ) {
-    visibility.0 = !visibility.0;
-    events.send(ToggleExtraUiEvent(visibility.0));
+    visibility.0 = !visibility.is_visible();
+    toggle_extra_ui.send(ToggleExtraUiEvent(visibility.0));
 
-    let sound = if visibility.0 { &sounds.menu_open } else { &sounds.menu_close };
+    let sound = match visibility.is_visible() {
+        true => SoundType::MenuOpen,
+        false => SoundType::MenuClose,
+    };
 
-    commands.spawn(AudioBundle {
-        source: sound.clone_weak(),
-        settings: PlaybackSettings::DESPAWN
-    });
+    play_sound.send(PlaySoundEvent(sound));
 }
 
 pub(super) fn toggle_ui_visibility(mut ui_visibility: ResMut<UiVisibility>) {

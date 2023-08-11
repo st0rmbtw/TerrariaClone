@@ -9,6 +9,7 @@ pub(crate) mod settings;
 pub(crate) mod camera;
 pub(crate) mod ui;
 pub(crate) mod world;
+pub(crate) mod audio;
 
 #[cfg(feature = "debug")]
 pub(crate) mod debug;

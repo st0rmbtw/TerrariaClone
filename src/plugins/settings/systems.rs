@@ -1,9 +1,9 @@
 use std::time::Duration;
 
-use bevy::{prelude::{Query, Visibility, With, EventReader, Name, Color, TextBundle, Entity, Commands, NodeBundle, BuildChildren, Changed, Res, PlaybackSettings, AudioBundle}, ui::{Interaction, Style, UiRect, Val, AlignItems, JustifyContent}, text::{TextAlignment, TextStyle, Text}, utils::default};
+use bevy::{prelude::{Query, Visibility, With, EventReader, Name, Color, TextBundle, Entity, Commands, NodeBundle, BuildChildren, Changed, EventWriter}, ui::{Interaction, Style, UiRect, Val, AlignItems, JustifyContent}, text::{TextAlignment, TextStyle, Text}, utils::default};
 use interpolation::EaseFunction;
 
-use crate::{plugins::{ui::ToggleExtraUiEvent, assets::{FontAssets, SoundAssets}}, animation::{Animator, Tween, TweeningDirection, RepeatStrategy, Tweenable}, language::LanguageContent, common::{lens::TextFontSizeLens, helpers}};
+use crate::{plugins::{ui::ToggleExtraUiEvent, assets::FontAssets, audio::{PlaySoundEvent, SoundType}}, animation::{Animator, Tween, TweeningDirection, RepeatStrategy, Tweenable}, language::LanguageContent, common::{lens::TextFontSizeLens, helpers}};
 
 use super::{SettingsButtonContainer, SettingsButtonText};
 
@@ -73,20 +73,16 @@ pub(super) fn set_btn_visibility(
 }
 
 pub(super) fn update(
-    mut commands: Commands,
     mut query: Query<
         (&Interaction, &mut Animator<Text>),
         (With<SettingsButtonText>, Changed<Interaction>),
     >,
-    sound_assets: Res<SoundAssets>
+    mut play_sound: EventWriter<PlaySoundEvent>
 ) {
     for (interaction, mut animator) in query.iter_mut() {
         match interaction {
             Interaction::Hovered => {
-                commands.spawn(AudioBundle {
-                    source: sound_assets.menu_tick.clone_weak(),
-                    settings: PlaybackSettings::DESPAWN
-                });
+                play_sound.send(PlaySoundEvent(SoundType::MenuTick));
 
                 animator.start();
 

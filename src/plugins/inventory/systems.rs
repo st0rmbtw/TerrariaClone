@@ -1,10 +1,9 @@
 use std::borrow::Cow;
 
 use autodefault::autodefault;
-use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color, MouseButton, EventWriter, DetectChanges, Local, Transform, Quat, DetectChangesMut, AudioBundle, PlaybackSettings}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, PositionType, AlignContent, Interaction, BackgroundColor, ZIndex}, text::{Text, TextStyle, TextAlignment}, sprite::TextureAtlasSprite, utils::default};
-use rand::seq::SliceRandom;
+use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color, MouseButton, EventWriter, DetectChanges, Local, Transform, Quat, DetectChangesMut}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, PositionType, AlignContent, Interaction, BackgroundColor, ZIndex}, text::{Text, TextStyle, TextAlignment}, sprite::TextureAtlasSprite, utils::default};
 
-use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets, SoundAssets}, cursor::{components::Hoverable, resources::CursorPosition}, world::events::{DigBlockEvent, PlaceBlockEvent, SeedEvent, BreakBlockEvent}, player::{FaceDirection, Player, PlayerSpriteBody}}, common::{extensions::EntityCommandsExtensions, helpers}, language::LanguageContent, items::{Item, get_animation_points, ItemStack}, world::WorldData};
+use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets}, cursor::{components::Hoverable, resources::CursorPosition}, world::events::{DigBlockEvent, PlaceBlockEvent, SeedEvent, BreakBlockEvent}, player::{FaceDirection, Player, PlayerSpriteBody}, audio::{PlaySoundEvent, SoundType}}, common::{extensions::EntityCommandsExtensions, helpers}, language::LanguageContent, items::{Item, get_animation_points, ItemStack}, world::WorldData};
 
 use super::{Inventory, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, CELL_COUNT_IN_ROW, INVENTORY_ROWS, HotbarUi, util::keycode_to_digit, SwingItemCooldown, ItemInHand, UseItemAnimationIndex, PlayerUsingItem, UseItemAnimationData, SwingItemCooldownMax, ITEM_ROTATION, SwingAnimation};
 
@@ -293,30 +292,25 @@ pub(super) fn update_selected_cell_image(
 }
 
 pub(super) fn select_inventory_cell(
-    mut commands: Commands,
-    mut inventory: ResMut<Inventory>, 
     input: Res<Input<KeyCode>>,
-    sound_assets: Res<SoundAssets>
+    mut inventory: ResMut<Inventory>, 
+    mut play_sound: EventWriter<PlaySoundEvent>
 ) {
     let digit = input
         .get_just_pressed()
         .find_map(keycode_to_digit);
 
     if digit.is_some_and(|i| inventory.select_item(i)) {
-        commands.spawn(AudioBundle {
-            source: sound_assets.menu_tick.clone_weak(),
-            settings: PlaybackSettings::DESPAWN
-        });
+        play_sound.send(PlaySoundEvent(SoundType::MenuTick));
     }
 }
 
 pub(super) fn scroll_select_inventory_item(
-    mut commands: Commands,
     mut inventory: ResMut<Inventory>, 
-    mut events: EventReader<MouseWheel>,
-    sound_assets: Res<SoundAssets>
+    mut mouse_wheel: EventReader<MouseWheel>,
+    mut play_sound: EventWriter<PlaySoundEvent>
 ) {
-    for event in events.iter() {
+    for event in mouse_wheel.iter() {
         let selected_item_index = inventory.selected_slot as f32;
         let hotbar_length = CELL_COUNT_IN_ROW as f32;
         let next_index = selected_item_index - event.y.signum();
@@ -324,10 +318,7 @@ pub(super) fn scroll_select_inventory_item(
 
         inventory.select_item(new_index as usize);
 
-        commands.spawn(AudioBundle {
-            source: sound_assets.menu_tick.clone_weak(),
-            settings: PlaybackSettings::DESPAWN
-        });
+        play_sound.send(PlaySoundEvent(SoundType::MenuTick));
     }
 }
 
@@ -598,20 +589,14 @@ pub(super) fn update_sprite_index(
 }
 
 pub(super) fn play_swing_sound(
-    mut commands: Commands,
     selected_item: Res<SelectedItem>,
-    sound_assets: Res<SoundAssets>,
     swing_cooldown: Res<SwingItemCooldown>,
-    swing_cooldown_max: Res<SwingItemCooldownMax>
+    swing_cooldown_max: Res<SwingItemCooldownMax>,
+    mut play_sound: EventWriter<PlaySoundEvent>
 ) {
-    println!("{}", **swing_cooldown);
     if **swing_cooldown == **swing_cooldown_max {
-        if let Some(ItemStack { item: Item::Tool(_), .. }) = **selected_item {
-            let sound = sound_assets.swing.choose(&mut rand::thread_rng()).unwrap();
-            commands.spawn(AudioBundle {
-                source: sound.clone_weak(),
-                settings: PlaybackSettings::DESPAWN,
-            });
+        if let Some(ItemStack { item: Item::Tool(tool), .. }) = **selected_item {
+            play_sound.send(PlaySoundEvent(SoundType::ToolSwing(tool)));
         }
     }
 }
