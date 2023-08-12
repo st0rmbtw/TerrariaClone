@@ -10,6 +10,15 @@ pub(crate) enum GameState {
     Paused
 }
 
+impl GameState {
+    pub(crate) fn back(&self) -> GameState {
+        match self {
+            GameState::Menu(menu_state) => GameState::Menu(menu_state.back()),
+            _ => *self
+        }
+    }
+}
+
 impl States for GameState {
     type Iter = std::array::IntoIter<GameState, 10>;
 
@@ -30,6 +39,19 @@ impl States for GameState {
 pub(crate) enum MenuState {
     Main,
     Settings(SettingsMenuState)
+}
+
+impl MenuState {
+    pub(crate) fn back(&self) -> MenuState {
+        match &self {
+            MenuState::Main => MenuState::Main,
+            MenuState::Settings(SettingsMenuState::Main) => MenuState::Main,
+            MenuState::Settings(SettingsMenuState::Video) => MenuState::Settings(SettingsMenuState::Main),
+            MenuState::Settings(SettingsMenuState::Interface) => MenuState::Settings(SettingsMenuState::Main),
+            MenuState::Settings(SettingsMenuState::Cursor) => MenuState::Settings(SettingsMenuState::Main),
+            MenuState::Settings(SettingsMenuState::Resolution) => MenuState::Settings(SettingsMenuState::Video),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, PartialOrd)]

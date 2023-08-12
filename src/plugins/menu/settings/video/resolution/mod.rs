@@ -1,5 +1,5 @@
 use autodefault::autodefault;
-use bevy::{prelude::{Component, Commands, Res, ResMut, Query, With, Local, NextState, Entity, Plugin, App, OnEnter, OnExit,IntoSystemConfigs, in_state, Update}, text::{TextStyle, Text}, window::{Window, WindowResolution}};
+use bevy::{prelude::{Component, Commands, Res, ResMut, Query, With, Local, Entity, Plugin, App, OnEnter, OnExit,IntoSystemConfigs, in_state, Update, EventWriter}, text::{TextStyle, Text}, window::{Window, WindowResolution}};
 
 use crate::{
     language::LanguageContent,
@@ -8,7 +8,7 @@ use crate::{
         assets::FontAssets, 
         menu::{
             menu_button, control_buttons_layout, control_button, menu, MenuContainer,
-            settings::{BackButton, ApplyButton, MENU_BUTTON_FONT_SIZE}, despawn_with, TEXT_COLOR
+            settings::MENU_BUTTON_FONT_SIZE, despawn_with, TEXT_COLOR, ApplyButton, BackButton, BackEvent
         }, 
         settings::{FullScreen, Resolution, RESOLUTIONS}
     }, 
@@ -34,7 +34,6 @@ impl Plugin for ResolutionMenuPlugin {
                 fullscreen_resolution_clicked.run_if(on_btn_clicked::<FullScreenResolutionButton>),
                 fullscreen_clicked.run_if(on_btn_clicked::<FullScreenButton>),
                 apply_clicked.run_if(on_btn_clicked::<ApplyButton>),
-                back_clicked.run_if(on_btn_clicked::<BackButton>),
             )
             .run_if(in_state(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution))))
         );
@@ -89,12 +88,8 @@ fn fullscreen_clicked(mut fullscreen: ResMut<FullScreen>) {
     fullscreen.0 = !fullscreen.0;
 }
 
-fn back_clicked(mut next_state: ResMut<NextState<GameState>>) {
-    next_state.set(GameState::Menu(MenuState::Settings(SettingsMenuState::Video)));
-}
-
 fn apply_clicked(
-    mut next_state: ResMut<NextState<GameState>>,
+    mut back_events: EventWriter<BackEvent>,
     mut window: Query<&mut Window>,
     fullscreen: Res<FullScreen>,
     resolution: Res<Resolution>
@@ -103,7 +98,7 @@ fn apply_clicked(
     primary_window.mode = fullscreen.as_window_mode();
     primary_window.resolution = WindowResolution::new(resolution.width, resolution.height);
     
-    next_state.set(GameState::Menu(MenuState::Settings(SettingsMenuState::Video)));
+    back_events.send(BackEvent);
 }
 
 fn update_fullscreen_resolution_button_text(

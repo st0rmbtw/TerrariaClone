@@ -399,6 +399,8 @@ pub(super) fn handle_place_block_event(
     for &PlaceBlockEvent { tile_pos, block } in place_block.iter() {
         if world_data.block_exists(tile_pos) { continue; }
 
+        let new_block = Block::new(block);
+
         // Forbid to place a block inside the player 
         {
             let Vec2 { x, y } = tile_pos_to_world_coords(tile_pos);
@@ -406,19 +408,19 @@ pub(super) fn handle_place_block_event(
             if player_rect.intersects(&tile_rect) { continue; }
         }
         
-        world_data.set_block(tile_pos, &block);
+        world_data.set_block(tile_pos, &new_block);
 
         let neighbors = world_data
             .get_block_neighbors(tile_pos, block.is_solid())
             .map_ref(|b| b.block_type);
         
-        let index = Block::get_sprite_index(&neighbors, block.block_type);
+        let index = Block::get_sprite_index(&neighbors, block);
 
-        ChunkManager::spawn_block(&mut commands, &mut query_chunk, tile_pos, &block, index);
+        ChunkManager::spawn_block(&mut commands, &mut query_chunk, tile_pos, &new_block, index);
 
         update_neighbors.send(UpdateNeighborsEvent { tile_pos });
         update_light.send(UpdateLightEvent);
-        play_sound.send(PlaySoundEvent(SoundType::BlockHit(block.block_type)));
+        play_sound.send(PlaySoundEvent(SoundType::BlockHit(block)));
     }
 }
 

@@ -371,7 +371,7 @@ impl ItemAssets {
     pub(crate) fn get_by_item(&self, item: Item) -> Handle<Image> {
         match item {
             Item::Block(block) => {
-                match block.block_type {
+                match block {
                     BlockType::Dirt => self.dirt_block.clone_weak(),
                     BlockType::Stone => self.stone_block.clone_weak(),
                     _ => default()
@@ -403,7 +403,7 @@ impl SoundAssets {
             SoundType::MenuClose => self.menu_close.clone_weak(),
             SoundType::BlockHit(block_type) => self.get_by_block(block_type, &mut thread_rng()),
             SoundType::BlockPlace(block_type) => self.get_by_block(block_type, &mut thread_rng()),
-            SoundType::ToolSwing(_tool) => self.swing.choose(&mut thread_rng()).unwrap().clone_weak(),
+            SoundType::PlayerToolSwing(_tool) => self.swing.choose(&mut thread_rng()).unwrap().clone_weak(),
         }
     }
     
@@ -426,7 +426,7 @@ fn setup(
     handles.append(&mut background_assets.handles());
 
     for handle in handles.iter() {
-        let mut image = images.get_mut(handle).unwrap();
+        let image = images.get_mut(handle).unwrap();
 
         image.sampler_descriptor = ImageSampler::linear();
     }

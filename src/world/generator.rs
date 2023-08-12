@@ -11,7 +11,6 @@ use simdnoise::NoiseBuilder;
 use crate::common::math::map_range_f32;
 use crate::world::block::BlockType;
 
-use super::block::Block;
 use super::wall::Wall;
 use super::tree::{TreeType, TreeFrameType};
 use super::{WorldSize, WorldData, Layer, BlockArray, WallArray, AsWorldPos};
@@ -91,11 +90,11 @@ fn spawn_terrain(world: &mut WorldData) {
         }
 
         if y >= world.layer.underground - world.layer.dirt_height {
-            *block = Some(Block::Dirt);
+            *block = Some(BlockType::Dirt.into());
         }
 
         if y >= world.layer.underground {
-            *block = Some(Block::Stone);
+            *block = Some(BlockType::Stone.into());
         }
     }
 }
@@ -123,7 +122,7 @@ fn make_hills(world: &mut WorldData, seed: u32) {
         let noise_value = fbm[i] * gradient[i];
 
         let hill_height = level - (noise_value * DIRT_HILL_HEIGHT as f32) as usize;
-        world.blocks.slice_mut(s![hill_height..level, block_x]).fill(Some(Block::Dirt));
+        world.blocks.slice_mut(s![hill_height..level, block_x]).fill(Some(BlockType::Dirt.into()));
     }
 }
 
@@ -155,9 +154,9 @@ fn rough_cavern_layer_border(world: &mut WorldData, seed: u32) {
         let hill_height = level - (noise_value.abs() * ROUGHNESS) as usize;
         
         if block_x != x_offset {
-            world.blocks.slice_mut(s![level..hill_height, x_range]).fill(Some(Block::Dirt));
+            world.blocks.slice_mut(s![level..hill_height, x_range]).fill(Some(BlockType::Dirt.into()));
         } else {
-            world.blocks.slice_mut(s![level..hill_height, block_x]).fill(Some(Block::Dirt));
+            world.blocks.slice_mut(s![level..hill_height, block_x]).fill(Some(BlockType::Dirt.into()));
         }
     }
 }
@@ -209,6 +208,7 @@ fn generate_dirt(world: &mut WorldData, seed: u32, from: usize, to: usize, freq:
         .generate_scaled(0., 1.);
 
     for ((y, x), block) in slice.indexed_iter_mut() {
+        let block_type = block.map(|b| b.block_type);
         let index = (y * world.size.width) + x;
 
         let a = map_range_f32(0., height as f32, min_prevalence, max_prevalence, y as f32);
@@ -216,8 +216,8 @@ fn generate_dirt(world: &mut WorldData, seed: u32, from: usize, to: usize, freq:
         let noise_value = noise[index];
 
         if noise_value >= a {
-            if let Some(Block::Stone) = block {
-                *block = Some(Block::Dirt);
+            if let Some(BlockType::Stone) = block_type {
+                *block = Some(BlockType::Dirt.into());
             }
         }
     }
@@ -244,7 +244,7 @@ fn generate_rocks_in_dirt(world: &mut WorldData, seed: u32) {
         if noise_value >= 0.5 {
             let block_type = block.map(|b| b.block_type);
             if matches!(block_type, Some(BlockType::Dirt | BlockType::Grass)) {
-                *block = Some(Block::Stone);
+                *block = Some(BlockType::Stone.into());
             }
         }
     }
@@ -313,7 +313,7 @@ fn grassify(world: &mut WorldData) {
         let mut queue = VecDeque::new();
         queue.push_back((x, y));
 
-        world.set_block((x, y), &Block::Grass);
+        world.set_block((x, y), &BlockType::Grass.into());
     
         while !queue.is_empty() {
             let (x, y) = queue[queue.len() - 1];
@@ -323,49 +323,49 @@ fn grassify(world: &mut WorldData) {
 
             if is_valid(world, x + 1, y) {
                 let pos = (x + 1, y);
-                world.set_block(pos, &Block::Grass);
+                world.set_block(pos, &BlockType::Grass.into());
                 queue.push_back(pos);
             }
     
             if is_valid(world, prev_x, y) {
                 let pos = (prev_x, y);
-                world.set_block(pos, &Block::Grass);
+                world.set_block(pos, &BlockType::Grass.into());
                 queue.push_back(pos);
             }
     
             if is_valid(world, x, y + 1) {
                 let pos = (x, y + 1);
-                world.set_block(pos, &Block::Grass);
+                world.set_block(pos, &BlockType::Grass.into());
                 queue.push_back(pos);
             }
     
             if is_valid(world, x, y - 1) {
                 let pos = (x, y - 1);
-                world.set_block(pos, &Block::Grass);
+                world.set_block(pos, &BlockType::Grass.into());
                 queue.push_back(pos);
             }
 
             if is_valid(world, prev_x, y - 1) {
                 let pos = (prev_x, y - 1);
-                world.set_block(pos, &Block::Grass);
+                world.set_block(pos, &BlockType::Grass.into());
                 queue.push_back(pos);
             }
 
             if is_valid(world, x + 1, y - 1) {
                 let pos = (x + 1, y - 1);
-                world.set_block(pos, &Block::Grass);
+                world.set_block(pos, &BlockType::Grass.into());
                 queue.push_back(pos);
             }
 
             if is_valid(world, prev_x, y + 1) {
                 let pos = (prev_x, y + 1);
-                world.set_block(pos, &Block::Grass);
+                world.set_block(pos, &BlockType::Grass.into());
                 queue.push_back(pos);
             }
 
             if is_valid(world, x + 1, y + 1) {
                 let pos = (x + 1, y + 1);
-                world.set_block(pos, &Block::Grass);
+                world.set_block(pos, &BlockType::Grass.into());
                 queue.push_back(pos);
             }
         }

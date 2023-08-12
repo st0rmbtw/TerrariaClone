@@ -7,20 +7,21 @@ mod role;
 use components::*;
 use systems::*;
 
-use bevy::prelude::{Plugin, App, IntoSystemConfigs, OnEnter, OnExit, Color, Component, Startup, Update};
+use bevy::{prelude::{Plugin, App, IntoSystemConfigs, OnEnter, OnExit, Color, Component, Startup, Update, Event, KeyCode, PostUpdate}, input::common_conditions::input_just_pressed};
 
 use crate::{common::{state::{GameState, MenuState}, conditions::{on_btn_clicked, in_menu_state}}, parallax::{parallax_animation_system, ParallaxSet}};
 
 use self::{settings::SettingsMenuPlugin, celestial_body::CelestialBodyPlugin};
 
 pub(crate) const TEXT_COLOR: Color = Color::rgb(0.58, 0.58, 0.58);
-
-#[derive(Component)]
-pub(crate) struct DespawnOnMenuExit;
+pub(super) const MENU_BUTTON_FONT_SIZE: f32 = 42.;
 
 pub(crate) struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
+        app.add_event::<BackEvent>();
+        app.add_event::<EnterEvent>();
+
         app.add_plugins((CelestialBodyPlugin, SettingsMenuPlugin));
 
         app.add_systems(Startup, setup_camera);
@@ -30,6 +31,22 @@ impl Plugin for MenuPlugin {
         app.add_systems(OnExit(GameState::Menu(MenuState::Main)), despawn_with::<Menu>);
 
         app.add_systems(OnEnter(GameState::InGame), despawn_with::<DespawnOnMenuExit>);
+
+        app.add_systems(
+            Update,
+            (
+                send_back_event.run_if(on_btn_clicked::<BackButton>),
+                send_back_event.run_if(input_just_pressed(KeyCode::Escape)),
+            )
+        );
+
+        app.add_systems(
+            PostUpdate,
+            (
+                handle_back_event,
+                handle_enter_event    
+            ).run_if(in_menu_state)
+        );
         
         app.add_systems(
             Update,
@@ -51,3 +68,18 @@ impl Plugin for MenuPlugin {
         );
     }
 }
+
+#[derive(Component)]
+pub(crate) struct DespawnOnMenuExit;
+
+#[derive(Component)]
+pub(super) struct BackButton;
+
+#[derive(Component)]
+pub(super) struct ApplyButton;
+
+#[derive(Event)]
+pub(super) struct BackEvent;
+
+#[derive(Event)]
+pub(super) struct EnterEvent(pub(super) GameState);

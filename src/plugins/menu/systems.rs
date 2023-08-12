@@ -1,11 +1,11 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveExt, Camera2dBundle, ChildBuilder, NodeBundle, BuildChildren, TextBundle, Button, Res, default, Changed, EventWriter, Color, ImageBundle, Transform, Quat, Vec3, NextState, ResMut, Visibility, Name, Camera2d}, text::{Text, TextStyle, TextSection}, ui::{Style, JustifyContent, AlignItems, UiRect, FocusPolicy, PositionType, Interaction, Val, FlexDirection, AlignSelf, UiImage}, app::AppExit, core_pipeline::clear_color::ClearColorConfig};
+use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveExt, Camera2dBundle, ChildBuilder, NodeBundle, BuildChildren, TextBundle, Button, Res, default, Changed, EventWriter, Color, ImageBundle, Transform, Quat, Vec3, NextState, ResMut, Visibility, Name, Camera2d, State, EventReader}, text::{Text, TextStyle, TextSection}, ui::{Style, JustifyContent, AlignItems, UiRect, FocusPolicy, PositionType, Interaction, Val, FlexDirection, AlignSelf, UiImage}, app::AppExit, core_pipeline::clear_color::ClearColorConfig};
 use interpolation::EaseFunction;
 
 use crate::{animation::{Tween, Animator, AnimatorState, TweeningDirection, RepeatStrategy, Tweenable, EaseMethod, RepeatCount}, plugins::{camera::components::MainCamera, assets::{FontAssets, UiAssets}, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor}, fps::FpsText, audio::{PlaySoundEvent, SoundType},}, common::{state::{GameState, SettingsMenuState, MenuState}, lens::{TextFontSizeLens, TransformLens}}, language::LanguageContent};
-use super::{Menu, SinglePlayerButton, SettingsButton, ExitButton, MenuContainer, role::ButtonRole, settings::MENU_BUTTON_FONT_SIZE, TEXT_COLOR, DespawnOnMenuExit};
+use super::{Menu, SinglePlayerButton, SettingsButton, ExitButton, MenuContainer, role::ButtonRole, TEXT_COLOR, DespawnOnMenuExit, BackEvent, MENU_BUTTON_FONT_SIZE, EnterEvent};
 
 pub(super) fn despawn_with<C: Component>(query: Query<Entity, With<C>>, mut commands: Commands) {
     for entity in &query {
@@ -270,12 +270,12 @@ pub(super) fn setup_main_menu(
 
 pub(super) fn update_buttons(
     mut query: Query<
-        (&Interaction, &mut Text, &mut Animator<Text>, &ButtonRole),
+        (&Interaction, &mut Text, &mut Animator<Text>),
         (With<Button>, Changed<Interaction>),
     >,
     mut play_sound: EventWriter<PlaySoundEvent>
 ) {
-    for (interaction, mut text, mut animator, role) in query.iter_mut() {
+    for (interaction, mut text, mut animator) in query.iter_mut() {
         match interaction {
             Interaction::Hovered => {
                 play_sound.send(PlaySoundEvent(SoundType::MenuTick));
@@ -294,25 +294,18 @@ pub(super) fn update_buttons(
                 let tweenable = animator.tweenable_mut().as_any_mut().downcast_mut::<Tween<Text>>().unwrap();
                 tweenable.set_progress(1. - tweenable.progress());
                 tweenable.set_direction(TweeningDirection::Backward);
-            }
-            Interaction::Pressed => {
-                let sound = match role {
-                    ButtonRole::MenuButton => SoundType::MenuOpen,
-                    ButtonRole::ControlButton => SoundType::MenuClose,
-                };
-
-                play_sound.send(PlaySoundEvent(sound));
-            }
+            },
+            _ => {}
         }
     }
 }
 
-pub(super) fn single_player_clicked(mut next_state: ResMut<NextState<GameState>>) {
-    next_state.set(GameState::WorldLoading);
+pub(super) fn single_player_clicked(mut enter_events: EventWriter<EnterEvent>) {
+    enter_events.send(EnterEvent(GameState::WorldLoading));
 }
 
-pub(super) fn settings_clicked(mut next_state: ResMut<NextState<GameState>>) {
-    next_state.set(GameState::Menu(MenuState::Settings(SettingsMenuState::Main)));
+pub(super) fn settings_clicked(mut enter_events: EventWriter<EnterEvent>) {
+    enter_events.send(EnterEvent(GameState::Menu(MenuState::Settings(SettingsMenuState::Main))));
 }
 
 pub(super) fn exit_clicked(
@@ -332,4 +325,31 @@ pub(super) fn exit_clicked(
         resolution: *resolution,
         cursor_color: *cursor_color
     });
+}
+
+pub(super) fn handle_back_event(
+    state: Res<State<GameState>>,
+    mut next_state: ResMut<NextState<GameState>>,
+    mut play_sound: EventWriter<PlaySoundEvent>,
+    mut back_events: EventReader<BackEvent>
+) {
+    if back_events.iter().last().is_some() {
+        next_state.set(state.back());
+        play_sound.send(PlaySoundEvent(SoundType::MenuClose));
+    }
+}
+
+pub(super) fn handle_enter_event(
+    mut next_state: ResMut<NextState<GameState>>,
+    mut play_sound: EventWriter<PlaySoundEvent>,
+    mut enter_events: EventReader<EnterEvent>
+) {
+    if let Some(event) = enter_events.iter().last() {
+        next_state.set(event.0);
+        play_sound.send(PlaySoundEvent(SoundType::MenuOpen));
+    }
+}
+
+pub(super) fn send_back_event(mut back_events: EventWriter<BackEvent>) {
+    back_events.send(BackEvent);
 }

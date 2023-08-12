@@ -1,5 +1,5 @@
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Res, With, Query, ResMut, Component, NextState, Entity, Plugin, App, OnEnter, OnExit, IntoSystemConfigs, Update, in_state}, text::{TextStyle, Text}};
+use bevy::{prelude::{Commands, Res, With, Query, ResMut, Component, Entity, Plugin, App, OnEnter, OnExit, IntoSystemConfigs, Update, in_state}, text::{TextStyle, Text}};
 
 use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button, menu, MenuContainer, despawn_with, TEXT_COLOR}, settings::ShowTileGrid}, language::LanguageContent, common::{state::{SettingsMenuState, GameState, MenuState}, conditions::on_btn_clicked}};
 
@@ -22,7 +22,6 @@ impl Plugin for InterfaceMenuPlugin {
             (
                 update_toggle_tile_grid_button_text,
                 toggle_tile_grid_clicked.run_if(on_btn_clicked::<ToggleTileGridButton>),
-                back_clicked.run_if(on_btn_clicked::<BackButton>),
             )
             .run_if(in_state(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface))))
         );
@@ -61,10 +60,6 @@ fn setup_interface_menu(
 
 fn toggle_tile_grid_clicked(mut show_tile_grid: ResMut<ShowTileGrid>) {
     show_tile_grid.0 = !show_tile_grid.0;
-}
-
-fn back_clicked(mut next_state: ResMut<NextState<GameState>>) {
-    next_state.set(GameState::Menu(MenuState::Settings(SettingsMenuState::Main)));
 }
 
 fn update_toggle_tile_grid_button_text(

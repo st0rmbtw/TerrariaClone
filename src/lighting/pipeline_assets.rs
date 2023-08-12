@@ -47,7 +47,7 @@ pub(super) fn system_extract_pipeline_assets(
     *gpu_target_sizes = **res_target_sizes;
 
     {
-        let mut light_sources = gpu_pipeline_assets.light_sources.get_mut();
+        let light_sources = gpu_pipeline_assets.light_sources.get_mut();
         let mut rng = thread_rng();
         light_sources.count = 0;
         light_sources.data.clear();
@@ -73,7 +73,7 @@ pub(super) fn system_extract_pipeline_assets(
 
     {
         if let Ok((camera, camera_transform)) = query_camera.get_single() {
-            let mut camera_params = gpu_pipeline_assets.camera_params.get_mut();
+            let camera_params = gpu_pipeline_assets.camera_params.get_mut();
             
             let projection = camera.projection_matrix();
             let inverse_projection = projection.inverse();
@@ -97,7 +97,7 @@ pub(super) fn system_extract_pipeline_assets(
     }
 
     {
-        let mut gpu_light_pass_params = gpu_pipeline_assets.light_pass_params.get_mut();
+        let gpu_light_pass_params = gpu_pipeline_assets.light_pass_params.get_mut();
         gpu_light_pass_params.frame_counter = *gpu_frame_counter;
         gpu_light_pass_params.probe_size = SCREEN_PROBE_SIZE;
         gpu_light_pass_params.reservoir_size = res_light_pass_params.reservoir_size;

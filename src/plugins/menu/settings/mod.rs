@@ -2,24 +2,13 @@ pub(super) mod interface;
 pub(super) mod video;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Res, Plugin, App, Component, OnEnter, OnExit, IntoSystemConfigs, NextState, ResMut, Query, Entity, With, Update, in_state}, text::TextStyle};
+use bevy::{prelude::{Commands, Res, Plugin, App, OnEnter, OnExit, IntoSystemConfigs, Query, Entity, With, Update, in_state, EventWriter, Component}, text::TextStyle};
 
 use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button}}, language::LanguageContent, common::{conditions::on_btn_clicked, state::{SettingsMenuState, GameState, MenuState}}};
 
 use self::{interface::InterfaceMenuPlugin, video::VideoMenuPlugin};
 
-use super::{despawn_with, menu, MenuContainer, TEXT_COLOR};
-
-#[derive(Component)]
-pub(super) struct SettingsMenu;
-
-#[derive(Component)]
-pub(super) struct BackButton;
-
-#[derive(Component)]
-pub(super) struct ApplyButton;
-
-pub(super) const MENU_BUTTON_FONT_SIZE: f32 = 42.;
+use super::{despawn_with, menu, MenuContainer, TEXT_COLOR, BackButton, MENU_BUTTON_FONT_SIZE, EnterEvent};
 
 pub(super) struct SettingsMenuPlugin;
 impl Plugin for SettingsMenuPlugin {
@@ -41,12 +30,14 @@ impl Plugin for SettingsMenuPlugin {
                 interface_clicked.run_if(on_btn_clicked::<InterfaceButton>),
                 video_clicked.run_if(on_btn_clicked::<VideoButton>),
                 cursor_clicked.run_if(on_btn_clicked::<CursorButton>),
-                back_clicked.run_if(on_btn_clicked::<BackButton>),
             )
             .run_if(in_state(GameState::Menu(MenuState::Settings(SettingsMenuState::Main))))
         );
     }
 }
+
+#[derive(Component)]
+pub(super) struct SettingsMenu;
 
 #[derive(Component)]
 struct InterfaceButton;
@@ -84,18 +75,14 @@ fn setup_settings_menu(
 }
 
 
-fn interface_clicked(mut next_state: ResMut<NextState<GameState>>) {
-    next_state.set(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface)));
+fn interface_clicked(mut enter_event: EventWriter<EnterEvent>) {
+    enter_event.send(EnterEvent(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface))));
 }
 
-fn video_clicked(mut next_state: ResMut<NextState<GameState>>) {
-    next_state.set(GameState::Menu(MenuState::Settings(SettingsMenuState::Video)));
+fn video_clicked(mut enter_event: EventWriter<EnterEvent>) {
+    enter_event.send(EnterEvent(GameState::Menu(MenuState::Settings(SettingsMenuState::Video))));
 }
 
-fn cursor_clicked(/* mut commands: Commands */) {
+fn cursor_clicked() {
     // TODO: Implement Cursor menu
-}
-
-fn back_clicked(mut next_state: ResMut<NextState<GameState>>) {
-    next_state.set(GameState::Menu(MenuState::Main));
 }

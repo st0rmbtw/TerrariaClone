@@ -3,12 +3,12 @@ mod resources;
 mod systems;
 mod util;
 
-use bevy::prelude::{Plugin, App, IntoSystemConfigs, Res, in_state, Update, FixedUpdate, resource_changed, resource_equals};
+use bevy::prelude::{Plugin, App, IntoSystemConfigs, in_state, Update, FixedUpdate, resource_equals, OnExit, Condition, Commands, resource_exists_and_changed, resource_added, resource_exists_and_equals};
 pub(crate) use components::*;
 pub(crate) use resources::*;
 pub(crate) use systems::*;
 
-use crate::{common::state::GameState, items::Items};
+use crate::{common::state::GameState, items::{ItemStack, Tool, Axe, Pickaxe, Seed}, world::block::BlockType};
 
 use super::ui::UiVisibility;
 
@@ -25,27 +25,17 @@ const ITEM_ROTATION: f32 = 1.7;
 pub struct PlayerInventoryPlugin;
 impl Plugin for PlayerInventoryPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<SelectedItem>();
-        app.init_resource::<SwingItemCooldown>();
-        app.init_resource::<SwingItemCooldownMax>();
+        app.add_systems(OnExit(GameState::WorldLoading), setup);
 
-        app.insert_resource(UseItemAnimationIndex::default());
-        app.insert_resource(PlayerUsingItem(false));
-        app.insert_resource(SwingAnimation(false));
-        app.insert_resource({
-                let mut inventory = Inventory::default();
-                inventory.add_item(Items::COPPER_PICKAXE);
-                inventory.add_item(Items::COPPER_AXE);
-                inventory.add_item(Items::DIRT_BLOCK.with_max_stack());
-                inventory.add_item(Items::STONE_BLOCK.with_max_stack());
-                inventory.add_item(Items::GRASS_SEEDS.with_max_stack());
-
-                inventory
-            });
-
-        app.add_systems(Update, scroll_select_inventory_item.run_if(in_state(GameState::InGame)));
-        app.add_systems(Update, select_inventory_cell.run_if(in_state(GameState::InGame)));
-        app.add_systems(Update, set_selected_item.run_if(in_state(GameState::InGame)));
+        app.add_systems(
+            Update,
+            (
+                scroll_select_inventory_item,
+                select_inventory_cell,
+                set_selected_item.run_if(resource_exists_and_changed::<Inventory>()),
+            )
+            .run_if(in_state(GameState::InGame))
+        );
 
         app.add_systems(FixedUpdate, use_item.run_if(in_state(GameState::InGame)));
 
@@ -53,7 +43,7 @@ impl Plugin for PlayerInventoryPlugin {
             Update,
             (
                 update_player_using_item,
-                set_using_item_image.run_if(resource_changed::<SelectedItem>()),
+                set_using_item_image.run_if(resource_exists_and_changed::<SelectedItem>()),
                 set_using_item_visibility(false),
             )
             .run_if(in_state(GameState::InGame))
@@ -75,29 +65,46 @@ impl Plugin for PlayerInventoryPlugin {
             )
             .chain()
             .run_if(in_state(GameState::InGame))
-            .run_if(|res: Res<SwingAnimation>| **res == true)
+            .run_if(resource_exists_and_equals(SwingAnimation(true)))
         );
 
         app.add_systems(
             Update,
             (
                 on_extra_ui_visibility_toggle,
-                update_selected_cell_size,
-                update_selected_cell_image,
                 update_selected_item_name_alignment,
                 update_selected_item_name_text,
-                update_hoverable,
                 (
-                    update_cell,
-                    update_cell_image,
-                ).chain(),
-                (
-                    update_item_amount,
-                    update_item_amount_text,
-                ).chain()
+                    update_selected_cell_size,
+                    update_selected_cell_image,
+                    update_hoverable
+                )
+                .distributive_run_if(
+                    resource_exists_and_changed::<Inventory>().or_else(resource_added::<Inventory>())
+                ),
+                (update_cell, update_cell_image).chain(),
+                (update_item_amount, update_item_amount_text).chain()
             )
             .run_if(in_state(GameState::InGame))
             .run_if(resource_equals(UiVisibility::VISIBLE))
         );
     }
+}
+
+fn setup(mut commands: Commands) {
+    commands.init_resource::<SelectedItem>();
+    commands.init_resource::<SwingItemCooldown>();
+    commands.init_resource::<SwingItemCooldownMax>();
+    commands.insert_resource(UseItemAnimationIndex::default());
+    commands.insert_resource(PlayerUsingItem(false));
+    commands.insert_resource(SwingAnimation(false));
+    
+    let mut inventory = Inventory::default();
+    inventory.add_item(ItemStack::new_tool(Tool::Pickaxe(Pickaxe::CopperPickaxe)));
+    inventory.add_item(ItemStack::new_tool(Tool::Axe(Axe::CopperAxe)));
+    inventory.add_item(ItemStack::new_block(BlockType::Dirt).with_max_stack());
+    inventory.add_item(ItemStack::new_block(BlockType::Stone).with_max_stack());
+    inventory.add_item(ItemStack::new_seed(Seed::Grass).with_max_stack());
+
+    commands.insert_resource(inventory);
 }

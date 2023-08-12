@@ -68,7 +68,7 @@ impl LanguageContent {
     pub(crate) fn item_name(&self, item: Item) -> String {
         match item {
             Item::Tool(tool) => self.tool_name(tool),
-            Item::Block(block) => self.block_name(block.block_type),
+            Item::Block(block) => self.block_name(block),
             Item::Seed(seed) => self.seed_name(seed)
         }
     }
