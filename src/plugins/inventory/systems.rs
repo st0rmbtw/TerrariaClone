@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use autodefault::autodefault;
 use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color, MouseButton, EventWriter, DetectChanges, Local, Transform, Quat, DetectChangesMut}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, PositionType, AlignContent, Interaction, BackgroundColor, ZIndex}, text::{Text, TextStyle, TextAlignment}, sprite::TextureAtlasSprite, utils::default};
 
-use crate::{plugins::{ui::{ToggleExtraUiEvent, ExtraUiVisibility}, assets::{ItemAssets, UiAssets, FontAssets}, cursor::{components::Hoverable, resources::CursorPosition}, world::events::{DigBlockEvent, PlaceBlockEvent, SeedEvent, BreakBlockEvent}, player::{FaceDirection, Player, PlayerSpriteBody}, audio::{PlaySoundEvent, SoundType}}, common::{extensions::EntityCommandsExtensions, helpers}, language::LanguageContent, items::{Item, get_animation_points}, world::WorldData};
+use crate::{plugins::{ui::ExtraUiVisibility, assets::{ItemAssets, UiAssets, FontAssets}, cursor::{components::Hoverable, resources::CursorPosition}, world::events::{DigBlockEvent, PlaceBlockEvent, SeedEvent, BreakBlockEvent}, player::{FaceDirection, Player, PlayerSpriteBody}, audio::{PlaySoundEvent, SoundType}}, common::{extensions::EntityCommandsExtensions, helpers, IsVisible}, language::LanguageContent, items::{Item, get_animation_points}, world::WorldData};
 
 use super::{Inventory, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, CELL_COUNT_IN_ROW, INVENTORY_ROWS, HotbarUi, util::keycode_to_digit, SwingItemCooldown, ItemInHand, UseItemAnimationIndex, PlayerUsingItem, UseItemAnimationData, SwingItemCooldownMax, ITEM_ROTATION, SwingAnimation};
 
@@ -238,20 +238,6 @@ fn spawn_inventory_cell(
         });
 }
 
-pub(super) fn on_extra_ui_visibility_toggle(
-    mut inventory: ResMut<Inventory>,
-    mut events: EventReader<ToggleExtraUiEvent>,
-    mut query_inventory_ui: Query<&mut Visibility, With<InventoryUi>>,
-) {
-    let mut visibility = query_inventory_ui.single_mut();
-
-    if let Some(event) = events.iter().last() {
-        helpers::set_visibility(&mut visibility, event.0);
-        // Setting inventory resource as changed updates Inventory UI
-        inventory.set_changed();
-    }
-}
-
 pub(super) fn update_selected_cell_size(
     inventory: Res<Inventory>,
     visibility: Res<ExtraUiVisibility>,
@@ -344,11 +330,11 @@ pub(super) fn update_hoverable(
 
 pub(super) fn update_selected_item_name_alignment(
     mut query_selected_item_name: Query<&mut Style, With<SelectedItemNameMarker>>,
-    mut events: EventReader<ToggleExtraUiEvent>,
+    visibility: Res<ExtraUiVisibility>
 ) {
-    for event in events.iter() {
+    if visibility.is_changed() {
         let mut style = query_selected_item_name.single_mut();
-        style.align_self = if event.0 {
+        style.align_self = if visibility.is_visible() {
             AlignSelf::FlexStart
         } else {
             AlignSelf::Center
@@ -359,13 +345,13 @@ pub(super) fn update_selected_item_name_alignment(
 pub(super) fn update_selected_item_name_text(
     mut query_selected_item_name: Query<&mut Text, With<SelectedItemNameMarker>>,
     current_item: Res<SelectedItem>,
-    extra_ui_visibility: Res<ExtraUiVisibility>,
+    visibility: Res<ExtraUiVisibility>,
     language_content: Res<LanguageContent>
 ) {
-    if current_item.is_changed() || extra_ui_visibility.is_changed() {
+    if current_item.is_changed() || visibility.is_changed() {
         let mut text = query_selected_item_name.single_mut();
 
-        text.sections[0].value = if extra_ui_visibility.0 {
+        text.sections[0].value = if visibility.is_visible() {
             language_content.ui.inventory.clone()
         } else {
             current_item.0
@@ -611,4 +597,10 @@ pub(super) fn update_player_using_item(
     } else {
         false
     }
+}
+
+pub(super) fn trigger_inventory_changed(
+    mut inventory: ResMut<Inventory>
+) {
+    inventory.set_changed()
 }

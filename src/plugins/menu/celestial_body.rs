@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, Local, Input, MouseButton, Color, Vec4, DetectChanges, IntoSystemConfigs, OnExit, Name, Update, Vec3}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas, SpriteBundle}, window::{Window, PrimaryWindow}, utils::default};
+use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, Local, Input, MouseButton, Color, Vec4, DetectChanges, IntoSystemConfigs, OnExit, Name, Update}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas, SpriteBundle}, window::{Window, PrimaryWindow}, utils::default};
 use bevy_hanabi::Gradient;
 use interpolation::Lerp;
 use rand::{thread_rng, Rng, seq::SliceRandom};
@@ -130,7 +130,7 @@ fn spawn_celestial_body(
                 ..default()
             },
             texture_atlas: celestial_body_assets.sun.clone_weak(),
-            transform: Transform::from_translation(Vec3::new(0., 0., 0.5)),
+            transform: Transform::from_xyz(0., 0., 0.5),
             ..default()
         },
     ));
@@ -165,7 +165,7 @@ fn spawn_stars(
                 BACKGROUND_RENDER_LAYER,
                 SpriteBundle {
                     texture: star_image.clone_weak(),
-                    transform: Transform::from_translation(Vec3::new(0., 0., 0.1)),
+                    transform: Transform::from_xyz(0., 0., 0.1),
                     ..default()
                 },
                 Star {

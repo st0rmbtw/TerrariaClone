@@ -2,13 +2,18 @@ pub(crate) mod components;
 pub(crate) mod resources;
 mod systems;
 
-use bevy::{prelude::{Plugin, App, OnExit, OnEnter, IntoSystemConfigs, not, resource_equals, in_state, Condition, resource_changed, Update}, ui::BackgroundColor};
-use crate::{common::state::GameState, animation::{AnimationSystemSet, component_animator_system}};
+use bevy::{prelude::{Plugin, App, OnExit, OnEnter, IntoSystemConfigs, not, resource_equals, in_state, Condition, Update}, ui::BackgroundColor};
+use crate::{common::{state::GameState, systems::set_visibility}, animation::{AnimationSystemSet, component_animator_system}};
 use super::{ui::UiVisibility, settings::ShowTileGrid};
 
 const CURSOR_SIZE: f32 = 22.;
 const MAX_TILE_GRID_OPACITY: f32 = 0.8;
 const MIN_TILE_GRID_OPACITY: f32 = 0.2;
+
+#[cfg(feature = "debug")]
+use crate::plugins::debug::DebugConfiguration;
+#[cfg(feature = "debug")]
+use bevy::prelude::Res;
 
 pub struct CursorPlugin;
 impl Plugin for CursorPlugin {
@@ -44,37 +49,25 @@ impl Plugin for CursorPlugin {
 
         app.add_systems(
             Update,
-            systems::set_visibility::<components::CursorBackground>.run_if(in_state(GameState::InGame))
+            set_visibility::<components::CursorBackground, UiVisibility>.run_if(in_state(GameState::InGame))
         );
 
         app.add_systems(
             Update,
             (
-                systems::set_visibility::<components::TileGrid>,
-                systems::update_tile_grid_visibility,
+                set_visibility::<components::TileGrid, UiVisibility>,
+                set_visibility::<components::TileGrid, ShowTileGrid>,
             )
             .run_if(in_state(GameState::InGame))
-            .run_if(resource_changed::<ShowTileGrid>())
         );
 
-        #[cfg(not(feature = "debug"))]
-        app.add_systems(
-            Update,
-            systems::update_tile_grid_opacity
-                .run_if(in_state(GameState::InGame))
-                .run_if(resource_equals(ShowTileGrid(true)))
-        );
+        let update_tile_grid_opacity = systems::update_tile_grid_opacity
+            .run_if(in_state(GameState::InGame))
+            .run_if(resource_equals(ShowTileGrid(true)));
 
-        #[cfg(feature = "debug")] {
-            use crate::plugins::debug::DebugConfiguration;
-            use bevy::prelude::Res;
-            app.add_systems(
-                Update,
-                systems::update_tile_grid_opacity
-                    .run_if(in_state(GameState::InGame))
-                    .run_if(resource_equals(ShowTileGrid(true)))
-                    .run_if(|config: Res<DebugConfiguration>| !config.free_camera)
-            );
-        }
+        #[cfg(feature = "debug")]
+        let update_tile_grid_opacity = update_tile_grid_opacity.run_if(|config: Res<DebugConfiguration>| !config.free_camera);
+        
+        app.add_systems(Update, update_tile_grid_opacity);
     }
 }

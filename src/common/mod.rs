@@ -9,6 +9,12 @@ pub(crate) mod lens;
 pub(crate) mod math;
 pub(crate) mod rect;
 pub(crate) mod state;
+pub(crate) mod systems;
+
+
+pub(crate) trait IsVisible {
+    fn is_visible(&self) -> bool;
+}
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct TextureAtlasPos {

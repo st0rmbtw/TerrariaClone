@@ -1,6 +1,8 @@
 use bevy::{prelude::{Resource, Color}, window::{PresentMode, WindowMode}};
 use serde::{Deserialize, Serialize};
 
+use crate::common::IsVisible;
+
 #[derive(Resource, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub(crate) struct Resolution {
     pub(crate) width: f32,
@@ -27,6 +29,12 @@ pub(crate) struct FullScreen(pub(crate) bool);
 
 #[derive(Resource, PartialEq, Clone, Copy)]
 pub(crate) struct ShowTileGrid(pub(crate) bool);
+
+impl IsVisible for ShowTileGrid {
+    fn is_visible(&self) -> bool {
+        self.0
+    }
+}
 
 #[derive(Resource, Clone, Copy, Serialize, Deserialize)]
 pub(crate) struct CursorColor {

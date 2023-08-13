@@ -4,12 +4,15 @@ pub(crate) mod constants;
 mod systems;
 mod utils;
 
-use crate::common::state::GameState;
+use crate::{common::state::GameState, lighting::compositing::TileMaterial};
 use bevy::{prelude::{Plugin, App, OnEnter, IntoSystemConfigs, in_state, Update, Rect}, math::URect};
+use bevy_ecs_tilemap::{prelude::MaterialTilemapPlugin, TilemapPlugin};
 
 pub(crate) struct WorldPlugin;
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
+        app.add_plugins((TilemapPlugin, MaterialTilemapPlugin::<TileMaterial>::default()));
+
         app.init_resource::<resources::ChunkManager>();
         app.add_event::<events::BreakBlockEvent>();
         app.add_event::<events::DigBlockEvent>();

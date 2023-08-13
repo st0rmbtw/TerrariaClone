@@ -1,8 +1,8 @@
-use bevy::{prelude::{Commands, Res, NodeBundle, Name, BuildChildren, EventWriter, ResMut, Visibility, With, Query}, ui::{Style, FlexDirection, Val, JustifyContent, AlignItems, UiRect}, utils::default};
+use bevy::{prelude::{Commands, Res, NodeBundle, Name, BuildChildren, EventWriter, ResMut}, ui::{Style, FlexDirection, Val, JustifyContent, AlignItems, UiRect}, utils::default};
 
-use crate::{plugins::{assets::{FontAssets, UiAssets}, fps::spawn_fps_text, inventory::spawn_inventory_ui, settings::spawn_ingame_settings_button, audio::{PlaySoundEvent, SoundType}}, language::LanguageContent, common::helpers};
+use crate::{plugins::{assets::{FontAssets, UiAssets}, fps::spawn_fps_text, inventory::spawn_inventory_ui, settings::spawn_ingame_settings_button, audio::{PlaySoundEvent, SoundType}}, language::LanguageContent, common::IsVisible};
 
-use super::{components::MainUiContainer, events::ToggleExtraUiEvent, resources::{ExtraUiVisibility, UiVisibility}};
+use super::{components::MainUiContainer, resources::{ExtraUiVisibility, UiVisibility}};
 
 pub(crate) fn spawn_ui_container(
     mut commands: Commands,
@@ -90,11 +90,9 @@ pub(crate) fn spawn_ui_container(
 
 pub(super) fn toggle_extra_ui_visibility(
     mut visibility: ResMut<ExtraUiVisibility>,
-    mut toggle_extra_ui: EventWriter<ToggleExtraUiEvent>,
     mut play_sound: EventWriter<PlaySoundEvent>
-) {
-    visibility.0 = !visibility.is_visible();
-    toggle_extra_ui.send(ToggleExtraUiEvent(visibility.0));
+) {    
+    visibility.toggle();
 
     let sound = match visibility.is_visible() {
         true => SoundType::MenuOpen,
@@ -105,14 +103,5 @@ pub(super) fn toggle_extra_ui_visibility(
 }
 
 pub(super) fn toggle_ui_visibility(mut ui_visibility: ResMut<UiVisibility>) {
-    *ui_visibility = !*ui_visibility;
-}
-
-pub(super) fn set_main_container_visibility(
-    ui_visibility: Res<UiVisibility>,
-    mut query: Query<&mut Visibility, With<MainUiContainer>>,
-) {
-    for mut visibility in &mut query {
-        helpers::set_visibility(&mut visibility, ui_visibility.is_visible());
-    }
+    ui_visibility.toggle();
 }

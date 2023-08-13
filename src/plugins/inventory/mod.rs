@@ -3,14 +3,14 @@ mod resources;
 mod systems;
 mod util;
 
-use bevy::prelude::{Plugin, App, IntoSystemConfigs, in_state, Update, FixedUpdate, resource_equals, OnExit, Condition, Commands, resource_exists_and_changed, resource_added, resource_exists_and_equals};
+use bevy::prelude::{Plugin, App, IntoSystemConfigs, in_state, Update, FixedUpdate, OnExit, Condition, Commands, resource_exists_and_changed, resource_added, resource_exists_and_equals, resource_changed};
 pub(crate) use components::*;
 pub(crate) use resources::*;
 pub(crate) use systems::*;
 
-use crate::{common::state::GameState, items::{ItemStack, Tool, Axe, Pickaxe, Seed}, world::block::BlockType};
+use crate::{common::{state::GameState, systems::set_visibility}, items::{ItemStack, Tool, Axe, Pickaxe, Seed}, world::block::BlockType};
 
-use super::ui::UiVisibility;
+use super::ui::ExtraUiVisibility;
 
 // 5 is the total amount of inventory rows. -1 because the hotbar takes the first row
 const INVENTORY_ROWS: usize = 5 - 1;
@@ -71,7 +71,8 @@ impl Plugin for PlayerInventoryPlugin {
         app.add_systems(
             Update,
             (
-                on_extra_ui_visibility_toggle,
+                set_visibility::<InventoryUi, ExtraUiVisibility>,
+                trigger_inventory_changed.run_if(resource_changed::<ExtraUiVisibility>()),
                 update_selected_item_name_alignment,
                 update_selected_item_name_text,
                 (
@@ -86,7 +87,6 @@ impl Plugin for PlayerInventoryPlugin {
                 (update_item_amount, update_item_amount_text).chain()
             )
             .run_if(in_state(GameState::InGame))
-            .run_if(resource_equals(UiVisibility::VISIBLE))
         );
     }
 }

@@ -3,7 +3,7 @@ use std::{fs::OpenOptions, io::{BufReader, BufWriter}, error::Error};
 use bevy::{prelude::{Plugin, App, IntoSystemConfigs, in_state, Update}, text::Text};
 use serde::{Deserialize, Serialize};
 
-use crate::{common::state::GameState, animation::{component_animator_system, AnimationSystemSet}};
+use crate::{common::{state::GameState, systems::{animate_button_scale, play_sound_on_button_hover, set_visibility}}, animation::{component_animator_system, AnimationSystemSet}};
 
 mod components;
 mod systems;
@@ -12,6 +12,8 @@ mod resources;
 use components::*;
 pub(crate) use systems::*;
 pub(crate) use resources::*;
+
+use super::ui::ExtraUiVisibility;
 
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
@@ -53,8 +55,9 @@ impl Plugin for SettingsPlugin {
         app.add_systems(
             Update,
             (
-                update,
-                set_btn_visibility,
+                animate_button_scale::<SettingsButton>,
+                play_sound_on_button_hover::<SettingsButton>,
+                set_visibility::<SettingsButtonContainer, ExtraUiVisibility>,
                 component_animator_system::<Text>.in_set(AnimationSystemSet::AnimationUpdate)
             )
             .run_if(in_state(GameState::InGame))

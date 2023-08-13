@@ -4,8 +4,8 @@ use autodefault::autodefault;
 use bevy::{
     prelude::{
         Res, Commands, Vec3, Color, NodeBundle, default, TextBundle, Name, ImageBundle, Transform, 
-        Component, GlobalTransform, Query, With, ResMut, Camera, Visibility, 
-        BuildChildren, DetectChanges, Changed
+        GlobalTransform, Query, With, ResMut, Camera, Visibility, 
+        BuildChildren, Changed
     }, 
     ui::{
         Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Val, AlignSelf, ZIndex, FlexDirection, UiRect, Interaction
@@ -20,8 +20,7 @@ use crate::{
     plugins::{
         assets::{FontAssets, CursorAssets, UiAssets}, 
         camera::components::MainCamera, 
-        ui::UiVisibility, 
-        world::constants::TILE_SIZE, settings::{ShowTileGrid, CursorColor}
+        world::constants::TILE_SIZE, settings::CursorColor
     }, 
     animation::{Tween, lens::TransformScaleLens, Animator, RepeatStrategy, RepeatCount}, 
     common::{lens::BackgroundColorLens, helpers},
@@ -174,17 +173,6 @@ pub(super) fn update_cursor_position(
     }
 }
 
-pub(super) fn set_visibility<C: Component>(
-    ui_visibility: Res<UiVisibility>,
-    mut query: Query<&mut Visibility, With<C>>,
-) {
-    if ui_visibility.is_changed() {
-        for mut visibility in &mut query {
-            helpers::set_visibility(&mut visibility, ui_visibility.is_visible());
-        }
-    }
-}
-
 pub(super) fn update_tile_grid_position(
     cursor: Res<CursorPosition>,
     mut query: Query<&mut Transform, With<TileGrid>>,
@@ -213,14 +201,6 @@ pub(super) fn update_tile_grid_opacity(
     };
 
     sprite.color = *sprite.color.set_a(opacity.clamp(0., MAX_TILE_GRID_OPACITY));
-}
-
-pub(super) fn update_tile_grid_visibility(
-    mut query_tile_grid: Query<&mut Visibility, With<TileGrid>>,
-    show_tile_grid: Res<ShowTileGrid>
-) {
-    let mut visibility = query_tile_grid.single_mut();
-    helpers::set_visibility(&mut visibility, show_tile_grid.0);
 }
 
 pub(super) fn update_cursor_info(

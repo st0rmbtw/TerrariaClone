@@ -4,4 +4,4 @@ use bevy::prelude::Component;
 pub(super) struct SettingsButtonContainer;
 
 #[derive(Component)]
-pub(super) struct SettingsButtonText;
+pub(super) struct SettingsButton;

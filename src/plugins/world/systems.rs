@@ -4,7 +4,7 @@ use bevy::{
     prelude::{
         EventReader, ResMut, Query, Commands, EventWriter, Entity, BuildChildren, Transform, 
         default, SpatialBundle, DespawnRecursiveExt, OrthographicProjection, Changed, 
-        GlobalTransform, With, Res, UVec2, NextState, Vec2, Name
+        GlobalTransform, With, Res, UVec2, NextState, Vec2, Name, Assets, Handle, Image
     }, 
     math::Vec3Swizzles
 };
@@ -14,12 +14,12 @@ use bevy_ecs_tilemap::{
     }, 
     prelude::{
         TilemapGridSize, TilemapTexture, TilemapTileSize, 
-        TilemapSpacing, TilemapId, TilemapSize
+        TilemapSpacing, TilemapId, TilemapSize, TilemapType
     }, 
-    TilemapBundle, helpers::square_grid::neighbors::Neighbors
+    TilemapBundle, helpers::square_grid::neighbors::Neighbors, MaterialTilemapBundle
 };
 
-use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::{components::MainCamera, events::UpdateLightEvent}, player::{Player, PlayerRect}, audio::{PlaySoundEvent, SoundType}}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}};
+use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::{components::MainCamera, events::UpdateLightEvent}, player::{Player, PlayerRect}, audio::{PlaySoundEvent, SoundType}, world::resources::LightMap}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world, light::generate_light_map}, lighting::compositing::{TileMaterial, ShadowMapTexture}};
 
 use super::{
     utils::{get_chunk_pos, get_camera_fov, get_chunk_tile_pos, get_chunk_range_by_camera_fov}, 
@@ -40,10 +40,10 @@ pub(super) fn spawn_terrain(mut commands: Commands) {
     println!("The world's seed is {}", seed);
 
     let world_data = generate_world(seed, WorldSize::Tiny);
-    // let light_map = generate_light_map(&world_data);
+    let light_map = generate_light_map(&world_data);
 
     commands.insert_resource(world_data);
-    // commands.insert_resource(LightMap::new(light_map));
+    commands.insert_resource(LightMap::new(light_map));
     commands.insert_resource(NextState(Some(GameState::InGame)));
 }
 
@@ -90,7 +90,9 @@ pub(super) fn spawn_chunks(
     query_camera: Query<
         (&GlobalTransform, &OrthographicProjection),
         (With<MainCamera>, Changed<Transform>),
-    >
+    >,
+    mut materials: ResMut<Assets<TileMaterial>>,
+    shadow_map_texture: Res<ShadowMapTexture>
 ) {
     if let Ok((camera_transform, projection)) = query_camera.get_single() {
         let camera_fov = get_camera_fov(camera_transform.translation().xy(), projection);
@@ -100,7 +102,7 @@ pub(super) fn spawn_chunks(
             for x in chunk_range.min.x..=chunk_range.max.x {
                 let chunk_pos = UVec2::new(x, y);
                 if chunk_manager.spawned_chunks.insert(chunk_pos) {
-                    spawn_chunk(&mut commands, &block_assets, &wall_assets, &world_data, chunk_pos);
+                    spawn_chunk(&mut commands, &block_assets, &wall_assets, &world_data, chunk_pos, &mut materials, shadow_map_texture.0.clone());
                 }
             }
         }
@@ -136,6 +138,8 @@ pub(super) fn spawn_chunk(
     wall_assets: &WallAssets,
     world_data: &WorldData,
     chunk_pos: ChunkPos,
+    materials: &mut Assets<TileMaterial>,
+    shadow_map_texture: Handle<Image>
 ) { 
     let chunk = commands.spawn((
         Name::new(format!("ChunkContainer {}", chunk_pos)),
@@ -225,7 +229,7 @@ pub(super) fn spawn_chunk(
     commands
         .entity(tilemap_entity)
         .insert(Chunk::new(chunk_pos, ChunkType::Tile))
-        .insert(TilemapBundle {
+        .insert(MaterialTilemapBundle::<TileMaterial> {
             grid_size: TilemapGridSize {
                 x: TILE_SIZE,
                 y: TILE_SIZE,
@@ -242,7 +246,14 @@ pub(super) fn spawn_chunk(
                 y: 2.
             },
             transform: Transform::from_xyz(0., 0., 2.),
-            ..Default::default()
+            material: materials.add(TileMaterial {
+                test: 0.
+            }),
+            map_type: TilemapType::Square,
+            visibility: default(),
+            global_transform: default(),
+            computed_visibility: default(),
+            frustum_culling: default(),
         });
 
     commands

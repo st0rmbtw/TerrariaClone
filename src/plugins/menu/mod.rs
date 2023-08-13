@@ -7,9 +7,9 @@ mod role;
 use components::*;
 use systems::*;
 
-use bevy::{prelude::{Plugin, App, IntoSystemConfigs, OnEnter, OnExit, Color, Component, Startup, Update, Event, KeyCode, PostUpdate}, input::common_conditions::input_just_pressed};
+use bevy::{prelude::{Plugin, App, IntoSystemConfigs, OnEnter, OnExit, Color, Component, Startup, Update, Event, KeyCode, PostUpdate, Button}, input::common_conditions::input_just_pressed};
 
-use crate::{common::{state::{GameState, MenuState}, conditions::{on_btn_clicked, in_menu_state}}, parallax::{parallax_animation_system, ParallaxSet}};
+use crate::{common::{state::{GameState, MenuState}, conditions::{on_btn_clicked, in_menu_state}, systems::{animate_button_scale, play_sound_on_button_hover}}, parallax::{parallax_animation_system, ParallaxSet}};
 
 use self::{settings::SettingsMenuPlugin, celestial_body::CelestialBodyPlugin};
 
@@ -52,7 +52,9 @@ impl Plugin for MenuPlugin {
             Update,
             (
                 parallax_animation_system(150.).in_set(ParallaxSet::FollowCamera),
-                update_buttons
+                animate_button_scale::<Button>,
+                animate_button_color,
+                play_sound_on_button_hover::<Button>,
             )
             .run_if(in_menu_state)
         );

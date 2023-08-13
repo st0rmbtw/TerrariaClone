@@ -13,7 +13,7 @@ use bevy::{
     window::{Cursor, MonitorSelection, Window, WindowPlugin, WindowPosition, WindowResolution},
     DefaultPlugins, asset::ChangeWatcher
 };
-use bevy_ecs_tilemap::{prelude::TilemapRenderSettings, TilemapPlugin};
+use bevy_ecs_tilemap::prelude::TilemapRenderSettings;
 use bevy_hanabi::HanabiPlugin;
 use common::state::GameState;
 use language::{load_language, Language};
@@ -101,12 +101,12 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
         })
         .add_plugins((
             TweeningPlugin,
-            TilemapPlugin,
             AssetsPlugin,
             HanabiPlugin,
             ParallaxPlugin,
         ))
         .add_plugins((
+            LightingPlugin,
             AudioPlugin,
             CursorPlugin,
             CameraPlugin,

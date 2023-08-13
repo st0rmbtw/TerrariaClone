@@ -4,7 +4,7 @@ use autodefault::autodefault;
 use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveExt, Camera2dBundle, ChildBuilder, NodeBundle, BuildChildren, TextBundle, Button, Res, default, Changed, EventWriter, Color, ImageBundle, Transform, Quat, Vec3, NextState, ResMut, Visibility, Name, Camera2d, State, EventReader}, text::{Text, TextStyle, TextSection}, ui::{Style, JustifyContent, AlignItems, UiRect, FocusPolicy, PositionType, Interaction, Val, FlexDirection, AlignSelf, UiImage}, app::AppExit, core_pipeline::clear_color::ClearColorConfig};
 use interpolation::EaseFunction;
 
-use crate::{animation::{Tween, Animator, AnimatorState, TweeningDirection, RepeatStrategy, Tweenable, EaseMethod, RepeatCount}, plugins::{camera::components::MainCamera, assets::{FontAssets, UiAssets}, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor}, fps::FpsText, audio::{PlaySoundEvent, SoundType},}, common::{state::{GameState, SettingsMenuState, MenuState}, lens::{TextFontSizeLens, TransformLens}}, language::LanguageContent};
+use crate::{animation::{Tween, Animator, AnimatorState, RepeatStrategy, EaseMethod, RepeatCount}, plugins::{camera::components::MainCamera, assets::{FontAssets, UiAssets}, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor}, fps::FpsText, audio::{PlaySoundEvent, SoundType},}, common::{state::{GameState, SettingsMenuState, MenuState}, lens::{TextFontSizeLens, TransformLens}}, language::LanguageContent};
 use super::{Menu, SinglePlayerButton, SettingsButton, ExitButton, MenuContainer, role::ButtonRole, TEXT_COLOR, DespawnOnMenuExit, BackEvent, MENU_BUTTON_FONT_SIZE, EnterEvent};
 
 pub(super) fn despawn_with<C: Component>(query: Query<Entity, With<C>>, mut commands: Commands) {
@@ -268,32 +268,16 @@ pub(super) fn setup_main_menu(
     });
 }
 
-pub(super) fn update_buttons(
-    mut query: Query<
-        (&Interaction, &mut Text, &mut Animator<Text>),
-        (With<Button>, Changed<Interaction>),
-    >,
-    mut play_sound: EventWriter<PlaySoundEvent>
+pub(super) fn animate_button_color(
+    mut query: Query<(&Interaction, &mut Text), (With<Button>, Changed<Interaction>)>,
 ) {
-    for (interaction, mut text, mut animator) in query.iter_mut() {
+    for (interaction, mut text) in query.iter_mut() {
         match interaction {
             Interaction::Hovered => {
-                play_sound.send(PlaySoundEvent(SoundType::MenuTick));
-
                 text.sections[0].style.color = Color::YELLOW;
-
-                animator.start();
-
-                let tweenable = animator.tweenable_mut().as_any_mut().downcast_mut::<Tween<Text>>().unwrap();
-                tweenable.set_progress(1. - tweenable.progress());
-                tweenable.set_direction(TweeningDirection::Forward);
             }
             Interaction::None => {
                 text.sections[0].style.color = TEXT_COLOR;
-
-                let tweenable = animator.tweenable_mut().as_any_mut().downcast_mut::<Tween<Text>>().unwrap();
-                tweenable.set_progress(1. - tweenable.progress());
-                tweenable.set_direction(TweeningDirection::Backward);
             },
             _ => {}
         }
