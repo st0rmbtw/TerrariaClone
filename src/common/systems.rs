@@ -29,7 +29,7 @@ pub(crate) fn animate_button_scale<B: Component>(
     }
 }
 
-pub(crate) fn play_sound_on_button_hover<B: Component>(
+pub(crate) fn play_sound_on_hover<B: Component>(
     mut query: Query<&Interaction, (With<B>, Changed<Interaction>)>,
     mut play_sound: EventWriter<PlaySoundEvent>
 ) {

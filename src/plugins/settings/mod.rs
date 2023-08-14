@@ -3,7 +3,7 @@ use std::{fs::OpenOptions, io::{BufReader, BufWriter}, error::Error};
 use bevy::{prelude::{Plugin, App, IntoSystemConfigs, in_state, Update}, text::Text};
 use serde::{Deserialize, Serialize};
 
-use crate::{common::{state::GameState, systems::{animate_button_scale, play_sound_on_button_hover, set_visibility}}, animation::{component_animator_system, AnimationSystemSet}};
+use crate::{common::{state::GameState, systems::{animate_button_scale, play_sound_on_hover, set_visibility}}, animation::{component_animator_system, AnimationSystemSet}};
 
 mod components;
 mod systems;
@@ -23,7 +23,9 @@ pub(crate) struct Settings {
     #[serde(rename = "VSync")]
     pub(crate) vsync: bool,
     pub(crate) resolution: Resolution,
-    pub(crate) cursor_color: CursorColor
+    pub(crate) cursor_color: CursorColor,
+    pub(crate) sound_volume: f32,
+    pub(crate) music_volume: f32
 }
 
 
@@ -34,7 +36,9 @@ impl Default for Settings {
             show_tile_grid: false,
             vsync: true,
             resolution: Resolution::new(1920., 1080.),
-            cursor_color: CursorColor::default()
+            cursor_color: CursorColor::default(),
+            sound_volume: 100.,
+            music_volume: 100.
         }
     }
 }
@@ -49,6 +53,8 @@ impl Plugin for SettingsPlugin {
         app.insert_resource(FullScreen(settings.full_screen));
         app.insert_resource(ShowTileGrid(settings.show_tile_grid));
         app.insert_resource(VSync(settings.vsync));
+        app.insert_resource(MusicVolume::from_slider_value(settings.music_volume));
+        app.insert_resource(SoundVolume::from_slider_value(settings.sound_volume));
         app.insert_resource(settings.cursor_color);
         app.insert_resource(settings.resolution);
 
@@ -56,7 +62,7 @@ impl Plugin for SettingsPlugin {
             Update,
             (
                 animate_button_scale::<SettingsButton>,
-                play_sound_on_button_hover::<SettingsButton>,
+                play_sound_on_hover::<SettingsButton>,
                 set_visibility::<SettingsButtonContainer, ExtraUiVisibility>,
                 component_animator_system::<Text>.in_set(AnimationSystemSet::AnimationUpdate)
             )

@@ -9,9 +9,11 @@ use systems::*;
 
 use bevy::{prelude::{Plugin, App, IntoSystemConfigs, OnEnter, OnExit, Color, Component, Startup, Update, Event, KeyCode, PostUpdate, Button}, input::common_conditions::input_just_pressed};
 
-use crate::{common::{state::{GameState, MenuState, SettingsMenuState}, conditions::{on_btn_clicked, in_menu_state}, systems::{animate_button_scale, play_sound_on_button_hover}}, parallax::{parallax_animation_system, ParallaxSet}};
+use crate::{common::{state::{GameState, MenuState, SettingsMenuState}, conditions::{on_btn_clicked, in_menu_state}, systems::{animate_button_scale, play_sound_on_hover}}, parallax::{parallax_animation_system, ParallaxSet}};
 
 use self::{settings::SettingsMenuPlugin, celestial_body::CelestialBodyPlugin};
+
+use super::slider::Slider;
 
 pub(crate) const TEXT_COLOR: Color = Color::rgb(0.58, 0.58, 0.58);
 pub(super) const MENU_BUTTON_FONT_SIZE: f32 = 42.;
@@ -60,7 +62,9 @@ impl Plugin for MenuPlugin {
                 parallax_animation_system(150.).in_set(ParallaxSet::FollowCamera),
                 animate_button_scale::<Button>,
                 animate_button_color,
-                play_sound_on_button_hover::<Button>,
+                animate_slider_border_color,
+                play_sound_on_hover::<Button>,
+                play_sound_on_hover::<Slider>,
             )
             .run_if(in_menu_state)
         );

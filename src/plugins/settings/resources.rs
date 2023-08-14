@@ -1,4 +1,4 @@
-use bevy::{prelude::{Resource, Color}, window::{PresentMode, WindowMode}};
+use bevy::{prelude::{Resource, Color, Deref, DerefMut}, window::{PresentMode, WindowMode}, audio::VolumeLevel};
 use serde::{Deserialize, Serialize};
 
 use crate::common::IsVisible;
@@ -66,5 +66,43 @@ impl FullScreen {
             true => WindowMode::BorderlessFullscreen,
             false => WindowMode::Windowed
         }
+    }
+}
+
+#[derive(Resource, Deref, DerefMut, Clone, Copy)]
+pub(crate) struct MusicVolume(VolumeLevel);
+
+impl MusicVolume {
+    pub(crate) fn new(value: f32) -> Self {
+        assert!(value >= 0. && value <= 1.);
+        Self(VolumeLevel::new(value))
+    }
+
+    pub(crate) fn from_slider_value(value: f32) -> Self {
+        assert!(value >= 0. && value <= 100.);
+        Self::new(value / 100.)
+    }
+
+    pub(crate) fn slider_value(&self) -> f32 {
+        self.get() * 100.
+    }
+}
+
+#[derive(Resource, Deref, DerefMut, Clone, Copy)]
+pub(crate) struct SoundVolume(VolumeLevel);
+
+impl SoundVolume {
+    pub(crate) fn new(value: f32) -> Self {
+        assert!(value >= 0. && value <= 1.);
+        Self(VolumeLevel::new(value))
+    }
+
+    pub(crate) fn from_slider_value(value: f32) -> Self {
+        assert!(value >= 0. && value <= 100.);
+        Self::new(value / 100.)
+    }
+
+    pub(crate) fn slider_value(&self) -> f32 {
+        self.get() * 100.
     }
 }

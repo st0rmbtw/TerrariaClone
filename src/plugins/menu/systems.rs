@@ -1,10 +1,10 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveExt, Camera2dBundle, ChildBuilder, NodeBundle, BuildChildren, TextBundle, Button, Res, default, Changed, EventWriter, Color, ImageBundle, Transform, Quat, Vec3, NextState, ResMut, Visibility, Name, Camera2d, State, EventReader}, text::{Text, TextStyle, TextSection}, ui::{Style, JustifyContent, AlignItems, UiRect, FocusPolicy, PositionType, Interaction, Val, FlexDirection, AlignSelf, UiImage}, app::AppExit, core_pipeline::clear_color::ClearColorConfig};
+use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveExt, Camera2dBundle, ChildBuilder, NodeBundle, BuildChildren, TextBundle, Button, Res, default, Changed, EventWriter, Color, ImageBundle, Transform, Quat, Vec3, NextState, ResMut, Visibility, Name, Camera2d, State, EventReader}, text::{Text, TextStyle, TextSection, TextAlignment}, ui::{Style, JustifyContent, AlignItems, UiRect, FocusPolicy, PositionType, Interaction, Val, FlexDirection, AlignSelf, UiImage, BackgroundColor}, app::AppExit, core_pipeline::clear_color::ClearColorConfig};
 use interpolation::EaseFunction;
 
-use crate::{animation::{Tween, Animator, AnimatorState, RepeatStrategy, EaseMethod, RepeatCount}, plugins::{camera::components::MainCamera, assets::{FontAssets, UiAssets}, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor}, fps::FpsText, audio::{PlaySoundEvent, SoundType, PlayMusicEvent, MusicType},}, common::{state::GameState, lens::{TextFontSizeLens, TransformLens}}, language::LanguageContent};
+use crate::{animation::{Tween, Animator, AnimatorState, RepeatStrategy, EaseMethod, RepeatCount}, plugins::{camera::components::MainCamera, assets::{FontAssets, UiAssets}, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor, MusicVolume, SoundVolume}, fps::FpsText, audio::{PlaySoundEvent, SoundType, PlayMusicEvent, MusicType}, slider::{SliderBundle, Slider, SliderHandleBundle},}, common::{state::GameState, lens::{TextFontSizeLens, TransformLens}}, language::LanguageContent};
 use super::{Menu, SinglePlayerButton, SettingsButton, ExitButton, MenuContainer, role::ButtonRole, TEXT_COLOR, DespawnOnMenuExit, BackEvent, MENU_BUTTON_FONT_SIZE, EnterEvent};
 
 pub(super) fn despawn_with<C: Component>(query: Query<Entity, With<C>>, mut commands: Commands) {
@@ -88,7 +88,7 @@ pub(super) fn control_buttons_layout(
                 align_items: AlignItems::Center,
                 flex_direction: FlexDirection::Column,
                 margin: UiRect::vertical(Val::Px(40.)),
-                column_gap: Val::Px(50.)
+                row_gap: Val::Px(50.)
             },
             focus_policy: FocusPolicy::Pass
         }).with_children(spawn_builder);
@@ -149,7 +149,7 @@ pub(super) fn menu(marker: impl Component, commands: &mut Commands, container: E
 }
 
 #[autodefault]
-pub(super) fn menu_text(builder: &mut ChildBuilder, text_style: TextStyle, text: String) {
+pub(super) fn menu_text(builder: &mut ChildBuilder, text_style: TextStyle, text: impl Into<String>) {
     builder
         .spawn(NodeBundle {
             style: Style {
@@ -163,7 +163,7 @@ pub(super) fn menu_text(builder: &mut ChildBuilder, text_style: TextStyle, text:
                 style: Style {
                     position_type: PositionType::Absolute,
                 },
-                text: Text::from_section(text, text_style.clone()).with_no_wrap(),
+                text: Text::from_section(text.into(), text_style.clone()).with_no_wrap(),
             });
         });
 }
@@ -310,6 +310,22 @@ pub(super) fn animate_button_color(
     }
 }
 
+pub(super) fn animate_slider_border_color(
+    mut query: Query<(&Interaction, &mut BackgroundColor), (With<Slider>, Changed<Interaction>)>,
+) {
+    for (interaction, mut background_color) in query.iter_mut() {
+        match interaction {
+            Interaction::Hovered => {
+                *background_color = Color::YELLOW.into();
+            }
+            Interaction::None => {
+                *background_color = Color::WHITE.into();
+            },
+            _ => {}
+        }
+    }
+}
+
 pub(super) fn exit_clicked(
     mut ev: EventWriter<AppExit>,
     fullscreen: Res<FullScreen>,
@@ -317,6 +333,8 @@ pub(super) fn exit_clicked(
     vsync: Res<VSync>,
     resolution: Res<Resolution>,
     cursor_color: Res<CursorColor>,
+    music_volume: Res<MusicVolume>,
+    sound_volume: Res<SoundVolume>
 ) {
     ev.send(AppExit);
 
@@ -325,7 +343,9 @@ pub(super) fn exit_clicked(
         show_tile_grid: show_tile_grid.0,
         vsync: vsync.0,
         resolution: *resolution,
-        cursor_color: *cursor_color
+        cursor_color: *cursor_color,
+        sound_volume: sound_volume.slider_value(),
+        music_volume: music_volume.slider_value()
     });
 }
 
@@ -360,4 +380,130 @@ pub(super) fn send_enter_event(state: GameState) -> impl Fn(EventWriter<EnterEve
     move |mut enter_events: EventWriter<EnterEvent>| {
         enter_events.send(EnterEvent(state));
     }
+}
+
+pub(super) fn slider_layout(
+    builder: &mut ChildBuilder,
+    slider_builder: impl FnOnce(&mut ChildBuilder),
+    output_builder: impl FnOnce(&mut ChildBuilder)
+) {
+    builder.spawn(NodeBundle {
+        style: Style {
+            flex_direction: FlexDirection::Row,
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
+            column_gap: Val::Px(5.),
+            width: Val::Percent(100.),
+            ..default()
+        },
+        ..default()
+    }).with_children(|b| {
+        b.spawn(NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Start,
+                justify_content: JustifyContent::Center,
+                flex_shrink: 0.,
+                ..default()
+            },
+            ..default()
+        }).with_children(slider_builder);
+
+        b.spawn(NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::Column,
+                width: Val::Px(100.),
+                ..default()
+            },
+            ..default()
+        }).with_children(output_builder);
+    });
+}
+
+pub(super) fn menu_slider(
+    builder: &mut ChildBuilder,
+    ui_assets: &UiAssets,
+    text_style: TextStyle,
+    name: impl Into<String>,
+    value: f32,
+    slider_marker: impl Component
+) {
+    builder.spawn(NodeBundle {
+        style: Style {
+            flex_direction: FlexDirection::Row,
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            column_gap: Val::Px(10.),
+            ..default()
+        },
+        ..default()
+    }).with_children(|b| {
+        b.spawn(ImageBundle {
+            style: Style {
+                width: Val::Px(200.),
+                height: Val::Px(20.),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            image: ui_assets.slider_background.clone_weak().into(),
+            ..default()
+        }).with_children(|b| {
+            b
+                .spawn(SliderBundle {
+                    style: Style {
+                        width: Val::Px(200.),
+                        height: Val::Px(20.),
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
+                        ..default()
+                    },
+                    image: ui_assets.slider_border.clone_weak().into(),
+                    slider: Slider::new(0., 100.).with_value(value).unwrap(),
+                    ..default()
+                })
+                .insert(slider_marker)
+                .with_children(|parent| {
+                    parent.spawn(SliderHandleBundle {
+                        style: Style {
+                            position_type: PositionType::Absolute,
+                            width: Val::Px(15.),
+                            height: Val::Px(30.),
+                            ..default()
+                        },
+                        image: ui_assets.slider_handle.clone_weak().into(),
+                        ..default()
+                    });
+            });
+        });
+
+        b.spawn(TextBundle {
+            text: Text::from_sections([
+                TextSection::new(name, text_style.clone()),
+                TextSection::new(":", text_style)
+            ]).with_no_wrap().with_alignment(TextAlignment::Center),
+            ..default()
+        });
+    });
+}
+
+pub(super) fn slider_value_text(builder: &mut ChildBuilder, text_style: TextStyle, value: f32, output_marker: impl Component) {
+    builder.spawn(TextBundle {
+        text: Text::from_sections([
+            TextSection::new(value.to_string(), text_style.clone()),
+            TextSection::new("%", text_style)
+        ]),
+        ..default()
+    })
+    .insert(output_marker);
+}
+
+pub(super) fn bind_slider_to_output<S: Component, O: Component>(
+    query_slider: Query<&Slider, With<S>>,
+    mut query_output: Query<&mut Text, With<O>>
+) {
+    let slider = query_slider.single();
+    let mut text = query_output.single_mut();
+
+    text.sections[0].value = format!("{:.0}", slider.value());
 }
