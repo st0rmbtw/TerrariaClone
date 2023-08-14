@@ -5,11 +5,11 @@ pub(super) mod volume;
 use autodefault::autodefault;
 use bevy::{prelude::{Commands, Res, Plugin, App, OnEnter, OnExit, IntoSystemConfigs, Query, Entity, With, Update, in_state, Component}, text::TextStyle};
 
-use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button}}, language::LanguageContent, common::{conditions::on_btn_clicked, state::{SettingsMenuState, GameState, MenuState}}};
+use crate::{plugins::assets::FontAssets, language::LanguageContent, common::{conditions::on_btn_clicked, state::{SettingsMenuState, GameState, MenuState}}};
 
 use self::{interface::InterfaceMenuPlugin, video::VideoMenuPlugin, volume::VolumeMenuPlugin};
 
-use super::{despawn_with, menu, MenuContainer, TEXT_COLOR, BackButton, MENU_BUTTON_FONT_SIZE, systems::send_enter_event};
+use super::{despawn_with, MenuContainer, TEXT_COLOR, BackButton, MENU_BUTTON_FONT_SIZE, systems::send_enter_event, builders::{menu, menu_button, control_buttons_layout, control_button}};
 
 pub(super) struct SettingsMenuPlugin;
 impl Plugin for SettingsMenuPlugin {

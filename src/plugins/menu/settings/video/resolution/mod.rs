@@ -7,8 +7,8 @@ use crate::{
     plugins::{
         assets::FontAssets, 
         menu::{
-            menu_button, control_buttons_layout, control_button, menu, MenuContainer,
-            settings::MENU_BUTTON_FONT_SIZE, despawn_with, TEXT_COLOR, ApplyButton, BackButton, BackEvent
+            MenuContainer, MENU_BUTTON_FONT_SIZE, despawn_with, 
+            TEXT_COLOR, ApplyButton, BackButton, BackEvent, builders::{menu, menu_button, control_buttons_layout, control_button}
         }, 
         settings::{FullScreen, Resolution, RESOLUTIONS}
     }, 

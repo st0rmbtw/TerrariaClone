@@ -3,7 +3,7 @@ pub mod resolution;
 use autodefault::autodefault;
 use bevy::{prelude::{Commands, Res, ResMut, Query, With, Entity, Plugin, OnEnter, OnExit, IntoSystemConfigs, App, in_state, Update, EventWriter, Component}, text::{TextStyle, Text}, window::Window};
 
-use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button, menu, MenuContainer, despawn_with, TEXT_COLOR, EnterEvent}, settings::VSync}, language::LanguageContent, common::{state::{SettingsMenuState, MenuState, GameState}, conditions::on_btn_clicked}};
+use crate::{plugins::{assets::FontAssets, menu::{MenuContainer, despawn_with, TEXT_COLOR, EnterEvent, builders::{menu, menu_button, control_buttons_layout, control_button}}, settings::VSync}, language::LanguageContent, common::{state::{SettingsMenuState, MenuState, GameState}, conditions::on_btn_clicked}};
 use self::resolution::ResolutionMenuPlugin;
 
 use super::{MENU_BUTTON_FONT_SIZE, BackButton};

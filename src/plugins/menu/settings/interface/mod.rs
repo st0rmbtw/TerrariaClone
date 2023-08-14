@@ -1,7 +1,7 @@
 use autodefault::autodefault;
 use bevy::{prelude::{Commands, Res, With, Query, ResMut, Component, Entity, Plugin, App, OnEnter, OnExit, IntoSystemConfigs, Update, in_state}, text::{TextStyle, Text}};
 
-use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button, menu, MenuContainer, despawn_with, TEXT_COLOR}, settings::ShowTileGrid}, language::LanguageContent, common::{state::{SettingsMenuState, GameState, MenuState}, conditions::on_btn_clicked}};
+use crate::{plugins::{assets::FontAssets, menu::{MenuContainer, despawn_with, TEXT_COLOR, builders::{menu, menu_button, control_buttons_layout, control_button}}, settings::ShowTileGrid}, language::LanguageContent, common::{state::{SettingsMenuState, GameState, MenuState}, conditions::on_btn_clicked}};
 
 use super::{MENU_BUTTON_FONT_SIZE, BackButton};
 
