@@ -426,6 +426,7 @@ pub(super) fn menu_slider(
     text_style: TextStyle,
     name: impl Into<String>,
     value: f32,
+    background_color: Color,
     slider_marker: impl Component
 ) {
     builder.spawn(NodeBundle {
@@ -446,6 +447,7 @@ pub(super) fn menu_slider(
                 align_items: AlignItems::Center,
                 ..default()
             },
+            background_color: background_color.into(),
             image: ui_assets.slider_background.clone_weak().into(),
             ..default()
         }).with_children(|b| {
@@ -459,7 +461,9 @@ pub(super) fn menu_slider(
                         ..default()
                     },
                     image: ui_assets.slider_border.clone_weak().into(),
-                    slider: Slider::new(0., 100.).with_value(value).unwrap(),
+                    slider: Slider::new(0., 100.)
+                        .with_step(1.)
+                        .with_value(value).unwrap(),
                     ..default()
                 })
                 .insert(slider_marker)

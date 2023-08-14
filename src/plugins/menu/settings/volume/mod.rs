@@ -77,8 +77,8 @@ fn setup_volume_menu(
         slider_layout(
             builder, 
             |slider_builder| {
-                menu_slider(slider_builder, &ui_assets, slider_text_style.clone(), "Music", music_volume.slider_value(), MusicVolumeSlider);
-                menu_slider(slider_builder, &ui_assets, slider_text_style.clone(), "Sound", sound_volume.slider_value(), SoundVolumeSlider);
+                menu_slider(slider_builder, &ui_assets, slider_text_style.clone(), "Music", music_volume.slider_value(), Color::WHITE, MusicVolumeSlider);
+                menu_slider(slider_builder, &ui_assets, slider_text_style.clone(), "Sound", sound_volume.slider_value(), Color::WHITE, SoundVolumeSlider);
             }, 
             |output_builder| {
                 slider_value_text(output_builder, slider_text_style.clone(), music_volume.slider_value(), MusicVolumeSliderOutput);
