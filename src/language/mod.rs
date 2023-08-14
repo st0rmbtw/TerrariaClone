@@ -38,6 +38,8 @@ pub(crate) struct UI {
     pub(crate) apply: String,
     pub(crate) resolution: String,
     pub(crate) full_screen: String,
+    pub(crate) music: String,
+    pub(crate) sound: String,
     #[serde(rename = "VSync")]
     pub(crate) vsync: String,
     pub(crate) full_screen_resolution: String

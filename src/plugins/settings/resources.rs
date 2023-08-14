@@ -74,12 +74,12 @@ pub(crate) struct MusicVolume(VolumeLevel);
 
 impl MusicVolume {
     pub(crate) fn new(value: f32) -> Self {
-        assert!(value >= 0. && value <= 1.);
+        assert!((0.0..1.0).contains(&value));
         Self(VolumeLevel::new(value))
     }
 
     pub(crate) fn from_slider_value(value: f32) -> Self {
-        assert!(value >= 0. && value <= 100.);
+        assert!((0.0..100.0).contains(&value));
         Self::new(value / 100.)
     }
 
@@ -93,12 +93,12 @@ pub(crate) struct SoundVolume(VolumeLevel);
 
 impl SoundVolume {
     pub(crate) fn new(value: f32) -> Self {
-        assert!(value >= 0. && value <= 1.);
+        assert!((0.0..1.0).contains(&value));
         Self(VolumeLevel::new(value))
     }
 
     pub(crate) fn from_slider_value(value: f32) -> Self {
-        assert!(value >= 0. && value <= 100.);
+        assert!((0.0..100.0).contains(&value));
         Self::new(value / 100.)
     }
 
