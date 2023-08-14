@@ -50,6 +50,7 @@ impl MenuState {
             MenuState::Settings(SettingsMenuState::Interface) => MenuState::Settings(SettingsMenuState::Main),
             MenuState::Settings(SettingsMenuState::Cursor) => MenuState::Settings(SettingsMenuState::Main),
             MenuState::Settings(SettingsMenuState::Volume) => MenuState::Settings(SettingsMenuState::Main),
+            MenuState::Settings(SettingsMenuState::Language) => MenuState::Settings(SettingsMenuState::Main),
             MenuState::Settings(SettingsMenuState::Resolution) => MenuState::Settings(SettingsMenuState::Video),
         }
     }
@@ -64,6 +65,7 @@ pub(crate) enum SettingsMenuState {
     Volume,
     Resolution,
     Cursor,
+    Language
 }
 
 #[derive(Default, Clone, Copy, PartialEq, Eq, Component)]

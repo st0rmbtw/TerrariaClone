@@ -82,7 +82,7 @@ fn setup_volume_menu(
             }, 
             |output_builder| {
                 slider_value_text(output_builder, slider_text_style.clone(), music_volume.slider_value(), MusicVolumeSliderOutput);
-                slider_value_text(output_builder, slider_text_style.clone(), music_volume.slider_value(), SoundVolumeSliderOutput);
+                slider_value_text(output_builder, slider_text_style.clone(), sound_volume.slider_value(), SoundVolumeSliderOutput);
             }
         );
 

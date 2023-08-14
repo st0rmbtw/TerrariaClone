@@ -84,7 +84,7 @@ fn update_vsync_button_text(
 ) {
     let mut text = query.single_mut();
 
-    let status = if vsync.0 { language_content.ui.on.clone() } else { language_content.ui.off.clone() } ;
+    let status = if vsync.0 { &language_content.ui.on } else { &language_content.ui.off };
 
-    text.sections[0].value = format!("{} {}", language_content.ui.vsync, status);
+    text.sections[0].value = format!("{} {}", language_content.ui.vsync, status.clone());
 }

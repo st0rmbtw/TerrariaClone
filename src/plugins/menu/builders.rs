@@ -5,7 +5,7 @@ use bevy::{prelude::{Name, NodeBundle, TextBundle, ChildBuilder, Button, Compone
 
 use crate::{animation::{AnimatorState, Animator, Tween, EaseMethod, RepeatStrategy}, plugins::{slider::{SliderHandleBundle, SliderBundle, Slider}, assets::UiAssets}, common::lens::TextFontSizeLens};
 
-use super::{role::ButtonRole, MENU_BUTTON_FONT_SIZE, components::Menu};
+use super::{MENU_BUTTON_FONT_SIZE, components::Menu};
 
 pub(super) fn menu(marker: impl Component, commands: &mut Commands, container: Entity, gap: f32, spawn_children: impl FnOnce(&mut ChildBuilder)) {
     let menu = commands.spawn((
@@ -14,7 +14,6 @@ pub(super) fn menu(marker: impl Component, commands: &mut Commands, container: E
             style: Style {
                 width: Val::Percent(100.),
                 height: Val::Percent(100.),
-                justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 flex_direction: FlexDirection::Column,
                 row_gap: Val::Px(gap),
@@ -48,41 +47,29 @@ pub(super) fn menu_button(
             focus_policy: FocusPolicy::Pass
         })
         .with_children(|b| {
-            b.spawn(TextBundle {
-                style: Style {
-                    position_type: PositionType::Absolute,
-                },
-                text: Text::from_section(button_name, text_style.clone()).with_no_wrap(),
-            })
-            .insert(Button)
-            .insert(Interaction::default())
-            .insert(Animator::new(text_tween(text_style.font_size)).with_state(AnimatorState::Paused))
-            .insert(marker)
-            .insert(ButtonRole::MenuButton);
+            b.spawn((
+                Button,
+                Interaction::default(),
+                Animator::new(text_tween(text_style.font_size)).with_state(AnimatorState::Paused),
+                marker,
+                TextBundle {
+                    style: Style {
+                        position_type: PositionType::Absolute,
+                    },
+                    text: Text::from_section(button_name, text_style.clone()).with_no_wrap(),
+                }
+            ));
         });
 }
 
 #[autodefault]
 pub(super) fn menu_text(builder: &mut ChildBuilder, text_style: TextStyle, text: impl Into<String>) {
-    builder
-        .spawn((
-            Name::new("MenuText"),
-            NodeBundle {
-                style: Style {
-                    justify_content: JustifyContent::Center,
-                    align_items: AlignItems::Center,
-                },
-                focus_policy: FocusPolicy::Pass
-            }
-        ))
-        .with_children(|b| {
-            b.spawn(TextBundle {
-                style: Style {
-                    position_type: PositionType::Absolute,
-                },
-                text: Text::from_section(text.into(), text_style.clone()).with_no_wrap(),
-            });
-        });
+    builder.spawn((
+        Name::new("MenuText"),
+        TextBundle {
+            text: Text::from_section(text.into(), text_style.clone()).with_no_wrap(),
+        }
+    ));
 }
 
 #[autodefault]
@@ -90,17 +77,16 @@ pub(super) fn control_buttons_layout(
     builder: &mut ChildBuilder,
     spawn_builder: impl FnOnce(&mut ChildBuilder)
 ) {
-    builder
-        .spawn(NodeBundle {
-            style: Style {
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                flex_direction: FlexDirection::Column,
-                margin: UiRect::vertical(Val::Px(40.)),
-                row_gap: Val::Px(50.)
-            },
-            focus_policy: FocusPolicy::Pass
-        }).with_children(spawn_builder);
+    builder.spawn(NodeBundle {
+        style: Style {
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
+            flex_direction: FlexDirection::Column,
+            margin: UiRect::vertical(Val::Px(40.)),
+            row_gap: Val::Px(50.)
+        },
+        focus_policy: FocusPolicy::Pass
+    }).with_children(spawn_builder);
 }
 
 #[autodefault]
@@ -110,27 +96,27 @@ pub(super) fn control_button(
     name: String,
     marker: impl Component
 ) {
-    builder
-        .spawn(NodeBundle {
-            style: Style {
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-            },
-            focus_policy: FocusPolicy::Pass
-        })
-        .with_children(|b| {
-            b.spawn(TextBundle {
+    builder.spawn(NodeBundle {
+        style: Style {
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
+        },
+        focus_policy: FocusPolicy::Pass
+    })
+    .with_children(|b| {
+        b.spawn((
+            Button,
+            Interaction::default(),
+            Animator::new(text_tween(MENU_BUTTON_FONT_SIZE)).with_state(AnimatorState::Paused),
+            marker,
+            TextBundle {
                 style: Style {
                     position_type: PositionType::Absolute,
                 },
                 text: Text::from_section(name, TextStyle { font_size: MENU_BUTTON_FONT_SIZE, ..text_style }),
-            })
-            .insert(Button)
-            .insert(Interaction::default())
-            .insert(Animator::new(text_tween(MENU_BUTTON_FONT_SIZE)).with_state(AnimatorState::Paused))
-            .insert(marker)
-            .insert(ButtonRole::ControlButton);
-        });
+            }
+        ));
+    });
 }
 
 pub(super) fn slider_layout(
@@ -236,8 +222,8 @@ pub(super) fn menu_slider(
                     SliderHandleBundle {
                         style: Style {
                             position_type: PositionType::Absolute,
-                            width: Val::Px(15.),
-                            height: Val::Px(30.),
+                            width: Val::Px(12.),
+                            height: Val::Px(25.),
                         },
                         image: ui_assets.slider_handle.clone_weak().into(),
                     }

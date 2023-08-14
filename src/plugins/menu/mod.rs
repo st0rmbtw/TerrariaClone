@@ -2,7 +2,6 @@ mod settings;
 mod celestial_body;
 mod components;
 mod systems;
-mod role;
 mod builders;
 
 use std::time::Duration;
@@ -11,7 +10,7 @@ use components::*;
 use interpolation::EaseFunction;
 use systems::*;
 
-use bevy::{prelude::{Plugin, App, IntoSystemConfigs, OnEnter, OnExit, Color, Component, Startup, Update, Event, KeyCode, PostUpdate, Button, EventWriter, Res, Query, Entity, With, Commands, Name, NodeBundle, BuildChildren, ImageBundle, default, Visibility, TextBundle, Transform, Quat, Vec3, Camera2dBundle, Camera2d, State, ResMut, NextState, EventReader}, input::common_conditions::input_just_pressed, app::AppExit, text::{TextStyle, Text, TextSection}, ui::{Style, PositionType, AlignSelf, Val, UiRect, FlexDirection, UiImage}, core_pipeline::clear_color::ClearColorConfig};
+use bevy::{prelude::{Plugin, App, IntoSystemConfigs, OnEnter, OnExit, Color, Startup, Update, KeyCode, PostUpdate, Button, EventWriter, Res, Query, Entity, With, Commands, Name, NodeBundle, BuildChildren, ImageBundle, default, Visibility, TextBundle, Transform, Quat, Vec3, Camera2dBundle, Camera2d, State, ResMut, NextState, EventReader, Component, Event}, input::common_conditions::input_just_pressed, app::AppExit, text::{TextStyle, Text, TextSection}, ui::{Style, PositionType, AlignSelf, Val, UiRect, FlexDirection, UiImage}, core_pipeline::clear_color::ClearColorConfig};
 use crate::{common::{state::{GameState, MenuState, SettingsMenuState}, conditions::{on_btn_clicked, in_menu_state}, systems::{animate_button_scale, play_sound_on_hover}, lens::TransformLens}, parallax::{parallax_animation_system, ParallaxSet}, language::LanguageContent, animation::{Animator, RepeatCount, Tween, RepeatStrategy}};
 use self::{settings::SettingsMenuPlugin, celestial_body::CelestialBodyPlugin, builders::{menu, menu_button}};
 use super::{slider::Slider, settings::{FullScreen, ShowTileGrid, VSync, Resolution, CursorColor, MusicVolume, SoundVolume, Settings}, assets::{FontAssets, UiAssets}, fps::FpsText, camera::components::MainCamera, audio::{PlaySoundEvent, SoundType, PlayMusicEvent, MusicType}};
@@ -118,7 +117,7 @@ fn spawn_menu_container(
         Duration::from_secs(10),
         TransformLens {
             start: Transform {
-                scale: Vec3::splat(1.),
+                scale: Vec3::splat(0.9),
                 rotation: Quat::from_rotation_z(-5f32.to_radians()),
                 ..default()
             },
@@ -170,8 +169,9 @@ fn spawn_menu_container(
                 style: Style {
                     width: Val::Percent(100.),
                     height: Val::Percent(100.),
-                    padding: UiRect::all(Val::Px(50.)),
+                    padding: UiRect::vertical(Val::Px(20.)),
                     flex_direction: FlexDirection::Column,
+                    row_gap: Val::Px(80.),
                     ..default()
                 },
                 ..default()
@@ -183,8 +183,9 @@ fn spawn_menu_container(
                 Animator::new(logo_animation),
                 ImageBundle {
                     style: Style {
-                        position_type: PositionType::Absolute,
                         align_self: AlignSelf::Center,
+                        width: Val::Px(600.),
+                        height: Val::Px(250.),
                         ..default()
                     },
                     image: UiImage {
@@ -205,13 +206,13 @@ fn setup_main_menu(
 ) {
     let text_style = TextStyle {
         font: fonts.andy_bold.clone_weak(),
-        font_size: 56.,
+        font_size: 60.,
         color: TEXT_COLOR,
     };
 
     let container = query_container.single();
 
-    menu(Menu, &mut commands, container, 65., |builder| {
+    menu(Menu, &mut commands, container, 70., |builder| {
         menu_button(
             builder,
             text_style.clone(),

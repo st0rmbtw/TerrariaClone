@@ -85,6 +85,7 @@
 		"FullScreenResolution": "Fullscreen Resolution",
 		"VSync": "VSync",
 		"Music": "Music",
-		"Sound": "Sound"
+		"Sound": "Sound",
+		"Language": "Language"
 	}
 }
