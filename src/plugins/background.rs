@@ -3,7 +3,7 @@ use crate::{
     common::state::GameState, world::WorldData,
 };
 use bevy::{
-    prelude::{default, App, Commands, Plugin, Res, Vec2, Component, Query, Camera, With, OnExit, IntoSystemConfigs, Name, Entity, DespawnRecursiveExt, Assets, Image, Camera2dBundle, Camera2d, UiCameraConfig, in_state, PostUpdate, GlobalTransform, Transform},
+    prelude::{default, App, Commands, Plugin, Res, Vec2, Query, Camera, With, OnExit, IntoSystemConfigs, Name, Entity, DespawnRecursiveExt, Assets, Image, Camera2dBundle, Camera2d, UiCameraConfig, in_state, PostUpdate, GlobalTransform, Transform, Component},
     sprite::Anchor, core_pipeline::clear_color::ClearColorConfig, render::view::RenderLayers,
 };
 
@@ -65,7 +65,7 @@ fn despawn_menu_background(
 fn follow_camera_system(
     query_parallax_camera: Query<&GlobalTransform, With<ParallaxCameraComponent>>,
     mut query_layer: Query<(&mut Transform, &LayerComponent, &LayerDataComponent)>,
-) {    
+) {
     if let Ok(camera_transform) = query_parallax_camera.get_single() {
         for (mut layer_transform, layer, layer_data) in &mut query_layer {
             let camera_translation = camera_transform.translation().truncate();

@@ -65,8 +65,8 @@ fn update_fps_text(
     time: Res<Time>,
     mut query_fps_text: Query<&mut Text, With<FpsText>>,
 ) {
-    let mut text = query_fps_text.single_mut();
-
-    let fps = 1. / time.delta_seconds();
-    text.sections[0].value = format!("{:.0}", fps);
+    if let Ok(mut text) = query_fps_text.get_single_mut() {
+        let fps = 1. / time.delta_seconds();
+        text.sections[0].value = format!("{:.0}", fps);
+    }
 }

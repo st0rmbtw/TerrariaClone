@@ -28,6 +28,7 @@ pub(crate) struct UI {
     pub(crate) single_player: String,
     pub(crate) interface: String,
     pub(crate) video: String,
+    pub(crate) volume: String,
     pub(crate) tile_grid: String,
     pub(crate) cursor: String,
     pub(crate) exit: String,

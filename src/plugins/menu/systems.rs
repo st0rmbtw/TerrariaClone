@@ -4,7 +4,7 @@ use autodefault::autodefault;
 use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveExt, Camera2dBundle, ChildBuilder, NodeBundle, BuildChildren, TextBundle, Button, Res, default, Changed, EventWriter, Color, ImageBundle, Transform, Quat, Vec3, NextState, ResMut, Visibility, Name, Camera2d, State, EventReader}, text::{Text, TextStyle, TextSection}, ui::{Style, JustifyContent, AlignItems, UiRect, FocusPolicy, PositionType, Interaction, Val, FlexDirection, AlignSelf, UiImage}, app::AppExit, core_pipeline::clear_color::ClearColorConfig};
 use interpolation::EaseFunction;
 
-use crate::{animation::{Tween, Animator, AnimatorState, RepeatStrategy, EaseMethod, RepeatCount}, plugins::{camera::components::MainCamera, assets::{FontAssets, UiAssets}, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor}, fps::FpsText, audio::{PlaySoundEvent, SoundType},}, common::{state::{GameState, SettingsMenuState, MenuState}, lens::{TextFontSizeLens, TransformLens}}, language::LanguageContent};
+use crate::{animation::{Tween, Animator, AnimatorState, RepeatStrategy, EaseMethod, RepeatCount}, plugins::{camera::components::MainCamera, assets::{FontAssets, UiAssets}, settings::{Settings, FullScreen, ShowTileGrid, VSync, Resolution, CursorColor}, fps::FpsText, audio::{PlaySoundEvent, SoundType, PlayMusicEvent, MusicType},}, common::{state::GameState, lens::{TextFontSizeLens, TransformLens}}, language::LanguageContent};
 use super::{Menu, SinglePlayerButton, SettingsButton, ExitButton, MenuContainer, role::ButtonRole, TEXT_COLOR, DespawnOnMenuExit, BackEvent, MENU_BUTTON_FONT_SIZE, EnterEvent};
 
 pub(super) fn despawn_with<C: Component>(query: Query<Entity, With<C>>, mut commands: Commands) {
@@ -38,6 +38,12 @@ pub(super) fn setup_camera(mut commands: Commands) {
             ..default()
         },
     ));
+}
+
+pub(super) fn play_music(
+    mut play_music: EventWriter<PlayMusicEvent>
+) {
+    play_music.send(PlayMusicEvent(MusicType::TitleScreen));
 }
 
 #[autodefault]
@@ -140,6 +146,26 @@ pub(super) fn menu(marker: impl Component, commands: &mut Commands, container: E
 
     commands.entity(container)
         .add_child(menu);
+}
+
+#[autodefault]
+pub(super) fn menu_text(builder: &mut ChildBuilder, text_style: TextStyle, text: String) {
+    builder
+        .spawn(NodeBundle {
+            style: Style {
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+            },
+            focus_policy: FocusPolicy::Pass
+        })
+        .with_children(|b| {
+            b.spawn(TextBundle {
+                style: Style {
+                    position_type: PositionType::Absolute,
+                },
+                text: Text::from_section(text, text_style.clone()).with_no_wrap(),
+            });
+        });
 }
 
 pub(super) fn spawn_menu_container(
@@ -284,14 +310,6 @@ pub(super) fn animate_button_color(
     }
 }
 
-pub(super) fn single_player_clicked(mut enter_events: EventWriter<EnterEvent>) {
-    enter_events.send(EnterEvent(GameState::WorldLoading));
-}
-
-pub(super) fn settings_clicked(mut enter_events: EventWriter<EnterEvent>) {
-    enter_events.send(EnterEvent(GameState::Menu(MenuState::Settings(SettingsMenuState::Main))));
-}
-
 pub(super) fn exit_clicked(
     mut ev: EventWriter<AppExit>,
     fullscreen: Res<FullScreen>,
@@ -336,4 +354,10 @@ pub(super) fn handle_enter_event(
 
 pub(super) fn send_back_event(mut back_events: EventWriter<BackEvent>) {
     back_events.send(BackEvent);
+}
+
+pub(super) fn send_enter_event(state: GameState) -> impl Fn(EventWriter<EnterEvent>) {
+    move |mut enter_events: EventWriter<EnterEvent>| {
+        enter_events.send(EnterEvent(state));
+    }
 }

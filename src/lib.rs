@@ -30,7 +30,7 @@ use plugins::{
     player::PlayerPlugin,
     settings::{FullScreen, Resolution, SettingsPlugin, VSync},
     ui::PlayerUiPlugin,
-    world::WorldPlugin, audio::AudioPlugin,
+    world::WorldPlugin, audio::AudioPlugin, slider::SliderPlugin,
 };
 use rand::seq::SliceRandom;
 
@@ -104,6 +104,7 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
             AssetsPlugin,
             HanabiPlugin,
             ParallaxPlugin,
+            SliderPlugin,
         ))
         .add_plugins((
             LightingPlugin,

@@ -49,6 +49,7 @@ impl MenuState {
             MenuState::Settings(SettingsMenuState::Video) => MenuState::Settings(SettingsMenuState::Main),
             MenuState::Settings(SettingsMenuState::Interface) => MenuState::Settings(SettingsMenuState::Main),
             MenuState::Settings(SettingsMenuState::Cursor) => MenuState::Settings(SettingsMenuState::Main),
+            MenuState::Settings(SettingsMenuState::Volume) => MenuState::Settings(SettingsMenuState::Main),
             MenuState::Settings(SettingsMenuState::Resolution) => MenuState::Settings(SettingsMenuState::Video),
         }
     }
@@ -60,6 +61,7 @@ pub(crate) enum SettingsMenuState {
     Main,
     Interface,
     Video,
+    Volume,
     Resolution,
     Cursor,
 }

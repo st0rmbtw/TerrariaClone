@@ -1,4 +1,4 @@
-use bevy::prelude::{Plugin, App, PostUpdate, Event, IntoSystemConfigs, in_state, not};
+use bevy::prelude::{Plugin, App, PostUpdate, Event, Component, IntoSystemConfigs, not, in_state};
 
 use crate::{world::block::BlockType, items::Tool, common::state::GameState};
 
@@ -8,9 +8,14 @@ pub(crate) struct AudioPlugin;
 impl Plugin for AudioPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<PlaySoundEvent>();
+        app.add_event::<PlayMusicEvent>();
         app.add_systems(
             PostUpdate,
-            systems::handle_play_sound_event.run_if(not(in_state(GameState::AssetLoading)))
+            (
+                systems::handle_play_sound_event,
+                systems::handle_play_music_event
+            )
+            .run_if(not(in_state(GameState::AssetLoading)))
         );
     }
 }
@@ -28,5 +33,17 @@ pub(crate) enum SoundType {
     PlayerToolSwing(Tool)
 }
 
+#[derive(Clone, Copy)]
+pub(crate) enum MusicType {
+    TitleScreen
+}
+
+#[derive(Component)]
+pub(self) struct MusicAudio;
+
 #[derive(Event)]
 pub(crate) struct PlaySoundEvent(pub(crate) SoundType);
+
+
+#[derive(Event)]
+pub(crate) struct PlayMusicEvent(pub(crate) MusicType);

@@ -9,7 +9,7 @@ use systems::*;
 
 use bevy::{prelude::{Plugin, App, IntoSystemConfigs, OnEnter, OnExit, Color, Component, Startup, Update, Event, KeyCode, PostUpdate, Button}, input::common_conditions::input_just_pressed};
 
-use crate::{common::{state::{GameState, MenuState}, conditions::{on_btn_clicked, in_menu_state}, systems::{animate_button_scale, play_sound_on_button_hover}}, parallax::{parallax_animation_system, ParallaxSet}};
+use crate::{common::{state::{GameState, MenuState, SettingsMenuState}, conditions::{on_btn_clicked, in_menu_state}, systems::{animate_button_scale, play_sound_on_button_hover}}, parallax::{parallax_animation_system, ParallaxSet}};
 
 use self::{settings::SettingsMenuPlugin, celestial_body::CelestialBodyPlugin};
 
@@ -25,7 +25,13 @@ impl Plugin for MenuPlugin {
         app.add_plugins((CelestialBodyPlugin, SettingsMenuPlugin));
 
         app.add_systems(Startup, setup_camera);
-        app.add_systems(OnExit(GameState::AssetLoading), spawn_menu_container);
+        app.add_systems(
+            OnExit(GameState::AssetLoading),
+            (
+                spawn_menu_container,
+                play_music
+            )
+        );
 
         app.add_systems(OnEnter(GameState::Menu(MenuState::Main)), setup_main_menu);
         app.add_systems(OnExit(GameState::Menu(MenuState::Main)), despawn_with::<Menu>);
@@ -62,8 +68,10 @@ impl Plugin for MenuPlugin {
         app.add_systems(
             Update,
             (
-                single_player_clicked.run_if(on_btn_clicked::<SinglePlayerButton>),
-                settings_clicked.run_if(on_btn_clicked::<SettingsButton>),
+                send_enter_event(GameState::WorldLoading)
+                    .run_if(on_btn_clicked::<SinglePlayerButton>),
+                send_enter_event(GameState::Menu(MenuState::Settings(SettingsMenuState::Main)))
+                    .run_if(on_btn_clicked::<SettingsButton>),
                 exit_clicked.run_if(on_btn_clicked::<ExitButton>),
             )
             .run_if(in_menu_state)

@@ -1,19 +1,20 @@
 pub(super) mod interface;
 pub(super) mod video;
+pub(super) mod volume;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Res, Plugin, App, OnEnter, OnExit, IntoSystemConfigs, Query, Entity, With, Update, in_state, EventWriter, Component}, text::TextStyle};
+use bevy::{prelude::{Commands, Res, Plugin, App, OnEnter, OnExit, IntoSystemConfigs, Query, Entity, With, Update, in_state, Component}, text::TextStyle};
 
 use crate::{plugins::{assets::FontAssets, menu::{menu_button, control_buttons_layout, control_button}}, language::LanguageContent, common::{conditions::on_btn_clicked, state::{SettingsMenuState, GameState, MenuState}}};
 
-use self::{interface::InterfaceMenuPlugin, video::VideoMenuPlugin};
+use self::{interface::InterfaceMenuPlugin, video::VideoMenuPlugin, volume::VolumeMenuPlugin};
 
-use super::{despawn_with, menu, MenuContainer, TEXT_COLOR, BackButton, MENU_BUTTON_FONT_SIZE, EnterEvent};
+use super::{despawn_with, menu, MenuContainer, TEXT_COLOR, BackButton, MENU_BUTTON_FONT_SIZE, systems::send_enter_event};
 
 pub(super) struct SettingsMenuPlugin;
 impl Plugin for SettingsMenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((InterfaceMenuPlugin, VideoMenuPlugin));
+        app.add_plugins((InterfaceMenuPlugin, VideoMenuPlugin, VolumeMenuPlugin));
 
         app.add_systems(
             OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Main))),
@@ -27,9 +28,14 @@ impl Plugin for SettingsMenuPlugin {
         app.add_systems(
             Update,
             (
-                interface_clicked.run_if(on_btn_clicked::<InterfaceButton>),
-                video_clicked.run_if(on_btn_clicked::<VideoButton>),
-                cursor_clicked.run_if(on_btn_clicked::<CursorButton>),
+                send_enter_event(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface)))
+                    .run_if(on_btn_clicked::<InterfaceButton>),
+                send_enter_event(GameState::Menu(MenuState::Settings(SettingsMenuState::Video)))
+                    .run_if(on_btn_clicked::<VideoButton>),
+                send_enter_event(GameState::Menu(MenuState::Settings(SettingsMenuState::Volume)))
+                    .run_if(on_btn_clicked::<VolumeButton>),
+                // send_enter_event(GameState::Menu(MenuState::Settings(SettingsMenuState::Cursor)))
+                //     .run_if(on_btn_clicked::<CursorButton>),
             )
             .run_if(in_state(GameState::Menu(MenuState::Settings(SettingsMenuState::Main))))
         );
@@ -44,6 +50,9 @@ struct InterfaceButton;
 
 #[derive(Component)]
 struct VideoButton;
+
+#[derive(Component)]
+struct VolumeButton;
 
 #[derive(Component)]
 struct CursorButton;
@@ -66,23 +75,11 @@ fn setup_settings_menu(
     menu(SettingsMenu, &mut commands, container, 50., |builder| {
         menu_button(builder, text_style.clone(), language_content.ui.interface.clone(), InterfaceButton);
         menu_button(builder, text_style.clone(), language_content.ui.video.clone(), VideoButton);
+        menu_button(builder, text_style.clone(), language_content.ui.volume.clone(), VolumeButton);
         menu_button(builder, text_style.clone(), language_content.ui.cursor.clone(), CursorButton);
 
         control_buttons_layout(builder, |control_button_builder| {
             control_button(control_button_builder, text_style.clone(), language_content.ui.back.clone(), BackButton);
         });
     });
-}
-
-
-fn interface_clicked(mut enter_event: EventWriter<EnterEvent>) {
-    enter_event.send(EnterEvent(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface))));
-}
-
-fn video_clicked(mut enter_event: EventWriter<EnterEvent>) {
-    enter_event.send(EnterEvent(GameState::Menu(MenuState::Settings(SettingsMenuState::Video))));
-}
-
-fn cursor_clicked() {
-    // TODO: Implement Cursor menu
 }

@@ -16,7 +16,7 @@ use crate::common::state::{GameState, MenuState};
 use crate::world::block::BlockType;
 use crate::world::wall::Wall;
 
-use super::audio::SoundType;
+use super::audio::{SoundType, MusicType};
 
 macro_rules! handles {
     (
@@ -59,6 +59,7 @@ impl Plugin for AssetsPlugin {
         app.add_collection_to_loading_state::<_, WallAssets>(GameState::AssetLoading);
         app.add_collection_to_loading_state::<_, UiAssets>(GameState::AssetLoading);
         app.add_collection_to_loading_state::<_, SoundAssets>(GameState::AssetLoading);
+        app.add_collection_to_loading_state::<_, MusicAssets>(GameState::AssetLoading);
         app.add_collection_to_loading_state::<_, PlayerAssets>(GameState::AssetLoading);
         app.add_collection_to_loading_state::<_, FontAssets>(GameState::AssetLoading);
         app.add_collection_to_loading_state::<_, ItemAssets>(GameState::AssetLoading);
@@ -116,6 +117,15 @@ handles! {
 
         #[asset(path = "sprites/ui/Logo.png")]
         pub(crate) logo: Handle<Image>,
+
+        #[asset(path = "sprites/ui/SliderBorder.png")]
+        pub(crate) slider_border: Handle<Image>,
+
+        #[asset(path = "sprites/ui/SliderBackground.png")]
+        pub(crate) slider_background: Handle<Image>,
+
+        #[asset(path = "sprites/ui/SliderHandle.png")]
+        pub(crate) slider_handle: Handle<Image>,
     }
 }
 
@@ -358,6 +368,12 @@ pub(crate) struct SoundAssets {
     pub(crate) tink: Vec<Handle<AudioSource>>,
 }
 
+#[derive(Resource, AssetCollection)]
+pub(crate) struct MusicAssets {
+    #[asset(path = "music/Title_Screen.mp3")]
+    pub(crate) title_screen: Handle<AudioSource>,
+}
+
 impl WallAssets {
     pub(crate) fn get_by_wall(&self, wall: Wall) -> Option<Handle<Image>> {
         match wall {
@@ -411,6 +427,14 @@ impl SoundAssets {
         match block {
             BlockType::Stone => self.tink.choose(rng).unwrap().clone_weak(),
             _ => self.dig.choose(rng).unwrap().clone_weak()
+        }
+    }
+}
+
+impl MusicAssets {
+    pub(crate) fn get_handle_by_music_type(&self, music_type: MusicType) -> Handle<AudioSource> {
+        match music_type {
+            MusicType::TitleScreen => self.title_screen.clone_weak(),
         }
     }
 }
