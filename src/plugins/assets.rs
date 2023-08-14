@@ -333,9 +333,47 @@ pub(crate) struct CelestialBodyAssets {
     #[asset(path = "sprites/backgrounds/Sun.png")]
     pub(crate) sun: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 7, padding_x = 0., padding_y = 0.))]
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8, padding_x = 0., padding_y = 0.))]
     #[asset(path = "sprites/backgrounds/Moon_0.png")]
     pub(crate) moon_0: Handle<TextureAtlas>,
+
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8, padding_x = 0., padding_y = 0.))]
+    #[asset(path = "sprites/backgrounds/Moon_1.png")]
+    pub(crate) moon_1: Handle<TextureAtlas>,
+
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8, padding_x = 0., padding_y = 0.))]
+    #[asset(path = "sprites/backgrounds/Moon_2.png")]
+    pub(crate) moon_2: Handle<TextureAtlas>,
+
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8, padding_x = 0., padding_y = 0.))]
+    #[asset(path = "sprites/backgrounds/Moon_3.png")]
+    pub(crate) moon_3: Handle<TextureAtlas>,
+
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8, padding_x = 0., padding_y = 0.))]
+    #[asset(path = "sprites/backgrounds/Moon_4.png")]
+    pub(crate) moon_4: Handle<TextureAtlas>,
+
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8, padding_x = 0., padding_y = 0.))]
+    #[asset(path = "sprites/backgrounds/Moon_5.png")]
+    pub(crate) moon_5: Handle<TextureAtlas>,
+
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8, padding_x = 0., padding_y = 0.))]
+    #[asset(path = "sprites/backgrounds/Moon_6.png")]
+    pub(crate) moon_6: Handle<TextureAtlas>,
+
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8, padding_x = 0., padding_y = 0.))]
+    #[asset(path = "sprites/backgrounds/Moon_7.png")]
+    pub(crate) moon_7: Handle<TextureAtlas>,
+
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8, padding_x = 0., padding_y = 0.))]
+    #[asset(path = "sprites/backgrounds/Moon_8.png")]
+    pub(crate) moon_8: Handle<TextureAtlas>,
+}
+
+impl CelestialBodyAssets {
+    pub(crate) const fn moons(&self) -> [&Handle<TextureAtlas>; 9] {
+        [&self.moon_0, &self.moon_1, &self.moon_2, &self.moon_3, &self.moon_4, &self.moon_5, &self.moon_6, &self.moon_7, &self.moon_8]
+    }
 }
 
 #[derive(Resource, AssetCollection)]

@@ -303,17 +303,23 @@ fn drag_celestial_body(
 fn update_celestial_type(
     time_type: Res<TimeType>,
     celestial_body_assets: Res<CelestialBodyAssets>,
-    mut query: Query<&mut Handle<TextureAtlas>, With<CelestialBody>>,
+    mut query: Query<(&mut Handle<TextureAtlas>, &mut TextureAtlasSprite), With<CelestialBody>>,
+    mut moon_index: Local<usize>,
 ) {
     if time_type.is_changed() {
+        let (mut texture, mut atlas_sprite) = query.single_mut();
         match *time_type {
             TimeType::Day => {
-                let mut sprite = query.single_mut();
-                *sprite = celestial_body_assets.sun.clone_weak();
+                *texture = celestial_body_assets.sun.clone_weak();
+                atlas_sprite.index = 0;
             },
             TimeType::Night => {
-                let mut sprite = query.single_mut();
-                *sprite = celestial_body_assets.moon_0.clone_weak();
+                let mut rng = thread_rng();
+                let moons = celestial_body_assets.moons();
+
+                *moon_index = (*moon_index + 1) % (moons.len() - 1);
+                atlas_sprite.index = rng.gen_range(0..8);
+                *texture = moons[*moon_index].clone_weak();
             },
         }
     }
