@@ -1,4 +1,4 @@
-use bevy::{prelude::{Commands, EventReader, Res, AudioBundle, PlaybackSettings, Query, Entity, With, DespawnRecursiveExt, ResMut, AudioSink, AudioSinkPlayback}, audio::Volume};
+use bevy::{prelude::{Commands, EventReader, Res, AudioBundle, PlaybackSettings, Query, Entity, With, ResMut, AudioSink, AudioSinkPlayback}, audio::Volume};
 
 use crate::plugins::{assets::{MusicAssets, SoundAssets}, settings::{MusicVolume, SoundVolume}};
 
@@ -11,10 +11,13 @@ pub(super) fn handle_play_sound_event(
     sound_volume: Res<SoundVolume>
 ) {
     for event in event_reader.iter() {
-        commands.spawn(AudioBundle {
-            source: sound_assets.get_handle_by_sound_type(event.0),
-            settings: PlaybackSettings::DESPAWN.with_volume(Volume::Relative(**sound_volume)),
-        });
+        commands.spawn((
+            SoundAudio,
+            AudioBundle {
+                source: sound_assets.get_handle_by_sound_type(event.0),
+                settings: PlaybackSettings::DESPAWN.with_volume(Volume::Relative(**sound_volume)),
+            }
+        ));
     }
 }
 
@@ -27,7 +30,7 @@ pub(super) fn handle_play_music_event(
 ) {
     for event in event_reader.iter() {
         if let Ok(entity) = query_music.get_single() {
-            commands.entity(entity).despawn_recursive();
+            commands.entity(entity).despawn();
         }
 
         commands.spawn((

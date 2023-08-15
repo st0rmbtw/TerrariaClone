@@ -43,10 +43,10 @@ pub(crate) enum MusicType {
 }
 
 #[derive(Component)]
-pub(self) struct MusicAudio;
+pub(crate) struct MusicAudio;
 
 #[derive(Component)]
-pub(self) struct SoundAudio;
+pub(crate) struct SoundAudio;
 
 #[derive(Event)]
 pub(crate) struct PlaySoundEvent(pub(crate) SoundType);

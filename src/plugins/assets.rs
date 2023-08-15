@@ -131,102 +131,39 @@ handles! {
 
 #[derive(Resource, AssetCollection)]
 pub(crate) struct PlayerAssets {
-    #[asset(texture_atlas(
-        tile_size_x = 40.,
-        tile_size_y = 48.,
-        columns = 1,
-        rows = 14,
-        padding_x = 0.,
-        padding_y = 0.
-    ))]
+    #[asset(texture_atlas(tile_size_x = 40., tile_size_y = 48., columns = 1, rows = 14))]
     #[asset(path = "sprites/player/Player_0_0.png")]
     pub(crate) head: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(
-        tile_size_x = 32.,
-        tile_size_y = 64.,
-        columns = 27,
-        rows = 1,
-        padding_x = 0.,
-        padding_y = 0.
-    ))]
+    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 64., columns = 27, rows = 1))]
     #[asset(path = "sprites/player/Player_Left_Shoulder.png")]
     pub(crate) left_shoulder: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(
-        tile_size_x = 32.,
-        tile_size_y = 64.,
-        columns = 27,
-        rows = 1,
-        padding_x = 0.,
-        padding_y = 0.
-    ))]
+    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 64., columns = 27, rows = 1))]
     #[asset(path = "sprites/player/Player_Left_Hand.png")]
     pub(crate) left_hand: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(
-        tile_size_x = 32.,
-        tile_size_y = 80.,
-        columns = 18,
-        rows = 1,
-        padding_x = 0.,
-        padding_y = 0.
-    ))]
+    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 80., columns = 18, rows = 1))]
     #[asset(path = "sprites/player/Player_Right_Arm.png")]
     pub(crate) right_arm: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(
-        tile_size_x = 40.,
-        tile_size_y = 64.,
-        columns = 1,
-        rows = 14,
-        padding_x = 0.,
-        padding_y = 0.
-    ))]
+    #[asset(texture_atlas(tile_size_x = 40., tile_size_y = 64., columns = 1, rows = 14))]
     #[asset(path = "sprites/player/Player_Hair_1.png")]
     pub(crate) hair: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(
-        tile_size_x = 32.,
-        tile_size_y = 64.,
-        columns = 1,
-        rows = 14,
-        padding_x = 8.,
-        padding_y = 0.
-    ))]
+    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 64., columns = 1, rows = 14, padding_x = 8.))]
     #[asset(path = "sprites/player/Player_Body.png")]
     pub(crate) chest: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(
-        tile_size_x = 40.,
-        tile_size_y = 64.,
-        columns = 1,
-        rows = 19,
-        padding_x = 0.,
-        padding_y = 0.
-    ))]
+    #[asset(texture_atlas(tile_size_x = 40., tile_size_y = 64., columns = 1, rows = 19))]
     #[asset(path = "sprites/player/Player_0_11.png")]
     pub(crate) feet: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(
-        tile_size_x = 40.,
-        tile_size_y = 64.,
-        columns = 1,
-        rows = 20,
-        padding_x = 0.,
-        padding_y = 0.
-    ))]
+    #[asset(texture_atlas(tile_size_x = 40., tile_size_y = 64., columns = 1, rows = 20))]
     #[asset(path = "sprites/player/Player_0_1.png")]
     pub(crate) eyes_1: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(
-        tile_size_x = 40.,
-        tile_size_y = 64.,
-        columns = 1,
-        rows = 20,
-        padding_x = 0.,
-        padding_y = 0.
-    ))]
+    #[asset(texture_atlas(tile_size_x = 40., tile_size_y = 64., columns = 1, rows = 20))]
     #[asset(path = "sprites/player/Player_0_2.png")]
     pub(crate) eyes_2: Handle<TextureAtlas>,
 }
@@ -329,43 +266,43 @@ handles! {
 
 #[derive(Resource, AssetCollection)]
 pub(crate) struct CelestialBodyAssets {
-    #[asset(texture_atlas(tile_size_x = 114., tile_size_y = 114., columns = 1, rows = 1, padding_x = 0., padding_y = 0.))]
+    #[asset(texture_atlas(tile_size_x = 114., tile_size_y = 114., columns = 1, rows = 1))]
     #[asset(path = "sprites/backgrounds/Sun.png")]
     pub(crate) sun: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8, padding_x = 0., padding_y = 0.))]
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8))]
     #[asset(path = "sprites/backgrounds/Moon_0.png")]
     pub(crate) moon_0: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8, padding_x = 0., padding_y = 0.))]
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8))]
     #[asset(path = "sprites/backgrounds/Moon_1.png")]
     pub(crate) moon_1: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8, padding_x = 0., padding_y = 0.))]
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8))]
     #[asset(path = "sprites/backgrounds/Moon_2.png")]
     pub(crate) moon_2: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8, padding_x = 0., padding_y = 0.))]
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8))]
     #[asset(path = "sprites/backgrounds/Moon_3.png")]
     pub(crate) moon_3: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8, padding_x = 0., padding_y = 0.))]
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8))]
     #[asset(path = "sprites/backgrounds/Moon_4.png")]
     pub(crate) moon_4: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8, padding_x = 0., padding_y = 0.))]
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8))]
     #[asset(path = "sprites/backgrounds/Moon_5.png")]
     pub(crate) moon_5: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8, padding_x = 0., padding_y = 0.))]
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8))]
     #[asset(path = "sprites/backgrounds/Moon_6.png")]
     pub(crate) moon_6: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8, padding_x = 0., padding_y = 0.))]
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8))]
     #[asset(path = "sprites/backgrounds/Moon_7.png")]
     pub(crate) moon_7: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8, padding_x = 0., padding_y = 0.))]
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8))]
     #[asset(path = "sprites/backgrounds/Moon_8.png")]
     pub(crate) moon_8: Handle<TextureAtlas>,
 }

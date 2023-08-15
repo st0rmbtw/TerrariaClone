@@ -13,7 +13,7 @@ use systems::*;
 use bevy::{prelude::{Plugin, App, IntoSystemConfigs, OnEnter, OnExit, Color, Startup, Update, KeyCode, PostUpdate, Button, EventWriter, Res, Query, Entity, With, Commands, Name, NodeBundle, BuildChildren, ImageBundle, default, Visibility, TextBundle, Transform, Quat, Vec3, Camera2dBundle, Camera2d, State, ResMut, NextState, EventReader, Component, Event}, input::common_conditions::input_just_pressed, app::AppExit, text::{TextStyle, Text, TextSection}, ui::{Style, PositionType, AlignSelf, Val, UiRect, FlexDirection, UiImage}, core_pipeline::clear_color::ClearColorConfig};
 use crate::{common::{state::{GameState, MenuState, SettingsMenuState}, conditions::{on_btn_clicked, in_menu_state}, systems::{animate_button_scale, play_sound_on_hover}, lens::TransformLens}, parallax::{parallax_animation_system, ParallaxSet}, language::LanguageContent, animation::{Animator, RepeatCount, Tween, RepeatStrategy}};
 use self::{settings::SettingsMenuPlugin, celestial_body::CelestialBodyPlugin, builders::{menu, menu_button}};
-use super::{slider::Slider, settings::{FullScreen, ShowTileGrid, VSync, Resolution, CursorColor, MusicVolume, SoundVolume, Settings}, assets::{FontAssets, UiAssets}, fps::FpsText, camera::components::MainCamera, audio::{PlaySoundEvent, SoundType, PlayMusicEvent, MusicType}};
+use super::{slider::Slider, settings::{FullScreen, ShowTileGrid, VSync, Resolution, CursorColor, MusicVolume, SoundVolume, Settings}, assets::{FontAssets, UiAssets}, fps::FpsText, camera::components::MainCamera, audio::{PlaySoundEvent, SoundType, PlayMusicEvent, MusicType, MusicAudio}};
 
 pub(crate) const TEXT_COLOR: Color = Color::rgb(0.58, 0.58, 0.58);
 pub(super) const MENU_BUTTON_FONT_SIZE: f32 = 42.;
@@ -47,7 +47,13 @@ impl Plugin for MenuPlugin {
         app.add_systems(OnEnter(GameState::Menu(MenuState::Main)), setup_main_menu);
         app.add_systems(OnExit(GameState::Menu(MenuState::Main)), despawn_with::<Menu>);
 
-        app.add_systems(OnEnter(GameState::InGame), despawn_with::<DespawnOnMenuExit>);
+        app.add_systems(
+            OnEnter(GameState::InGame),
+            (
+                despawn_with::<DespawnOnMenuExit>,
+                despawn_with::<MusicAudio>
+            )
+        );
 
         app.add_systems(
             Update,
