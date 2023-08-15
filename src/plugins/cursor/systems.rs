@@ -3,16 +3,14 @@ use std::time::Duration;
 use autodefault::autodefault;
 use bevy::{
     prelude::{
-        Res, Commands, Vec3, Color, NodeBundle, default, TextBundle, Name, ImageBundle, Transform, 
-        GlobalTransform, Query, With, ResMut, Camera, Visibility, 
+        Res, Commands, Vec3, Color, NodeBundle, default, TextBundle, Name, ImageBundle, Transform, Query, With, Visibility, 
         BuildChildren, Changed
     }, 
     ui::{
         Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Val, AlignSelf, ZIndex, FlexDirection, UiRect, Interaction
     }, 
     text::{Text, TextStyle}, 
-    sprite::{SpriteBundle, Sprite}, 
-    window::{Window, PrimaryWindow}
+    sprite::{SpriteBundle, Sprite}
 };
 use interpolation::EaseFunction;
 
@@ -28,7 +26,7 @@ use crate::{
 
 use crate::plugins::player::{PlayerVelocity, MAX_RUN_SPEED, MAX_FALL_SPEED};
 
-use super::{MAX_TILE_GRID_OPACITY, MIN_TILE_GRID_OPACITY, CURSOR_SIZE, components::{Hoverable, CursorBackground, CursorForeground, CursorInfoMarker, CursorContainer, TileGrid}, resources::CursorPosition};
+use super::{MAX_TILE_GRID_OPACITY, MIN_TILE_GRID_OPACITY, CURSOR_SIZE, components::{Hoverable, CursorBackground, CursorForeground, CursorInfoMarker, CursorContainer, TileGrid}, position::CursorPosition};
 
 pub(super) fn setup(
     mut commands: Commands, 
@@ -151,35 +149,23 @@ pub(super) fn spawn_tile_grid(
 }
 
 pub(super) fn update_cursor_position(
-    mut cursor: ResMut<CursorPosition>,
-    query_window: Query<&Window, With<PrimaryWindow>>,
-    query_main_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
+    cursor_pos: Res<CursorPosition<MainCamera>>,
     mut query_cursor: Query<&mut Style, With<CursorContainer>>,
 ) {
-    if let Ok((camera, camera_transform)) = query_main_camera.get_single() {
-        let window = query_window.single();
 
-        let Some(screen_pos) = window.cursor_position() else { return; };
-        cursor.screen = screen_pos;
-
-        if let Ok(mut style) = query_cursor.get_single_mut() {
-            style.left = Val::Px(screen_pos.x);
-            style.top = Val::Px(screen_pos.y);
-        }
-
-        if let Some(world_pos) = camera.viewport_to_world_2d(camera_transform, screen_pos) {
-            cursor.world = world_pos;
-        }
+    if let Ok(mut style) = query_cursor.get_single_mut() {
+        style.left = Val::Px(cursor_pos.screen.x);
+        style.top = Val::Px(cursor_pos.screen.y);
     }
 }
 
 pub(super) fn update_tile_grid_position(
-    cursor: Res<CursorPosition>,
+    cursor_pos: Res<CursorPosition<MainCamera>>,
     mut query: Query<&mut Transform, With<TileGrid>>,
 ) {
     let mut transform = query.single_mut();
     
-    let tile_coords = (cursor.world / TILE_SIZE).round();
+    let tile_coords = (cursor_pos.world / TILE_SIZE).round();
     transform.translation.x = tile_coords.x * TILE_SIZE;
     transform.translation.y = tile_coords.y * TILE_SIZE;
 }

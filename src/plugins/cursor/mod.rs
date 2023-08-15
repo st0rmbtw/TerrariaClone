@@ -1,10 +1,12 @@
 pub(crate) mod components;
-pub(crate) mod resources;
+pub(crate) mod position;
 mod systems;
 
-use bevy::{prelude::{Plugin, App, OnExit, OnEnter, IntoSystemConfigs, not, resource_equals, in_state, Condition, Update, PreUpdate}, ui::BackgroundColor};
+use bevy::{prelude::{Plugin, App, OnExit, OnEnter, IntoSystemConfigs, not, resource_equals, in_state, Condition, Update}, ui::BackgroundColor};
 use crate::{common::{state::GameState, systems::set_visibility}, animation::{AnimationSystemSet, component_animator_system}};
-use super::{ui::UiVisibility, settings::ShowTileGrid};
+use self::position::CursorPositionPlugin;
+
+use super::{ui::UiVisibility, settings::ShowTileGrid, camera::components::{MainCamera, BackgroundCamera}};
 
 const CURSOR_SIZE: f32 = 22.;
 const MAX_TILE_GRID_OPACITY: f32 = 0.8;
@@ -18,21 +20,20 @@ use bevy::prelude::Res;
 pub struct CursorPlugin;
 impl Plugin for CursorPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(resources::CursorPosition::default());
+        app.add_plugins((
+            CursorPositionPlugin::<MainCamera>::default(),
+            CursorPositionPlugin::<BackgroundCamera>::default()
+        ));
 
         app.add_systems(OnExit(GameState::AssetLoading), systems::setup);
         app.add_systems(OnEnter(GameState::InGame), systems::spawn_tile_grid);
 
         app.add_systems(
-            PreUpdate,
-            systems::update_cursor_position
-                .run_if(not(in_state(GameState::AssetLoading)))
-        );
-
-        app.add_systems(
             Update,
-            systems::update_cursor_info
-                .run_if(not(in_state(GameState::AssetLoading)))
+            (
+                systems::update_cursor_info,
+                systems::update_cursor_position
+            ).run_if(not(in_state(GameState::AssetLoading)))
         );
 
         app.add_systems(

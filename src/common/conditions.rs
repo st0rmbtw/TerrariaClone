@@ -9,11 +9,7 @@ pub(crate) fn in_menu_state(state: Res<State<GameState>>) -> bool {
 pub(crate) fn on_btn_clicked<B: Component>(
     query: Query<&Interaction, (Changed<Interaction>, With<Button>, With<B>)>,
 ) -> bool {
-    for interaction in query.iter() {
-        if *interaction == Interaction::Pressed {
-            return true;
-        }
-    }
+    let interaction = query.single();
 
-    false
+    matches!(interaction, Interaction::Pressed)
 }

@@ -402,11 +402,11 @@ pub(super) fn draw_hitbox(
 }
 
 #[cfg(feature = "debug")]
-use crate::plugins::cursor::resources::CursorPosition;
+use crate::plugins::{cursor::position::CursorPosition, camera::components::MainCamera};
 
 #[cfg(feature = "debug")]
 pub(super) fn teleport_player(
-    cursor_position: Res<CursorPosition>,
+    cursor_position: Res<CursorPosition<MainCamera>>,
     mut query_player: Query<&mut Transform, With<Player>>,
 ) {
     if let Ok(mut transform) = query_player.get_single_mut() {

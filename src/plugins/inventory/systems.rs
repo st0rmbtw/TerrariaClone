@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use autodefault::autodefault;
 use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, Name, With, Query, Changed, Commands, Entity, Visibility, ChildBuilder, Handle, Image, ImageBundle, BuildChildren, NodeBundle, TextBundle, Color, MouseButton, EventWriter, DetectChanges, Local, Transform, Quat, DetectChangesMut}, input::mouse::MouseWheel, ui::{Style, AlignSelf, UiImage, UiRect, JustifyContent, AlignItems, FocusPolicy, FlexDirection, Val, PositionType, AlignContent, Interaction, BackgroundColor, ZIndex}, text::{Text, TextStyle, TextAlignment}, sprite::TextureAtlasSprite, utils::default};
 
-use crate::{plugins::{ui::ExtraUiVisibility, assets::{ItemAssets, UiAssets, FontAssets}, cursor::{components::Hoverable, resources::CursorPosition}, world::events::{DigBlockEvent, PlaceBlockEvent, SeedEvent, BreakBlockEvent}, player::{FaceDirection, Player, PlayerSpriteBody}, audio::{PlaySoundEvent, SoundType}}, common::{extensions::EntityCommandsExtensions, helpers, IsVisible}, language::LanguageContent, items::{Item, get_animation_points}, world::WorldData};
+use crate::{plugins::{ui::ExtraUiVisibility, assets::{ItemAssets, UiAssets, FontAssets}, cursor::{components::Hoverable, position::CursorPosition}, world::events::{DigBlockEvent, PlaceBlockEvent, SeedEvent, BreakBlockEvent}, player::{FaceDirection, Player, PlayerSpriteBody}, audio::{PlaySoundEvent, SoundType}, camera::components::MainCamera}, common::{extensions::EntityCommandsExtensions, helpers, IsVisible}, language::LanguageContent, items::{Item, get_animation_points}, world::WorldData};
 
 use super::{Inventory, SelectedItem, SelectedItemNameMarker, InventoryCellItemImage, InventoryCellIndex, InventoryItemAmount, InventoryUi, HotbarCellMarker, INVENTORY_CELL_SIZE_SELECTED, INVENTORY_CELL_SIZE, CELL_COUNT_IN_ROW, INVENTORY_ROWS, HotbarUi, util::keycode_to_digit, SwingItemCooldown, ItemInHand, UseItemAnimationIndex, PlayerUsingItem, UseItemAnimationData, SwingItemCooldownMax, ITEM_ROTATION, SwingAnimation};
 
@@ -409,7 +409,7 @@ pub(super) fn update_item_amount_text(
 
 pub(super) fn use_item(
     using_item: Res<PlayerUsingItem>,
-    cursor: Res<CursorPosition>,
+    cursor_position: Res<CursorPosition<MainCamera>>,
     world_data: Res<WorldData>,
     #[cfg(feature = "debug")]
     debug_config: Res<crate::plugins::debug::DebugConfiguration>,
@@ -434,7 +434,7 @@ pub(super) fn use_item(
         let selected_item_index = inventory.selected_slot;
 
         if let Some(item_stack) = inventory.selected_item() {
-            let tile_pos = helpers::get_tile_pos_from_world_coords(cursor.world);
+            let tile_pos = helpers::get_tile_pos_from_world_coords(cursor_position.world);
 
             match item_stack.item {
                 Item::Tool(tool) => {

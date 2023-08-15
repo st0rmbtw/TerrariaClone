@@ -1,11 +1,11 @@
 use std::time::Duration;
 
-use bevy::{prelude::{Commands, Res, Component, Resource, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, Local, Input, MouseButton, Color, Vec4, DetectChanges, IntoSystemConfigs, OnExit, Name, Update, OnEnter, Without, Entity, Deref, DerefMut, PreUpdate, on_event, Condition, Vec3}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas, SpriteBundle}, window::{Window, PrimaryWindow, WindowResized}, utils::default, ecs::query::Has};
+use bevy::{prelude::{Commands, Res, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, Local, Input, MouseButton, Color, Vec4, DetectChanges, IntoSystemConfigs, OnExit, Name, Update, OnEnter, Without, Entity, Deref, DerefMut, PreUpdate, on_event, Condition, Vec3, Component, Resource}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas, SpriteBundle}, window::{Window, PrimaryWindow, WindowResized}, utils::default, ecs::query::Has};
 use bevy_hanabi::Gradient;
 use interpolation::{Lerp, EaseFunction};
 use rand::{thread_rng, Rng, seq::SliceRandom};
 
-use crate::{plugins::{assets::{CelestialBodyAssets, BackgroundAssets}, camera::components::BackgroundCamera, background::{BACKGROUND_RENDER_LAYER, BackgroundPlugin}, cursor::resources::CursorPosition}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystemSet, AnimatorState, lens::TransformScaleLens}, common::state::GameState, common::{math::map_range_f32, rect::FRect}, parallax::{LayerTextureComponent, ParallaxSet}};
+use crate::{plugins::{assets::{CelestialBodyAssets, BackgroundAssets}, camera::components::BackgroundCamera, background::{BACKGROUND_RENDER_LAYER, BackgroundPlugin}, cursor::position::CursorPosition}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystemSet, AnimatorState, lens::TransformScaleLens}, common::state::GameState, common::{math::map_range_f32, rect::FRect}, parallax::{LayerTextureComponent, ParallaxSet}};
 
 use super::{in_menu_state, DespawnOnMenuExit, systems::despawn_with};
 
@@ -303,14 +303,10 @@ fn drag_celestial_body(
     query_window: Query<&Window, With<PrimaryWindow>>,
     input: Res<Input<MouseButton>>,
     time_type: Res<TimeType>,
-    cursor_position: Res<CursorPosition>,
+    cursor_position: Res<CursorPosition<BackgroundCamera>>,
     mut query_celestial_body: Query<(Entity, &mut Transform, &mut Animator<CelestialBodyPosition>, &mut CelestialBodyPosition, Has<Dragging>)>,
-    query_background_camera: Query<(&Camera, &GlobalTransform), With<BackgroundCamera>>,
 ) {
     let window = query_window.single();
-
-    let Ok((camera, camera_transform)) = query_background_camera.get_single() else { return; };
-    let Some(cursor_world_position) = camera.viewport_to_world_2d(camera_transform, cursor_position.screen) else { return; };
 
     let (
         celestial_body_entity, mut celestial_body_transform, 
@@ -329,11 +325,11 @@ fn drag_celestial_body(
         celestial_body_size
     );
 
-    let cursor_is_on_celestial_body = cb_rect.inside((cursor_world_position.x, cursor_world_position.y));
+    let cursor_is_on_celestial_body = cb_rect.inside((cursor_position.world.x, cursor_position.world.y));
 
     if input.pressed(MouseButton::Left) && (cursor_is_on_celestial_body || is_dragging) {
-        celestial_body_transform.translation.x = cursor_world_position.x;
-        celestial_body_transform.translation.y = cursor_world_position.y;
+        celestial_body_transform.translation.x = cursor_position.world.x;
+        celestial_body_transform.translation.y = cursor_position.world.y;
         celestial_body_pos.x = cursor_position.screen.x / window.width();
         celestial_body_pos.y = cursor_position.screen.y / window.height();
 

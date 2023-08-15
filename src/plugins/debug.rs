@@ -4,7 +4,7 @@ use bevy_inspector_egui::{bevy_egui::{EguiPlugin, egui, EguiContexts}, egui::{Al
 
 use crate::{common::{state::GameState, helpers::{self, get_tile_pos_from_world_coords}}, world::{block::BlockType, WorldData, chunk::ChunkContainer}};
 
-use super::{cursor::resources::CursorPosition, assets::FontAssets, inventory::{UseItemAnimationIndex, UseItemAnimationData}};
+use super::{assets::FontAssets, inventory::{UseItemAnimationIndex, UseItemAnimationData}, camera::components::MainCamera, cursor::position::CursorPosition};
 
 pub(crate) struct DebugPlugin;
 impl Plugin for DebugPlugin {
@@ -31,7 +31,6 @@ impl Plugin for DebugPlugin {
 
         app.insert_resource(DebugConfiguration::default());
 
-        app.register_type::<CursorPosition>();
         app.register_type::<TextureAtlasSprite>();
         app.register_type::<UseItemAnimationIndex>();
         app.register_type::<UseItemAnimationData>();
@@ -234,7 +233,7 @@ fn block_gui(
 }
 
 fn block_hover(
-    cursor: Res<CursorPosition>,
+    cursor: Res<CursorPosition<MainCamera>>,
     world_data: Res<WorldData>,
     mut block_data: ResMut<HoverBlockData>
 ) {
