@@ -3,7 +3,7 @@ pub mod resolution;
 use autodefault::autodefault;
 use bevy::{prelude::{Commands, Res, ResMut, Query, With, Entity, Plugin, OnEnter, OnExit, IntoSystemConfigs, App, in_state, Update, EventWriter, Component}, text::{TextStyle, Text}, window::Window};
 
-use crate::{plugins::{assets::FontAssets, menu::{MenuContainer, despawn_with, TEXT_COLOR, EnterEvent, builders::{menu, menu_button, control_buttons_layout, control_button}}, settings::VSync}, language::LanguageContent, common::{state::{SettingsMenuState, MenuState, GameState}, conditions::on_btn_clicked}};
+use crate::{plugins::{assets::FontAssets, menu::{MenuContainer, despawn_with, TEXT_COLOR, Enter, builders::{menu, menu_button, control_buttons_layout, control_button}}, config::VSync}, language::LanguageContent, common::{state::{SettingsMenuState, MenuState, GameState}, conditions::on_click}};
 use self::resolution::ResolutionMenuPlugin;
 
 use super::{MENU_BUTTON_FONT_SIZE, BackButton};
@@ -26,8 +26,8 @@ impl Plugin for VideoMenuPlugin {
             Update,
             (
                 update_vsync_button_text,
-                resolution_clicked.run_if(on_btn_clicked::<ResolutionButton>),
-                vsync_clicked.run_if(on_btn_clicked::<VSyncButton>),
+                resolution_clicked.run_if(on_click::<ResolutionButton>),
+                vsync_clicked.run_if(on_click::<VSyncButton>),
             )
             .run_if(in_state(GameState::Menu(MenuState::Settings(SettingsMenuState::Video))))
         );
@@ -68,8 +68,8 @@ fn setup_video_menu(
     });
 }
 
-fn resolution_clicked(mut enter_event: EventWriter<EnterEvent>) {
-    enter_event.send(EnterEvent(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution))));
+fn resolution_clicked(mut enter_event: EventWriter<Enter>) {
+    enter_event.send(Enter(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution))));
 }
 
 fn vsync_clicked(mut window: Query<&mut Window>, mut vsync: ResMut<VSync>) {

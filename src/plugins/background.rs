@@ -1,9 +1,9 @@
 use crate::{
     parallax::{LayerData, LayerSpeed, ParallaxContainer, ParallaxCameraComponent, LayerComponent, LayerDataComponent},
-    common::state::GameState, world::WorldData,
+    common::{state::GameState, systems::despawn_with}, world::WorldData,
 };
 use bevy::{
-    prelude::{default, App, Commands, Plugin, Res, Vec2, Query, Camera, With, OnExit, IntoSystemConfigs, Name, Entity, DespawnRecursiveExt, Assets, Image, Camera2dBundle, UiCameraConfig, in_state, PostUpdate, GlobalTransform, Transform, Component},
+    prelude::{default, App, Commands, Plugin, Res, Vec2, Query, Camera, With, OnExit, IntoSystemConfigs, Name, Assets, Image, Camera2dBundle, UiCameraConfig, in_state, PostUpdate, GlobalTransform, Transform, Component},
     sprite::Anchor, render::view::RenderLayers, transform::TransformSystem,
 };
 
@@ -26,14 +26,14 @@ impl Plugin for BackgroundPlugin {
         app.add_systems(
             OnExit(GameState::WorldLoading),
             (
-                despawn_menu_background,
+                despawn_with::<MenuParallaxContainer>,
                 spawn_sky_background,
                 spawn_ingame_background,
                 spawn_forest_background,
             )
         );
 
-        app.add_systems(OnExit(GameState::InGame), despawn_menu_background);
+        app.add_systems(OnExit(GameState::InGame), despawn_with::<MenuParallaxContainer>);
 
         app.add_systems(
             PostUpdate,
@@ -55,26 +55,18 @@ pub(crate) struct BiomeParallaxContainer;
 #[derive(Component)]
 pub(crate) struct InGameParallaxContainer;
 
-fn despawn_menu_background(
-    mut commands: Commands,
-    query_menu_parallax_container: Query<Entity, With<MenuParallaxContainer>>
-) {
-    let entity = query_menu_parallax_container.single();
-    commands.entity(entity).despawn_recursive();
-}
-
 fn follow_camera_system(
     query_parallax_camera: Query<&GlobalTransform, With<ParallaxCameraComponent>>,
     mut query_layer: Query<(&mut Transform, &LayerComponent, &LayerDataComponent)>,
 ) {
-    if let Ok(camera_transform) = query_parallax_camera.get_single() {
-        let camera_translation = camera_transform.translation().truncate();
-        for (mut layer_transform, layer, layer_data) in &mut query_layer {
-            let new_translation = camera_translation + (layer_data.position - camera_translation) * layer.speed;
+    let Ok(camera_transform) = query_parallax_camera.get_single() else { return; };
+    let camera_translation = camera_transform.translation().truncate();
+    
+    for (mut layer_transform, layer, layer_data) in &mut query_layer {
+        let new_translation = camera_translation + (layer_data.position - camera_translation) * layer.speed;
 
-            layer_transform.translation.x = new_translation.x;
-            layer_transform.translation.y = new_translation.y;
-        }
+        layer_transform.translation.x = new_translation.x;
+        layer_transform.translation.y = new_translation.y;
     }
 }
 

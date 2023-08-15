@@ -1,4 +1,4 @@
-use bevy::{ui::Interaction, prelude::{Changed, Component, Query, With, EventWriter, Visibility, Resource, Res, DetectChanges}, text::Text};
+use bevy::{ui::Interaction, prelude::{Changed, Component, Query, With, EventWriter, Visibility, Resource, Res, DetectChanges, Event, Entity, Commands, DespawnRecursiveExt}, text::Text};
 
 use crate::{animation::{Animator, TweeningDirection, Tween, Tweenable}, plugins::audio::{PlaySoundEvent, SoundType}};
 
@@ -48,5 +48,17 @@ pub(crate) fn set_visibility<C: Component, R: IsVisible + Resource>(
         for mut visibility in &mut query_visibility {
             helpers::set_visibility(&mut visibility, res_visibility.is_visible());
         }
+    }
+}
+
+pub(crate) fn send_event<E: Event + Clone>(event: E) -> impl FnMut(EventWriter<E>) {
+    move |mut events: EventWriter<E>| {
+        events.send(event.clone());
+    }
+}
+
+pub(crate) fn despawn_with<C: Component>(mut commands: Commands, query: Query<Entity, With<C>>) {
+    for entity in &query {
+        commands.entity(entity).despawn_recursive();
     }
 }

@@ -1,6 +1,6 @@
 use bevy::{prelude::{Commands, Res, NodeBundle, Name, BuildChildren, EventWriter, ResMut}, ui::{Style, FlexDirection, Val, JustifyContent, AlignItems, UiRect}, utils::default};
 
-use crate::{plugins::{assets::{FontAssets, UiAssets}, fps::spawn_fps_text, inventory::spawn_inventory_ui, settings::spawn_ingame_settings_button, audio::{PlaySoundEvent, SoundType}}, language::LanguageContent, common::IsVisible};
+use crate::{plugins::{assets::{FontAssets, UiAssets}, fps::spawn_fps_text, inventory::spawn_inventory_ui, config::spawn_ingame_settings_button, audio::{PlaySoundEvent, SoundType}}, language::LanguageContent, common::IsVisible};
 
 use super::{components::MainUiContainer, resources::{ExtraUiVisibility, UiVisibility}};
 

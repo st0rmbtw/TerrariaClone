@@ -18,7 +18,7 @@ use crate::{
     plugins::{
         assets::{FontAssets, CursorAssets, UiAssets}, 
         camera::components::MainCamera, 
-        world::constants::TILE_SIZE, settings::CursorColor
+        world::constants::TILE_SIZE, config::CursorColor
     }, 
     animation::{Tween, lens::TransformScaleLens, Animator, RepeatStrategy, RepeatCount}, 
     common::{lens::BackgroundColorLens, helpers},

@@ -1,6 +1,6 @@
 use bevy::{prelude::{Commands, EventReader, Res, AudioBundle, PlaybackSettings, Query, Entity, With, ResMut, AudioSink, AudioSinkPlayback}, audio::Volume};
 
-use crate::plugins::{assets::{MusicAssets, SoundAssets}, settings::{MusicVolume, SoundVolume}};
+use crate::plugins::{assets::{MusicAssets, SoundAssets}, config::{MusicVolume, SoundVolume}};
 
 use super::{PlaySoundEvent, PlayMusicEvent, MusicAudio, UpdateMusicVolume, UpdateSoundVolume, SoundAudio};
 

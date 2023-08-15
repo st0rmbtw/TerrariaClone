@@ -1,13 +1,7 @@
-use bevy::{prelude::{Component, Query, Entity, With, Commands, DespawnRecursiveExt, Button, Changed, EventWriter, Color}, text::Text, ui::{Interaction, BackgroundColor}};
+use bevy::{prelude::{Component, Query, With, Button, Changed, Color}, text::Text, ui::{Interaction, BackgroundColor}};
 
-use crate::{plugins::slider::Slider, common::state::GameState};
-use super::{TEXT_COLOR, BackEvent, EnterEvent};
-
-pub(super) fn despawn_with<C: Component>(query: Query<Entity, With<C>>, mut commands: Commands) {
-    for entity in &query {
-        commands.entity(entity).despawn_recursive();
-    }
-}
+use crate::plugins::slider::Slider;
+use super::TEXT_COLOR;
 
 pub(super) fn animate_button_color(
     mut query: Query<(&Interaction, &mut Text), (With<Button>, Changed<Interaction>)>,
@@ -38,16 +32,6 @@ pub(super) fn animate_slider_border_color(
             },
             _ => {}
         }
-    }
-}
-
-pub(super) fn send_back_event(mut back_events: EventWriter<BackEvent>) {
-    back_events.send(BackEvent);
-}
-
-pub(super) fn send_enter_event(state: GameState) -> impl Fn(EventWriter<EnterEvent>) {
-    move |mut enter_events: EventWriter<EnterEvent>| {
-        enter_events.send(EnterEvent(state));
     }
 }
 

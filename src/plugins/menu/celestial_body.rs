@@ -5,9 +5,9 @@ use bevy_hanabi::Gradient;
 use interpolation::{Lerp, EaseFunction};
 use rand::{thread_rng, Rng, seq::SliceRandom};
 
-use crate::{plugins::{assets::{CelestialBodyAssets, BackgroundAssets}, camera::components::BackgroundCamera, background::{BACKGROUND_RENDER_LAYER, BackgroundPlugin}, cursor::position::CursorPosition}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystemSet, AnimatorState, lens::TransformScaleLens}, common::state::GameState, common::{math::map_range_f32, rect::FRect}, parallax::{LayerTextureComponent, ParallaxSet}};
+use crate::{plugins::{assets::{CelestialBodyAssets, BackgroundAssets}, camera::components::BackgroundCamera, background::{BACKGROUND_RENDER_LAYER, BackgroundPlugin}, cursor::position::CursorPosition}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystemSet, AnimatorState, lens::TransformScaleLens}, common::state::GameState, common::{math::map_range_f32, rect::FRect, systems::despawn_with}, parallax::{LayerTextureComponent, ParallaxSet}};
 
-use super::{in_menu_state, DespawnOnMenuExit, systems::despawn_with};
+use super::{in_menu_state, DespawnOnMenuExit};
 
 pub(super) struct CelestialBodyPlugin;
 impl Plugin for CelestialBodyPlugin {

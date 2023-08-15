@@ -1,9 +1,9 @@
 use std::{fs::OpenOptions, io::{BufReader, BufWriter}, error::Error};
 
-use bevy::{prelude::{Plugin, App, IntoSystemConfigs, in_state, Update}, text::Text};
+use bevy::{prelude::{Plugin, App, IntoSystemConfigs, in_state, Update, Res, on_event}, text::Text, app::AppExit, window::{WindowCloseRequested, PrimaryWindow}};
 use serde::{Deserialize, Serialize};
 
-use crate::{common::{state::GameState, systems::{animate_button_scale, play_sound_on_hover, set_visibility}}, animation::{component_animator_system, AnimationSystemSet}};
+use crate::{common::{state::GameState, systems::{animate_button_scale, play_sound_on_hover, set_visibility, despawn_with}}, animation::{component_animator_system, AnimationSystemSet}};
 
 mod components;
 mod systems;
@@ -15,7 +15,7 @@ pub(crate) use resources::*;
 
 use super::ui::ExtraUiVisibility;
 
-const SETTINGS_FILENAME: &str = "settings.json";
+const CONFIG_FILENAME: &str = "config.json";
 
 pub(super) const RESOLUTIONS: [Resolution; 16] = [
     Resolution::new(800., 600.),
@@ -38,7 +38,7 @@ pub(super) const RESOLUTIONS: [Resolution; 16] = [
 
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
-pub(crate) struct Settings {
+pub(crate) struct Config {
     pub(crate) full_screen: bool,
     pub(crate) show_tile_grid: bool,
     #[serde(rename = "VSync")]
@@ -50,7 +50,7 @@ pub(crate) struct Settings {
 }
 
 
-impl Default for Settings {
+impl Default for Config {
     fn default() -> Self {
         Self { 
             full_screen: true,
@@ -64,10 +64,10 @@ impl Default for Settings {
     }
 }
 
-pub(crate) struct SettingsPlugin;
-impl Plugin for SettingsPlugin {
+pub(crate) struct ConfigPlugin;
+impl Plugin for ConfigPlugin {
     fn build(&self, app: &mut App) {
-        let settings = load_settings().unwrap_or_default();
+        let settings = load_config().unwrap_or_default();
 
         app.insert_resource(FullScreen(settings.full_screen));
         app.insert_resource(ShowTileGrid(settings.show_tile_grid));
@@ -76,6 +76,16 @@ impl Plugin for SettingsPlugin {
         app.insert_resource(SoundVolume::from_slider_value(settings.sound_volume));
         app.insert_resource(settings.cursor_color);
         app.insert_resource(settings.resolution);
+
+        app.add_systems(Update, on_exit.run_if(on_event::<AppExit>()));
+        app.add_systems(
+            Update,
+            (
+                on_exit,
+                despawn_with::<PrimaryWindow>
+            )
+            .run_if(on_event::<WindowCloseRequested>())
+        );
 
         app.add_systems(
             Update,
@@ -90,27 +100,47 @@ impl Plugin for SettingsPlugin {
     }
 }
 
-fn load_settings() -> Result<Settings, Box<dyn Error>> {
+fn on_exit(
+    fullscreen: Res<FullScreen>,
+    show_tile_grid: Res<ShowTileGrid>,
+    vsync: Res<VSync>,
+    resolution: Res<Resolution>,
+    cursor_color: Res<CursorColor>,
+    music_volume: Res<MusicVolume>,
+    sound_volume: Res<SoundVolume>
+) {
+    save_config(Config {
+        full_screen: fullscreen.0,
+        show_tile_grid: show_tile_grid.0,
+        vsync: vsync.0,
+        resolution: *resolution,
+        cursor_color: *cursor_color,
+        sound_volume: sound_volume.slider_value(),
+        music_volume: music_volume.slider_value()
+    });
+}
+
+fn load_config() -> Result<Config, Box<dyn Error>> {
     let file = OpenOptions::new()
         .read(true)
-        .open(SETTINGS_FILENAME)?;
+        .open(CONFIG_FILENAME)?;
 
     let reader = BufReader::new(file);
 
-    let settings: Settings = serde_json::from_reader(reader)?;
+    let config: Config = serde_json::from_reader(reader)?;
 
-    Ok(settings)
+    Ok(config)
 }
 
-pub(super) fn save_settings(settings: Settings) {
+pub(super) fn save_config(config: Config) {
     let file = OpenOptions::new()
         .write(true)
         .create(true)
         .truncate(true)
-        .open(SETTINGS_FILENAME)
+        .open(CONFIG_FILENAME)
         .unwrap();
 
     let writer = BufWriter::new(file);
 
-    serde_json::to_writer(writer, &settings).unwrap();
+    serde_json::to_writer(writer, &config).unwrap();
 }

@@ -3,6 +3,7 @@ mod celestial_body;
 mod components;
 mod systems;
 mod builders;
+mod events;
 
 use std::time::Duration;
 
@@ -10,12 +11,12 @@ use components::*;
 use interpolation::EaseFunction;
 use systems::*;
 
-use bevy::{prelude::{Plugin, App, IntoSystemConfigs, OnEnter, OnExit, Color, Startup, Update, KeyCode, PostUpdate, Button, EventWriter, Res, Query, Entity, With, Commands, Name, NodeBundle, BuildChildren, ImageBundle, default, Visibility, TextBundle, Transform, Quat, Vec3, Camera2dBundle, Camera2d, State, ResMut, NextState, EventReader, Component, Event}, input::common_conditions::input_just_pressed, app::AppExit, text::{TextStyle, Text, TextSection}, ui::{Style, PositionType, AlignSelf, Val, UiRect, FlexDirection, UiImage}, core_pipeline::clear_color::ClearColorConfig};
-use crate::{common::{state::{GameState, MenuState, SettingsMenuState}, conditions::{on_btn_clicked, in_menu_state}, systems::{animate_button_scale, play_sound_on_hover}, lens::TransformLens}, parallax::{parallax_animation_system, ParallaxSet}, language::LanguageContent, animation::{Animator, RepeatCount, Tween, RepeatStrategy}};
-use self::{settings::SettingsMenuPlugin, celestial_body::CelestialBodyPlugin, builders::{menu, menu_button}};
-use super::{slider::Slider, settings::{FullScreen, ShowTileGrid, VSync, Resolution, CursorColor, MusicVolume, SoundVolume, Settings}, assets::{FontAssets, UiAssets}, fps::FpsText, camera::components::MainCamera, audio::{PlaySoundEvent, SoundType, PlayMusicEvent, MusicType, MusicAudio}};
+use bevy::{prelude::{Plugin, App, IntoSystemConfigs, OnEnter, OnExit, Color, Startup, Update, KeyCode, PostUpdate, Button, EventWriter, Res, Query, Entity, With, Commands, Name, NodeBundle, BuildChildren, ImageBundle, default, Visibility, TextBundle, Transform, Quat, Vec3, Camera2dBundle, Camera2d, State, ResMut, NextState, EventReader, Component}, input::common_conditions::input_just_pressed, app::AppExit, text::{TextStyle, Text, TextSection}, ui::{Style, PositionType, AlignSelf, Val, UiRect, FlexDirection, UiImage}, core_pipeline::clear_color::ClearColorConfig};
+use crate::{common::{state::{GameState, MenuState, SettingsMenuState}, conditions::{on_click, in_menu_state}, systems::{animate_button_scale, play_sound_on_hover, send_event, despawn_with}, lens::TransformLens}, parallax::{parallax_animation_system, ParallaxSet}, language::LanguageContent, animation::{Animator, RepeatCount, Tween, RepeatStrategy}};
+use self::{settings::SettingsMenuPlugin, celestial_body::CelestialBodyPlugin, builders::{menu, menu_button}, events::{Back, Enter}};
+use super::{slider::Slider, assets::{FontAssets, UiAssets}, fps::FpsText, camera::components::MainCamera, audio::{PlaySoundEvent, SoundType, PlayMusicEvent, MusicType, MusicAudio}};
 
-pub(crate) const TEXT_COLOR: Color = Color::rgb(0.58, 0.58, 0.58);
+pub(super) const TEXT_COLOR: Color = Color::rgb(0.58, 0.58, 0.58);
 pub(super) const MENU_BUTTON_FONT_SIZE: f32 = 42.;
 
 #[derive(Component)]
@@ -27,17 +28,11 @@ pub(super) struct BackButton;
 #[derive(Component)]
 pub(super) struct ApplyButton;
 
-#[derive(Event)]
-pub(super) struct BackEvent;
-
-#[derive(Event)]
-pub(super) struct EnterEvent(pub(super) GameState);
-
 pub(crate) struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<BackEvent>();
-        app.add_event::<EnterEvent>();
+        app.add_event::<Back>();
+        app.add_event::<Enter>();
 
         app.add_plugins((CelestialBodyPlugin, SettingsMenuPlugin));
 
@@ -58,8 +53,8 @@ impl Plugin for MenuPlugin {
         app.add_systems(
             Update,
             (
-                send_back_event.run_if(on_btn_clicked::<BackButton>),
-                send_back_event.run_if(input_just_pressed(KeyCode::Escape)),
+                send_event(Back).run_if(on_click::<BackButton>),
+                send_event(Back).run_if(input_just_pressed(KeyCode::Escape)),
             )
         );
 
@@ -87,11 +82,12 @@ impl Plugin for MenuPlugin {
         app.add_systems(
             Update,
             (
-                send_enter_event(GameState::WorldLoading)
-                    .run_if(on_btn_clicked::<SinglePlayerButton>),
-                send_enter_event(GameState::Menu(MenuState::Settings(SettingsMenuState::Main)))
-                    .run_if(on_btn_clicked::<SettingsButton>),
-                exit_clicked.run_if(on_btn_clicked::<ExitButton>),
+                send_event(Enter(GameState::WorldLoading))
+                    .run_if(on_click::<SinglePlayerButton>),
+                send_event(Enter(GameState::Menu(MenuState::Settings(SettingsMenuState::Main))))
+                    .run_if(on_click::<SettingsButton>),
+                send_event(AppExit)
+                    .run_if(on_click::<ExitButton>),
             )
             .run_if(in_menu_state)
         );
@@ -250,7 +246,7 @@ fn handle_back_event(
     state: Res<State<GameState>>,
     mut next_state: ResMut<NextState<GameState>>,
     mut play_sound: EventWriter<PlaySoundEvent>,
-    mut back_events: EventReader<BackEvent>
+    mut back_events: EventReader<Back>
 ) {
     if back_events.iter().last().is_some() {
         next_state.set(state.back());
@@ -261,33 +257,10 @@ fn handle_back_event(
 fn handle_enter_event(
     mut next_state: ResMut<NextState<GameState>>,
     mut play_sound: EventWriter<PlaySoundEvent>,
-    mut enter_events: EventReader<EnterEvent>
+    mut enter_events: EventReader<Enter>
 ) {
     if let Some(event) = enter_events.iter().last() {
         next_state.set(event.0);
         play_sound.send(PlaySoundEvent(SoundType::MenuOpen));
     }
-}
-
-fn exit_clicked(
-    mut ev: EventWriter<AppExit>,
-    fullscreen: Res<FullScreen>,
-    show_tile_grid: Res<ShowTileGrid>,
-    vsync: Res<VSync>,
-    resolution: Res<Resolution>,
-    cursor_color: Res<CursorColor>,
-    music_volume: Res<MusicVolume>,
-    sound_volume: Res<SoundVolume>
-) {
-    ev.send(AppExit);
-
-    crate::plugins::settings::save_settings(Settings {
-        full_screen: fullscreen.0,
-        show_tile_grid: show_tile_grid.0,
-        vsync: vsync.0,
-        resolution: *resolution,
-        cursor_color: *cursor_color,
-        sound_volume: sound_volume.slider_value(),
-        music_volume: music_volume.slider_value()
-    });
 }

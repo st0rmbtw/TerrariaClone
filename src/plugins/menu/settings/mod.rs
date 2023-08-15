@@ -5,11 +5,11 @@ mod language;
 
 use bevy::{prelude::{Commands, Res, Plugin, App, OnEnter, OnExit, IntoSystemConfigs, Query, Entity, With, Update, in_state, Component}, text::TextStyle};
 
-use crate::{plugins::assets::FontAssets, language::LanguageContent, common::{conditions::on_btn_clicked, state::{SettingsMenuState, GameState, MenuState}}};
+use crate::{plugins::assets::FontAssets, language::LanguageContent, common::{conditions::on_click, state::{SettingsMenuState, GameState, MenuState}, systems::send_event}};
 
 use self::{interface::InterfaceMenuPlugin, video::VideoMenuPlugin, volume::VolumeMenuPlugin, language::LanguageMenuPlugin};
 
-use super::{despawn_with, MenuContainer, TEXT_COLOR, BackButton, MENU_BUTTON_FONT_SIZE, systems::send_enter_event, builders::{menu, menu_button, control_buttons_layout, control_button}};
+use super::{despawn_with, MenuContainer, TEXT_COLOR, BackButton, MENU_BUTTON_FONT_SIZE, builders::{menu, menu_button, control_buttons_layout, control_button}, events::Enter};
 
 pub(super) struct SettingsMenuPlugin;
 impl Plugin for SettingsMenuPlugin {
@@ -28,16 +28,14 @@ impl Plugin for SettingsMenuPlugin {
         app.add_systems(
             Update,
             (
-                send_enter_event(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface)))
-                    .run_if(on_btn_clicked::<InterfaceButton>),
-                send_enter_event(GameState::Menu(MenuState::Settings(SettingsMenuState::Video)))
-                    .run_if(on_btn_clicked::<VideoButton>),
-                send_enter_event(GameState::Menu(MenuState::Settings(SettingsMenuState::Volume)))
-                    .run_if(on_btn_clicked::<VolumeButton>),
-                send_enter_event(GameState::Menu(MenuState::Settings(SettingsMenuState::Language)))
-                    .run_if(on_btn_clicked::<LanguageButton>),
-                // send_enter_event(GameState::Menu(MenuState::Settings(SettingsMenuState::Cursor)))
-                //     .run_if(on_btn_clicked::<CursorButton>),
+                send_event(Enter(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface))))
+                    .run_if(on_click::<InterfaceButton>),
+                send_event(Enter(GameState::Menu(MenuState::Settings(SettingsMenuState::Video))))
+                    .run_if(on_click::<VideoButton>),
+                send_event(Enter(GameState::Menu(MenuState::Settings(SettingsMenuState::Volume))))
+                    .run_if(on_click::<VolumeButton>),
+                send_event(Enter(GameState::Menu(MenuState::Settings(SettingsMenuState::Language))))
+                    .run_if(on_click::<LanguageButton>),
             )
             .run_if(in_state(GameState::Menu(MenuState::Settings(SettingsMenuState::Main))))
         );

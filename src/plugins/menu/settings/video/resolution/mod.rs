@@ -3,14 +3,14 @@ use bevy::{prelude::{Component, Commands, Res, ResMut, Query, With, Local, Entit
 
 use crate::{
     language::LanguageContent,
-    common::{state::{SettingsMenuState, GameState, MenuState}, conditions::on_btn_clicked},
+    common::{state::{SettingsMenuState, GameState, MenuState}, conditions::on_click},
     plugins::{
         assets::FontAssets, 
         menu::{
             MenuContainer, MENU_BUTTON_FONT_SIZE, despawn_with, 
-            TEXT_COLOR, ApplyButton, BackButton, BackEvent, builders::{menu, menu_button, control_buttons_layout, control_button}
+            TEXT_COLOR, ApplyButton, BackButton, Back, builders::{menu, menu_button, control_buttons_layout, control_button}
         }, 
-        settings::{FullScreen, Resolution, RESOLUTIONS}
+        config::{FullScreen, Resolution, RESOLUTIONS}
     }, 
 };
 
@@ -31,9 +31,9 @@ impl Plugin for ResolutionMenuPlugin {
             (
                 update_fullscreen_resolution_button_text,
                 update_resolution_button_text,
-                fullscreen_resolution_clicked.run_if(on_btn_clicked::<FullScreenResolutionButton>),
-                fullscreen_clicked.run_if(on_btn_clicked::<FullScreenButton>),
-                apply_clicked.run_if(on_btn_clicked::<ApplyButton>),
+                fullscreen_resolution_clicked.run_if(on_click::<FullScreenResolutionButton>),
+                fullscreen_clicked.run_if(on_click::<FullScreenButton>),
+                apply_clicked.run_if(on_click::<ApplyButton>),
             )
             .run_if(in_state(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution))))
         );
@@ -89,7 +89,7 @@ fn fullscreen_clicked(mut fullscreen: ResMut<FullScreen>) {
 }
 
 fn apply_clicked(
-    mut back_events: EventWriter<BackEvent>,
+    mut back_events: EventWriter<Back>,
     mut window: Query<&mut Window>,
     fullscreen: Res<FullScreen>,
     resolution: Res<Resolution>
@@ -98,7 +98,7 @@ fn apply_clicked(
     primary_window.mode = fullscreen.as_window_mode();
     primary_window.resolution = WindowResolution::new(resolution.width, resolution.height);
     
-    back_events.send(BackEvent);
+    back_events.send(Back);
 }
 
 fn update_fullscreen_resolution_button_text(

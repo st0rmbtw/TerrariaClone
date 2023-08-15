@@ -28,7 +28,7 @@ use plugins::{
     inventory::PlayerInventoryPlugin,
     menu::MenuPlugin,
     player::PlayerPlugin,
-    settings::{FullScreen, Resolution, SettingsPlugin, VSync},
+    config::{FullScreen, Resolution, ConfigPlugin, VSync},
     ui::PlayerUiPlugin,
     world::WorldPlugin, audio::AudioPlugin, slider::SliderPlugin,
 };
@@ -51,7 +51,7 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
 
     let mut app = App::new();
 
-    app.add_plugins(SettingsPlugin);
+    app.add_plugins(ConfigPlugin);
 
     let resolution = *app.world.resource::<Resolution>();
     let vsync = *app.world.resource::<VSync>();
@@ -74,6 +74,7 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
                     resizable: false,
                     ..default()
                 }),
+                close_when_requested: false,
                 ..default()
             })
             .set(AssetPlugin {

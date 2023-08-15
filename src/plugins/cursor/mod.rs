@@ -6,7 +6,7 @@ use bevy::{prelude::{Plugin, App, OnExit, OnEnter, IntoSystemConfigs, not, resou
 use crate::{common::{state::GameState, systems::set_visibility}, animation::{AnimationSystemSet, component_animator_system}};
 use self::position::CursorPositionPlugin;
 
-use super::{ui::UiVisibility, settings::ShowTileGrid, camera::components::{MainCamera, BackgroundCamera}};
+use super::{ui::UiVisibility, config::ShowTileGrid, camera::components::{MainCamera, BackgroundCamera}};
 
 const CURSOR_SIZE: f32 = 22.;
 const MAX_TILE_GRID_OPACITY: f32 = 0.8;
