@@ -5,3 +5,4 @@ target/
 settings.json
 Cargo.lock
 world.png
+*.tracy

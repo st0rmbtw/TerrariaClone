@@ -71,6 +71,7 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
                     resolution: WindowResolution::new(resolution.width, resolution.height),
                     title: title.to_owned(),
                     position: WindowPosition::Centered(MonitorSelection::Current),
+                    resizable: false,
                     ..default()
                 }),
                 ..default()

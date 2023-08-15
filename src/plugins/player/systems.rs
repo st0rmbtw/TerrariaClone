@@ -1,4 +1,4 @@
-use bevy::{prelude::*, math::Vec3Swizzles};
+use bevy::{prelude::*, math::Vec3Swizzles, sprite::Anchor};
 use bevy_hanabi::prelude::*;
 
 use crate::{
@@ -396,36 +396,9 @@ pub(super) fn draw_hitbox(
     mut gizmos: Gizmos
 ) {
     let transform = query_player.single();
+    let player_pos = transform.translation.truncate();
 
-    let left = transform.translation.x - PLAYER_HALF_WIDTH;
-    let right = transform.translation.x + PLAYER_HALF_WIDTH;
-
-    let top = transform.translation.y - PLAYER_HALF_HEIGHT;
-    let bottom = transform.translation.y + PLAYER_HALF_HEIGHT;
-
-    gizmos.line_2d(
-        Vec2::new(left, top),
-        Vec2::new(right, top),
-        Color::RED
-    );
-
-    gizmos.line_2d(
-        Vec2::new(left, bottom),
-        Vec2::new(right, bottom),
-        Color::RED
-    );
-
-    gizmos.line_2d(
-        Vec2::new(left, top),
-        Vec2::new(left, bottom),
-        Color::RED
-    );
-
-    gizmos.line_2d(
-        Vec2::new(right, top),
-        Vec2::new(right, bottom),
-        Color::RED
-    );
+    gizmos.rect_2d(player_pos, 0., Vec2::new(PLAYER_WIDTH, PLAYER_HEIGHT), Color::RED);
 }
 
 #[cfg(feature = "debug")]
@@ -437,7 +410,7 @@ pub(super) fn teleport_player(
     mut query_player: Query<&mut Transform, With<Player>>,
 ) {
     if let Ok(mut transform) = query_player.get_single_mut() {
-        transform.translation.x = cursor_position.world_position.x;
-        transform.translation.y = cursor_position.world_position.y;
+        transform.translation.x = cursor_position.world.x;
+        transform.translation.y = cursor_position.world.y;
     }
 }

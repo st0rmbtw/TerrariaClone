@@ -7,6 +7,6 @@ use bevy::ecs::reflect::ReflectResource;
 #[cfg_attr(feature = "debug", derive(bevy::reflect::Reflect))]
 #[cfg_attr(feature = "debug", reflect(Resource))]
 pub(crate) struct CursorPosition {
-    pub position: Vec2,
-    pub world_position: Vec2,
+    pub screen: Vec2,
+    pub world: Vec2,
 }

@@ -12,7 +12,7 @@ use systems::*;
 use crate::{common::{state::GameState, helpers::tile_pos_to_world_coords}, plugins::player::utils::{simple_animation, is_walking, is_idle, is_flying}, world::WorldData};
 use std::time::Duration;
 use bevy_hanabi::prelude::*;
-use bevy::{prelude::*, time::{Timer, TimerMode}, sprite::Anchor, math::vec2};
+use bevy::{prelude::*, time::{Timer, TimerMode}, math::vec2, transform::systems::propagate_transforms};
 
 use super::{assets::PlayerAssets, world::constants::TILE_SIZE, inventory::UseItemAnimationData};
 
@@ -40,14 +40,7 @@ pub(crate) const MAX_FALL_SPEED: f32 = -10.;
 pub(crate) struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(InputAxis::default());
-        app.insert_resource(MovementAnimationIndex::default());
-        app.insert_resource(MovementAnimationTimer(Timer::new(Duration::from_millis(80), TimerMode::Repeating)));
-        app.init_resource::<PlayerVelocity>();
-        app.init_resource::<Collisions>();
-        app.init_resource::<PlayerData>();
-
-        app.add_systems(OnEnter(GameState::InGame), spawn_player);
+        app.add_systems(OnEnter(GameState::InGame), (setup, spawn_player));
 
         let flip_player_systems = (
             update_face_direction,
@@ -103,7 +96,8 @@ impl Plugin for PlayerPlugin {
                     gravity,
                     detect_collisions,
                     move_player,
-                    update_player_rect
+                    update_player_rect,
+                    propagate_transforms
                 )
                 .chain()
             )
@@ -128,6 +122,15 @@ impl Plugin for PlayerPlugin {
             );
         }
     }
+}
+
+fn setup(mut commands: Commands) {
+    commands.insert_resource(InputAxis::default());
+    commands.insert_resource(MovementAnimationIndex::default());
+    commands.insert_resource(MovementAnimationTimer(Timer::new(Duration::from_millis(80), TimerMode::Repeating)));
+    commands.init_resource::<PlayerVelocity>();
+    commands.init_resource::<Collisions>();
+    commands.init_resource::<PlayerData>();
 }
 
 fn spawn_player(

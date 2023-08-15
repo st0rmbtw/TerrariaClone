@@ -27,9 +27,7 @@ pub(crate) struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.configure_set(PostUpdate,
-            CameraSet::MoveCamera
-                .run_if(in_state(GameState::InGame))
-                .before(TransformSystem::TransformPropagate)
+            CameraSet::MoveCamera.run_if(in_state(GameState::InGame))
         );
 
         app.add_systems(OnExit(GameState::WorldLoading), systems::setup_camera);
@@ -41,6 +39,7 @@ impl Plugin for CameraPlugin {
                 systems::keep_camera_inside_world_bounds
             )
             .chain()
+            .before(TransformSystem::TransformPropagate)
             .in_set(CameraSet::MoveCamera)
         );
     }

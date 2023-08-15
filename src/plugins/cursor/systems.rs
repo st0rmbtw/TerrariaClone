@@ -160,6 +160,7 @@ pub(super) fn update_cursor_position(
         let window = query_window.single();
 
         let Some(screen_pos) = window.cursor_position() else { return; };
+        cursor.screen = screen_pos;
 
         if let Ok(mut style) = query_cursor.get_single_mut() {
             style.left = Val::Px(screen_pos.x);
@@ -167,8 +168,7 @@ pub(super) fn update_cursor_position(
         }
 
         if let Some(world_pos) = camera.viewport_to_world_2d(camera_transform, screen_pos) {
-            cursor.position = screen_pos;
-            cursor.world_position = world_pos;
+            cursor.world = world_pos;
         }
     }
 }
@@ -179,7 +179,7 @@ pub(super) fn update_tile_grid_position(
 ) {
     let mut transform = query.single_mut();
     
-    let tile_coords = (cursor.world_position / TILE_SIZE).round();
+    let tile_coords = (cursor.world / TILE_SIZE).round();
     transform.translation.x = tile_coords.x * TILE_SIZE;
     transform.translation.y = tile_coords.y * TILE_SIZE;
 }

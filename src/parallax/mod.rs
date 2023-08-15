@@ -32,18 +32,18 @@ impl Plugin for ParallaxPlugin {
 pub(crate) struct ParallaxContainer {
     /// Data to describe each layer of parallax
     layer_data: Vec<LayerData>,
-    
-    processed: bool,
 
     render_layer: RenderLayers
 }
+
+#[derive(Component)]
+struct Processed;
 
 impl ParallaxContainer {
     pub(crate) fn new(layers: Vec<LayerData>) -> Self {
         Self {
             layer_data: layers,
             render_layer: Default::default(),
-            processed: false,
         }
     }
 
@@ -57,15 +57,13 @@ fn parallax_container_added(
     mut commands: Commands,
     images: Res<Assets<Image>>,
     query_window: Query<&Window, With<PrimaryWindow>>,
-    mut query_parallax_container: Query<(&mut ParallaxContainer, Entity)>,
+    query_parallax_container: Query<(&ParallaxContainer, Entity), Without<Processed>>,
 ) {
     let window = query_window.single();
     let window_width = window.width();
     let window_height = window.height();
 
-    for (mut parallax_container, entity) in &mut query_parallax_container {
-        if parallax_container.processed { continue; }
-        
+    for (parallax_container, entity) in &query_parallax_container {
         commands.entity(entity)
             .insert(SpatialBundle::default())
             .with_children(|children| {
@@ -134,7 +132,7 @@ fn parallax_container_added(
             }
         );
 
-        parallax_container.processed = true;
+        commands.entity(entity).insert(Processed);
     }
 }
 
@@ -180,30 +178,30 @@ fn update_layer_textures_system(
     let window = query_window.single();
     let window_width = window.width();
 
-    if let Ok(camera_transform) = query_camera.get_single() {
-        for (layer, children) in query_layer.iter() {
-            for &child in children.iter() {
-                let (texture_gtransform, mut texture_transform, layer_texture) = 
-                    query_texture.get_mut(child).unwrap();
-                
-                let texture_gtransform = texture_gtransform.compute_transform();
+    let Ok(camera_transform) = query_camera.get_single() else { return; };
 
-                // Move right-most texture to left side of layer when camera is approaching left-most end
-                if camera_transform.translation().x - texture_gtransform.translation.x
-                    + ((layer_texture.width * texture_gtransform.scale.x) / 2.0) 
-                    < -(window_width * layer.transition_factor)
-                {
-                    texture_transform.translation.x -= layer_texture.width * layer.texture_count;
-                // Move left-most texture to right side of layer when camera is approaching right-most end
-                } else if camera_transform.translation().x - texture_gtransform.translation.x
-                    - ((layer_texture.width * texture_gtransform.scale.x) / 2.0)
-                    > window_width * layer.transition_factor
-                {
-                    texture_transform.translation.x += layer_texture.width * layer.texture_count;
-                }   
-            }
+    query_layer.for_each(|(layer, children)| {
+        for &child in children.iter() {
+            let (texture_gtransform, mut texture_transform, layer_texture) = 
+                query_texture.get_mut(child).unwrap();
+            
+            let texture_gtransform = texture_gtransform.compute_transform();
+
+            // Move right-most texture to left side of layer when camera is approaching left-most end
+            if camera_transform.translation().x - texture_gtransform.translation.x
+                + ((layer_texture.width * texture_gtransform.scale.x) / 2.0) 
+                < -(window_width * layer.transition_factor)
+            {
+                texture_transform.translation.x -= layer_texture.width * layer.texture_count;
+            // Move left-most texture to right side of layer when camera is approaching right-most end
+            } else if camera_transform.translation().x - texture_gtransform.translation.x
+                - ((layer_texture.width * texture_gtransform.scale.x) / 2.0)
+                > window_width * layer.transition_factor
+            {
+                texture_transform.translation.x += layer_texture.width * layer.texture_count;
+            }   
         }
-    }
+    });
 }
 
 pub(super) fn update_full_screen_sprites(

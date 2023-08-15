@@ -3,8 +3,8 @@ use crate::{
     common::state::GameState, world::WorldData,
 };
 use bevy::{
-    prelude::{default, App, Commands, Plugin, Res, Vec2, Query, Camera, With, OnExit, IntoSystemConfigs, Name, Entity, DespawnRecursiveExt, Assets, Image, Camera2dBundle, Camera2d, UiCameraConfig, in_state, PostUpdate, GlobalTransform, Transform, Component},
-    sprite::Anchor, core_pipeline::clear_color::ClearColorConfig, render::view::RenderLayers,
+    prelude::{default, App, Commands, Plugin, Res, Vec2, Query, Camera, With, OnExit, IntoSystemConfigs, Name, Entity, DespawnRecursiveExt, Assets, Image, Camera2dBundle, UiCameraConfig, in_state, PostUpdate, GlobalTransform, Transform, Component},
+    sprite::Anchor, render::view::RenderLayers, transform::TransformSystem,
 };
 
 use super::{assets::BackgroundAssets, camera::{components::BackgroundCamera, CameraSet}, world::constants::TILE_SIZE};
@@ -40,6 +40,7 @@ impl Plugin for BackgroundPlugin {
             follow_camera_system
                 .run_if(in_state(GameState::InGame))
                 .after(CameraSet::MoveCamera)
+                .before(TransformSystem::TransformPropagate)
         );
     }
 }
@@ -67,8 +68,8 @@ fn follow_camera_system(
     mut query_layer: Query<(&mut Transform, &LayerComponent, &LayerDataComponent)>,
 ) {
     if let Ok(camera_transform) = query_parallax_camera.get_single() {
+        let camera_translation = camera_transform.translation().truncate();
         for (mut layer_transform, layer, layer_data) in &mut query_layer {
-            let camera_translation = camera_transform.translation().truncate();
             let new_translation = camera_translation + (layer_data.position - camera_translation) * layer.speed;
 
             layer_transform.translation.x = new_translation.x;
@@ -90,9 +91,6 @@ fn spawn_background_camera(
             camera: Camera {
                 order: -1,
                 ..default()
-            },
-            camera_2d: Camera2d {
-                clear_color: ClearColorConfig::Default
             },
             ..default()
         },

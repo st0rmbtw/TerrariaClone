@@ -2,7 +2,7 @@ pub(crate) mod components;
 pub(crate) mod resources;
 mod systems;
 
-use bevy::{prelude::{Plugin, App, OnExit, OnEnter, IntoSystemConfigs, not, resource_equals, in_state, Condition, Update}, ui::BackgroundColor};
+use bevy::{prelude::{Plugin, App, OnExit, OnEnter, IntoSystemConfigs, not, resource_equals, in_state, Condition, Update, PreUpdate}, ui::BackgroundColor};
 use crate::{common::{state::GameState, systems::set_visibility}, animation::{AnimationSystemSet, component_animator_system}};
 use super::{ui::UiVisibility, settings::ShowTileGrid};
 
@@ -24,19 +24,23 @@ impl Plugin for CursorPlugin {
         app.add_systems(OnEnter(GameState::InGame), systems::spawn_tile_grid);
 
         app.add_systems(
+            PreUpdate,
+            systems::update_cursor_position
+                .run_if(not(in_state(GameState::AssetLoading)))
+        );
+
+        app.add_systems(
             Update,
-            (
-                systems::update_cursor_position,
-                systems::update_cursor_info
-            )
-            .run_if(not(in_state(GameState::AssetLoading)))
+            systems::update_cursor_info
+                .run_if(not(in_state(GameState::AssetLoading)))
         );
 
         app.add_systems(
             Update,
             systems::update_tile_grid_position
                 .run_if(in_state(GameState::InGame))
-                .run_if(resource_equals(UiVisibility::VISIBLE).and_then(resource_equals(ShowTileGrid(true))))
+                .run_if(resource_equals(UiVisibility::VISIBLE).and_then(
+                        resource_equals(ShowTileGrid(true))))
         );
 
         app.add_systems(
