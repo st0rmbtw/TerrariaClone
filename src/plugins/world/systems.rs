@@ -32,10 +32,9 @@ use super::{
 use crate::plugins::debug::DebugConfiguration;
 
 pub(super) fn spawn_terrain(mut commands: Commands) {
-    let _current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+    let current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
 
-    // let seed = current_time.as_millis() as u32;
-    let seed = 1837178180;
+    let seed = current_time.as_millis() as u32;
 
     println!("The world's seed is {}", seed);
 
@@ -139,7 +138,7 @@ pub(super) fn spawn_chunk(
     world_data: &WorldData,
     chunk_pos: ChunkPos,
     materials: &mut Assets<TileMaterial>,
-    shadow_map_texture: Handle<Image>
+    _shadow_map_texture: Handle<Image>
 ) { 
     let chunk = commands.spawn((
         Name::new(format!("ChunkContainer {}", chunk_pos)),
