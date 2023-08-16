@@ -47,9 +47,9 @@ impl Plugin for CursorPlugin {
         app.add_systems(
             Update,
             component_animator_system::<BackgroundColor>
+                .in_set(AnimationSystemSet::AnimationUpdate)
                 .run_if(not(in_state(GameState::AssetLoading)))
                 .run_if(resource_equals(UiVisibility::VISIBLE))
-                .in_set(AnimationSystemSet::AnimationUpdate),
         );
 
         app.add_systems(

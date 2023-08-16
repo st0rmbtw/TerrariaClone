@@ -2,11 +2,11 @@ use std::time::Duration;
 
 use autodefault::autodefault;
 use bevy::{
-    prelude::{Plugin, resource_exists_and_equals, Condition, Component, Commands, Entity, Color, TextBundle, Res, KeyCode, Query, Visibility, With, Name, Update, IntoSystemConfigs},
+    prelude::{Plugin, resource_exists_and_equals, Condition, Commands, Entity, Color, TextBundle, Res, KeyCode, Query, Visibility, With, Name, Update, IntoSystemConfigs, Component},
     text::{TextStyle, Text, TextSection, TextAlignment},
     ui::{Style, UiRect, Val},
-    time::{common_conditions::on_timer, Time},
-    input::common_conditions::input_just_pressed,
+    time::common_conditions::on_timer,
+    input::common_conditions::input_just_pressed, diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin, Diagnostic},
 };
 
 use crate::common::helpers::toggle_visibility;
@@ -15,6 +15,8 @@ use super::{assets::FontAssets, ui::UiVisibility};
 pub(crate) struct FpsPlugin;
 impl Plugin for FpsPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
+        app.add_plugins(FrameTimeDiagnosticsPlugin::default());
+
         app.add_systems(
             Update,
             (
@@ -62,11 +64,12 @@ pub(crate) fn spawn_fps_text(commands: &mut Commands, font_assets: &FontAssets) 
 }
 
 fn update_fps_text(
-    time: Res<Time>,
+    diagnostics: Res<DiagnosticsStore>,
     mut query_fps_text: Query<&mut Text, With<FpsText>>,
 ) {
-    if let Ok(mut text) = query_fps_text.get_single_mut() {
-        let fps = 1. / time.delta_seconds();
+    let Ok(mut text) = query_fps_text.get_single_mut() else { return; };
+
+    if let Some(fps) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS).and_then(Diagnostic::average) {
         text.sections[0].value = format!("{:.0}", fps);
     }
 }

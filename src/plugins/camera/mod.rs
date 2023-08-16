@@ -39,8 +39,8 @@ impl Plugin for CameraPlugin {
                 systems::keep_camera_inside_world_bounds
             )
             .chain()
-            .before(TransformSystem::TransformPropagate)
             .in_set(CameraSet::MoveCamera)
+            .before(TransformSystem::TransformPropagate)
         );
     }
 }

@@ -67,15 +67,15 @@ impl Default for Config {
 pub(crate) struct ConfigPlugin;
 impl Plugin for ConfigPlugin {
     fn build(&self, app: &mut App) {
-        let settings = load_config().unwrap_or_default();
+        let config = load_config().unwrap_or_default();
 
-        app.insert_resource(FullScreen(settings.full_screen));
-        app.insert_resource(ShowTileGrid(settings.show_tile_grid));
-        app.insert_resource(VSync(settings.vsync));
-        app.insert_resource(MusicVolume::from_slider_value(settings.music_volume));
-        app.insert_resource(SoundVolume::from_slider_value(settings.sound_volume));
-        app.insert_resource(settings.cursor_color);
-        app.insert_resource(settings.resolution);
+        app.insert_resource(FullScreen(config.full_screen));
+        app.insert_resource(ShowTileGrid(config.show_tile_grid));
+        app.insert_resource(VSync(config.vsync));
+        app.insert_resource(MusicVolume::from_slider_value(config.music_volume));
+        app.insert_resource(SoundVolume::from_slider_value(config.sound_volume));
+        app.insert_resource(config.cursor_color);
+        app.insert_resource(config.resolution);
 
         app.add_systems(Update, on_exit.run_if(on_event::<AppExit>()));
         app.add_systems(
