@@ -65,7 +65,7 @@ fn setup_volume_menu(
 
     let slider_text_style = TextStyle {
         font: fonts.andy_bold.clone_weak(),
-        font_size: 36.,
+        font_size: 32.,
         color: Color::rgb(0.9, 0.9, 0.9),
     };
 

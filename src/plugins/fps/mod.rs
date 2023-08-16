@@ -51,10 +51,9 @@ pub(crate) fn spawn_fps_text(commands: &mut Commands, font_assets: &FontAssets) 
                 },
             },
             text: Text {
-                sections: vec![TextSection {
-                    value: "".to_string(),
-                    style: text_style,
-                }],
+                sections: vec![
+                    TextSection::from_style(text_style)
+                ],
                 alignment: TextAlignment::Center,
             },
             visibility: Visibility::Hidden,

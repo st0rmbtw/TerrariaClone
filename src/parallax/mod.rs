@@ -8,6 +8,8 @@ mod layer;
 
 pub(crate) use layer::*;
 
+use crate::common::extensions::EntityCommandsExtensions;
+
 pub struct ParallaxPlugin;
 
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
@@ -24,7 +26,7 @@ impl Plugin for ParallaxPlugin {
                 update_layer_textures_system.after(ParallaxSet::FollowCamera),
             )
         );
-        app.add_systems(PreUpdate, update_full_screen_sprites);
+        app.add_systems(Update, update_full_screen_sprites);
     }
 }
 
@@ -38,6 +40,9 @@ pub(crate) struct ParallaxContainer {
 
 #[derive(Component)]
 struct Processed;
+
+#[derive(Component)]
+struct FillScreenHeight;
 
 impl ParallaxContainer {
     pub(crate) fn new(layers: Vec<LayerData>) -> Self {
@@ -98,7 +103,7 @@ fn parallax_container_added(
                         SpatialBundle {
                             transform: Transform {
                                 translation: Vec3::new(layer_data.position.x, layer_data.position.y, layer_data.z),
-                                scale: Vec3::new(layer_data.scale, layer_data.scale, layer_data.scale),
+                                scale: Vec3::splat(layer_data.scale),
                                 ..default()
                             },
                             ..default()
@@ -113,10 +118,10 @@ fn parallax_container_added(
                             transition_factor: layer_data.transition_factor
                         },
                         LayerDataComponent {
-                            fill_screen_height: layer_data.fill_screen_height,
                             position: layer_data.position
                         }
                     ))
+                    .insert_if(FillScreenHeight, layer_data.fill_screen_height)
                     .with_children(|parent| {
                         for x in -x_max_index..=x_max_index {
                             let mut adjusted_spritesheet_bundle = spritesheet_bundle.clone();
@@ -204,22 +209,20 @@ fn update_layer_textures_system(
     });
 }
 
-pub(super) fn update_full_screen_sprites(
+fn update_full_screen_sprites(
     mut window_resize_events: EventReader<WindowResized>,
-    query_layer: Query<(&LayerDataComponent, &Children), With<LayerComponent>>,
+    query_layer: Query<&Children, (With<LayerComponent>, With<FillScreenHeight>)>,
     mut query_texture_layer: Query<&mut Sprite, With<LayerTextureComponent>>
 ) {
-    for event in window_resize_events.iter() {
-        for (layer_data, children) in &query_layer {
-            if !layer_data.fill_screen_height { continue; }
+    let Some(event) = window_resize_events.iter().last() else { return; };
 
-            for &entity in children.iter() {
-                if let Ok(mut sprite) = query_texture_layer.get_mut(entity) {
-                    if let Some(size) = sprite.custom_size.as_mut() {
-                        size.y = event.height;
-                    }
+    query_layer.for_each(|children| {
+        for &entity in children.iter() {
+            if let Ok(mut sprite) = query_texture_layer.get_mut(entity) {
+                if let Some(size) = sprite.custom_size.as_mut() {
+                    size.y = event.height;
                 }
             }
         }
-    }
+    });
 }

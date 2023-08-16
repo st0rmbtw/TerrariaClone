@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Name, NodeBundle, TextBundle, ChildBuilder, Button, Component, default, Color, ImageBundle, BuildChildren, Commands, Entity}, ui::{Style, JustifyContent, AlignItems, FocusPolicy, PositionType, Interaction, Val, FlexDirection, UiRect}, text::{Text, TextStyle, TextSection}};
+use bevy::{prelude::{Name, NodeBundle, TextBundle, ChildBuilder, Button, Component, default, Color, ImageBundle, BuildChildren, Commands, Entity}, ui::{Style, JustifyContent, AlignItems, FocusPolicy, PositionType, Interaction, Val, FlexDirection, UiRect}, text::{Text, TextStyle, TextSection, TextAlignment}};
 
 use crate::{animation::{AnimatorState, Animator, Tween, EaseMethod, RepeatStrategy}, plugins::{slider::{SliderHandleBundle, SliderBundle, Slider}, assets::UiAssets}, common::lens::TextFontSizeLens};
 
@@ -157,6 +157,8 @@ pub(super) fn slider_layout(
             NodeBundle {
                 style: Style {
                     flex_direction: FlexDirection::Column,
+                    align_items: AlignItems::Start,
+                    justify_content: JustifyContent::Center,
                     width: Val::Px(100.),
                     ..default()
                 },
@@ -250,7 +252,7 @@ pub(super) fn slider_value_text(builder: &mut ChildBuilder, text_style: TextStyl
             text: Text::from_sections([
                 TextSection::new(value.to_string(), text_style.clone()),
                 TextSection::new("%", text_style)
-            ]).with_no_wrap(),
+            ]).with_no_wrap().with_alignment(TextAlignment::Center),
             ..default()
         }
     ))
