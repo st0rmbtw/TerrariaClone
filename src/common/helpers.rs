@@ -1,4 +1,4 @@
-use bevy::{prelude::{Visibility, Component, With, Query, Vec2}, math::vec2};
+use bevy::{prelude::{Visibility, Component, With, Query, Vec2, Mut}, math::vec2};
 use bevy_ecs_tilemap::tiles::TilePos;
 
 use crate::{plugins::world::constants::TILE_SIZE, world::{block::BlockType, wall::Wall}};
@@ -33,7 +33,7 @@ pub(crate) fn toggle_visibility<C: Component>(
 }
 
 #[inline(always)]
-pub(crate) fn set_visibility(visibility: &mut Visibility, visible: bool) {
+pub(crate) fn set_visibility(mut visibility: Mut<Visibility>, visible: bool) {
     if visible {
         *visibility = Visibility::Inherited;
     } else {

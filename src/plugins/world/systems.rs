@@ -349,7 +349,7 @@ pub(super) fn handle_break_block_event(
     for &BreakBlockEvent { tile_pos } in break_block.iter() {
         if let Some(&block) = world_data.get_block(tile_pos) {
             if let BlockType::Tree(_) = block.block_type {
-                break_tree(&mut commands, &mut query_chunk, tile_pos, &mut world_data, false);
+                break_tree(&mut commands, &mut world_data, &mut query_chunk, tile_pos, false);
             } else {
                 world_data.remove_block(tile_pos);
 
@@ -509,9 +509,9 @@ pub(super) fn handle_seed_event(
 
 fn break_tree(
     commands: &mut Commands, 
-    chunks: &mut Query<(&Chunk, &mut TileStorage)>, 
-    pos: TilePos, 
     world_data: &mut ResMut<WorldData>,
+    chunks: &mut Query<(&Chunk, &mut TileStorage)>,
+    pos: TilePos,
     tree_falling: bool
 ) {
     if let Some(&block) = world_data.get_block(pos) {
@@ -521,9 +521,9 @@ fn break_tree(
             ChunkManager::remove_block(commands, chunks, pos, block.block_type);
 
             if tree.frame_type.is_stem() || tree_falling {
-                break_tree(commands, chunks, TilePos::new(pos.x + 1, pos.y), world_data, true);
-                break_tree(commands, chunks, TilePos::new(pos.x - 1, pos.y), world_data, true);
-                break_tree(commands, chunks, TilePos::new(pos.x, pos.y - 1), world_data, true);
+                break_tree(commands, world_data, chunks, TilePos::new(pos.x + 1, pos.y), true);
+                break_tree(commands, world_data, chunks, TilePos::new(pos.x - 1, pos.y), true);
+                break_tree(commands, world_data, chunks, TilePos::new(pos.x, pos.y - 1), true);
             }
         }
     }
@@ -537,20 +537,14 @@ pub(super) fn set_tiles_visibility(
     debug_config: Res<DebugConfiguration>,
     mut query_chunk: Query<(&mut Visibility, &Chunk)>
 ) {
+    use crate::common::helpers::set_visibility;
+
     if debug_config.is_changed() {
-        for (mut visibility, chunk) in &mut query_chunk {
+        for (visibility, chunk) in &mut query_chunk {
             if chunk.chunk_type != ChunkType::Wall {
-                if debug_config.show_tiles {
-                    *visibility = Visibility::Inherited;
-                } else {
-                    *visibility = Visibility::Hidden;
-                }
+                set_visibility(visibility, debug_config.show_tiles);
             } else {
-                if debug_config.show_walls {
-                    *visibility = Visibility::Inherited;
-                } else {
-                    *visibility = Visibility::Hidden;
-                }
+                set_visibility(visibility, debug_config.show_walls);
             }
         }
     }

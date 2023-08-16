@@ -399,8 +399,8 @@ pub(super) fn update_item_amount(
 pub(super) fn update_item_amount_text(
     mut query: Query<(&mut Text, &mut Visibility, &InventoryItemAmount), Changed<InventoryItemAmount>>,
 ) {
-    for (mut text, mut visibility, item_stack) in &mut query {
-        helpers::set_visibility(&mut visibility, item_stack.0 > 1);
+    for (mut text, visibility, item_stack) in &mut query {
+        helpers::set_visibility(visibility, item_stack.0 > 1);
         if item_stack.0 > 1 {
             text.sections[0].value = item_stack.0.to_string();
         }
@@ -499,8 +499,8 @@ pub(super) fn set_using_item_image(
 pub(super) fn set_using_item_visibility(visible: bool) -> impl FnMut(Res<SwingAnimation>, Query<&mut Visibility, With<ItemInHand>>) {
     move |swing_animation: Res<SwingAnimation>, mut query_using_item: Query<&mut Visibility, With<ItemInHand>>| {
         if swing_animation.is_changed() && **swing_animation == visible {
-            if let Ok(mut visibility) = query_using_item.get_single_mut() {
-                helpers::set_visibility(&mut visibility, visible);
+            if let Ok(visibility) = query_using_item.get_single_mut() {
+                helpers::set_visibility(visibility, visible);
             }
         }
     }

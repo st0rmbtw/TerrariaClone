@@ -21,7 +21,7 @@ use crate::{
         world::constants::TILE_SIZE, config::CursorColor
     }, 
     animation::{Tween, lens::TransformScaleLens, Animator, RepeatStrategy, RepeatCount}, 
-    common::{lens::BackgroundColorLens, helpers},
+    common::lens::BackgroundColorLens,
 };
 
 use crate::plugins::player::{PlayerVelocity, MAX_RUN_SPEED, MAX_FALL_SPEED};
@@ -196,13 +196,11 @@ pub(super) fn update_cursor_info(
     let (mut text, mut visibility) = query_info.single_mut();
 
     query_hoverable.for_each(|(hoverable, interaction)| {
-        helpers::set_visibility(
-            &mut visibility, 
-            !matches!(hoverable, Hoverable::None) && !matches!(interaction, Interaction::None)
-        );
-
         if let (Hoverable::SimpleText(info), Interaction::Hovered) = (hoverable, interaction) {
             text.sections[0].value = info.clone();
+            *visibility = Visibility::Visible;
+        } else {
+            *visibility = Visibility::Hidden;
         }
     });
 }

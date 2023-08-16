@@ -45,9 +45,9 @@ pub(crate) fn set_visibility<C: Component, R: IsVisible + Resource>(
     res_visibility: Res<R>
 ) {
     if res_visibility.is_changed() {
-        for mut visibility in &mut query_visibility {
-            helpers::set_visibility(&mut visibility, res_visibility.is_visible());
-        }
+        query_visibility.for_each_mut(|visibility| {
+            helpers::set_visibility(visibility, res_visibility.is_visible());
+        });
     }
 }
 

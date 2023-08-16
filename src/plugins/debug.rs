@@ -136,8 +136,8 @@ fn set_free_camera_legend_visibility(
     debug_config: Res<DebugConfiguration>
 ) {
     if debug_config.is_changed() {
-        let mut visibility = query.single_mut();
-        helpers::set_visibility(&mut visibility, debug_config.free_camera);
+        let visibility = query.single_mut();
+        helpers::set_visibility(visibility, debug_config.free_camera);
     }
 }
 
