@@ -13,7 +13,7 @@ pub(crate) struct PlayerSpriteBody;
 #[derive(Component)]
 pub(super) struct PlayerSpriteFeet;
 
-pub(super) fn spawn_player_hair(commands: &mut ChildBuilder, hair: Handle<TextureAtlas>) {
+pub(super) fn spawn_player_hair(commands: &mut ChildBuilder, hair: Handle<TextureAtlas>, z: f32) {
     commands.spawn((
         Name::new("Player hair"),
         ChangeFlip,
@@ -24,14 +24,14 @@ pub(super) fn spawn_player_hair(commands: &mut ChildBuilder, hair: Handle<Textur
                 color: Color::rgb(0.55, 0.23, 0.14),
                 ..default()
             },
-            transform: Transform::from_xyz(0., 0., 0.1),
+            transform: Transform::from_xyz(0., 0., z),
             texture_atlas: hair,
             ..default()
         }
     ));
 }
 
-pub(super) fn spawn_player_head(commands: &mut ChildBuilder, head: Handle<TextureAtlas>) {
+pub(super) fn spawn_player_head(commands: &mut ChildBuilder, head: Handle<TextureAtlas>, z: f32) {
     commands.spawn((
         Name::new("Player head"),
         ChangeFlip,
@@ -43,13 +43,13 @@ pub(super) fn spawn_player_head(commands: &mut ChildBuilder, head: Handle<Textur
                 ..default()
             },
             texture_atlas: head,
-            transform: Transform::from_xyz(0., 0., 0.003),
+            transform: Transform::from_xyz(0., 0., z),
             ..default()
         }
     ));
 }
 
-pub(super) fn spawn_player_eyes(commands: &mut ChildBuilder, left_eye: Handle<TextureAtlas>, right_eye: Handle<TextureAtlas>) {
+pub(super) fn spawn_player_eyes(commands: &mut ChildBuilder, left_eye: Handle<TextureAtlas>, right_eye: Handle<TextureAtlas>, z: f32) {
     commands.spawn((
         Name::new("Player left eye"),
         ChangeFlip,
@@ -62,7 +62,7 @@ pub(super) fn spawn_player_eyes(commands: &mut ChildBuilder, left_eye: Handle<Te
             ..default()
         },
         SpriteSheetBundle {
-            transform: Transform::from_xyz(0., 0., 0.1),
+            transform: Transform::from_xyz(0., 0., z),
             texture_atlas: left_eye,
             ..default()
         },
@@ -84,14 +84,14 @@ pub(super) fn spawn_player_eyes(commands: &mut ChildBuilder, left_eye: Handle<Te
                 color: Color::rgb_u8(89, 76, 64),
                 ..default()
             },
-            transform: Transform::from_xyz(0., 0., 0.01),
+            transform: Transform::from_xyz(0., 0., z),
             texture_atlas: right_eye,
             ..default()
         },
     ));
 }
 
-pub(super) fn spawn_player_left_hand(commands: &mut ChildBuilder, left_shoulder: Handle<TextureAtlas>, left_hand: Handle<TextureAtlas>) {
+pub(super) fn spawn_player_left_hand(commands: &mut ChildBuilder, left_shoulder: Handle<TextureAtlas>, left_hand: Handle<TextureAtlas>, z: f32) {
     commands.spawn((
         Name::new("Player left shoulder"),
         ChangeFlip,
@@ -110,7 +110,7 @@ pub(super) fn spawn_player_left_hand(commands: &mut ChildBuilder, left_shoulder:
                 color: Color::rgb(0.58, 0.55, 0.47),
                 ..default()
             },
-            transform: Transform::from_xyz(0., 0., 0.2),
+            transform: Transform::from_xyz(0., 0., z),
             texture_atlas: left_shoulder,
             ..default()
         },
@@ -134,14 +134,14 @@ pub(super) fn spawn_player_left_hand(commands: &mut ChildBuilder, left_shoulder:
                 color: Color::rgb(0.92, 0.45, 0.32),
                 ..default()
             },
-            transform: Transform::from_xyz(0., 0., 0.2),
+            transform: Transform::from_xyz(0., 0., z),
             texture_atlas: left_hand,
             ..default()
         },
     ));
 }
 
-pub(super) fn spawn_player_right_hand(commands: &mut ChildBuilder, right_hand: Handle<TextureAtlas>) {
+pub(super) fn spawn_player_right_hand(commands: &mut ChildBuilder, right_hand: Handle<TextureAtlas>, z: f32) {
     commands.spawn((
         Name::new("Player right hand"),
         ChangeFlip,
@@ -157,14 +157,14 @@ pub(super) fn spawn_player_right_hand(commands: &mut ChildBuilder, right_hand: H
                 color: Color::rgb(0.92, 0.45, 0.32),
                 ..default()
             },
-            transform: Transform::from_xyz(0., 0., 0.001),
+            transform: Transform::from_xyz(0., 0., z),
             texture_atlas: right_hand,
             ..default()
         },
     ));
 }
 
-pub(super) fn spawn_player_chest(commands: &mut ChildBuilder, chest: Handle<TextureAtlas>) {
+pub(super) fn spawn_player_chest(commands: &mut ChildBuilder, chest: Handle<TextureAtlas>, z: f32) {
     commands.spawn((
         Name::new("Player chest"),
         ChangeFlip,
@@ -176,14 +176,14 @@ pub(super) fn spawn_player_chest(commands: &mut ChildBuilder, chest: Handle<Text
                 color: Color::rgb(0.58, 0.55, 0.47),
                 ..default()
             },
-            transform: Transform::from_xyz(0., 0., 0.002),
+            transform: Transform::from_xyz(0., 0., z),
             texture_atlas: chest,
             ..default()
         },
     ));
 }
 
-pub(super) fn spawn_player_feet(commands: &mut ChildBuilder, feet: Handle<TextureAtlas>) {
+pub(super) fn spawn_player_feet(commands: &mut ChildBuilder, feet: Handle<TextureAtlas>, z: f32) {
     commands.spawn((
         Name::new("Player feet"),
         ChangeFlip,
@@ -203,13 +203,13 @@ pub(super) fn spawn_player_feet(commands: &mut ChildBuilder, feet: Handle<Textur
                 ..default()
             },
             texture_atlas: feet,
-            transform: Transform::from_xyz(0., 0., 0.15),
+            transform: Transform::from_xyz(0., 0., z),
             ..default()
         }
     ));
 }
 
-pub(super) fn spawn_player_item_in_hand(commands: &mut ChildBuilder) {
+pub(super) fn spawn_player_item_in_hand(commands: &mut ChildBuilder, z: f32) {
     commands.spawn((
         Name::new("Item in hand"),
         ChangeFlip,
@@ -221,7 +221,7 @@ pub(super) fn spawn_player_item_in_hand(commands: &mut ChildBuilder) {
                 ..default()
             },
             visibility: Visibility::Hidden,
-            transform: Transform::from_xyz(0., 0., 0.15),
+            transform: Transform::from_xyz(0., 0., z),
             ..default()
         }
     ));

@@ -9,7 +9,7 @@ pub(crate) use resources::*;
 pub(crate) use body_sprites::*;
 use systems::*;
 
-use crate::{common::{state::GameState, helpers::tile_pos_to_world_coords}, plugins::player::utils::{simple_animation, is_walking, is_idle, is_flying}, world::WorldData};
+use crate::{common::{state::{GameState, MovementState}, helpers::tile_pos_to_world_coords, systems::component_equals}, plugins::player::utils::simple_animation, world::WorldData};
 use std::time::Duration;
 use bevy_hanabi::prelude::*;
 use bevy::{prelude::*, time::{Timer, TimerMode}, math::vec2, transform::systems::propagate_transforms};
@@ -71,9 +71,9 @@ impl Plugin for PlayerPlugin {
             (
                 update_movement_animation_timer,
                 update_movement_animation_index,
-                walking_animation.run_if(is_walking),
-                simple_animation::<IdleAnimationData>.run_if(is_idle),
-                simple_animation::<FlyingAnimationData>.run_if(is_flying)
+                walking_animation.run_if(component_equals::<Player, _>(MovementState::Walking)),
+                simple_animation::<IdleAnimationData>.run_if(component_equals::<Player, _>(MovementState::Idle)),
+                simple_animation::<FlyingAnimationData>.run_if(component_equals::<Player, _>(MovementState::Flying))
             )
             .run_if(in_state(GameState::InGame))
         );
@@ -196,19 +196,19 @@ fn spawn_player(
         .add_child(effect_entity)
         .with_children(|cmd| {
             use body_sprites::*;
-            spawn_player_hair(cmd, player_assets.hair.clone_weak());
+            spawn_player_hair(cmd, player_assets.hair.clone_weak(), 0.5);
 
-            spawn_player_head(cmd, player_assets.head.clone_weak());
+            spawn_player_head(cmd, player_assets.head.clone_weak(), 0.1);
 
-            spawn_player_eyes(cmd, player_assets.eyes_1.clone_weak(), player_assets.eyes_2.clone_weak());
+            spawn_player_eyes(cmd, player_assets.eyes_1.clone_weak(), player_assets.eyes_2.clone_weak(), 0.2);
 
-            spawn_player_left_hand(cmd, player_assets.left_shoulder.clone_weak(), player_assets.left_hand.clone_weak());
-            spawn_player_right_hand(cmd, player_assets.right_arm.clone_weak());
+            spawn_player_left_hand(cmd, player_assets.left_shoulder.clone_weak(), player_assets.left_hand.clone_weak(), 0.9);
+            spawn_player_right_hand(cmd, player_assets.right_arm.clone_weak(), 0.);
 
-            spawn_player_chest(cmd, player_assets.chest.clone_weak());
+            spawn_player_chest(cmd, player_assets.chest.clone_weak(), 0.1);
 
-            spawn_player_feet(cmd, player_assets.feet.clone_weak());
+            spawn_player_feet(cmd, player_assets.feet.clone_weak(), 0.2);
 
-            spawn_player_item_in_hand(cmd);
+            spawn_player_item_in_hand(cmd, 0.7);
         });
 }

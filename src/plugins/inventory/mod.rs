@@ -28,23 +28,10 @@ impl Plugin for PlayerInventoryPlugin {
         app.add_systems(OnExit(GameState::WorldLoading), setup);
 
         app.add_systems(
-            Update,
+            FixedUpdate,
             (
-                scroll_select_inventory_item,
-                select_inventory_cell,
-                set_selected_item.run_if(resource_exists_and_changed::<Inventory>()),
-            )
-            .run_if(in_state(GameState::InGame))
-        );
-
-        app.add_systems(FixedUpdate, use_item.run_if(in_state(GameState::InGame)));
-
-        app.add_systems(
-            Update,
-            (
-                update_player_using_item,
-                set_using_item_image.run_if(resource_exists_and_changed::<SelectedItem>()),
-                set_using_item_visibility(false),
+                use_item,
+                stop_swing_animation
             )
             .run_if(in_state(GameState::InGame))
         );
@@ -54,18 +41,33 @@ impl Plugin for PlayerInventoryPlugin {
             (
                 play_swing_sound,
                 update_swing_cooldown,
-                (
-                    update_use_item_animation_index,
-                    set_using_item_position,
-                    set_using_item_rotation,
-                    set_using_item_visibility(true),
-                    update_sprite_index,
-                ).chain(),
-                stop_swing_animation
+                update_use_item_animation_index,
+                update_sprite_index,
+                set_using_item_position,
+                set_using_item_rotation,
+                set_using_item_visibility(true),
+                reset_swing_animation,
             )
             .chain()
             .run_if(in_state(GameState::InGame))
             .run_if(resource_exists_and_equals(SwingAnimation(true)))
+        );
+
+        app.add_systems(
+            Update,
+            (
+                (
+                    scroll_select_inventory_item,
+                    select_inventory_cell,
+                    set_selected_item.run_if(resource_exists_and_changed::<Inventory>()),
+                ),
+                (
+                    update_player_using_item,
+                    set_using_item_image.run_if(resource_exists_and_changed::<SelectedItem>()),
+                    set_using_item_visibility(false)
+                )
+            )
+            .run_if(in_state(GameState::InGame))
         );
 
         app.add_systems(

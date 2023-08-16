@@ -62,3 +62,10 @@ pub(crate) fn despawn_with<C: Component>(mut commands: Commands, query: Query<En
         commands.entity(entity).despawn_recursive();
     }
 }
+
+pub(crate) fn component_equals<M: Component, C: Component + PartialEq>(component: C) -> impl Fn(Query<&C, With<M>>) -> bool {
+    move |query: Query<&C, With<M>>| -> bool {
+        let Ok(comp) = query.get_single() else { return false; };
+        *comp == component
+    }
+}

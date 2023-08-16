@@ -45,6 +45,11 @@ pub(crate) mod world;
 
 pub use world::WorldSize;
 
+pub(crate) const BACKGROUND_LAYER: f32 = 0.;
+pub(crate) const WALL_LAYER: f32 = 1.;
+pub(crate) const TILES_LAYER: f32 = 2.;
+pub(crate) const PLAYER_LAYER: f32 = 3.;
+
 pub fn create_app() -> Result<App, Box<dyn Error>> {
     let language_content = load_language(Language::English)?;
     let title = language_content.titles.choose(&mut rand::thread_rng()).unwrap();

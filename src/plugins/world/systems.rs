@@ -19,7 +19,7 @@ use bevy_ecs_tilemap::{
     TilemapBundle, helpers::square_grid::neighbors::Neighbors, MaterialTilemapBundle
 };
 
-use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::{components::MainCamera, events::UpdateLightEvent}, player::{Player, PlayerRect}, audio::{PlaySoundEvent, SoundType}, world::resources::LightMap}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world, light::generate_light_map}, lighting::compositing::{TileMaterial, ShadowMapTexture}};
+use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::{components::MainCamera, events::UpdateLightEvent}, player::{Player, PlayerRect}, audio::{PlaySoundEvent, SoundType}, world::resources::LightMap}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world, light::generate_light_map}, lighting::compositing::{TileMaterial, ShadowMapTexture}, WALL_LAYER, TILES_LAYER};
 
 use super::{
     utils::{get_chunk_pos, get_camera_fov, get_chunk_tile_pos, get_chunk_range_by_camera_fov}, 
@@ -244,7 +244,7 @@ pub(super) fn spawn_chunk(
                 x: 2.,
                 y: 2.
             },
-            transform: Transform::from_xyz(0., 0., 2.),
+            transform: Transform::from_xyz(0., 0., TILES_LAYER + 0.5),
             material: materials.add(TileMaterial {
                 test: 0.
             }),
@@ -270,7 +270,7 @@ pub(super) fn spawn_chunk(
                 x: WALL_SIZE,
                 y: WALL_SIZE,
             },
-            transform: Transform::from_xyz(0., 0., 1.),
+            transform: Transform::from_xyz(0., 0., WALL_LAYER),
             ..Default::default()
         });
 
@@ -286,7 +286,7 @@ pub(super) fn spawn_chunk(
             storage: tree_storage,
             texture: TilemapTexture::Single(block_assets.trees.clone_weak()),
             tile_size: TREE_SIZE,
-            transform: Transform::from_xyz(0., 0., 1.5),
+            transform: Transform::from_xyz(0., 0., TILES_LAYER + 0.1),
             spacing: TilemapSpacing { 
                 x: 2.,
                 y: 2.,
@@ -306,7 +306,7 @@ pub(super) fn spawn_chunk(
             storage: tree_branches_storage,
             texture: TilemapTexture::Single(block_assets.tree_branches_forest.clone_weak()),
             tile_size: TREE_BRANCHES_SIZE,
-            transform: Transform::from_xyz(0., 0., 1.6),
+            transform: Transform::from_xyz(0., 0., TILES_LAYER + 0.2),
             spacing: TilemapSpacing { 
                 x: 2.,
                 y: 2.,
@@ -326,7 +326,7 @@ pub(super) fn spawn_chunk(
             storage: tree_tops_storage,
             texture: TilemapTexture::Single(block_assets.tree_tops_forest.clone_weak()),
             tile_size: TREE_TOPS_SIZE,
-            transform: Transform::from_xyz(0., 0., 1.6),
+            transform: Transform::from_xyz(0., 0., TILES_LAYER + 0.2),
             ..Default::default()
         });
 

@@ -36,9 +36,15 @@ impl Plugin for TweeningPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<TweenCompleted>();
         
-        app.add_systems(Update, component_animator_system::<Transform>.in_set(AnimationSystemSet::AnimationUpdate));
-        app.add_systems(Update, component_animator_system::<Style>.in_set(AnimationSystemSet::AnimationUpdate));
-        app.add_systems(Update, component_animator_system::<Text>.in_set(AnimationSystemSet::AnimationUpdate));
+        app.add_systems(
+            Update,
+            (
+                component_animator_system::<Transform>,
+                component_animator_system::<Style>,
+                component_animator_system::<Text>
+            )
+            .in_set(AnimationSystemSet::AnimationUpdate)
+        );
     }
 }
 
