@@ -114,6 +114,25 @@ pub(super) fn stop_swing_animation(
     }
 }
 
+pub(super) fn start_swing_animation(
+    selected_item: Res<SelectedItem>,
+    using_item: Res<PlayerUsingItem>,
+    mut swing_animation: ResMut<SwingAnimation>,
+    mut swing_cooldown: ResMut<SwingItemCooldown>,
+    mut swing_cooldown_max: ResMut<SwingItemCooldownMax>
+) {
+    if using_item.is_changed() && using_item.0 {
+        if let Some(selected_item) = **selected_item {
+            if **swing_cooldown == 0 {
+                **swing_cooldown = selected_item.item.swing_cooldown();
+                **swing_cooldown_max = selected_item.item.swing_cooldown();
+            }
+
+            **swing_animation = true;
+        }
+    }
+}
+
 pub(super) fn reset_swing_animation(mut index: ResMut<UseItemAnimationIndex>) {
     **index = 2;
 }
@@ -213,25 +232,8 @@ pub(super) fn update_player_using_item(
     input: Res<Input<MouseButton>>,
     selected_item: Res<SelectedItem>,
     mut using_item: ResMut<PlayerUsingItem>,
-    mut swing_animation: ResMut<SwingAnimation>,
-    mut swing_cooldown: ResMut<SwingItemCooldown>,
-    mut swing_cooldown_max: ResMut<SwingItemCooldownMax>
 ) {
     let pressed = input.pressed(MouseButton::Left) || input.just_pressed(MouseButton::Left);
-
-    if !pressed {
-        **using_item = false;
-        return;
-    }    
     
-    **using_item = selected_item.is_some();
-
-    if let Some(selected_item) = **selected_item {
-        if **swing_cooldown == 0 {
-            **swing_cooldown = selected_item.item.swing_cooldown();
-            **swing_cooldown_max = selected_item.item.swing_cooldown();
-        }
-
-        **swing_animation = true;
-    }
+    **using_item = pressed && selected_item.is_some();
 }

@@ -11,7 +11,7 @@ use std::time::Duration;
 use interpolation::EaseFunction;
 pub(crate) use resources::*;
 
-use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Component, Entity, Color, TextBundle}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, Interaction}, text::{TextAlignment, Text, TextStyle}};
+use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Component, Entity, Color, TextBundle}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, Interaction, AlignSelf}, text::{TextAlignment, Text, TextStyle}};
 use crate::{common::{state::GameState, systems::{set_visibility, animate_button_scale, play_sound_on_hover}, lens::TextFontSizeLens}, InGameSystemSet, language::LanguageContent, animation::{Tween, RepeatStrategy, Animator}};
 
 use self::{
@@ -65,53 +65,59 @@ pub(crate) fn spawn_ui_container(
     language_content: Res<LanguageContent>
 ) {
     let main_id = commands
-        .spawn(NodeBundle {
-            style: Style {
-                width: Val::Percent(100.),
-                height: Val::Percent(100.),
-                flex_direction: FlexDirection::Row,
+        .spawn((
+            Name::new("Main UI Container"),
+            MainUiContainer,
+            NodeBundle {
+                style: Style {
+                    width: Val::Percent(100.),
+                    height: Val::Percent(100.),
+                    flex_direction: FlexDirection::Row,
+                    ..default()
+                },
                 ..default()
-            },
-            ..default()
-        })
-        .insert(MainUiContainer)
-        .insert(Name::new("Main UI Container"))
+            }
+        ))
         .id();
 
     // Left container
     let left_id = commands
-        .spawn(NodeBundle {
-            style: Style {
-                width: Val::Percent(100.),
-                height: Val::Percent(100.),
-                flex_direction: FlexDirection::Column,
-                justify_content: JustifyContent::SpaceBetween,
-                align_items: AlignItems::FlexStart,
+        .spawn((
+            Name::new("Left UI Container"),
+            NodeBundle {
+                style: Style {
+                    width: Val::Percent(100.),
+                    height: Val::Percent(100.),
+                    flex_direction: FlexDirection::Column,
+                    justify_content: JustifyContent::SpaceBetween,
+                    align_items: AlignItems::FlexStart,
+                    ..default()
+                },
                 ..default()
-            },
-            ..default()
-        })
-        .insert(Name::new("Left UI Container"))
+            }
+        ))
         .id();
 
     // Right container
     let right_id = commands
-        .spawn(NodeBundle {
-            style: Style {
-                width: Val::Percent(100.),
-                height: Val::Percent(100.),
-                flex_direction: FlexDirection::Column,
-                justify_content: JustifyContent::SpaceBetween,
-                align_items: AlignItems::FlexEnd,
-                padding: UiRect {
-                    right: Val::Px(20.),
-                    ..UiRect::vertical(Val::Px(5.))
+        .spawn((
+            Name::new("Right UI Container"),
+            NodeBundle {
+                style: Style {
+                    width: Val::Percent(100.),
+                    height: Val::Percent(100.),
+                    flex_direction: FlexDirection::Column,
+                    justify_content: JustifyContent::SpaceBetween,
+                    align_items: AlignItems::FlexEnd,
+                    padding: UiRect {
+                        right: Val::Px(20.),
+                        ..UiRect::vertical(Val::Px(5.))
+                    },
+                    ..default()
                 },
                 ..default()
-            },
-            ..default()
-        })
-        .insert(Name::new("Right UI Container"))
+            }
+        ))
         .id();
 
     let fps_text = spawn_fps_text(&mut commands, &font_assets);
@@ -162,6 +168,7 @@ pub(crate) fn spawn_ingame_settings_button(
             style: Style {
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
+                align_self: AlignSelf::End,
                 padding: UiRect::all(Val::Px(10.)),
                 width: Val::Px(100.),
                 height: Val::Px(38.),

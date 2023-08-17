@@ -5,8 +5,6 @@ use bevy::prelude::{Plugin, App, resource_changed, IntoSystemConfigs, resource_e
 
 use crate::{common::systems::set_visibility, plugins::inventory::Inventory, InGameSystemSet};
 
-use self::components::InventoryUi;
-
 use super::ExtraUiVisibility;
 
 // 5 is the total amount of inventory rows. -1 because the hotbar takes the first row
@@ -23,7 +21,7 @@ impl Plugin for InventoryUiPlugin {
         app.add_systems(
             Update,
             (
-                set_visibility::<InventoryUi, ExtraUiVisibility>,
+                set_visibility::<components::InventoryUi, ExtraUiVisibility>,
                 systems::trigger_inventory_changed.run_if(resource_changed::<ExtraUiVisibility>()),
                 systems::update_selected_item_name_alignment,
                 systems::update_selected_item_name_text,

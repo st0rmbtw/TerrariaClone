@@ -1,13 +1,13 @@
 use std::time::Duration;
 
-use bevy::{prelude::{Commands, Res, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, Local, Input, MouseButton, Color, Vec4, DetectChanges, IntoSystemConfigs, OnExit, Name, Update, OnEnter, Without, Entity, Deref, DerefMut, PreUpdate, on_event, Condition, Vec3, Component, Resource}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas, SpriteBundle}, window::{Window, PrimaryWindow, WindowResized}, utils::default, ecs::query::Has};
+use bevy::{prelude::{Commands, Res, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, Local, Input, MouseButton, Color, Vec4, DetectChanges, IntoSystemConfigs, OnExit, Name, Update, OnEnter, Without, Entity, Deref, DerefMut, PreUpdate, on_event, Vec3, Component, Resource}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas, SpriteBundle}, window::{Window, PrimaryWindow, WindowResized}, utils::default, ecs::query::Has};
 use bevy_hanabi::Gradient;
 use interpolation::{Lerp, EaseFunction};
 use rand::{thread_rng, Rng, seq::SliceRandom};
 
-use crate::{plugins::{assets::{CelestialBodyAssets, BackgroundAssets}, camera::components::BackgroundCamera, background::{BACKGROUND_RENDER_LAYER, BackgroundPlugin}, cursor::position::CursorPosition}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystemSet, AnimatorState, lens::TransformScaleLens}, common::state::GameState, common::{math::map_range_f32, rect::FRect, systems::despawn_with}, parallax::{LayerTextureComponent, ParallaxSet}};
+use crate::{plugins::{assets::{CelestialBodyAssets, BackgroundAssets}, camera::components::BackgroundCamera, background::{BACKGROUND_RENDER_LAYER, BackgroundPlugin}, cursor::position::CursorPosition}, animation::{Tween, EaseMethod, Animator, RepeatStrategy, RepeatCount, TweenCompleted, Lens, component_animator_system, AnimationSystemSet, AnimatorState, lens::TransformScaleLens}, common::state::GameState, common::{math::map_range_f32, rect::FRect, systems::despawn_with}, parallax::{LayerTextureComponent, ParallaxSet}, MenuSystemSet, BACKGROUND_LAYER};
 
-use super::{in_menu_state, DespawnOnMenuExit};
+use super::DespawnOnMenuExit;
 
 pub(super) struct CelestialBodyPlugin;
 impl Plugin for CelestialBodyPlugin {
@@ -27,9 +27,12 @@ impl Plugin for CelestialBodyPlugin {
 
             app.add_systems(
                 Update,
-                move_stars
-                    .run_if(in_menu_state)
-                    .after(ParallaxSet::FollowCamera)
+                (
+                    move_celestial_body,
+                    move_stars
+                )
+                .in_set(MenuSystemSet::Update)
+                .before(ParallaxSet::FollowCamera)
             );
 
             app.add_systems(
@@ -38,7 +41,8 @@ impl Plugin for CelestialBodyPlugin {
                     despawn_with::<Star>,
                     spawn_stars
                 )
-                .run_if(in_menu_state.and_then(on_event::<WindowResized>()))
+                .in_set(MenuSystemSet::PreUpdate)
+                .run_if(on_event::<WindowResized>())
             );
 
             app.add_systems(
@@ -48,19 +52,18 @@ impl Plugin for CelestialBodyPlugin {
                         update_time_type,
                         update_celestial_type,
                     ).chain(),
-                    move_celestial_body,
                     drag_celestial_body,
                     update_sprites_color,
                     change_visibility_of_stars,
                 )
-                .run_if(in_menu_state)
+                .in_set(MenuSystemSet::Update)
             );
 
             app.add_systems(
                 Update,
                 component_animator_system::<CelestialBodyPosition>
+                    .in_set(MenuSystemSet::Update)
                     .in_set(AnimationSystemSet::AnimationUpdate)
-                    .run_if(in_menu_state)
             );
         }
     }
@@ -136,7 +139,7 @@ fn spawn_celestial_body(
     let celestial_body_animation = Tween::new(
         EaseMethod::Linear,
         RepeatStrategy::Repeat,
-        Duration::from_secs(25),
+        Duration::from_secs(50),
         CelestialBodyPositionLens {
             start: Vec2::new(-0.1, 0.3),
             end: Vec2::new(1.1, 0.)
@@ -157,7 +160,7 @@ fn spawn_celestial_body(
                 ..default()
             },
             texture_atlas: celestial_body_assets.sun.clone_weak(),
-            transform: Transform::from_xyz(0., 0., 0.5),
+            transform: Transform::from_xyz(0., 0., BACKGROUND_LAYER + 0.1),
             ..default()
         },
     ));
@@ -207,7 +210,7 @@ fn spawn_stars(
                 SpriteBundle {
                     texture: star_image.clone_weak(),
                     transform: Transform {
-                        translation: Vec3::new(0., 0., 0.1),
+                        translation: Vec3::new(0., 0., BACKGROUND_LAYER + 0.05),
                         scale: Vec3::splat(rng.gen_range(0.5..1.0)),
                         ..default()
                     },
@@ -274,13 +277,13 @@ fn move_celestial_body(
 ) {
     let (camera, camera_transform) = query_camera.single();
     let Ok((mut celestial_body_transform, celestial_body_pos)) = query_celestial_body.get_single_mut() else { return; };
+
     let window = query_windows.single();
     let window_size = Vec2::new(window.width(), window.height());
 
-
     if let Some(world_pos) = camera.viewport_to_world_2d(camera_transform, celestial_body_pos.0 * window_size) {
         celestial_body_transform.translation.x = world_pos.x;
-        celestial_body_transform.translation.y = world_pos.y;  
+        celestial_body_transform.translation.y = world_pos.y;
     }
 }
 

@@ -45,7 +45,10 @@ impl Plugin for PlayerInventoryPlugin {
         app.add_systems(
             Update,
             (
-                systems::update_player_using_item,
+                (
+                    systems::update_player_using_item,
+                    systems::start_swing_animation
+                ).chain(),
                 systems::set_using_item_image.run_if(resource_exists_and_changed::<SelectedItem>()),
                 systems::set_using_item_visibility(false)
             )

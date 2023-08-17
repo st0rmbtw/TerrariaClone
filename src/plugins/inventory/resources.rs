@@ -1,6 +1,6 @@
 use bevy::{prelude::{Resource, Deref, DerefMut, ReflectResource}, reflect::Reflect};
 
-use crate::{items::ItemStack, common::IsVisible, plugins::ui::inventory::CELL_COUNT_IN_ROW};
+use crate::{items::ItemStack, plugins::ui::inventory::CELL_COUNT_IN_ROW};
 
 #[derive(Resource, Default, Deref, DerefMut)]
 pub(crate) struct SelectedItem(pub Option<ItemStack>);
@@ -16,12 +16,6 @@ pub(super) struct PlayerUsingItem(pub bool);
 
 #[derive(Resource, PartialEq, Clone, Copy, Deref, DerefMut)]
 pub(crate) struct SwingAnimation(pub bool);
-
-impl IsVisible for SwingAnimation {
-    fn is_visible(&self) -> bool {
-        self.0
-    }
-}
 
 #[derive(Resource, Default, Clone, Copy, Deref, DerefMut, Reflect)]
 #[reflect(Resource)]
