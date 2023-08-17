@@ -1,19 +1,13 @@
 use std::{fs::OpenOptions, io::{BufReader, BufWriter}, error::Error};
 
-use bevy::{prelude::{Plugin, App, IntoSystemConfigs, Update, Res, on_event}, text::Text, app::AppExit, window::{WindowCloseRequested, PrimaryWindow}};
+use bevy::{prelude::{Plugin, App, IntoSystemConfigs, Update, Res, on_event}, app::AppExit, window::{WindowCloseRequested, PrimaryWindow}};
 use serde::{Deserialize, Serialize};
 
-use crate::{common::systems::{animate_button_scale, play_sound_on_hover, set_visibility, despawn_with}, animation::{component_animator_system, AnimationSystemSet}, InGameSystemSet};
+use crate::common::systems::despawn_with;
 
-mod components;
-mod systems;
 mod resources;
 
-use components::*;
-pub(crate) use systems::*;
 pub(crate) use resources::*;
-
-use super::ui::ExtraUiVisibility;
 
 const CONFIG_FILENAME: &str = "config.json";
 
@@ -77,25 +71,12 @@ impl Plugin for ConfigPlugin {
         app.insert_resource(config.cursor_color);
         app.insert_resource(config.resolution);
 
-        app.add_systems(Update, on_exit.run_if(on_event::<AppExit>()));
         app.add_systems(
             Update,
             (
-                on_exit,
-                despawn_with::<PrimaryWindow>
+                on_exit.run_if(on_event::<AppExit>()),
+                (on_exit, despawn_with::<PrimaryWindow>).run_if(on_event::<WindowCloseRequested>())
             )
-            .run_if(on_event::<WindowCloseRequested>())
-        );
-
-        app.add_systems(
-            Update,
-            (
-                animate_button_scale::<SettingsButton>,
-                play_sound_on_hover::<SettingsButton>,
-                set_visibility::<SettingsButtonContainer, ExtraUiVisibility>,
-                component_animator_system::<Text>.in_set(AnimationSystemSet::AnimationUpdate)
-            )
-            .in_set(InGameSystemSet::Update)
         );
     }
 }

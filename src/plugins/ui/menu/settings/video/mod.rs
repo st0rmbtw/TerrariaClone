@@ -1,9 +1,18 @@
-pub mod resolution;
+mod resolution;
 
 use autodefault::autodefault;
 use bevy::{prelude::{Commands, Res, ResMut, Query, With, Entity, Plugin, OnEnter, OnExit, IntoSystemConfigs, App, in_state, Update, EventWriter, Component}, text::{TextStyle, Text}, window::Window};
 
-use crate::{plugins::{assets::FontAssets, menu::{MenuContainer, despawn_with, TEXT_COLOR, Enter, builders::{menu, menu_button, control_buttons_layout, control_button}}, config::VSync}, language::LanguageContent, common::{state::{SettingsMenuState, MenuState, GameState}, conditions::on_click}};
+use crate::{
+    plugins::{
+        assets::FontAssets,
+        config::VSync,
+        ui::menu::{MenuContainer, despawn_with, TEXT_COLOR, Enter, builders::{menu, menu_button, control_buttons_layout, control_button}}
+    },
+    language::LanguageContent,
+    common::{state::{SettingsMenuState, MenuState, GameState}, conditions::on_click},
+
+};
 use self::resolution::ResolutionMenuPlugin;
 
 use super::{MENU_BUTTON_FONT_SIZE, BackButton};

@@ -12,15 +12,21 @@ use interpolation::EaseFunction;
 use systems::*;
 
 use bevy::{prelude::{Plugin, App, IntoSystemConfigs, OnEnter, OnExit, Color, Startup, Update, KeyCode, PostUpdate, Button, EventWriter, Res, Query, Entity, With, Commands, Name, NodeBundle, BuildChildren, ImageBundle, default, Visibility, TextBundle, Transform, Quat, Vec3, Camera2dBundle, Camera2d, State, ResMut, NextState, EventReader, Component}, input::common_conditions::input_just_pressed, app::AppExit, text::{TextStyle, Text, TextSection}, ui::{Style, PositionType, AlignSelf, Val, UiRect, FlexDirection, UiImage}, core_pipeline::clear_color::ClearColorConfig};
-use crate::{common::{state::{GameState, MenuState, SettingsMenuState}, conditions::{on_click, in_menu_state}, systems::{animate_button_scale, play_sound_on_hover, send_event, despawn_with}, lens::TransformLens}, parallax::{parallax_animation_system, ParallaxSet}, language::LanguageContent, animation::{Animator, RepeatCount, Tween, RepeatStrategy}, MenuSystemSet};
+use crate::{
+    MenuSystemSet,
+    common::{state::{GameState, MenuState, SettingsMenuState}, conditions::{on_click, in_menu_state}, systems::{animate_button_scale, play_sound_on_hover, send_event, despawn_with}, lens::TransformLens},
+    parallax::{parallax_animation_system, ParallaxSet},
+    language::LanguageContent,
+    animation::{Animator, RepeatCount, Tween, RepeatStrategy}, 
+    plugins::{slider::Slider, assets::{FontAssets, UiAssets}, camera::components::MainCamera, audio::{PlaySoundEvent, SoundType, PlayMusicEvent, MusicType, MusicAudio}, ui::fps::FpsText}
+};
 use self::{settings::SettingsMenuPlugin, celestial_body::CelestialBodyPlugin, builders::{menu, menu_button}, events::{Back, Enter}};
-use super::{slider::Slider, assets::{FontAssets, UiAssets}, fps::FpsText, camera::components::MainCamera, audio::{PlaySoundEvent, SoundType, PlayMusicEvent, MusicType, MusicAudio}};
 
 pub(super) const TEXT_COLOR: Color = Color::rgb(0.58, 0.58, 0.58);
 pub(super) const MENU_BUTTON_FONT_SIZE: f32 = 42.;
 
 #[derive(Component)]
-pub(crate) struct DespawnOnMenuExit;
+pub(super) struct DespawnOnMenuExit;
 
 #[derive(Component)]
 pub(super) struct BackButton;
@@ -28,7 +34,7 @@ pub(super) struct BackButton;
 #[derive(Component)]
 pub(super) struct ApplyButton;
 
-pub(crate) struct MenuPlugin;
+pub(super) struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<Back>();

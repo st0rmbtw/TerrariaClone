@@ -26,10 +26,9 @@ use plugins::{
     cursor::CursorPlugin,
     fps::FpsPlugin,
     inventory::PlayerInventoryPlugin,
-    menu::MenuPlugin,
     player::PlayerPlugin,
     config::{FullScreen, Resolution, ConfigPlugin, VSync},
-    ui::PlayerUiPlugin,
+    ui::UiPlugin,
     world::WorldPlugin, audio::AudioPlugin, slider::SliderPlugin,
 };
 use rand::seq::SliceRandom;
@@ -134,8 +133,7 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
             CursorPlugin,
             CameraPlugin,
             BackgroundPlugin,
-            PlayerUiPlugin,
-            MenuPlugin,
+            UiPlugin,
             WorldPlugin,
             PlayerInventoryPlugin,
             FpsPlugin,

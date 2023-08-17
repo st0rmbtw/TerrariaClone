@@ -6,7 +6,7 @@ use crate::{
     common::{state::{SettingsMenuState, GameState, MenuState}, conditions::on_click},
     plugins::{
         assets::FontAssets, 
-        menu::{
+        ui::menu::{
             MenuContainer, MENU_BUTTON_FONT_SIZE, despawn_with, 
             TEXT_COLOR, ApplyButton, BackButton, Back, builders::{menu, menu_button, control_buttons_layout, control_button}
         }, 

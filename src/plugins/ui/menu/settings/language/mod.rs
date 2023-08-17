@@ -1,6 +1,13 @@
 use bevy::{prelude::{Plugin, App, Commands, OnEnter, OnExit, Component, Res, Entity, With, Query, Color}, text::TextStyle};
 
-use crate::{common::{state::{GameState, MenuState, SettingsMenuState}, systems::despawn_with}, plugins::{menu::{builders::{menu, menu_text, control_buttons_layout, control_button}, components::MenuContainer, MENU_BUTTON_FONT_SIZE, TEXT_COLOR, BackButton}, assets::FontAssets}, language::LanguageContent};
+use crate::{
+    common::{state::{GameState, MenuState, SettingsMenuState}, systems::despawn_with},
+    plugins::{
+        ui::menu::{builders::{menu, menu_text, control_buttons_layout, control_button}, components::MenuContainer, MENU_BUTTON_FONT_SIZE, TEXT_COLOR, BackButton},
+        assets::FontAssets
+    },
+    language::LanguageContent
+};
 
 pub(super) struct LanguageMenuPlugin;
 impl Plugin for LanguageMenuPlugin {

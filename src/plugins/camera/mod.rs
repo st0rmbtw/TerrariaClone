@@ -8,7 +8,7 @@ mod systems;
 
 const INITIAL_ZOOM: f32 = 0.9;
 const MAX_CAMERA_ZOOM: f32 = 2.;
-const MIN_CAMERA_ZOOM: f32 = 0.2;
+const MIN_CAMERA_ZOOM: f32 = 0.3;
 const CAMERA_ZOOM_STEP: f32 = 0.5;
 
 #[cfg(feature = "debug")]
