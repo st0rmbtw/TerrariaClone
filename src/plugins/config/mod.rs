@@ -1,9 +1,9 @@
 use std::{fs::OpenOptions, io::{BufReader, BufWriter}, error::Error};
 
-use bevy::{prelude::{Plugin, App, IntoSystemConfigs, in_state, Update, Res, on_event}, text::Text, app::AppExit, window::{WindowCloseRequested, PrimaryWindow}};
+use bevy::{prelude::{Plugin, App, IntoSystemConfigs, Update, Res, on_event}, text::Text, app::AppExit, window::{WindowCloseRequested, PrimaryWindow}};
 use serde::{Deserialize, Serialize};
 
-use crate::{common::{state::GameState, systems::{animate_button_scale, play_sound_on_hover, set_visibility, despawn_with}}, animation::{component_animator_system, AnimationSystemSet}, InGameSystemSet};
+use crate::{common::systems::{animate_button_scale, play_sound_on_hover, set_visibility, despawn_with}, animation::{component_animator_system, AnimationSystemSet}, InGameSystemSet};
 
 mod components;
 mod systems;

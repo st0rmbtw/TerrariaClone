@@ -64,7 +64,7 @@ pub(crate) fn spawn_ui_container(
     let inventory = spawn_inventory_ui(&mut commands, &ui_assets, &font_assets, &language_content);
     let settings_btn = spawn_ingame_settings_button(&mut commands, &font_assets, &language_content);
 
-    // TODO: Make a health bar in feature, stub now
+    // TODO: Make a health bar in the feature, stub for now
     let health_bar = commands
         .spawn(NodeBundle {
             style: Style {

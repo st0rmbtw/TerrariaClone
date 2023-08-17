@@ -56,6 +56,26 @@ impl Plugin for PlayerInventoryPlugin {
         app.add_systems(
             Update,
             (
+                update_player_using_item,
+                set_using_item_image.run_if(resource_exists_and_changed::<SelectedItem>()),
+                set_using_item_visibility(false)
+            )
+            .in_set(InGameSystemSet::Update)
+        );
+
+        app.add_systems(
+            Update,
+            (
+                scroll_select_inventory_item,
+                select_inventory_cell,
+                set_selected_item.run_if(resource_exists_and_changed::<Inventory>()),
+            )
+            .in_set(InGameSystemSet::Update)
+        );
+
+        app.add_systems(
+            Update,
+            (
                 set_visibility::<InventoryUi, ExtraUiVisibility>,
                 trigger_inventory_changed.run_if(resource_changed::<ExtraUiVisibility>()),
                 update_selected_item_name_alignment,
@@ -70,16 +90,6 @@ impl Plugin for PlayerInventoryPlugin {
                 ),
                 (update_cell, update_cell_image).chain(),
                 (update_item_amount, update_item_amount_text).chain(),
-                (
-                    scroll_select_inventory_item,
-                    select_inventory_cell,
-                    set_selected_item.run_if(resource_exists_and_changed::<Inventory>()),
-                ),
-                (
-                    update_player_using_item,
-                    set_using_item_image.run_if(resource_exists_and_changed::<SelectedItem>()),
-                    set_using_item_visibility(false)
-                )
             )
             .in_set(InGameSystemSet::Update)
         );
