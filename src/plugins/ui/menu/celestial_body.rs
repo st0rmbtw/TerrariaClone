@@ -32,7 +32,7 @@ impl Plugin for CelestialBodyPlugin {
                     move_stars
                 )
                 .in_set(MenuSystemSet::Update)
-                .before(ParallaxSet::FollowCamera)
+                .after(ParallaxSet::FollowCamera)
             );
 
             app.add_systems(
@@ -227,16 +227,18 @@ fn spawn_stars(
 }
 
 fn move_stars(
-    query_camera: Query<(&Camera, &GlobalTransform), With<BackgroundCamera>>,
-    mut query_stars: Query<(&mut Transform, &Star)>
+    query_camera: Query<(&Camera, &Transform), With<BackgroundCamera>>,
+    mut query_stars: Query<(&mut Transform, &Star), Without<BackgroundCamera>>
 ) {
     let (camera, camera_transform) = query_camera.single();
 
+    let camera_global_transform = GlobalTransform::from_translation(camera_transform.translation);
+
     for (mut star_transform, star) in &mut query_stars {
-        if let Some(world_position) = camera.viewport_to_world_2d(camera_transform, star.screen_position) {
+        if let Some(world_position) = camera.viewport_to_world_2d(&camera_global_transform, star.screen_position) {
             star_transform.translation.x = world_position.x;
             star_transform.translation.y = world_position.y;
-        }    
+        }
     }
 }
 
@@ -265,23 +267,24 @@ fn change_visibility_of_stars(
         }
     };
 
-    for mut sprite in &mut query_stars {
+    query_stars.for_each_mut(|mut sprite| {
         sprite.color.set_a(*alpha);
-    }
+    });
 }
 
 fn move_celestial_body(
     query_windows: Query<&Window, With<PrimaryWindow>>,
-    query_camera: Query<(&Camera, &GlobalTransform), With<BackgroundCamera>>,
-    mut query_celestial_body: Query<(&mut Transform, &CelestialBodyPosition), Without<Dragging>>
+    query_camera: Query<(&Camera, &Transform), With<BackgroundCamera>>,
+    mut query_celestial_body: Query<(&mut Transform, &CelestialBodyPosition), (Without<Dragging>, Without<BackgroundCamera>)>
 ) {
     let (camera, camera_transform) = query_camera.single();
     let Ok((mut celestial_body_transform, celestial_body_pos)) = query_celestial_body.get_single_mut() else { return; };
 
     let window = query_windows.single();
     let window_size = Vec2::new(window.width(), window.height());
+    let camera_global_transform = GlobalTransform::from_translation(camera_transform.translation);
 
-    if let Some(world_pos) = camera.viewport_to_world_2d(camera_transform, celestial_body_pos.0 * window_size) {
+    if let Some(world_pos) = camera.viewport_to_world_2d(&camera_global_transform, celestial_body_pos.0 * window_size) {
         celestial_body_transform.translation.x = world_pos.x;
         celestial_body_transform.translation.y = world_pos.y;
     }
