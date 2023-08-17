@@ -9,7 +9,7 @@ pub(crate) use resources::*;
 pub(crate) use body_sprites::*;
 use systems::*;
 
-use crate::{common::{state::{GameState, MovementState}, helpers::tile_pos_to_world_coords, systems::component_equals}, plugins::player::utils::simple_animation, world::WorldData};
+use crate::{common::{state::{GameState, MovementState}, helpers::tile_pos_to_world_coords, systems::component_equals}, plugins::player::utils::simple_animation, world::WorldData, InGameSystemSet};
 use std::time::Duration;
 use bevy_hanabi::prelude::*;
 use bevy::{prelude::*, time::{Timer, TimerMode}, math::vec2};
@@ -51,34 +51,25 @@ impl Plugin for PlayerPlugin {
 
         #[cfg(feature = "debug")]
         let flip_player_systems = flip_player_systems.run_if(|config: Res<DebugConfiguration>| !config.free_camera);
-        
-        app.add_systems(
-            Update,
-            flip_player_systems.run_if(in_state(GameState::InGame))
-        );
 
         app.add_systems(
             Update,
             (
+                flip_player_systems,
                 update_movement_state,
-                spawn_particles
-            )
-            .run_if(in_state(GameState::InGame))
-        );
-
-        app.add_systems(
-            Update,
-            (
-                update_movement_animation_timer,
-                update_movement_animation_index,
-                walking_animation.run_if(component_equals::<Player, _>(MovementState::Walking)),
+                spawn_particles,
+                (
+                    update_movement_animation_timer,
+                    update_movement_animation_index,
+                    walking_animation.run_if(component_equals::<Player, _>(MovementState::Walking)),
+                ).chain(),
                 simple_animation::<IdleAnimationData>.run_if(component_equals::<Player, _>(MovementState::Idle)),
                 simple_animation::<FlyingAnimationData>.run_if(component_equals::<Player, _>(MovementState::Flying))
             )
-            .run_if(in_state(GameState::InGame))
+            .in_set(InGameSystemSet::Update)
         );
 
-        app.add_systems(Update, update_input_axis.run_if(in_state(GameState::InGame)));
+        app.add_systems(PreUpdate, update_input_axis.in_set(InGameSystemSet::PreUpdate));
 
         let handle_player_movement_systems = (
             horizontal_movement,
@@ -100,7 +91,7 @@ impl Plugin for PlayerPlugin {
                 )
                 .chain()
             )
-            .run_if(in_state(GameState::InGame))
+            .in_set(InGameSystemSet::FixedUpdate)
         );
 
         #[cfg(feature = "debug")]
@@ -117,19 +108,19 @@ impl Plugin for PlayerPlugin {
                             .and_then(input_just_pressed(MouseButton::Right))
                     )
                 )
-                .run_if(in_state(GameState::InGame))
+                .in_set(InGameSystemSet::Update)
             );
         }
     }
 }
 
 fn setup(mut commands: Commands) {
-    commands.insert_resource(InputAxis::default());
-    commands.insert_resource(MovementAnimationIndex::default());
-    commands.insert_resource(MovementAnimationTimer(Timer::new(Duration::from_millis(80), TimerMode::Repeating)));
     commands.init_resource::<PlayerVelocity>();
     commands.init_resource::<Collisions>();
     commands.init_resource::<PlayerData>();
+    commands.insert_resource(InputAxis::default());
+    commands.insert_resource(MovementAnimationIndex::default());
+    commands.insert_resource(MovementAnimationTimer(Timer::new(Duration::from_millis(80), TimerMode::Repeating)));
 }
 
 fn spawn_player(

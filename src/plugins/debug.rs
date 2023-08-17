@@ -1,8 +1,8 @@
-use bevy::{prelude::{App, Plugin, ResMut, Commands, TextBundle, Res, Color, OnEnter, Component, Query, Visibility, With, DetectChanges, Name, AppTypeRegistry, Resource, Vec2, Update, IntoSystemConfigs, in_state}, utils::default, text::{Text, TextSection, TextStyle}, ui::{Style, Val, PositionType}, sprite::TextureAtlasSprite, time::Time, reflect::{Reflect, ReflectMut}};
+use bevy::{prelude::{App, Plugin, ResMut, Commands, TextBundle, Res, Color, OnEnter, Query, Visibility, With, DetectChanges, Name, AppTypeRegistry, Vec2, Update, IntoSystemConfigs, Resource, Component}, utils::default, text::{Text, TextSection, TextStyle}, ui::{Style, Val, PositionType}, sprite::TextureAtlasSprite, time::Time, reflect::{Reflect, ReflectMut}};
 use bevy_ecs_tilemap::{tiles::TilePos, helpers::square_grid::neighbors::Neighbors};
 use bevy_inspector_egui::{bevy_egui::{EguiPlugin, egui, EguiContexts}, egui::{Align2, CollapsingHeader, ScrollArea}, quick::WorldInspectorPlugin, reflect_inspector};
 
-use crate::{common::{state::GameState, helpers::{self, get_tile_pos_from_world_coords}}, world::{block::BlockType, WorldData, chunk::ChunkContainer}};
+use crate::{common::{state::GameState, helpers::{self, get_tile_pos_from_world_coords}}, world::{block::BlockType, WorldData, chunk::ChunkContainer}, InGameSystemSet};
 
 use super::{assets::FontAssets, inventory::{UseItemAnimationIndex, UseItemAnimationData}, camera::components::MainCamera, cursor::position::CursorPosition};
 
@@ -44,7 +44,7 @@ impl Plugin for DebugPlugin {
                 set_free_camera_legend_visibility,
                 block_hover,
             )
-            .run_if(in_state(GameState::InGame))
+            .in_set(InGameSystemSet::Update)
         );
     }
 }

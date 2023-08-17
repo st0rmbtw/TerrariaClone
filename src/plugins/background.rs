@@ -1,9 +1,9 @@
 use crate::{
     parallax::{LayerData, LayerSpeed, ParallaxContainer, ParallaxCameraComponent, LayerComponent, LayerDataComponent},
-    common::{state::GameState, systems::despawn_with}, world::WorldData, BACKGROUND_LAYER,
+    common::{state::GameState, systems::despawn_with}, world::WorldData, BACKGROUND_LAYER, InGameSystemSet,
 };
 use bevy::{
-    prelude::{default, App, Commands, Plugin, Res, Vec2, Query, Camera, With, OnExit, IntoSystemConfigs, Name, Assets, Image, Camera2dBundle, UiCameraConfig, in_state, PostUpdate, Transform, Component, Without},
+    prelude::{default, App, Commands, Plugin, Res, Vec2, Query, Camera, With, OnExit, IntoSystemConfigs, Name, Assets, Image, Camera2dBundle, UiCameraConfig, PostUpdate, Transform, Without, Component},
     sprite::Anchor, render::view::RenderLayers,
 };
 
@@ -44,7 +44,7 @@ impl Plugin for BackgroundPlugin {
         app.add_systems(
             PostUpdate,
             follow_camera_system
-                .run_if(in_state(GameState::InGame))
+                .in_set(InGameSystemSet::PostUpdate)
                 .after(CameraSet::MoveCamera),
         );
     }

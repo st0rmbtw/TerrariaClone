@@ -3,12 +3,12 @@ mod resources;
 mod systems;
 mod util;
 
-use bevy::prelude::{Plugin, App, IntoSystemConfigs, in_state, Update, FixedUpdate, OnExit, Condition, Commands, resource_exists_and_changed, resource_added, resource_exists_and_equals, resource_changed};
+use bevy::prelude::{Plugin, App, IntoSystemConfigs, Update, FixedUpdate, OnExit, Condition, Commands, resource_exists_and_changed, resource_added, resource_exists_and_equals, resource_changed};
 pub(crate) use components::*;
 pub(crate) use resources::*;
 pub(crate) use systems::*;
 
-use crate::{common::{state::GameState, systems::set_visibility}, items::{ItemStack, Tool, Axe, Pickaxe, Seed}, world::block::BlockType};
+use crate::{common::{state::GameState, systems::set_visibility}, items::{ItemStack, Tool, Axe, Pickaxe, Seed}, world::block::BlockType, InGameSystemSet};
 
 use super::ui::ExtraUiVisibility;
 
@@ -33,7 +33,7 @@ impl Plugin for PlayerInventoryPlugin {
                 use_item,
                 stop_swing_animation
             )
-            .run_if(in_state(GameState::InGame))
+            .in_set(InGameSystemSet::FixedUpdate)
         );
 
         app.add_systems(
@@ -49,25 +49,8 @@ impl Plugin for PlayerInventoryPlugin {
                 reset_swing_animation,
             )
             .chain()
-            .run_if(in_state(GameState::InGame))
+            .in_set(InGameSystemSet::FixedUpdate)
             .run_if(resource_exists_and_equals(SwingAnimation(true)))
-        );
-
-        app.add_systems(
-            Update,
-            (
-                (
-                    scroll_select_inventory_item,
-                    select_inventory_cell,
-                    set_selected_item.run_if(resource_exists_and_changed::<Inventory>()),
-                ),
-                (
-                    update_player_using_item,
-                    set_using_item_image.run_if(resource_exists_and_changed::<SelectedItem>()),
-                    set_using_item_visibility(false)
-                )
-            )
-            .run_if(in_state(GameState::InGame))
         );
 
         app.add_systems(
@@ -86,9 +69,19 @@ impl Plugin for PlayerInventoryPlugin {
                     resource_exists_and_changed::<Inventory>().or_else(resource_added::<Inventory>())
                 ),
                 (update_cell, update_cell_image).chain(),
-                (update_item_amount, update_item_amount_text).chain()
+                (update_item_amount, update_item_amount_text).chain(),
+                (
+                    scroll_select_inventory_item,
+                    select_inventory_cell,
+                    set_selected_item.run_if(resource_exists_and_changed::<Inventory>()),
+                ),
+                (
+                    update_player_using_item,
+                    set_using_item_image.run_if(resource_exists_and_changed::<SelectedItem>()),
+                    set_using_item_visibility(false)
+                )
             )
-            .run_if(in_state(GameState::InGame))
+            .in_set(InGameSystemSet::Update)
         );
     }
 }

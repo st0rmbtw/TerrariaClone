@@ -4,8 +4,8 @@ mod systems;
 
 pub(crate) use resources::*;
 
-use bevy::{prelude::{Plugin, App, KeyCode, Update, in_state, IntoSystemConfigs, OnExit}, input::common_conditions::input_just_pressed};
-use crate::common::{state::GameState, systems::set_visibility};
+use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit}, input::common_conditions::input_just_pressed};
+use crate::{common::{state::GameState, systems::set_visibility}, InGameSystemSet};
 
 use self::components::MainUiContainer;
 
@@ -22,7 +22,7 @@ impl Plugin for PlayerUiPlugin {
                 systems::toggle_ui_visibility.run_if(input_just_pressed(KeyCode::F11)),
                 set_visibility::<MainUiContainer, UiVisibility>
             )
-            .run_if(in_state(GameState::InGame))
+            .in_set(InGameSystemSet::Update)
         );
     }
 }

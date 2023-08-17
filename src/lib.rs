@@ -8,14 +8,14 @@ use animation::TweeningPlugin;
 use bevy::{
     log::{Level, LogPlugin},
     prelude::{
-        default, App, AssetPlugin, ClearColor, Color, FixedTime, ImagePlugin, Msaa, PluginGroup, UVec2, GizmoConfig,
+        default, App, AssetPlugin, ClearColor, Color, FixedTime, ImagePlugin, Msaa, PluginGroup, UVec2, GizmoConfig, SystemSet, PreUpdate, IntoSystemSetConfig, in_state, Update, PostUpdate, FixedUpdate,
     },
     window::{Cursor, MonitorSelection, Window, WindowPlugin, WindowPosition, WindowResolution},
     DefaultPlugins, asset::ChangeWatcher
 };
 use bevy_ecs_tilemap::prelude::TilemapRenderSettings;
 use bevy_hanabi::HanabiPlugin;
-use common::state::GameState;
+use common::{state::GameState, conditions::in_menu_state};
 use language::{load_language, Language};
 use lighting::LightingPlugin;
 use parallax::ParallaxPlugin;
@@ -49,6 +49,21 @@ pub(crate) const BACKGROUND_LAYER: f32 = 0.;
 pub(crate) const WALL_LAYER: f32 = 1.;
 pub(crate) const TILES_LAYER: f32 = 2.;
 pub(crate) const PLAYER_LAYER: f32 = 3.;
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone, SystemSet)]
+pub(crate) enum InGameSystemSet {
+    PreUpdate,
+    FixedUpdate,
+    Update,
+    PostUpdate
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone, SystemSet)]
+pub(crate) enum MenuSystemSet {
+    PreUpdate,
+    Update,
+    PostUpdate
+}
 
 pub fn create_app() -> Result<App, Box<dyn Error>> {
     let language_content = load_language(Language::English)?;
@@ -125,7 +140,14 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
             PlayerInventoryPlugin,
             FpsPlugin,
             PlayerPlugin
-        ));
+        ))
+        .configure_set(PreUpdate, InGameSystemSet::PreUpdate.run_if(in_state(GameState::InGame)))
+        .configure_set(Update, InGameSystemSet::Update.run_if(in_state(GameState::InGame)))
+        .configure_set(PostUpdate, InGameSystemSet::PostUpdate.run_if(in_state(GameState::InGame)))
+        .configure_set(FixedUpdate, InGameSystemSet::FixedUpdate.run_if(in_state(GameState::InGame)))
+        .configure_set(PreUpdate, MenuSystemSet::PreUpdate.run_if(in_menu_state))
+        .configure_set(Update, MenuSystemSet::Update.run_if(in_menu_state))
+        .configure_set(PostUpdate, MenuSystemSet::PostUpdate.run_if(in_menu_state));
 
     #[cfg(feature = "debug")] {
         use plugins::debug::DebugPlugin;

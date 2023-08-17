@@ -3,7 +3,7 @@ pub(crate) mod position;
 mod systems;
 
 use bevy::{prelude::{Plugin, App, OnExit, OnEnter, IntoSystemConfigs, not, resource_equals, in_state, Condition, Update}, ui::BackgroundColor};
-use crate::{common::{state::GameState, systems::set_visibility}, animation::{AnimationSystemSet, component_animator_system}};
+use crate::{common::{state::GameState, systems::set_visibility}, animation::{AnimationSystemSet, component_animator_system}, InGameSystemSet};
 use self::position::CursorPositionPlugin;
 
 use super::{ui::UiVisibility, config::ShowTileGrid, camera::components::{MainCamera, BackgroundCamera}};
@@ -39,7 +39,7 @@ impl Plugin for CursorPlugin {
         app.add_systems(
             Update,
             systems::update_tile_grid_position
-                .run_if(in_state(GameState::InGame))
+                .in_set(InGameSystemSet::Update)
                 .run_if(resource_equals(UiVisibility::VISIBLE).and_then(
                         resource_equals(ShowTileGrid(true))))
         );
@@ -54,7 +54,7 @@ impl Plugin for CursorPlugin {
 
         app.add_systems(
             Update,
-            set_visibility::<components::CursorBackground, UiVisibility>.run_if(in_state(GameState::InGame))
+            set_visibility::<components::CursorBackground, UiVisibility>.in_set(InGameSystemSet::Update)
         );
 
         app.add_systems(
@@ -63,11 +63,11 @@ impl Plugin for CursorPlugin {
                 set_visibility::<components::TileGrid, UiVisibility>,
                 set_visibility::<components::TileGrid, ShowTileGrid>,
             )
-            .run_if(in_state(GameState::InGame))
+            .in_set(InGameSystemSet::Update)
         );
 
         let update_tile_grid_opacity = systems::update_tile_grid_opacity
-            .run_if(in_state(GameState::InGame))
+            .in_set(InGameSystemSet::Update)
             .run_if(resource_equals(ShowTileGrid(true)));
 
         #[cfg(feature = "debug")]

@@ -1,6 +1,6 @@
-use bevy::{prelude::{Plugin, App, SystemSet, IntoSystemSetConfig, in_state, Update, PostUpdate, IntoSystemConfigs, OnExit}, transform::TransformSystem};
+use bevy::{prelude::{Plugin, App, SystemSet, IntoSystemSetConfig, Update, PostUpdate, IntoSystemConfigs, OnExit}, transform::TransformSystem};
 
-use crate::common::state::GameState;
+use crate::{common::state::GameState, InGameSystemSet};
 
 pub(crate) mod components;
 pub(crate) mod events;
@@ -27,11 +27,12 @@ pub(crate) struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.configure_set(PostUpdate,
-            CameraSet::MoveCamera.run_if(in_state(GameState::InGame))
+            CameraSet::MoveCamera
+                .in_set(InGameSystemSet::PostUpdate)
         );
 
         app.add_systems(OnExit(GameState::WorldLoading), systems::setup_camera);
-        app.add_systems(Update, systems::zoom.run_if(in_state(GameState::InGame)));
+        app.add_systems(Update, systems::zoom.in_set(InGameSystemSet::Update));
         app.add_systems(
             PostUpdate,
             (

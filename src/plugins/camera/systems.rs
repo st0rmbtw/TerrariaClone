@@ -3,7 +3,7 @@ use bevy::{
     prelude::{
         Commands, Camera2dBundle, OrthographicProjection, Transform, Res, KeyCode, Query, 
         With, Input,
-        Without, Camera2d, Name, Mut, GlobalTransform,
+        Without, Camera2d, Name, Mut,
     }, 
     time::Time, core_pipeline::clear_color::ClearColorConfig
 };

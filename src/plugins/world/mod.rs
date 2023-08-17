@@ -4,8 +4,8 @@ pub(crate) mod constants;
 mod systems;
 mod utils;
 
-use crate::{common::state::GameState, lighting::compositing::TileMaterial};
-use bevy::{prelude::{Plugin, App, OnEnter, IntoSystemConfigs, in_state, Update, Rect}, math::URect};
+use crate::{common::state::GameState, lighting::compositing::TileMaterial, InGameSystemSet};
+use bevy::{prelude::{Plugin, App, OnEnter, IntoSystemConfigs, Update, Rect}, math::URect};
 use bevy_ecs_tilemap::{prelude::MaterialTilemapPlugin, TilemapPlugin};
 
 pub(crate) struct WorldPlugin;
@@ -35,11 +35,11 @@ impl Plugin for WorldPlugin {
                 systems::handle_update_block_event,
                 systems::handle_seed_event
             )
-            .run_if(in_state(GameState::InGame))
+            .in_set(InGameSystemSet::Update)
         );
 
         #[cfg(feature = "debug")]
-        app.add_systems(Update, systems::set_tiles_visibility.run_if(in_state(GameState::InGame)));
+        app.add_systems(Update, systems::set_tiles_visibility.in_set(InGameSystemSet::Update));
     }
 }
 
