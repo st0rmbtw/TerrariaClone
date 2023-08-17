@@ -51,11 +51,14 @@ features = ["x11"]
 opt-level = 0
 incremental=true
 
+[profile.dev.package."*"]
+opt-level = 3
+
 [profile.release]
 opt-level = 3
 lto = false
 
-[profile.dev.package."*"]
+[profile.release.package."*"]
 opt-level = 3
 
 [features]

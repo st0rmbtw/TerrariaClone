@@ -12,7 +12,7 @@ use systems::*;
 use crate::{common::{state::{GameState, MovementState}, helpers::tile_pos_to_world_coords, systems::component_equals}, plugins::player::utils::simple_animation, world::WorldData};
 use std::time::Duration;
 use bevy_hanabi::prelude::*;
-use bevy::{prelude::*, time::{Timer, TimerMode}, math::vec2, transform::systems::propagate_transforms};
+use bevy::{prelude::*, time::{Timer, TimerMode}, math::vec2};
 
 use super::{assets::PlayerAssets, world::constants::TILE_SIZE, inventory::UseItemAnimationData};
 
@@ -97,7 +97,6 @@ impl Plugin for PlayerPlugin {
                     detect_collisions,
                     move_player,
                     update_player_rect,
-                    propagate_transforms
                 )
                 .chain()
             )

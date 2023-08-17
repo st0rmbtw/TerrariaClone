@@ -61,7 +61,7 @@ pub(super) fn zoom(
 pub(super) fn move_camera(
     mut query_main_camera: Query<&mut Transform, (With<MainCamera>, Without<Player>)>,
     mut query_background_camera: Query<&mut Transform, (With<BackgroundCamera>, Without<MainCamera>, Without<Player>)>,
-    query_player: Query<&GlobalTransform, (With<Player>, Without<MainCamera>)>,
+    query_player: Query<&Transform, (With<Player>, Without<MainCamera>)>,
     #[cfg(feature = "debug")]
     time: Res<Time>,
     #[cfg(feature = "debug")]
@@ -90,11 +90,11 @@ pub(super) fn move_camera(
 }
 
 pub(super) fn follow_player(
-    player_transform: &GlobalTransform,
+    player_transform: &Transform,
     main_camera_transform: Option<Mut<Transform>>,
     background_camera_transform: Option<Mut<Transform>>,
 ) {
-    let player_pos = player_transform.translation().truncate();
+    let player_pos = player_transform.translation.truncate();
 
     if let Some(mut transform) = main_camera_transform {
         transform.translation.x = player_pos.x;

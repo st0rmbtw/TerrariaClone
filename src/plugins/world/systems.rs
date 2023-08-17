@@ -177,23 +177,23 @@ pub(super) fn spawn_chunk(
                 y: (chunk_pos.y as f32 * CHUNK_SIZE) as u32 + y
             };
 
-            if let Some(block) = world_data.get_block(map_tile_pos) {
+            if let Some(&block) = world_data.get_block(map_tile_pos) {
                 if let BlockType::Tree(tree) = block.block_type {
                     let index = tree.texture_atlas_pos();
                     
                     match tree.frame_type {
                         TreeFrameType::BranchLeftLeaves | TreeFrameType::BranchRightLeaves => {
-                            let tree_branch_entity = spawn_block(commands, *block, chunk_tile_pos, tree_branches_map_entity, index);
+                            let tree_branch_entity = spawn_block(commands, block, chunk_tile_pos, tree_branches_map_entity, index);
                             commands.entity(tree_branches_map_entity).add_child(tree_branch_entity);
                             tree_branches_storage.set(&chunk_tile_pos, tree_branch_entity);
                         },
                         TreeFrameType::TopLeaves => {
-                            let tree_top_entity = spawn_block(commands, *block, chunk_tile_pos, tree_tops_map_entity, index);
+                            let tree_top_entity = spawn_block(commands, block, chunk_tile_pos, tree_tops_map_entity, index);
                             commands.entity(tree_tops_map_entity).add_child(tree_top_entity);
                             tree_tops_storage.set(&chunk_tile_pos, tree_top_entity);
                         },
                         _ => {
-                            let tree_entity = spawn_block(commands, *block, chunk_tile_pos, treemap_entity, index);
+                            let tree_entity = spawn_block(commands, block, chunk_tile_pos, treemap_entity, index);
                             commands.entity(treemap_entity).add_child(tree_entity);
                             tree_storage.set(&chunk_tile_pos, tree_entity);
                         }
@@ -204,7 +204,7 @@ pub(super) fn spawn_chunk(
                         block.block_type
                     );
 
-                    let tile_entity = spawn_block(commands, *block, chunk_tile_pos, tilemap_entity, index);
+                    let tile_entity = spawn_block(commands, block, chunk_tile_pos, tilemap_entity, index);
 
                     commands.entity(tilemap_entity).add_child(tile_entity);
                     tile_storage.set(&chunk_tile_pos, tile_entity);
@@ -466,22 +466,22 @@ pub(super) fn handle_update_block_event(
     query_chunk: Query<(&Chunk, &TileStorage)>,
     world_data: Res<WorldData>
 ) {
-    for UpdateBlockEvent { tile_pos, block_type, update_neighbors } in update_block_events.iter() {
+    for &UpdateBlockEvent { tile_pos, block_type, update_neighbors } in update_block_events.iter() {
         let neighbors = world_data
             .get_block_neighbors(tile_pos, block_type.is_solid())
             .map_ref(|b| b.block_type);
 
-        let chunk_pos = get_chunk_pos(*tile_pos);
-        let chunk_tile_pos = get_chunk_tile_pos(*tile_pos);
+        let chunk_pos = get_chunk_pos(tile_pos);
+        let chunk_tile_pos = get_chunk_tile_pos(tile_pos);
 
-        if let Some(block_entity) = ChunkManager::get_block_entity(&query_chunk, chunk_pos, chunk_tile_pos, *block_type) {
+        if let Some(block_entity) = ChunkManager::get_block_entity(&query_chunk, chunk_pos, chunk_tile_pos, block_type) {
             if let Ok(mut tile_texture) = query_tile.get_mut(block_entity) {
-                tile_texture.0 = Block::get_sprite_index(&neighbors, *block_type);
+                tile_texture.0 = Block::get_sprite_index(&neighbors, block_type);
             }
         }
 
-        if *update_neighbors {
-            update_neighbors_events.send(UpdateNeighborsEvent { tile_pos: *tile_pos });
+        if update_neighbors {
+            update_neighbors_events.send(UpdateNeighborsEvent { tile_pos });
         }
     }
 }
@@ -492,14 +492,14 @@ pub(super) fn handle_seed_event(
     mut world_data: ResMut<WorldData>,
     mut play_sound: EventWriter<PlaySoundEvent>
 ) {
-    for &SeedEvent { tile_pos: world_pos, seed } in seed_events.iter() {
-        if let Some(block) = world_data.get_block_with_type_mut(world_pos, BlockType::Dirt) {
+    for &SeedEvent { tile_pos, seed } in seed_events.iter() {
+        if let Some(block) = world_data.get_block_with_type_mut(tile_pos, BlockType::Dirt) {
             play_sound.send(PlaySoundEvent(SoundType::BlockPlace(block.block_type)));
             
             block.block_type = seed.seeded_dirt();
 
             update_block_events.send(UpdateBlockEvent { 
-                tile_pos: world_pos,
+                tile_pos,
                 block_type: block.block_type,
                 update_neighbors: true
             });

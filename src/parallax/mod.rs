@@ -8,7 +8,7 @@ mod layer;
 
 pub(crate) use layer::*;
 
-use crate::common::extensions::EntityCommandsExtensions;
+use crate::common::{extensions::EntityCommandsExtensions, state::GameState};
 
 pub struct ParallaxPlugin;
 
@@ -26,7 +26,7 @@ impl Plugin for ParallaxPlugin {
                 update_layer_textures_system.after(ParallaxSet::FollowCamera),
             )
         );
-        app.add_systems(Update, update_full_screen_sprites);
+        app.add_systems(Update, update_full_screen_sprites.run_if(not(in_state(GameState::InGame))));
     }
 }
 
