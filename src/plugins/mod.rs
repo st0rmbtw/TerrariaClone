@@ -1,3 +1,6 @@
+use bevy::prelude::{SystemSet, Component};
+
+pub(crate) mod main;
 pub(crate) mod assets;
 pub(crate) mod background;
 pub(crate) mod cursor;
@@ -13,3 +16,21 @@ pub(crate) mod slider;
 
 #[cfg(feature = "debug")]
 pub(crate) mod debug;
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone, SystemSet)]
+pub(crate) enum InGameSystemSet {
+    PreUpdate,
+    FixedUpdate,
+    Update,
+    PostUpdate
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone, SystemSet)]
+pub(crate) enum MenuSystemSet {
+    PreUpdate,
+    Update,
+    PostUpdate
+}
+
+#[derive(Component)]
+pub(crate) struct DespawnOnGameExit;

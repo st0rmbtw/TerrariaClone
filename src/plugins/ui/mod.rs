@@ -12,7 +12,7 @@ use interpolation::EaseFunction;
 pub(crate) use resources::*;
 
 use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Component, Entity, Color, TextBundle, ResMut, NextState, Button}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, Interaction, AlignSelf}, text::{TextAlignment, Text, TextStyle}};
-use crate::{common::{state::GameState, systems::{set_visibility, animate_button_scale, play_sound_on_hover, despawn_with}, lens::TextFontSizeLens, conditions::on_click}, InGameSystemSet, language::LanguageContent, animation::{Tween, RepeatStrategy, Animator}};
+use crate::{common::{state::GameState, systems::{set_visibility, animate_button_scale, play_sound_on_hover, despawn_with}, lens::TextFontSizeLens, conditions::on_click}, language::LanguageContent, animation::{Tween, RepeatStrategy, Animator}};
 
 use self::{
     components::MainUiContainer,
@@ -22,6 +22,8 @@ use self::{
 };
 
 use crate::plugins::assets::{FontAssets, UiAssets};
+
+use super::InGameSystemSet;
 
 #[derive(Component)]
 pub(super) struct ExitButtonContainer;

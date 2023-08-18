@@ -4,9 +4,11 @@ pub(crate) mod constants;
 mod systems;
 mod utils;
 
-use crate::{common::state::GameState, lighting::compositing::TileMaterial, InGameSystemSet};
+use crate::{common::state::GameState, lighting::compositing::TileMaterial};
 use bevy::{prelude::{Plugin, App, OnEnter, IntoSystemConfigs, Update, Rect, OnExit}, math::URect};
 use bevy_ecs_tilemap::{prelude::MaterialTilemapPlugin, TilemapPlugin};
+
+use super::InGameSystemSet;
 
 pub(crate) struct WorldPlugin;
 impl Plugin for WorldPlugin {

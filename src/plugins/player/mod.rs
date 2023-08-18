@@ -9,12 +9,12 @@ pub(crate) use resources::*;
 pub(crate) use body_sprites::*;
 use systems::*;
 
-use crate::{common::{state::{GameState, MovementState}, helpers::tile_pos_to_world_coords, systems::{component_equals, despawn_with}}, plugins::player::utils::simple_animation, world::WorldData, InGameSystemSet};
+use crate::{common::{state::{GameState, MovementState}, helpers::tile_pos_to_world_coords, systems::{component_equals, despawn_with}}, plugins::player::utils::simple_animation, world::WorldData};
 use std::time::Duration;
 use bevy_hanabi::prelude::*;
 use bevy::{prelude::*, time::{Timer, TimerMode}, math::vec2};
 
-use super::{assets::PlayerAssets, world::constants::TILE_SIZE, inventory::UseItemAnimationData};
+use super::{assets::PlayerAssets, world::constants::TILE_SIZE, inventory::UseItemAnimationData, InGameSystemSet};
 
 #[cfg(feature = "debug")]
 use crate::plugins::debug::DebugConfiguration;

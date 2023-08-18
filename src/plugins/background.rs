@@ -1,13 +1,13 @@
 use crate::{
     parallax::{LayerData, LayerSpeed, ParallaxContainer, ParallaxCameraComponent, LayerComponent, LayerDataComponent},
-    common::{state::GameState, systems::despawn_with}, world::WorldData, BACKGROUND_LAYER, InGameSystemSet, DespawnOnGameExit,
+    common::{state::GameState, systems::despawn_with}, world::WorldData, BACKGROUND_LAYER
 };
 use bevy::{
     prelude::{default, App, Commands, Plugin, Res, Vec2, Query, Camera, With, OnExit, IntoSystemConfigs, Name, Assets, Image, Camera2dBundle, UiCameraConfig, PostUpdate, Transform, Without, Component, OnEnter},
     sprite::Anchor, render::view::RenderLayers,
 };
 
-use super::{assets::BackgroundAssets, camera::{components::BackgroundCamera, CameraSet}, world::constants::TILE_SIZE};
+use super::{assets::BackgroundAssets, camera::{components::BackgroundCamera, CameraSet}, world::constants::TILE_SIZE, InGameSystemSet, DespawnOnGameExit};
 
 pub(crate) const BACKGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(25);
 

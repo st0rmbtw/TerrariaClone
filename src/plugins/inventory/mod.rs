@@ -7,7 +7,9 @@ use bevy::prelude::{Plugin, App, IntoSystemConfigs, Update, FixedUpdate, OnExit,
 pub(crate) use components::*;
 pub(crate) use resources::*;
 
-use crate::{common::state::GameState, items::{ItemStack, Tool, Axe, Pickaxe, Seed}, world::block::BlockType, InGameSystemSet};
+use crate::{common::state::GameState, items::{ItemStack, Tool, Axe, Pickaxe, Seed}, world::block::BlockType};
+
+use super::InGameSystemSet;
 
 const ITEM_ROTATION: f32 = 1.7;
 

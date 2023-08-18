@@ -18,10 +18,10 @@ use crate::{
     plugins::{
         assets::{FontAssets, CursorAssets, UiAssets}, 
         camera::components::MainCamera, 
-        world::constants::TILE_SIZE, config::CursorColor
+        world::constants::TILE_SIZE, config::CursorColor, DespawnOnGameExit
     }, 
     animation::{Tween, lens::TransformScaleLens, Animator, RepeatStrategy, RepeatCount}, 
-    common::lens::BackgroundColorLens, DespawnOnGameExit,
+    common::lens::BackgroundColorLens,
 };
 
 use crate::plugins::player::{PlayerVelocity, MAX_RUN_SPEED, MAX_FALL_SPEED};

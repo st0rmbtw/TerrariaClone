@@ -4,32 +4,17 @@
 
 use std::{error::Error, time::Duration};
 
-use animation::TweeningPlugin;
 use bevy::{
+    DefaultPlugins,
     log::{Level, LogPlugin},
-    prelude::{
-        default, App, AssetPlugin, ClearColor, Color, FixedTime, ImagePlugin, Msaa, PluginGroup, UVec2, GizmoConfig, SystemSet, PreUpdate, IntoSystemSetConfig, in_state, Update, PostUpdate, FixedUpdate, Component, OnExit,
-    },
+    prelude::{default, App, AssetPlugin, ClearColor, Color, FixedTime, ImagePlugin, Msaa, PluginGroup},
     window::{Cursor, MonitorSelection, Window, WindowPlugin, WindowPosition, WindowResolution},
-    DefaultPlugins, asset::ChangeWatcher
+    asset::ChangeWatcher
 };
-use bevy_ecs_tilemap::prelude::TilemapRenderSettings;
-use bevy_hanabi::HanabiPlugin;
-use common::{state::{GameState, MenuState}, systems::despawn_with};
+
 use language::{load_language, Language};
-use lighting::LightingPlugin;
-use parallax::ParallaxPlugin;
 use plugins::{
-    assets::AssetsPlugin,
-    background::BackgroundPlugin,
-    camera::CameraPlugin,
-    cursor::CursorPlugin,
-    fps::FpsPlugin,
-    inventory::PlayerInventoryPlugin,
-    player::PlayerPlugin,
-    config::{FullScreen, Resolution, ConfigPlugin, VSync},
-    ui::UiPlugin,
-    world::WorldPlugin, audio::AudioPlugin, slider::SliderPlugin,
+    config::{FullScreen, Resolution, ConfigPlugin, VSync}, main::MainPlugin,
 };
 use rand::seq::SliceRandom;
 
@@ -48,24 +33,6 @@ pub(crate) const BACKGROUND_LAYER: f32 = 0.;
 pub(crate) const WALL_LAYER: f32 = 1.;
 pub(crate) const TILES_LAYER: f32 = 2.;
 pub(crate) const PLAYER_LAYER: f32 = 3.;
-
-#[derive(Debug, PartialEq, Eq, Hash, Clone, SystemSet)]
-pub(crate) enum InGameSystemSet {
-    PreUpdate,
-    FixedUpdate,
-    Update,
-    PostUpdate
-}
-
-#[derive(Debug, PartialEq, Eq, Hash, Clone, SystemSet)]
-pub(crate) enum MenuSystemSet {
-    PreUpdate,
-    Update,
-    PostUpdate
-}
-
-#[derive(Component)]
-pub(crate) struct DespawnOnGameExit;
 
 pub fn create_app() -> Result<App, Box<dyn Error>> {
     let language_content = load_language(Language::English)?;
@@ -110,52 +77,10 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
             })
             .set(ImagePlugin::default_nearest())
         )
-        .insert_resource(TilemapRenderSettings {
-            render_chunk_size: UVec2::new(100, 100),
-            y_sort: false,
-        })
         .insert_resource(language_content)
         .insert_resource(ClearColor(Color::BLACK))
         .insert_resource(FixedTime::new_from_secs(1. / 60.))
-        .add_state::<GameState>()
-        .add_state::<MenuState>()
-        .insert_resource(GizmoConfig {
-            line_width: 1.,
-            depth_bias: -1.,
-            ..default()
-        })
-        .add_plugins((
-            TweeningPlugin,
-            AssetsPlugin,
-            HanabiPlugin,
-            ParallaxPlugin,
-            SliderPlugin,
-        ))
-        .add_plugins((
-            LightingPlugin,
-            AudioPlugin,
-            CursorPlugin,
-            CameraPlugin,
-            BackgroundPlugin,
-            UiPlugin,
-            WorldPlugin,
-            PlayerInventoryPlugin,
-            FpsPlugin,
-            PlayerPlugin
-        ))
-        .configure_set(PreUpdate, InGameSystemSet::PreUpdate.run_if(in_state(GameState::InGame)))
-        .configure_set(Update, InGameSystemSet::Update.run_if(in_state(GameState::InGame)))
-        .configure_set(PostUpdate, InGameSystemSet::PostUpdate.run_if(in_state(GameState::InGame)))
-        .configure_set(FixedUpdate, InGameSystemSet::FixedUpdate.run_if(in_state(GameState::InGame)))
-        .configure_set(PreUpdate, MenuSystemSet::PreUpdate.run_if(in_state(GameState::Menu)))
-        .configure_set(Update, MenuSystemSet::Update.run_if(in_state(GameState::Menu)))
-        .configure_set(PostUpdate, MenuSystemSet::PostUpdate.run_if(in_state(GameState::Menu)))
-        .add_systems(OnExit(GameState::InGame), despawn_with::<DespawnOnGameExit>);
-
-    #[cfg(feature = "debug")] {
-        use plugins::debug::DebugPlugin;
-        app.add_plugins(DebugPlugin);
-    }
+        .add_plugins(MainPlugin);
 
     Ok(app)
 }

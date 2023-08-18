@@ -3,7 +3,7 @@ mod components;
 
 use bevy::prelude::{Plugin, App, resource_changed, IntoSystemConfigs, resource_exists_and_changed, resource_added, Update, Condition};
 
-use crate::{common::systems::set_visibility, plugins::inventory::Inventory, InGameSystemSet};
+use crate::{common::systems::set_visibility, plugins::{inventory::Inventory, InGameSystemSet}};
 
 use super::ExtraUiVisibility;
 

@@ -1,6 +1,8 @@
 use bevy::{prelude::{Plugin, App, SystemSet, IntoSystemSetConfig, Update, PostUpdate, IntoSystemConfigs, OnExit}, transform::TransformSystem};
 
-use crate::{common::state::GameState, InGameSystemSet};
+use crate::common::state::GameState;
+
+use super::InGameSystemSet;
 
 pub(crate) mod components;
 pub(crate) mod events;
