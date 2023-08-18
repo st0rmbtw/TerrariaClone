@@ -1,7 +1,7 @@
 use bevy::{prelude::{Plugin, App, Commands, OnEnter, Query, Entity, With, Res, Color, OnExit, Update, IntoSystemConfigs, in_state, Component, Changed, EventWriter}, text::TextStyle};
 
 use crate::{
-    common::{state::{GameState, MenuState, SettingsMenuState}, systems::despawn_with},
+    common::{state::{MenuState, SettingsMenuState}, systems::despawn_with},
     plugins::{
         ui::menu::{systems::bind_slider_to_output, components::MenuContainer, MENU_BUTTON_FONT_SIZE, BackButton, TEXT_COLOR, builders::{menu, menu_text, slider_layout, menu_slider, slider_value_text, control_buttons_layout, control_button}},
         assets::{FontAssets, UiAssets},
@@ -16,11 +16,11 @@ pub(super) struct VolumeMenuPlugin;
 impl Plugin for VolumeMenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
-            OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Volume))),
+            OnEnter(MenuState::Settings(SettingsMenuState::Volume)),
             setup_volume_menu
         );
         app.add_systems(
-            OnExit(GameState::Menu(MenuState::Settings(SettingsMenuState::Volume))),
+            OnExit(MenuState::Settings(SettingsMenuState::Volume)),
             despawn_with::<VolumeMenu>
         );
 
@@ -32,7 +32,7 @@ impl Plugin for VolumeMenuPlugin {
                 update_music_volume,
                 update_sound_volume,
             )
-            .run_if(in_state(GameState::Menu(MenuState::Settings(SettingsMenuState::Volume))))
+            .run_if(in_state(MenuState::Settings(SettingsMenuState::Volume)))
         );
     }
 }

@@ -12,7 +12,7 @@ use rand::{RngCore, thread_rng};
 use rand::seq::SliceRandom;
 
 use crate::items::{Item, Pickaxe, Tool, Axe, Seed};
-use crate::common::state::{GameState, MenuState};
+use crate::common::state::GameState;
 use crate::world::block::BlockType;
 use crate::world::wall::Wall;
 
@@ -52,7 +52,7 @@ impl Plugin for AssetsPlugin {
     fn build(&self, app: &mut App) {
         app.add_loading_state(
             LoadingState::new(GameState::AssetLoading)
-                .continue_to_state(GameState::Menu(MenuState::Main))
+                .continue_to_state(GameState::Menu)
         );
 
         app.add_collection_to_loading_state::<_, BlockAssets>(GameState::AssetLoading);

@@ -3,7 +3,7 @@ use bevy::{prelude::{Component, Commands, Res, ResMut, Query, With, Local, Entit
 
 use crate::{
     language::LanguageContent,
-    common::{state::{SettingsMenuState, GameState, MenuState}, conditions::on_click},
+    common::{state::{SettingsMenuState, MenuState}, conditions::on_click},
     plugins::{
         assets::FontAssets, 
         ui::menu::{
@@ -18,11 +18,11 @@ pub(super) struct ResolutionMenuPlugin;
 impl Plugin for ResolutionMenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
-            OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution))),
+            OnEnter(MenuState::Settings(SettingsMenuState::Resolution)),
             setup_resolution_menu
         );
         app.add_systems(
-            OnExit(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution))),
+            OnExit(MenuState::Settings(SettingsMenuState::Resolution)),
             despawn_with::<ResolutionMenu>
         );
 
@@ -35,7 +35,7 @@ impl Plugin for ResolutionMenuPlugin {
                 fullscreen_clicked.run_if(on_click::<FullScreenButton>),
                 apply_clicked.run_if(on_click::<ApplyButton>),
             )
-            .run_if(in_state(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution))))
+            .run_if(in_state(MenuState::Settings(SettingsMenuState::Resolution)))
         );
     }
 }

@@ -5,7 +5,7 @@ mod systems;
 mod utils;
 
 use crate::{common::state::GameState, lighting::compositing::TileMaterial, InGameSystemSet};
-use bevy::{prelude::{Plugin, App, OnEnter, IntoSystemConfigs, Update, Rect}, math::URect};
+use bevy::{prelude::{Plugin, App, OnEnter, IntoSystemConfigs, Update, Rect, OnExit}, math::URect};
 use bevy_ecs_tilemap::{prelude::MaterialTilemapPlugin, TilemapPlugin};
 
 pub(crate) struct WorldPlugin;
@@ -13,7 +13,6 @@ impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((TilemapPlugin, MaterialTilemapPlugin::<TileMaterial>::default()));
 
-        app.init_resource::<resources::ChunkManager>();
         app.add_event::<events::BreakBlockEvent>();
         app.add_event::<events::DigBlockEvent>();
         app.add_event::<events::PlaceBlockEvent>();
@@ -21,7 +20,8 @@ impl Plugin for WorldPlugin {
         app.add_event::<events::UpdateBlockEvent>();
         app.add_event::<events::SeedEvent>();
 
-        app.add_systems(OnEnter(GameState::WorldLoading), systems::spawn_terrain);
+        app.add_systems(OnEnter(GameState::WorldLoading), (systems::setup, systems::spawn_terrain).chain());
+        app.add_systems(OnExit(GameState::InGame), systems::cleanup);
 
         app.add_systems(
             Update,

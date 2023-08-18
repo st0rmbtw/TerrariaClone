@@ -8,21 +8,21 @@ use animation::TweeningPlugin;
 use bevy::{
     log::{Level, LogPlugin},
     prelude::{
-        default, App, AssetPlugin, ClearColor, Color, FixedTime, ImagePlugin, Msaa, PluginGroup, UVec2, GizmoConfig, SystemSet, PreUpdate, IntoSystemSetConfig, in_state, Update, PostUpdate, FixedUpdate,
+        default, App, AssetPlugin, ClearColor, Color, FixedTime, ImagePlugin, Msaa, PluginGroup, UVec2, GizmoConfig, SystemSet, PreUpdate, IntoSystemSetConfig, in_state, Update, PostUpdate, FixedUpdate, Component, OnExit,
     },
     window::{Cursor, MonitorSelection, Window, WindowPlugin, WindowPosition, WindowResolution},
     DefaultPlugins, asset::ChangeWatcher
 };
 use bevy_ecs_tilemap::prelude::TilemapRenderSettings;
 use bevy_hanabi::HanabiPlugin;
-use common::{state::GameState, conditions::in_menu_state};
+use common::{state::{GameState, MenuState}, systems::despawn_with};
 use language::{load_language, Language};
 use lighting::LightingPlugin;
 use parallax::ParallaxPlugin;
 use plugins::{
     assets::AssetsPlugin,
     background::BackgroundPlugin,
-    camera::{CameraPlugin, events::UpdateLightEvent},
+    camera::CameraPlugin,
     cursor::CursorPlugin,
     fps::FpsPlugin,
     inventory::PlayerInventoryPlugin,
@@ -64,6 +64,9 @@ pub(crate) enum MenuSystemSet {
     PostUpdate
 }
 
+#[derive(Component)]
+pub(crate) struct DespawnOnGameExit;
+
 pub fn create_app() -> Result<App, Box<dyn Error>> {
     let language_content = load_language(Language::English)?;
     let title = language_content.titles.choose(&mut rand::thread_rng()).unwrap();
@@ -85,6 +88,7 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
                         visible: false,
                         ..default()
                     },
+                    focused: true,
                     present_mode: vsync.as_present_mode(),
                     mode: fullscreen.as_window_mode(),
                     resolution: WindowResolution::new(resolution.width, resolution.height),
@@ -113,8 +117,8 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
         .insert_resource(language_content)
         .insert_resource(ClearColor(Color::BLACK))
         .insert_resource(FixedTime::new_from_secs(1. / 60.))
-        .add_event::<UpdateLightEvent>()
         .add_state::<GameState>()
+        .add_state::<MenuState>()
         .insert_resource(GizmoConfig {
             line_width: 1.,
             depth_bias: -1.,
@@ -143,9 +147,10 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
         .configure_set(Update, InGameSystemSet::Update.run_if(in_state(GameState::InGame)))
         .configure_set(PostUpdate, InGameSystemSet::PostUpdate.run_if(in_state(GameState::InGame)))
         .configure_set(FixedUpdate, InGameSystemSet::FixedUpdate.run_if(in_state(GameState::InGame)))
-        .configure_set(PreUpdate, MenuSystemSet::PreUpdate.run_if(in_menu_state))
-        .configure_set(Update, MenuSystemSet::Update.run_if(in_menu_state))
-        .configure_set(PostUpdate, MenuSystemSet::PostUpdate.run_if(in_menu_state));
+        .configure_set(PreUpdate, MenuSystemSet::PreUpdate.run_if(in_state(GameState::Menu)))
+        .configure_set(Update, MenuSystemSet::Update.run_if(in_state(GameState::Menu)))
+        .configure_set(PostUpdate, MenuSystemSet::PostUpdate.run_if(in_state(GameState::Menu)))
+        .add_systems(OnExit(GameState::InGame), despawn_with::<DespawnOnGameExit>);
 
     #[cfg(feature = "debug")] {
         use plugins::debug::DebugPlugin;

@@ -8,7 +8,7 @@ use bevy::{
     time::Time, core_pipeline::clear_color::ClearColorConfig
 };
 
-use crate::{plugins::world::constants::TILE_SIZE, common::helpers::tile_pos_to_world_coords, world::WorldData};
+use crate::{plugins::world::constants::TILE_SIZE, common::helpers::tile_pos_to_world_coords, world::WorldData, DespawnOnGameExit};
 
 use crate::plugins::player::Player;
 
@@ -26,6 +26,7 @@ pub(super) fn setup_camera(
             Name::new("MainCamera"),
             MainCamera,
             LightMapCamera,
+            DespawnOnGameExit,
             Camera2dBundle {
                 projection: OrthographicProjection { 
                     scale: INITIAL_ZOOM

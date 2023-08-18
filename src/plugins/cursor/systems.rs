@@ -21,7 +21,7 @@ use crate::{
         world::constants::TILE_SIZE, config::CursorColor
     }, 
     animation::{Tween, lens::TransformScaleLens, Animator, RepeatStrategy, RepeatCount}, 
-    common::lens::BackgroundColorLens,
+    common::lens::BackgroundColorLens, DespawnOnGameExit,
 };
 
 use crate::plugins::player::{PlayerVelocity, MAX_RUN_SPEED, MAX_FALL_SPEED};
@@ -137,6 +137,7 @@ pub(super) fn spawn_tile_grid(
     commands.spawn((
         Name::new("TileGrid"),
         TileGrid,
+        DespawnOnGameExit,
         SpriteBundle {
             sprite: Sprite {
                 color: Color::rgba(1., 1., 1., MAX_TILE_GRID_OPACITY),

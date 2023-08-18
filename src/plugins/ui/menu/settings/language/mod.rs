@@ -1,7 +1,7 @@
 use bevy::{prelude::{Plugin, App, Commands, OnEnter, OnExit, Component, Res, Entity, With, Query, Color}, text::TextStyle};
 
 use crate::{
-    common::{state::{GameState, MenuState, SettingsMenuState}, systems::despawn_with},
+    common::{state::{MenuState, SettingsMenuState}, systems::despawn_with},
     plugins::{
         ui::menu::{builders::{menu, menu_text, control_buttons_layout, control_button}, components::MenuContainer, MENU_BUTTON_FONT_SIZE, TEXT_COLOR, BackButton},
         assets::FontAssets
@@ -13,12 +13,12 @@ pub(super) struct LanguageMenuPlugin;
 impl Plugin for LanguageMenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
-            OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Language))),
+            OnEnter(MenuState::Settings(SettingsMenuState::Language)),
             setup_language_menu
         );
 
         app.add_systems(
-            OnExit(GameState::Menu(MenuState::Settings(SettingsMenuState::Language))),
+            OnExit(MenuState::Settings(SettingsMenuState::Language)),
             despawn_with::<LanguageMenu>
         );
     }

@@ -1,7 +1,7 @@
 mod resolution;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Res, ResMut, Query, With, Entity, Plugin, OnEnter, OnExit, IntoSystemConfigs, App, in_state, Update, EventWriter, Component}, text::{TextStyle, Text}, window::Window};
+use bevy::{prelude::{Commands, Res, ResMut, Query, With, Entity, Plugin, OnEnter, OnExit, IntoSystemConfigs, App, in_state, Update, Component}, text::{TextStyle, Text}, window::Window};
 
 use crate::{
     plugins::{
@@ -10,7 +10,7 @@ use crate::{
         ui::menu::{MenuContainer, despawn_with, TEXT_COLOR, Enter, builders::{menu, menu_button, control_buttons_layout, control_button}}
     },
     language::LanguageContent,
-    common::{state::{SettingsMenuState, MenuState, GameState}, conditions::on_click},
+    common::{state::{SettingsMenuState, MenuState}, conditions::on_click, systems::send_event},
 
 };
 use self::resolution::ResolutionMenuPlugin;
@@ -23,11 +23,11 @@ impl Plugin for VideoMenuPlugin {
         app.add_plugins(ResolutionMenuPlugin);
 
         app.add_systems(
-            OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Video))),
+            OnEnter(MenuState::Settings(SettingsMenuState::Video)),
             setup_video_menu
         );
         app.add_systems(
-            OnExit(GameState::Menu(MenuState::Settings(SettingsMenuState::Video))),
+            OnExit(MenuState::Settings(SettingsMenuState::Video)),
             despawn_with::<VideoMenu>
         );
 
@@ -35,10 +35,10 @@ impl Plugin for VideoMenuPlugin {
             Update,
             (
                 update_vsync_button_text,
-                resolution_clicked.run_if(on_click::<ResolutionButton>),
+                send_event(Enter(MenuState::Settings(SettingsMenuState::Resolution))).run_if(on_click::<ResolutionButton>),
                 vsync_clicked.run_if(on_click::<VSyncButton>),
             )
-            .run_if(in_state(GameState::Menu(MenuState::Settings(SettingsMenuState::Video))))
+            .run_if(in_state(MenuState::Settings(SettingsMenuState::Video)))
         );
     }
 }
@@ -75,10 +75,6 @@ fn setup_video_menu(
             control_button(control_button_builder, text_style, language_content.ui.back.clone(), BackButton);
         });
     });
-}
-
-fn resolution_clicked(mut enter_event: EventWriter<Enter>) {
-    enter_event.send(Enter(GameState::Menu(MenuState::Settings(SettingsMenuState::Resolution))));
 }
 
 fn vsync_clicked(mut window: Query<&mut Window>, mut vsync: ResMut<VSync>) {

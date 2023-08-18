@@ -2,7 +2,7 @@ use bevy::{prelude::{App, Plugin, ResMut, Commands, TextBundle, Res, Color, OnEn
 use bevy_ecs_tilemap::{tiles::TilePos, helpers::square_grid::neighbors::Neighbors};
 use bevy_inspector_egui::{bevy_egui::{EguiPlugin, egui, EguiContexts}, egui::{Align2, CollapsingHeader, ScrollArea}, quick::WorldInspectorPlugin, reflect_inspector};
 
-use crate::{common::{state::GameState, helpers::{self, get_tile_pos_from_world_coords}}, world::{block::BlockType, WorldData, chunk::ChunkContainer}, InGameSystemSet};
+use crate::{common::{state::GameState, helpers::{self, get_tile_pos_from_world_coords}}, world::{block::BlockType, WorldData, chunk::ChunkContainer}, InGameSystemSet, DespawnOnGameExit};
 
 use super::{assets::FontAssets, inventory::{UseItemAnimationIndex, UseItemAnimationData}, camera::components::MainCamera, cursor::position::CursorPosition};
 
@@ -154,8 +154,8 @@ fn spawn_free_camera_legend(
     commands.spawn((
         Name::new("Free Camera Legend Text"),
         FreeCameraLegendText,
+        DespawnOnGameExit,
         TextBundle {
-            
             style: Style {
                 left: Val::Px(20.),
                 bottom: Val::Px(50.),

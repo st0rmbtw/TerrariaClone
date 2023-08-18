@@ -9,7 +9,7 @@ pub(crate) use resources::*;
 pub(crate) use body_sprites::*;
 use systems::*;
 
-use crate::{common::{state::{GameState, MovementState}, helpers::tile_pos_to_world_coords, systems::component_equals}, plugins::player::utils::simple_animation, world::WorldData, InGameSystemSet};
+use crate::{common::{state::{GameState, MovementState}, helpers::tile_pos_to_world_coords, systems::{component_equals, despawn_with}}, plugins::player::utils::simple_animation, world::WorldData, InGameSystemSet};
 use std::time::Duration;
 use bevy_hanabi::prelude::*;
 use bevy::{prelude::*, time::{Timer, TimerMode}, math::vec2};
@@ -41,6 +41,7 @@ pub(crate) struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(GameState::InGame), (setup, spawn_player));
+        app.add_systems(OnExit(GameState::InGame), (cleanup, despawn_with::<Player>));
 
         let flip_player_systems = (
             update_face_direction,
@@ -121,6 +122,15 @@ fn setup(mut commands: Commands) {
     commands.insert_resource(InputAxis::default());
     commands.insert_resource(MovementAnimationIndex::default());
     commands.insert_resource(MovementAnimationTimer(Timer::new(Duration::from_millis(80), TimerMode::Repeating)));
+}
+
+fn cleanup(mut commands: Commands) {
+    commands.remove_resource::<PlayerVelocity>();
+    commands.remove_resource::<Collisions>();
+    commands.remove_resource::<PlayerData>();
+    commands.remove_resource::<InputAxis>();
+    commands.remove_resource::<MovementAnimationIndex>();
+    commands.remove_resource::<MovementAnimationTimer>();
 }
 
 fn spawn_player(

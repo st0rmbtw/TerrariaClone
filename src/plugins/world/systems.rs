@@ -4,7 +4,7 @@ use bevy::{
     prelude::{
         EventReader, ResMut, Query, Commands, EventWriter, Entity, BuildChildren, Transform, 
         default, SpatialBundle, DespawnRecursiveExt, OrthographicProjection, Changed, 
-        GlobalTransform, With, Res, UVec2, NextState, Vec2, Name, Assets, Handle, Image
+        GlobalTransform, With, Res, UVec2, NextState, Vec2, Name, Assets
     }, 
     math::Vec3Swizzles
 };
@@ -19,7 +19,7 @@ use bevy_ecs_tilemap::{
     TilemapBundle, helpers::square_grid::neighbors::Neighbors, MaterialTilemapBundle
 };
 
-use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::{components::MainCamera, events::UpdateLightEvent}, player::{Player, PlayerRect}, audio::{PlaySoundEvent, SoundType}, world::resources::LightMap}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world, light::generate_light_map}, lighting::compositing::{TileMaterial, ShadowMapTexture}, WALL_LAYER, TILES_LAYER};
+use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::{components::MainCamera, events::UpdateLightEvent}, player::{Player, PlayerRect}, audio::{PlaySoundEvent, SoundType}, world::resources::LightMap}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world, light::generate_light_map}, lighting::compositing::TileMaterial, WALL_LAYER, TILES_LAYER, DespawnOnGameExit};
 
 use super::{
     utils::{get_chunk_pos, get_camera_fov, get_chunk_tile_pos, get_chunk_range_by_camera_fov}, 
@@ -30,6 +30,10 @@ use super::{
 
 #[cfg(feature = "debug")]
 use crate::plugins::debug::DebugConfiguration;
+
+pub(super) fn setup(mut commands: Commands) {
+    commands.init_resource::<ChunkManager>();
+}
 
 pub(super) fn spawn_terrain(mut commands: Commands) {
     let current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
@@ -44,6 +48,12 @@ pub(super) fn spawn_terrain(mut commands: Commands) {
     commands.insert_resource(world_data);
     commands.insert_resource(LightMap::new(light_map));
     commands.insert_resource(NextState(Some(GameState::InGame)));
+}
+
+pub(super) fn cleanup(mut commands: Commands) {
+    commands.remove_resource::<WorldData>();
+    commands.remove_resource::<LightMap>();
+    commands.remove_resource::<ChunkManager>();
 }
 
 pub(super) fn spawn_block(
@@ -91,9 +101,9 @@ pub(super) fn spawn_chunks(
         (With<MainCamera>, Changed<Transform>),
     >,
     mut materials: ResMut<Assets<TileMaterial>>,
-    shadow_map_texture: Res<ShadowMapTexture>
 ) {
     if let Ok((camera_transform, projection)) = query_camera.get_single() {
+
         let camera_fov = get_camera_fov(camera_transform.translation().xy(), projection);
         let chunk_range = get_chunk_range_by_camera_fov(camera_fov, world_data.size);
 
@@ -101,7 +111,7 @@ pub(super) fn spawn_chunks(
             for x in chunk_range.min.x..=chunk_range.max.x {
                 let chunk_pos = UVec2::new(x, y);
                 if chunk_manager.spawned_chunks.insert(chunk_pos) {
-                    spawn_chunk(&mut commands, &block_assets, &wall_assets, &world_data, chunk_pos, &mut materials, shadow_map_texture.0.clone());
+                    spawn_chunk(&mut commands, &block_assets, &wall_assets, &world_data, chunk_pos, &mut materials);
                 }
             }
         }
@@ -138,11 +148,11 @@ pub(super) fn spawn_chunk(
     world_data: &WorldData,
     chunk_pos: ChunkPos,
     materials: &mut Assets<TileMaterial>,
-    _shadow_map_texture: Handle<Image>
 ) { 
     let chunk = commands.spawn((
         Name::new(format!("ChunkContainer {}", chunk_pos)),
         ChunkContainer { pos: chunk_pos },
+        DespawnOnGameExit,
         SpatialBundle {
             transform: Transform::from_xyz(chunk_pos.x as f32 * CHUNK_SIZE * TILE_SIZE, -(chunk_pos.y as f32 + 1.) * CHUNK_SIZE * TILE_SIZE + TILE_SIZE, 0.),
             ..default()

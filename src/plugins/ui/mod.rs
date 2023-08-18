@@ -11,8 +11,8 @@ use std::time::Duration;
 use interpolation::EaseFunction;
 pub(crate) use resources::*;
 
-use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Component, Entity, Color, TextBundle}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, Interaction, AlignSelf}, text::{TextAlignment, Text, TextStyle}};
-use crate::{common::{state::GameState, systems::{set_visibility, animate_button_scale, play_sound_on_hover}, lens::TextFontSizeLens}, InGameSystemSet, language::LanguageContent, animation::{Tween, RepeatStrategy, Animator}};
+use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Component, Entity, Color, TextBundle, ResMut, NextState, Button}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, Interaction, AlignSelf}, text::{TextAlignment, Text, TextStyle}};
+use crate::{common::{state::GameState, systems::{set_visibility, animate_button_scale, play_sound_on_hover, despawn_with}, lens::TextFontSizeLens, conditions::on_click}, InGameSystemSet, language::LanguageContent, animation::{Tween, RepeatStrategy, Animator}};
 
 use self::{
     components::MainUiContainer,
@@ -24,10 +24,10 @@ use self::{
 use crate::plugins::assets::{FontAssets, UiAssets};
 
 #[derive(Component)]
-pub(super) struct SettingsButtonContainer;
+pub(super) struct ExitButtonContainer;
 
 #[derive(Component)]
-pub(super) struct SettingsButton;
+pub(super) struct ExitButton;
 
 pub(crate) struct UiPlugin;
 impl Plugin for UiPlugin {
@@ -38,6 +38,8 @@ impl Plugin for UiPlugin {
         app.init_resource::<UiVisibility>();
 
         app.add_systems(OnExit(GameState::WorldLoading), spawn_ui_container);
+        app.add_systems(OnExit(GameState::InGame), despawn_with::<MainUiContainer>);
+
         app.add_systems(Update,
             (
                 systems::toggle_extra_ui_visibility.run_if(input_just_pressed(KeyCode::Escape)),
@@ -46,19 +48,27 @@ impl Plugin for UiPlugin {
             )
             .in_set(InGameSystemSet::Update)
         );
+
+        app.add_systems(
+            Update,
+            (|mut next_state: ResMut<NextState<GameState>>| next_state.set(GameState::Menu))
+                .in_set(InGameSystemSet::Update)
+                .run_if(on_click::<ExitButton>)
+        );
+
         app.add_systems(
             Update,
             (
-                animate_button_scale::<SettingsButton>,
-                play_sound_on_hover::<SettingsButton>,
-                set_visibility::<SettingsButtonContainer, ExtraUiVisibility>,
+                animate_button_scale::<ExitButton>,
+                play_sound_on_hover::<ExitButton>,
+                set_visibility::<ExitButtonContainer, ExtraUiVisibility>,
             )
             .in_set(InGameSystemSet::Update)
         );
     }
 }
 
-pub(crate) fn spawn_ui_container(
+fn spawn_ui_container(
     mut commands: Commands,
     font_assets: Res<FontAssets>,
     ui_assets: Res<UiAssets>,
@@ -122,7 +132,7 @@ pub(crate) fn spawn_ui_container(
 
     let fps_text = spawn_fps_text(&mut commands, &font_assets);
     let inventory = spawn_inventory_ui(&mut commands, &ui_assets, &font_assets, &language_content);
-    let settings_btn = spawn_ingame_settings_button(&mut commands, &font_assets, &language_content);
+    let settings_btn = spawn_exit_button(&mut commands, &font_assets, &language_content);
 
     // TODO: Make a health bar in the feature, stub for now
     let health_bar = commands
@@ -148,7 +158,7 @@ pub(crate) fn spawn_ui_container(
     commands.entity(main_id).push_children(&[left_id, right_id]);
 }
 
-pub(crate) fn spawn_ingame_settings_button(
+fn spawn_exit_button(
     commands: &mut Commands, 
     fonts: &FontAssets,
     language_content: &LanguageContent
@@ -177,7 +187,7 @@ pub(crate) fn spawn_ingame_settings_button(
             visibility: Visibility::Hidden,
             ..default()
         })
-        .insert(SettingsButtonContainer)
+        .insert(ExitButtonContainer)
         .with_children(|c| {
             c.spawn(TextBundle {
                 style: Style {
@@ -186,7 +196,7 @@ pub(crate) fn spawn_ingame_settings_button(
                     ..default()
                 },
                 text: Text::from_section(
-                    language_content.ui.settings.clone(),
+                    language_content.ui.exit.clone(),
                     TextStyle {
                         font: fonts.andy_bold.clone_weak(),
                         font_size: 32.,
@@ -195,9 +205,10 @@ pub(crate) fn spawn_ingame_settings_button(
                 ).with_alignment(TextAlignment::Center),
                 ..default()
             })
-            .insert(Name::new("Settings button"))
+            .insert(Name::new("ExitButton"))
             .insert(Interaction::default())
-            .insert(SettingsButton)
+            .insert(ExitButton)
+            .insert(Button)
             .insert(Animator::new(tween));
         })
         .id()

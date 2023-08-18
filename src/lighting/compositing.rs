@@ -81,6 +81,7 @@ pub(crate) struct ShadowMapTexture(pub(crate) Handle<Image>);
 //     }
 // }       
 
+#[allow(dead_code)]
 pub(super) fn setup_post_processing_camera(
     mut commands: Commands,
     mut images: ResMut<Assets<Image>>,

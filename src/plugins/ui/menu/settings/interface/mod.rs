@@ -8,7 +8,7 @@ use crate::{
         config::ShowTileGrid
     },
     language::LanguageContent,
-    common::{state::{SettingsMenuState, GameState, MenuState}, conditions::on_click}
+    common::{state::{SettingsMenuState, MenuState}, conditions::on_click}
 };
 
 use super::{MENU_BUTTON_FONT_SIZE, BackButton};
@@ -17,11 +17,11 @@ pub(super) struct InterfaceMenuPlugin;
 impl Plugin for InterfaceMenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
-            OnEnter(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface))),
+            OnEnter(MenuState::Settings(SettingsMenuState::Interface)),
             setup_interface_menu
         );
         app.add_systems(
-            OnExit(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface))),
+            OnExit(MenuState::Settings(SettingsMenuState::Interface)),
             despawn_with::<InterfaceMenu>
         );
 
@@ -31,7 +31,7 @@ impl Plugin for InterfaceMenuPlugin {
                 update_toggle_tile_grid_button_text,
                 toggle_tile_grid_clicked.run_if(on_click::<ToggleTileGridButton>),
             )
-            .run_if(in_state(GameState::Menu(MenuState::Settings(SettingsMenuState::Interface))))
+            .run_if(in_state(MenuState::Settings(SettingsMenuState::Interface)))
         );
     }
 }

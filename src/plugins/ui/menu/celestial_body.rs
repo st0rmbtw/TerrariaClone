@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use bevy::{prelude::{Commands, Res, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, Local, Input, MouseButton, Color, Vec4, DetectChanges, IntoSystemConfigs, OnExit, Name, Update, OnEnter, Without, Entity, Deref, DerefMut, PreUpdate, on_event, Vec3, Component, Resource, Event, EventWriter}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas, SpriteBundle}, window::{Window, PrimaryWindow, WindowResized}, utils::default, ecs::query::Has, time::Time};
+use bevy::{prelude::{Commands, Res, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, Local, Input, MouseButton, Color, Vec4, DetectChanges, IntoSystemConfigs, Name, Update, OnEnter, Without, Entity, Deref, DerefMut, PreUpdate, on_event, Vec3, Component, Resource, Event, EventWriter}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas, SpriteBundle}, window::{Window, PrimaryWindow, WindowResized}, utils::default, ecs::query::Has, time::Time};
 use bevy_hanabi::Gradient;
 use interpolation::{Lerp, EaseFunction};
 use rand::{thread_rng, Rng, seq::SliceRandom};
@@ -17,7 +17,7 @@ impl Plugin for CelestialBodyPlugin {
             app.add_event::<TimeTypeChangedEvent>();
 
             app.add_systems(
-                OnExit(GameState::AssetLoading),
+                OnEnter(GameState::Menu),
                 (
                     setup,
                     spawn_celestial_body,
@@ -292,7 +292,7 @@ fn drag_celestial_body(
     mut query_celestial_body: Query<(Entity, &mut Transform, &mut CelestialBodyPosition, Has<Dragging>)>,
 ) {
     let (entity, mut transform, mut position, is_dragging) = query_celestial_body.single_mut();
-    
+
     let window = query_window.single();
 
     let size = match *time_type {

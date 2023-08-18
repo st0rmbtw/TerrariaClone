@@ -1,9 +1,9 @@
 use crate::{
     parallax::{LayerData, LayerSpeed, ParallaxContainer, ParallaxCameraComponent, LayerComponent, LayerDataComponent},
-    common::{state::GameState, systems::despawn_with}, world::WorldData, BACKGROUND_LAYER, InGameSystemSet,
+    common::{state::GameState, systems::despawn_with}, world::WorldData, BACKGROUND_LAYER, InGameSystemSet, DespawnOnGameExit,
 };
 use bevy::{
-    prelude::{default, App, Commands, Plugin, Res, Vec2, Query, Camera, With, OnExit, IntoSystemConfigs, Name, Assets, Image, Camera2dBundle, UiCameraConfig, PostUpdate, Transform, Without, Component},
+    prelude::{default, App, Commands, Plugin, Res, Vec2, Query, Camera, With, OnExit, IntoSystemConfigs, Name, Assets, Image, Camera2dBundle, UiCameraConfig, PostUpdate, Transform, Without, Component, OnEnter},
     sprite::Anchor, render::view::RenderLayers,
 };
 
@@ -16,7 +16,7 @@ pub(crate) struct BackgroundPlugin;
 impl Plugin for BackgroundPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
-            OnExit(GameState::AssetLoading),
+            OnEnter(GameState::Menu),
             (
                 spawn_background_camera,
                 setup_main_menu_background
@@ -30,14 +30,6 @@ impl Plugin for BackgroundPlugin {
                 spawn_sky_background,
                 spawn_ingame_background,
                 spawn_forest_background,
-            )
-        );
-
-        app.add_systems(
-            OnExit(GameState::InGame),
-            (
-                despawn_with::<BiomeParallaxContainer>,
-                despawn_with::<InGameParallaxContainer>
             )
         );
 
@@ -84,6 +76,7 @@ fn spawn_background_camera(
         ParallaxCameraComponent,
         BACKGROUND_RENDER_LAYER,
         UiCameraConfig { show_ui: false },
+        DespawnOnGameExit,
         Camera2dBundle {
             camera: Camera {
                 order: -1,
@@ -168,6 +161,7 @@ fn spawn_sky_background(
 ) { 
     commands.spawn((
         Name::new("Sky Parallax Container"),
+        DespawnOnGameExit,
         ParallaxContainer::new(vec![
             LayerData {
                 speed: LayerSpeed::Bidirectional(1., 0.),
@@ -227,6 +221,7 @@ fn spawn_ingame_background(
     commands.spawn((
         Name::new("InGame Parallax Container"),
         InGameParallaxContainer,
+        DespawnOnGameExit,
         ParallaxContainer::new(layers)
     ));
 }
@@ -239,6 +234,7 @@ fn spawn_forest_background(
     commands.spawn((
         Name::new("Biome Parallax Container"),
         BiomeParallaxContainer,
+        DespawnOnGameExit,
         ParallaxContainer::new(vec![
             LayerData {
                 speed: LayerSpeed::Bidirectional(0.9, 0.6),
