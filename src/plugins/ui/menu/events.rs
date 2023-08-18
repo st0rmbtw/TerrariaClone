@@ -1,7 +1,9 @@
-use bevy::prelude::{Event, States};
+use bevy::prelude::Event;
+
+use crate::common::state::MenuState;
 
 #[derive(Event, Clone, Copy)]
 pub(super) struct Back;
 
 #[derive(Event, Clone, Copy)]
-pub(super) struct Enter<S: States + Clone + Copy>(pub(super) S);
+pub(super) struct EnterMenu(pub(super) MenuState);

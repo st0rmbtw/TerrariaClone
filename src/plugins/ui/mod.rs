@@ -11,8 +11,8 @@ use std::time::Duration;
 use interpolation::EaseFunction;
 pub(crate) use resources::*;
 
-use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Component, Entity, Color, TextBundle, ResMut, NextState, Button}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, Interaction, AlignSelf}, text::{TextAlignment, Text, TextStyle}};
-use crate::{common::{state::GameState, systems::{set_visibility, animate_button_scale, play_sound_on_hover, despawn_with}, lens::TextFontSizeLens, conditions::on_click}, language::LanguageContent, animation::{Tween, RepeatStrategy, Animator}};
+use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Component, Entity, Color, TextBundle, Button}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, Interaction, AlignSelf}, text::{TextAlignment, Text, TextStyle}};
+use crate::{common::{state::GameState, systems::{set_visibility, animate_button_scale, play_sound_on_hover, despawn_with, set_state}, lens::TextFontSizeLens, conditions::on_click}, language::LanguageContent, animation::{Tween, RepeatStrategy, Animator}};
 
 use self::{
     components::MainUiContainer,
@@ -53,7 +53,7 @@ impl Plugin for UiPlugin {
 
         app.add_systems(
             Update,
-            (|mut next_state: ResMut<NextState<GameState>>| next_state.set(GameState::Menu))
+            set_state(GameState::Menu)
                 .in_set(InGameSystemSet::Update)
                 .run_if(on_click::<ExitButton>)
         );

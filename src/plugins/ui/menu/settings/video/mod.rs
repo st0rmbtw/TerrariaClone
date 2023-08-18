@@ -7,7 +7,7 @@ use crate::{
     plugins::{
         assets::FontAssets,
         config::VSync,
-        ui::menu::{MenuContainer, despawn_with, TEXT_COLOR, Enter, builders::{menu, menu_button, control_buttons_layout, control_button}}
+        ui::menu::{MenuContainer, despawn_with, TEXT_COLOR, EnterMenu, builders::{menu, menu_button, control_buttons_layout, control_button}}
     },
     language::LanguageContent,
     common::{state::{SettingsMenuState, MenuState}, conditions::on_click, systems::send_event},
@@ -35,7 +35,7 @@ impl Plugin for VideoMenuPlugin {
             Update,
             (
                 update_vsync_button_text,
-                send_event(Enter(MenuState::Settings(SettingsMenuState::Resolution))).run_if(on_click::<ResolutionButton>),
+                send_event(EnterMenu(MenuState::Settings(SettingsMenuState::Resolution))).run_if(on_click::<ResolutionButton>),
                 vsync_clicked.run_if(on_click::<VSyncButton>),
             )
             .run_if(in_state(MenuState::Settings(SettingsMenuState::Video)))

@@ -1,4 +1,4 @@
-use bevy::{ui::Interaction, prelude::{Changed, Component, Query, With, EventWriter, Visibility, Resource, Res, DetectChanges, Event, Entity, Commands, DespawnRecursiveExt}, text::Text};
+use bevy::{ui::Interaction, prelude::{Changed, Component, Query, With, EventWriter, Visibility, Resource, Res, DetectChanges, Event, Entity, Commands, DespawnRecursiveExt, States, ResMut, NextState}, text::Text};
 
 use crate::{animation::{Animator, TweeningDirection, Tween, Tweenable}, plugins::audio::{PlaySoundEvent, SoundType}};
 
@@ -67,5 +67,11 @@ pub(crate) fn component_equals<M: Component, C: Component + PartialEq>(component
     move |query: Query<&C, With<M>>| -> bool {
         let Ok(comp) = query.get_single() else { return false; };
         *comp == component
+    }
+}
+
+pub(crate) fn set_state<S: States + Clone>(state: S) -> impl FnMut(ResMut<NextState<S>>) {
+    move |mut next_state: ResMut<NextState<S>>| {
+        next_state.set(state.clone());
     }
 }

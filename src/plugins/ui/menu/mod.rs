@@ -11,15 +11,15 @@ use components::*;
 use interpolation::EaseFunction;
 use systems::*;
 
-use bevy::{prelude::{Plugin, App, IntoSystemConfigs, OnEnter, OnExit, Color, Update, KeyCode, PostUpdate, Button, EventWriter, Res, Query, Entity, With, Commands, Name, NodeBundle, BuildChildren, ImageBundle, default, Visibility, TextBundle, Transform, Quat, Vec3, Camera2dBundle, Camera2d, State, ResMut, NextState, EventReader, Component, States}, input::common_conditions::input_just_pressed, app::AppExit, text::{TextStyle, Text, TextSection}, ui::{Style, PositionType, AlignSelf, Val, UiRect, FlexDirection, UiImage}, core_pipeline::clear_color::ClearColorConfig};
+use bevy::{prelude::{Plugin, App, IntoSystemConfigs, OnEnter, OnExit, Color, Update, KeyCode, PostUpdate, Button, EventWriter, Res, Query, Entity, With, Commands, Name, NodeBundle, BuildChildren, ImageBundle, default, Visibility, TextBundle, Transform, Quat, Vec3, Camera2dBundle, Camera2d, State, ResMut, NextState, EventReader, Component}, input::common_conditions::input_just_pressed, app::AppExit, text::{TextStyle, Text, TextSection}, ui::{Style, PositionType, AlignSelf, Val, UiRect, FlexDirection, UiImage}, core_pipeline::clear_color::ClearColorConfig};
 use crate::{
-    common::{state::{GameState, MenuState, SettingsMenuState}, conditions::on_click, systems::{animate_button_scale, play_sound_on_hover, send_event, despawn_with}, lens::TransformLens},
+    common::{state::{GameState, MenuState, SettingsMenuState}, conditions::on_click, systems::{animate_button_scale, play_sound_on_hover, send_event, despawn_with, set_state}, lens::TransformLens},
     parallax::{parallax_animation_system, ParallaxSet},
     language::LanguageContent,
     animation::{Animator, RepeatCount, Tween, RepeatStrategy}, 
     plugins::{slider::Slider, assets::{FontAssets, UiAssets}, camera::components::MainCamera, audio::{PlaySoundEvent, SoundType, PlayMusicEvent, MusicType, MusicAudio}, ui::fps::FpsText, MenuSystemSet}
 };
-use self::{settings::SettingsMenuPlugin, celestial_body::CelestialBodyPlugin, builders::{menu, menu_button}, events::{Back, Enter}};
+use self::{settings::SettingsMenuPlugin, celestial_body::CelestialBodyPlugin, builders::{menu, menu_button}, events::{Back, EnterMenu}};
 
 pub(super) const TEXT_COLOR: Color = Color::rgb(0.58, 0.58, 0.58);
 pub(super) const MENU_BUTTON_FONT_SIZE: f32 = 42.;
@@ -37,8 +37,7 @@ pub(super) struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<Back>();
-        app.add_event::<Enter<MenuState>>();
-        app.add_event::<Enter<GameState>>();
+        app.add_event::<EnterMenu>();
 
         app.add_plugins((CelestialBodyPlugin, SettingsMenuPlugin));
 
@@ -48,7 +47,7 @@ impl Plugin for MenuPlugin {
                 setup_camera,
                 spawn_menu_container,
                 play_music,
-                send_event(Enter(MenuState::Main))
+                set_state(MenuState::Main)
             )
         );
 
@@ -75,8 +74,7 @@ impl Plugin for MenuPlugin {
             PostUpdate,
             (
                 handle_back_event,
-                handle_enter_event::<GameState>,
-                handle_enter_event::<MenuState>,
+                handle_enter_menu_event,
             )
             .in_set(MenuSystemSet::PostUpdate)
         );
@@ -98,13 +96,13 @@ impl Plugin for MenuPlugin {
             Update,
             (
                 (
-                    send_event(Enter(MenuState::None)),
-                    send_event(Enter(GameState::WorldLoading))
+                    set_state(MenuState::None),
+                    set_state(GameState::WorldLoading),
                 )
                 .chain()
                 .run_if(on_click::<SinglePlayerButton>),
 
-                send_event(Enter(MenuState::Settings(SettingsMenuState::Main))).run_if(on_click::<SettingsButton>),
+                send_event(EnterMenu(MenuState::Settings(SettingsMenuState::Main))).run_if(on_click::<SettingsButton>),
                 send_event(AppExit).run_if(on_click::<ExitButton>),
             )
             .in_set(MenuSystemSet::PostUpdate)
@@ -272,10 +270,10 @@ fn handle_back_event(
     }
 }
 
-fn handle_enter_event<S: States + Clone + Copy>(
-    mut next_state: ResMut<NextState<S>>,
+fn handle_enter_menu_event(
+    mut next_state: ResMut<NextState<MenuState>>,
     mut play_sound: EventWriter<PlaySoundEvent>,
-    mut enter_events: EventReader<Enter<S>>
+    mut enter_events: EventReader<EnterMenu>
 ) {
     if let Some(event) = enter_events.iter().last() {
         next_state.set(event.0);

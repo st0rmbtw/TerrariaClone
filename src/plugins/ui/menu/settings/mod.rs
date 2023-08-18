@@ -9,7 +9,7 @@ use crate::{plugins::assets::FontAssets, language::LanguageContent, common::{con
 
 use self::{interface::InterfaceMenuPlugin, video::VideoMenuPlugin, volume::VolumeMenuPlugin, language::LanguageMenuPlugin};
 
-use super::{despawn_with, MenuContainer, TEXT_COLOR, BackButton, MENU_BUTTON_FONT_SIZE, builders::{menu, menu_button, control_buttons_layout, control_button}, events::Enter};
+use super::{despawn_with, MenuContainer, TEXT_COLOR, BackButton, MENU_BUTTON_FONT_SIZE, builders::{menu, menu_button, control_buttons_layout, control_button}, events::EnterMenu};
 
 pub(super) struct SettingsMenuPlugin;
 impl Plugin for SettingsMenuPlugin {
@@ -28,13 +28,13 @@ impl Plugin for SettingsMenuPlugin {
         app.add_systems(
             Update,
             (
-                send_event(Enter(MenuState::Settings(SettingsMenuState::Interface)))
+                send_event(EnterMenu(MenuState::Settings(SettingsMenuState::Interface)))
                     .run_if(on_click::<InterfaceButton>),
-                send_event(Enter(MenuState::Settings(SettingsMenuState::Video)))
+                send_event(EnterMenu(MenuState::Settings(SettingsMenuState::Video)))
                     .run_if(on_click::<VideoButton>),
-                send_event(Enter(MenuState::Settings(SettingsMenuState::Volume)))
+                send_event(EnterMenu(MenuState::Settings(SettingsMenuState::Volume)))
                     .run_if(on_click::<VolumeButton>),
-                send_event(Enter(MenuState::Settings(SettingsMenuState::Language)))
+                send_event(EnterMenu(MenuState::Settings(SettingsMenuState::Language)))
                     .run_if(on_click::<LanguageButton>),
             )
             .run_if(in_state(MenuState::Settings(SettingsMenuState::Main)))
