@@ -41,7 +41,7 @@ impl FRect {
             self.bottom() <= other.top()
     }
 
-    pub(crate) fn inside(&self, point: (f32, f32)) -> bool {
+    pub(crate) fn contains(&self, point: (f32, f32)) -> bool {
         point.0 > self.left && point.0 < self.right && point.1 > self.bottom() && point.1 < self.top()
     }
 

@@ -71,6 +71,22 @@ impl Plugin for AssetsPlugin {
     }
 }
 
+fn setup(
+    mut images: ResMut<Assets<Image>>,
+    ui_assets: Res<UiAssets>,
+    cursor_assets: Res<CursorAssets>,
+    background_assets: Res<BackgroundAssets>,
+) {
+    let mut handles = ui_assets.handles();
+    handles.append(&mut cursor_assets.handles());
+    handles.append(&mut background_assets.handles());
+
+    for handle in handles.iter() {
+        let image = images.get_mut(handle).unwrap();
+
+        image.sampler_descriptor = ImageSampler::linear();
+    }
+}
 
 #[derive(Resource, AssetCollection)]
 pub(crate) struct BlockAssets {
@@ -94,6 +110,17 @@ pub(crate) struct BlockAssets {
 
     #[asset(path = "sprites/tiles/Tree_Tops_0.png")]
     pub(crate) tree_tops_forest: Handle<Image>,
+}
+
+impl BlockAssets {
+    pub(crate) fn get_by_block(&self, block: BlockType) -> Option<Handle<Image>> {
+        match block {
+            BlockType::Dirt => Some(self.dirt.clone_weak()),
+            BlockType::Stone => Some(self.stone.clone_weak()),
+            BlockType::Grass => Some(self.grass.clone_weak()),
+            BlockType::Tree(_) => todo!(),
+        }
+    }
 }
 
 handles! {
@@ -193,6 +220,23 @@ pub(crate) struct ItemAssets {
 
     #[asset(path = "sprites/items/Item_3506.png")]
     pub(crate) copper_axe: Handle<Image>,
+}
+
+impl ItemAssets {
+    pub(crate) fn get_by_item(&self, item: Item) -> Handle<Image> {
+        match item {
+            Item::Block(block) => {
+                match block {
+                    BlockType::Dirt => self.dirt_block.clone_weak(),
+                    BlockType::Stone => self.stone_block.clone_weak(),
+                    _ => default()
+                }
+            }
+            Item::Tool(Tool::Pickaxe(Pickaxe::CopperPickaxe)) => self.copper_pickaxe.clone_weak(),
+            Item::Tool(Tool::Axe(Axe::CopperAxe)) => self.copper_axe.clone_weak(),
+            Item::Seed(Seed::Grass) => self.grass_seed.clone_weak()
+        }
+    }
 }
 
 handles! {
@@ -322,6 +366,15 @@ pub(crate) struct WallAssets {
     pub(crate) walls: Handle<Image>,
 }
 
+impl WallAssets {
+    pub(crate) fn get_by_wall(&self, wall: Wall) -> Option<Handle<Image>> {
+        match wall {
+            Wall::Dirt => Some(self.wall_2.clone_weak()),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Resource, AssetCollection)]
 pub(crate) struct SoundAssets {
     #[asset(path = "sounds/Menu_Tick.wav")]
@@ -341,49 +394,6 @@ pub(crate) struct SoundAssets {
 
     #[asset(paths("sounds/Tink_0.wav", "sounds/Tink_1.wav", "sounds/Tink_2.wav"), collection(typed))]
     pub(crate) tink: Vec<Handle<AudioSource>>,
-}
-
-#[derive(Resource, AssetCollection)]
-pub(crate) struct MusicAssets {
-    #[asset(path = "music/Title_Screen.mp3")]
-    pub(crate) title_screen: Handle<AudioSource>,
-}
-
-impl WallAssets {
-    pub(crate) fn get_by_wall(&self, wall: Wall) -> Option<Handle<Image>> {
-        match wall {
-            Wall::Dirt => Some(self.wall_2.clone_weak()),
-            _ => None,
-        }
-    }
-}
-
-impl ItemAssets {
-    pub(crate) fn get_by_item(&self, item: Item) -> Handle<Image> {
-        match item {
-            Item::Block(block) => {
-                match block {
-                    BlockType::Dirt => self.dirt_block.clone_weak(),
-                    BlockType::Stone => self.stone_block.clone_weak(),
-                    _ => default()
-                }
-            }
-            Item::Tool(Tool::Pickaxe(Pickaxe::CopperPickaxe)) => self.copper_pickaxe.clone_weak(),
-            Item::Tool(Tool::Axe(Axe::CopperAxe)) => self.copper_axe.clone_weak(),
-            Item::Seed(Seed::Grass) => self.grass_seed.clone_weak()
-        }
-    }
-}
-
-impl BlockAssets {
-    pub(crate) fn get_by_block(&self, block: BlockType) -> Option<Handle<Image>> {
-        match block {
-            BlockType::Dirt => Some(self.dirt.clone_weak()),
-            BlockType::Stone => Some(self.stone.clone_weak()),
-            BlockType::Grass => Some(self.grass.clone_weak()),
-            BlockType::Tree(_) => todo!(),
-        }
-    }
 }
 
 impl SoundAssets {
@@ -406,27 +416,16 @@ impl SoundAssets {
     }
 }
 
+#[derive(Resource, AssetCollection)]
+pub(crate) struct MusicAssets {
+    #[asset(path = "music/Title_Screen.mp3")]
+    pub(crate) title_screen: Handle<AudioSource>,
+}
+
 impl MusicAssets {
     pub(crate) fn get_handle_by_music_type(&self, music_type: MusicType) -> Handle<AudioSource> {
         match music_type {
             MusicType::TitleScreen => self.title_screen.clone_weak(),
         }
-    }
-}
-
-fn setup(
-    mut images: ResMut<Assets<Image>>,
-    ui_assets: Res<UiAssets>,
-    cursor_assets: Res<CursorAssets>,
-    background_assets: Res<BackgroundAssets>,
-) {
-    let mut handles = ui_assets.handles();
-    handles.append(&mut cursor_assets.handles());
-    handles.append(&mut background_assets.handles());
-
-    for handle in handles.iter() {
-        let image = images.get_mut(handle).unwrap();
-
-        image.sampler_descriptor = ImageSampler::linear();
     }
 }

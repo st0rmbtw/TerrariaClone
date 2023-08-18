@@ -293,35 +293,27 @@ fn drag_celestial_body(
 ) {
     let window = query_window.single();
 
-    let (
-        celestial_body_entity, mut celestial_body_transform, 
-        mut celestial_body_pos, is_dragging
-    ) = query_celestial_body.single_mut();
+    let (entity, mut transform, mut position, is_dragging) = query_celestial_body.single_mut();
 
     let celestial_body_size = match *time_type {
         TimeType::Day => SUN_SIZE,
         TimeType::Night => MOON_SIZE,
     };
 
-    let cb_rect = FRect::new_center(
-        celestial_body_transform.translation.x,
-        celestial_body_transform.translation.y,
-        celestial_body_size,
-        celestial_body_size
-    );
+    let rect = FRect::new_center(transform.translation.x, transform.translation.y, celestial_body_size, celestial_body_size);
 
-    let cursor_is_on_celestial_body = cb_rect.inside((cursor_position.world.x, cursor_position.world.y));
+    let cursor_is_on_celestial_body = rect.contains((cursor_position.world.x, cursor_position.world.y));
 
     if input.pressed(MouseButton::Left) && (cursor_is_on_celestial_body || is_dragging) {
-        celestial_body_transform.translation.x = cursor_position.world.x;
-        celestial_body_transform.translation.y = cursor_position.world.y;
-        
-        celestial_body_pos.x = cursor_position.screen.x / window.width();
-        celestial_body_pos.y = 1. - (cursor_position.screen.y / window.height() * 2.);
+        transform.translation.x = cursor_position.world.x;
+        transform.translation.y = cursor_position.world.y;
 
-        commands.entity(celestial_body_entity).insert(Dragging);
+        position.x = cursor_position.screen.x / window.width();
+        position.y = 1. - (cursor_position.screen.y / window.height() * 2.);
+
+        commands.entity(entity).insert(Dragging);
     } else {
-        commands.entity(celestial_body_entity).remove::<Dragging>();
+        commands.entity(entity).remove::<Dragging>();
     }
 }
 
