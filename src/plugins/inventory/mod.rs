@@ -9,7 +9,7 @@ pub(crate) use resources::*;
 
 use crate::{common::state::GameState, items::{ItemStack, Tool, Axe, Pickaxe, Seed}, world::block::BlockType};
 
-use super::InGameSystemSet;
+use super::{InGameSystemSet, ui::ExtraUiVisibility};
 
 const ITEM_ROTATION: f32 = 1.7;
 
@@ -62,9 +62,10 @@ impl Plugin for PlayerInventoryPlugin {
             (
                 systems::scroll_select_inventory_item,
                 systems::select_inventory_cell,
-                systems::set_selected_item.run_if(resource_exists_and_changed::<Inventory>()),
+                systems::set_selected_item.run_if(resource_exists_and_changed::<Inventory>())
             )
             .in_set(InGameSystemSet::Update)
+            .run_if(resource_exists_and_equals(ExtraUiVisibility::HIDDEN))
         );
     }
 }

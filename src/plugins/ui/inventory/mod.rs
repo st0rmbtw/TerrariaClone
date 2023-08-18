@@ -7,11 +7,11 @@ use crate::{common::systems::set_visibility, plugins::{inventory::Inventory, InG
 
 use super::ExtraUiVisibility;
 
-// 5 is the total amount of inventory rows. -1 because the hotbar takes the first row
 const INVENTORY_ROWS: usize = 5 - 1;
 
-const INVENTORY_CELL_SIZE: f32 = 40.;
-const INVENTORY_CELL_SIZE_SELECTED: f32 = INVENTORY_CELL_SIZE * 1.3;
+const HOTBAR_CELL_SIZE: f32 = 40.;
+const INVENTORY_CELL_SIZE: f32 = HOTBAR_CELL_SIZE * 1.1;
+const HOTBAR_CELL_SIZE_SELECTED: f32 = HOTBAR_CELL_SIZE * 1.3;
 
 pub(crate) const CELL_COUNT_IN_ROW: usize = 10;
 

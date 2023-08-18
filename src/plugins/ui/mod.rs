@@ -17,8 +17,7 @@ use crate::{common::{state::GameState, systems::{set_visibility, animate_button_
 use self::{
     components::MainUiContainer,
     inventory::{systems::spawn_inventory_ui, InventoryUiPlugin},
-    menu::MenuPlugin,
-    fps::spawn_fps_text
+    menu::MenuPlugin, fps::FpsUiPlugin,
 };
 
 use crate::plugins::assets::{FontAssets, UiAssets};
@@ -34,7 +33,7 @@ pub(super) struct ExitButton;
 pub(crate) struct UiPlugin;
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((InventoryUiPlugin, MenuPlugin));
+        app.add_plugins((InventoryUiPlugin, FpsUiPlugin, MenuPlugin));
 
         app.init_resource::<ExtraUiVisibility>();
         app.init_resource::<UiVisibility>();
@@ -103,6 +102,7 @@ fn spawn_ui_container(
                     flex_direction: FlexDirection::Column,
                     justify_content: JustifyContent::SpaceBetween,
                     align_items: AlignItems::FlexStart,
+                    margin: UiRect::left(Val::Px(20.)),
                     ..default()
                 },
                 ..default()
@@ -132,7 +132,6 @@ fn spawn_ui_container(
         ))
         .id();
 
-    let fps_text = spawn_fps_text(&mut commands, &font_assets);
     let inventory = spawn_inventory_ui(&mut commands, &ui_assets, &font_assets, &language_content);
     let settings_btn = spawn_exit_button(&mut commands, &font_assets, &language_content);
 
@@ -151,7 +150,7 @@ fn spawn_ui_container(
 
     commands
         .entity(left_id)
-        .push_children(&[inventory, fps_text]);
+        .push_children(&[inventory]);
 
     commands
         .entity(right_id)

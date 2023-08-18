@@ -7,10 +7,10 @@ pub(super) struct InventoryUi;
 pub(super) struct HotbarUi;
 
 #[derive(Component)]
-pub(super) struct HotbarCellMarker;
+pub(super) struct HotbarCell;
 
 #[derive(Component)]
-pub(super) struct SelectedItemNameMarker;
+pub(super) struct SelectedItemName;
 
 #[derive(Component)]
 pub(super) struct InventoryCellIndex(pub usize);

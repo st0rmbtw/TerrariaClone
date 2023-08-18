@@ -46,7 +46,7 @@ impl Plugin for MenuPlugin {
             (
                 setup_camera,
                 spawn_menu_container,
-                play_music,
+                play_menu_music,
                 set_state(MenuState::Main)
             )
         );
@@ -252,7 +252,7 @@ fn setup_main_menu(
     });
 }
 
-fn play_music(
+fn play_menu_music(
     mut play_music: EventWriter<PlayMusicEvent>
 ) {
     play_music.send(PlayMusicEvent(MusicType::TitleScreen));
