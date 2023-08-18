@@ -6,3 +6,4 @@ config.json
 Cargo.lock
 world.png
 *.tracy
+/.vscode

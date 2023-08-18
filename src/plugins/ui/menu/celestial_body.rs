@@ -54,7 +54,7 @@ impl Plugin for CelestialBodyPlugin {
                 (
                     (
                         update_time_type,
-                        update_celestial_type,
+                        update_celestial_body_sprite,
                     ).chain(),
                     drag_celestial_body,
                     update_sprites_color,
@@ -291,16 +291,16 @@ fn drag_celestial_body(
     cursor_position: Res<CursorPosition<BackgroundCamera>>,
     mut query_celestial_body: Query<(Entity, &mut Transform, &mut CelestialBodyPosition, Has<Dragging>)>,
 ) {
+    let (entity, mut transform, mut position, is_dragging) = query_celestial_body.single_mut();
+    
     let window = query_window.single();
 
-    let (entity, mut transform, mut position, is_dragging) = query_celestial_body.single_mut();
-
-    let celestial_body_size = match *time_type {
+    let size = match *time_type {
         TimeType::Day => SUN_SIZE,
         TimeType::Night => MOON_SIZE,
     };
 
-    let rect = FRect::new_center(transform.translation.x, transform.translation.y, celestial_body_size, celestial_body_size);
+    let rect = FRect::new_center(transform.translation.x, transform.translation.y, size, size);
 
     let cursor_is_on_celestial_body = rect.contains((cursor_position.world.x, cursor_position.world.y));
 
@@ -317,7 +317,7 @@ fn drag_celestial_body(
     }
 }
 
-fn update_celestial_type(
+fn update_celestial_body_sprite(
     time_type: Res<TimeType>,
     celestial_body_assets: Res<CelestialBodyAssets>,
     mut query: Query<(&mut Handle<TextureAtlas>, &mut TextureAtlasSprite), With<CelestialBodyPosition>>,
@@ -348,8 +348,8 @@ fn update_sprites_color(
     query_celestial_body: Query<&CelestialBodyPosition>,
     gradients: Res<Gradients>
 ) {
-    let celestial_body_pos = query_celestial_body.single();
-    let x = celestial_body_pos.x.clamp(0., 1.);
+    let position = query_celestial_body.single();
+    let x = position.x.clamp(0., 1.);
 
     let gradient = match *time_type {
         TimeType::Day => &gradients.day,
@@ -366,22 +366,22 @@ fn update_celestial_body_position(
     mut query_celestial_body: Query<&mut CelestialBodyPosition>,
     mut time_type_changed: EventWriter<TimeTypeChangedEvent>
 ) {
-    if let Ok(mut celestial_body_pos) = query_celestial_body.get_single_mut() {
+    if let Ok(mut position) = query_celestial_body.get_single_mut() {
         let delta_x = time.delta_seconds() / 30.;
         let delta_y = time.delta_seconds() / 15.;
 
-        celestial_body_pos.x += delta_x;
+        position.x += delta_x;
 
-        if celestial_body_pos.x >= 1.1 {
-            celestial_body_pos.x = -0.1;
-            celestial_body_pos.y = 0.;
+        if position.x >= 1.1 {
+            position.x = -0.1;
+            position.y = 0.;
             time_type_changed.send(TimeTypeChangedEvent);
         }
 
-        if celestial_body_pos.x >= 0.7 || celestial_body_pos.y >= 0.7 {
-            celestial_body_pos.y -= delta_y;
+        if position.x >= 0.7 || position.y >= 0.7 {
+            position.y -= delta_y;
         } else {
-            celestial_body_pos.y += delta_y;
+            position.y += delta_y;
         }
     }
 }
