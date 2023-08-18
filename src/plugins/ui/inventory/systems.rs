@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use autodefault::autodefault;
 use bevy::{prelude::{Commands, Name, NodeBundle, BuildChildren, TextBundle, Color, Entity, ImageBundle, default, ChildBuilder, Handle, Image, Visibility, With, Res, Query, DetectChanges, Changed, ResMut, DetectChangesMut, Without}, ui::{Style, FlexDirection, UiRect, Val, AlignSelf, AlignItems, JustifyContent, Interaction, BackgroundColor, ZIndex, FocusPolicy, AlignContent, PositionType, UiImage, widget::UiImageSize}, text::{Text, TextStyle, TextAlignment}};
 
@@ -16,7 +14,7 @@ pub(crate) fn spawn_inventory_ui(
 ) -> Entity {
     commands
         .spawn((
-            Name::new("Inventory Container"),
+            Name::new("InventoryContainer"),
             NodeBundle {
                 style: Style {
                     flex_direction: FlexDirection::Column,
@@ -25,8 +23,6 @@ pub(crate) fn spawn_inventory_ui(
             }
         ))
         .with_children(|children| {
-            // region: Selected Item Name
-
             children
                 .spawn((
                     Name::new("SelectedItemName"),
@@ -50,10 +46,6 @@ pub(crate) fn spawn_inventory_ui(
                     }
                 ));
 
-            // endregion
-
-            // region: Hotbar
-
             children
                 .spawn((
                     Name::new("Hotbar"),
@@ -69,7 +61,6 @@ pub(crate) fn spawn_inventory_ui(
                     for i in 0..CELL_COUNT_IN_ROW {
                         spawn_inventory_cell(
                             children,
-                            format!("Hotbar Cell #{i}"),
                             ui_assets.inventory_background.clone_weak(),
                             true,
                             i,
@@ -78,9 +69,6 @@ pub(crate) fn spawn_inventory_ui(
                     }
                 });
 
-            // endregion
-
-            // region: Inventory
             children
                 .spawn((
                     Name::new("Inventory"),
@@ -99,9 +87,10 @@ pub(crate) fn spawn_inventory_ui(
                     }
                 ))
                 .with_children(|children| {
+                    // Starting from 1 because hotbar takes the first row
                     for j in 1..=INVENTORY_ROWS {
                         children.spawn((
-                            Name::new(format!("Inventory Row #{}", j)),
+                            Name::new(format!("Row #{}", j)),
                             NodeBundle {
                                 style: Style {
                                     margin: UiRect::vertical(Val::Px(2.)),
@@ -115,7 +104,6 @@ pub(crate) fn spawn_inventory_ui(
 
                                 spawn_inventory_cell(
                                     children,
-                                    format!("Inventory Cell #{}", index),
                                     ui_assets.inventory_background.clone_weak(),
                                     false,
                                     index,
@@ -125,14 +113,12 @@ pub(crate) fn spawn_inventory_ui(
                         });
                     }
                 });
-            // endregion
         })
         .id()
 }
 
 fn spawn_inventory_cell(
     children: &mut ChildBuilder<'_, '_, '_>,
-    name: impl Into<Cow<'static, str>>,
     cell_background: Handle<Image>,
     hotbar_cell: bool,
     index: usize,
@@ -144,7 +130,7 @@ fn spawn_inventory_cell(
     children
         .spawn((
             Hoverable::None,
-            Name::new(name),
+            Name::new(format!("Cell #{}", index)),
             InventoryCellIndex(index),
             Interaction::default(),
             ImageBundle {
@@ -294,11 +280,11 @@ pub(super) fn update_selected_cell_image(
 }
 
 pub(super) fn update_hoverable(
-    mut hotbar_cells: Query<(&mut Hoverable, &InventoryCellIndex), With<HotbarCell>>,
     inventory: Res<Inventory>,
-    language_content: Res<LanguageContent>
+    language_content: Res<LanguageContent>,
+    mut hotbar_cells: Query<(&InventoryCellIndex, &mut Hoverable), With<HotbarCell>>
 ) {
-    for (mut hoverable, cell_index) in &mut hotbar_cells {
+    for (cell_index, mut hoverable) in &mut hotbar_cells {
         if let Some(item) = inventory.get_item(cell_index.0) {
             let name = if item.stack > 1 {
                 format!("{} ({})", language_content.item_name(item.item), item.stack)
@@ -314,8 +300,8 @@ pub(super) fn update_hoverable(
 }
 
 pub(super) fn update_selected_item_name_alignment(
-    mut query_selected_item_name: Query<&mut Style, With<SelectedItemName>>,
-    visibility: Res<ExtraUiVisibility>
+    visibility: Res<ExtraUiVisibility>,
+    mut query_selected_item_name: Query<&mut Style, With<SelectedItemName>>
 ) {
     if visibility.is_changed() {
         let mut style = query_selected_item_name.single_mut();
@@ -328,10 +314,10 @@ pub(super) fn update_selected_item_name_alignment(
 }
 
 pub(super) fn update_selected_item_name_text(
-    mut query_selected_item_name: Query<&mut Text, With<SelectedItemName>>,
     current_item: Res<SelectedItem>,
     visibility: Res<ExtraUiVisibility>,
-    language_content: Res<LanguageContent>
+    language_content: Res<LanguageContent>,
+    mut query_selected_item_name: Query<&mut Text, With<SelectedItemName>>
 ) {
     if current_item.is_changed() || visibility.is_changed() {
         let mut text = query_selected_item_name.single_mut();
@@ -348,10 +334,10 @@ pub(super) fn update_selected_item_name_text(
 
 pub(super) fn update_cell(
     inventory: Res<Inventory>,
-    mut item_images: Query<(&mut InventoryCellItemImage, &InventoryCellIndex)>,
     item_assets: Res<ItemAssets>,
+    mut item_images: Query<(&InventoryCellIndex, &mut InventoryCellItemImage)>,
 ) {
-    for (mut cell_image, cell_index) in &mut item_images {
+    for (cell_index, mut cell_image) in &mut item_images {
         cell_image.0 = inventory
             .get_item(cell_index.0)
             .map(|item_stack| item_assets.get_by_item(item_stack.item))
@@ -369,9 +355,9 @@ pub(super) fn update_cell_image(
 
 pub(super) fn update_item_amount(
     inventory: Res<Inventory>,
-    mut query: Query<(&mut InventoryItemAmount, &InventoryCellIndex)>,
+    mut query: Query<(&InventoryCellIndex, &mut InventoryItemAmount)>,
 ) {
-    for (mut item_stack, cell_index) in &mut query {
+    for (cell_index, mut item_stack) in &mut query {
         let stack = inventory.items.get(cell_index.0)
             .and_then(|item| *item)
             .map(|item_stack| item_stack.stack)
