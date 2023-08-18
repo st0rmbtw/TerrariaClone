@@ -367,7 +367,7 @@ fn update_celestial_body_position(
     mut time_type_changed: EventWriter<TimeTypeChangedEvent>
 ) {
     if let Ok(mut celestial_body_pos) = query_celestial_body.get_single_mut() {
-        let delta_x = time.delta_seconds() / 40.;
+        let delta_x = time.delta_seconds() / 30.;
         let delta_y = time.delta_seconds() / 15.;
 
         celestial_body_pos.x += delta_x;
@@ -378,7 +378,7 @@ fn update_celestial_body_position(
             time_type_changed.send(TimeTypeChangedEvent);
         }
 
-        if celestial_body_pos.y >= 0.7 || celestial_body_pos.x >= 0.8 {
+        if celestial_body_pos.x >= 0.7 || celestial_body_pos.y >= 0.7 {
             celestial_body_pos.y -= delta_y;
         } else {
             celestial_body_pos.y += delta_y;
