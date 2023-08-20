@@ -1,5 +1,4 @@
 use bevy::{prelude::*, math::Vec3Swizzles, sprite::Anchor};
-use bevy_hanabi::prelude::*;
 
 use crate::{
     plugins::{
@@ -254,18 +253,6 @@ pub(super) fn update_player_rect(
     let Vec2 { x, y } = transform.translation.xy();
 
     *player_rect = PlayerRect(FRect::new_center(x, y, PLAYER_WIDTH, PLAYER_HEIGHT));
-}
-
-pub(super) fn spawn_particles(
-    player: Query<(&MovementState, &PlayerParticleEffects), With<Player>>,
-    mut effect_spawners: Query<&mut EffectSpawner>,
-    collisions: Res<Collisions>
-) {
-    let (movement_state, particle_effects) = player.single();
-
-    if let Ok(mut spawner) = effect_spawners.get_mut(particle_effects.walking) {
-        spawner.set_active(*movement_state == MovementState::Walking && collisions.bottom);
-    }
 }
 
 pub(super) fn update_movement_state(

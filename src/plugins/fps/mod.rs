@@ -8,7 +8,7 @@ use bevy::{
 };
 
 use crate::common::helpers::toggle_visibility;
-use super::ui::{UiVisibility, fps::FpsText};
+use super::ui::{UiVisibility, FpsText};
 
 pub(crate) struct FpsPlugin;
 impl Plugin for FpsPlugin {

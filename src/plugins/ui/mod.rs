@@ -2,7 +2,6 @@ mod components;
 mod resources;
 mod systems;
 
-pub(crate) mod fps;
 pub(crate) mod inventory;
 pub(crate) mod menu;
 
@@ -11,18 +10,18 @@ use std::time::Duration;
 use interpolation::EaseFunction;
 pub(crate) use resources::*;
 
-use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Component, Entity, Color, TextBundle, Button}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, Interaction, AlignSelf}, text::{TextAlignment, Text, TextStyle}};
+use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Component, Entity, Color, TextBundle, Button}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, Interaction, AlignSelf, PositionType}, text::{TextAlignment, Text, TextStyle, TextSection}};
 use crate::{common::{state::GameState, systems::{set_visibility, animate_button_scale, play_sound_on_hover, despawn_with, set_state}, lens::TextFontSizeLens, conditions::on_click}, language::LanguageContent, animation::{Tween, RepeatStrategy, Animator}};
 
 use self::{
     components::MainUiContainer,
     inventory::{systems::spawn_inventory_ui, InventoryUiPlugin},
-    menu::MenuPlugin, fps::FpsUiPlugin,
+    menu::MenuPlugin,
 };
 
 use crate::plugins::assets::{FontAssets, UiAssets};
 
-use super::InGameSystemSet;
+use super::{InGameSystemSet, DespawnOnGameExit};
 
 #[derive(Component)]
 pub(super) struct ExitButtonContainer;
@@ -30,15 +29,19 @@ pub(super) struct ExitButtonContainer;
 #[derive(Component)]
 pub(super) struct ExitButton;
 
+#[derive(Component)]
+pub(crate) struct FpsText;
+
 pub(crate) struct UiPlugin;
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((InventoryUiPlugin, FpsUiPlugin, MenuPlugin));
+        app.add_plugins((InventoryUiPlugin, MenuPlugin));
 
         app.init_resource::<ExtraUiVisibility>();
         app.init_resource::<UiVisibility>();
 
         app.add_systems(OnExit(GameState::WorldLoading), spawn_ui_container);
+        app.add_systems(OnExit(GameState::WorldLoading), spawn_fps_text);
         app.add_systems(OnExit(GameState::InGame), despawn_with::<MainUiContainer>);
 
         app.add_systems(Update,
@@ -213,4 +216,35 @@ fn spawn_exit_button(
             .insert(Animator::new(tween));
         })
         .id()
+}
+
+pub(super) fn spawn_fps_text(mut commands: Commands, font_assets: Res<FontAssets>) {
+    let text_style = TextStyle {
+        font: font_assets.andy_regular.clone_weak(),
+        font_size: 20.,
+        color: Color::WHITE,
+    };
+
+    commands.spawn((
+        FpsText,
+        Name::new("FPS Text"),
+        DespawnOnGameExit,
+        TextBundle {
+            style: Style {
+                position_type: PositionType::Absolute,
+                left: Val::Px(5.),
+                bottom: Val::Px(0.),
+                ..default()
+            },
+            text: Text {
+                sections: vec![
+                    TextSection::from_style(text_style)
+                ],
+                alignment: TextAlignment::Left,
+                ..default()
+            },
+            visibility: Visibility::Hidden,
+            ..default()
+        }
+    ));
 }

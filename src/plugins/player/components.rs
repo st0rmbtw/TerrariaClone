@@ -1,4 +1,4 @@
-use bevy::{prelude::{Component, Entity, Bundle, Name, SpatialBundle, Transform, Deref, DerefMut}, utils::default};
+use bevy::{prelude::{Name, SpatialBundle, Transform, Deref, DerefMut, Component, Bundle}, utils::default};
 
 use crate::{common::{state::MovementState, rect::FRect}, PLAYER_LAYER};
 
@@ -59,12 +59,6 @@ impl Default for WalkingAnimationData {
         }
     }
 }
-
-#[derive(Component)]
-pub(super) struct PlayerParticleEffects {
-    pub(super) walking: Entity,
-}
-
 
 #[derive(Component, Clone, Copy, Default)]
 pub(super) struct IdleAnimationData(pub usize);

@@ -17,9 +17,11 @@ use crate::{
     parallax::{parallax_animation_system, ParallaxSet},
     language::LanguageContent,
     animation::{Animator, RepeatCount, Tween, RepeatStrategy}, 
-    plugins::{slider::Slider, assets::{FontAssets, UiAssets}, camera::components::MainCamera, audio::{PlaySoundEvent, SoundType, PlayMusicEvent, MusicType, MusicAudio}, ui::fps::FpsText, MenuSystemSet}
+    plugins::{slider::Slider, assets::{FontAssets, UiAssets}, camera::components::MainCamera, audio::{PlaySoundEvent, SoundType, PlayMusicEvent, MusicType, MusicAudio}, MenuSystemSet}
 };
 use self::{settings::SettingsMenuPlugin, celestial_body::CelestialBodyPlugin, builders::{menu, menu_button}, events::{Back, EnterMenu}};
+
+use super::FpsText;
 
 pub(super) const TEXT_COLOR: Color = Color::rgb(0.58, 0.58, 0.58);
 pub(super) const MENU_BUTTON_FONT_SIZE: f32 = 42.;
