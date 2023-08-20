@@ -3,134 +3,87 @@ mod resources;
 mod systems;
 mod util;
 
-use bevy::{ui::{Val, Size}, prelude::{Plugin, App, OnUpdate, IntoSystemConfigs, IntoSystemAppConfig, CoreSchedule, IntoSystemConfig, Res, in_state, IntoSystemAppConfigs, SystemSet}};
+use bevy::prelude::{Plugin, App, IntoSystemConfigs, Update, FixedUpdate, OnExit, Commands, resource_exists_and_changed, resource_exists_and_equals};
 pub(crate) use components::*;
 pub(crate) use resources::*;
-pub(crate) use systems::*;
 
-use crate::{common::state::GameState, items::Items};
+use crate::{common::state::GameState, items::{ItemStack, Tool, Axe, Pickaxe, Seed}, world::block::BlockType};
 
-use super::ui::UiVisibility;
-
-// 5 is the total amount of inventory rows. -1 because the hotbar is a first row
-const INVENTORY_ROWS: usize = 5 - 1;
-
-// region: Inventory cell size
-const INVENTORY_CELL_SIZE_F: f32 = 40.;
-const INVENTORY_CELL_SIZE_BIGGER_F: f32 = INVENTORY_CELL_SIZE_F * 1.3;
-
-const INVENTORY_CELL_SIZE: Size = Size::all(Val::Px(INVENTORY_CELL_SIZE_F));
-const INVENTORY_CELL_SIZE_SELECTED: Size = Size::all(Val::Px(INVENTORY_CELL_SIZE_BIGGER_F));
-// endregion
-
-pub(self) const CELL_COUNT_IN_ROW: usize = 10;
-
-const HOTBAR_LENGTH: usize = 10;
+use super::{InGameSystemSet, ui::ExtraUiVisibility};
 
 const ITEM_ROTATION: f32 = 1.7;
-
-#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
-enum UseItemAnimationSet {
-    UpdateSwingCooldown,
-    PlayAnimation,
-    SetCooldown
-}
 
 pub struct PlayerInventoryPlugin;
 impl Plugin for PlayerInventoryPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<SelectedItem>();
-        app.init_resource::<SwingItemCooldown>();
-        app.init_resource::<SwingItemCooldownMax>();
-
-        app.insert_resource(UseItemAnimationIndex::default());
-        app.insert_resource(PlayerUsingItem(false));
-        app.insert_resource(SwingAnimation(false));
-        app.insert_resource({
-                let mut inventory = Inventory::default();
-                inventory.add_item(Items::COPPER_PICKAXE);
-                inventory.add_item(Items::COPPER_AXE);
-                inventory.add_item(Items::DIRT_BLOCK.with_max_stack());
-                inventory.add_item(Items::STONE_BLOCK.with_max_stack());
-                inventory.add_item(Items::GRASS_SEEDS.with_max_stack());
-
-                inventory
-            });
-
-        app.add_system(scroll_select_inventory_item.in_set(OnUpdate(GameState::InGame)));
-        app.add_system(select_inventory_cell.in_set(OnUpdate(GameState::InGame)));
-        app.add_system(set_selected_item.in_set(OnUpdate(GameState::InGame)));
-
-        app.add_system(
-            use_item
-                .in_schedule(CoreSchedule::FixedUpdate)
-                .run_if(in_state(GameState::InGame))
-        );
+        app.add_systems(OnExit(GameState::WorldLoading), setup);
 
         app.add_systems(
+            FixedUpdate,
             (
-                update_player_using_item,
-                set_using_item_image,
-                set_using_item_visibility(false),
+                systems::use_item,
+                systems::stop_swing_animation
             )
-            .in_set(OnUpdate(GameState::InGame))
-        );
-
-        app.add_system(
-            play_swing_sound
-                .run_if(in_state(GameState::InGame))
-                .run_if(|res: Res<SwingAnimation>| **res == true)
-                .in_schedule(CoreSchedule::FixedUpdate)
-        );
-
-        app.add_system(
-            update_swing_cooldown
-                .run_if(in_state(GameState::InGame))
-                .in_set(UseItemAnimationSet::UpdateSwingCooldown)
-                .in_schedule(CoreSchedule::FixedUpdate)
-                .after(play_swing_sound)
+            .in_set(InGameSystemSet::FixedUpdate)
         );
 
         app.add_systems(
+            FixedUpdate,
             (
-                update_use_item_animation_index,
-                set_using_item_position,
-                set_using_item_rotation,
-                set_using_item_visibility(true),
-                update_sprite_index,
+                systems::play_swing_sound,
+                systems::update_swing_cooldown,
+                systems::update_use_item_animation_index,
+                systems::update_sprite_index,
+                systems::set_using_item_position,
+                systems::set_using_item_rotation,
+                systems::set_using_item_visibility(true),
+                systems::reset_swing_animation,
             )
             .chain()
-            .distributive_run_if(|res: Res<SwingAnimation>| **res == true)
-            .in_set(UseItemAnimationSet::PlayAnimation)
-            .after(UseItemAnimationSet::UpdateSwingCooldown)
-            .in_schedule(CoreSchedule::FixedUpdate)
-        );
-
-        app.add_system(
-            stop_swing_animation
-                .run_if(|res: Res<SwingAnimation>| **res == true)
-                .run_if(in_state(GameState::InGame))
-                .in_schedule(CoreSchedule::FixedUpdate)
-                .in_set(UseItemAnimationSet::SetCooldown)
-                .after(UseItemAnimationSet::PlayAnimation)
+            .in_set(InGameSystemSet::FixedUpdate)
+            .run_if(resource_exists_and_equals(SwingAnimation(true)))
         );
 
         app.add_systems(
+            Update,
             (
-                on_extra_ui_visibility_toggle,
-                update_selected_cell_size,
-                update_selected_cell_image,
-                update_selected_item_name_alignment,
-                update_selected_item_name_text,
-                update_cell,
-                update_cell_image,
-                update_hoverable,
-                update_item_amount,
-                update_item_amount_text,
+                (
+                    systems::update_player_using_item,
+                    systems::start_swing_animation
+                ).chain(),
+                systems::set_using_item_image.run_if(resource_exists_and_changed::<SelectedItem>()),
+                systems::set_using_item_visibility(false)
             )
-            .chain()
-            .in_set(OnUpdate(GameState::InGame))
-            .distributive_run_if(|res: Res<UiVisibility>| *res == UiVisibility::default())
+            .in_set(InGameSystemSet::Update)
+        );
+
+        app.add_systems(
+            Update,
+            (
+                systems::scroll_select_inventory_item,
+                systems::select_inventory_cell,
+                systems::set_selected_item.run_if(resource_exists_and_changed::<Inventory>())
+            )
+            .in_set(InGameSystemSet::Update)
+            .run_if(resource_exists_and_equals(ExtraUiVisibility::HIDDEN))
         );
     }
+}
+
+fn setup(mut commands: Commands) {
+    commands.init_resource::<SelectedItem>();
+    commands.init_resource::<SwingItemCooldown>();
+    commands.init_resource::<SwingItemCooldownMax>();
+    commands.insert_resource(UseItemAnimationIndex::default());
+    commands.insert_resource(PlayerUsingItem(false));
+    commands.insert_resource(SwingAnimation(false));
+    
+    let mut inventory = Inventory::default();
+    inventory.add_item(ItemStack::new_tool(Tool::Pickaxe(Pickaxe::CopperPickaxe)));
+    inventory.add_item(ItemStack::new_tool(Tool::Axe(Axe::CopperAxe)));
+    inventory.add_item(ItemStack::new_block(BlockType::Dirt).with_max_stack());
+    inventory.add_item(ItemStack::new_block(BlockType::Stone).with_max_stack());
+    inventory.add_item(ItemStack::new_seed(Seed::Grass).with_max_stack());
+
+    commands.insert_resource(inventory);
 }

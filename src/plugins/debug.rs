@@ -1,18 +1,18 @@
-use bevy::{prelude::{App, Plugin,IntoSystemConfig, OnUpdate, ResMut, Commands, TextBundle, Res, Color, IntoSystemAppConfig, OnEnter, Component, Query, Visibility, With, DetectChanges, Name, AppTypeRegistry, Resource}, utils::default, text::{Text, TextSection, TextStyle}, ui::{Style, UiRect, Val, PositionType}, sprite::TextureAtlasSprite, time::Time, reflect::{Reflect, ReflectMut}};
+use bevy::{prelude::{App, Plugin, ResMut, Commands, TextBundle, Res, Color, OnEnter, Query, Visibility, With, DetectChanges, Name, AppTypeRegistry, Vec2, Update, IntoSystemConfigs, Resource, Component}, utils::default, text::{Text, TextSection, TextStyle}, ui::{Style, Val, PositionType}, sprite::TextureAtlasSprite, time::Time, reflect::{Reflect, ReflectMut}};
 use bevy_ecs_tilemap::{tiles::TilePos, helpers::square_grid::neighbors::Neighbors};
 use bevy_inspector_egui::{bevy_egui::{EguiPlugin, egui, EguiContexts}, egui::{Align2, CollapsingHeader, ScrollArea}, quick::WorldInspectorPlugin, reflect_inspector};
 
-use crate::{common::{state::GameState, helpers::{self, get_tile_pos_from_world_coords}}, world::{block::BlockType, WorldData}};
-use bevy_prototype_debug_lines::DebugLinesPlugin;
+use crate::{common::{state::GameState, helpers::{self, get_tile_pos_from_world_coords}}, world::{block::BlockType, WorldData, chunk::ChunkContainer}};
 
-use super::{cursor::CursorPosition, assets::FontAssets, inventory::{UseItemAnimationIndex, UseItemAnimationData}};
+use super::{assets::FontAssets, inventory::{UseItemAnimationIndex, UseItemAnimationData}, camera::components::MainCamera, cursor::position::CursorPosition, DespawnOnGameExit, InGameSystemSet};
 
 pub(crate) struct DebugPlugin;
 impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugin(EguiPlugin);
-        app.add_plugin(DebugLinesPlugin::default());
-        app.add_plugin(WorldInspectorPlugin::new());
+        app.add_plugins((
+            EguiPlugin,
+            WorldInspectorPlugin::new()
+        ));
 
         app.insert_resource(HoverBlockData {
             pos: TilePos::default(),
@@ -31,18 +31,21 @@ impl Plugin for DebugPlugin {
 
         app.insert_resource(DebugConfiguration::default());
 
-        app.register_type::<CursorPosition>();
         app.register_type::<TextureAtlasSprite>();
         app.register_type::<UseItemAnimationIndex>();
         app.register_type::<UseItemAnimationData>();
 
-        app.add_system(debug_gui.in_set(OnUpdate(GameState::InGame)));
-        app.add_system(block_gui.in_set(OnUpdate(GameState::InGame)));
-
-        app.add_system(spawn_free_camera_legend.in_schedule(OnEnter(GameState::InGame)));
-        app.add_system(set_free_camera_legend_visibility.in_set(OnUpdate(GameState::InGame)));
-
-        app.add_system(block_hover.in_set(OnUpdate(GameState::InGame)));
+        app.add_systems(OnEnter(GameState::InGame), spawn_free_camera_legend);
+        app.add_systems(
+            Update,
+            (
+                debug_gui,
+                block_gui,
+                set_free_camera_legend_visibility,
+                block_hover,
+            )
+            .in_set(InGameSystemSet::Update)
+        );
     }
 }
 
@@ -56,7 +59,7 @@ pub(crate) struct DebugConfiguration {
     pub(crate) show_tiles: bool,
     pub(crate) show_walls: bool,
     pub(crate) shadow_tiles: bool,
-    pub(crate) player_speed: bevy::prelude::Vec2,
+    pub(crate) player_speed: Vec2,
 }
 
 impl Default for DebugConfiguration {
@@ -82,7 +85,10 @@ fn debug_gui(
     mut debug_config: ResMut<DebugConfiguration>,
     mut time: ResMut<Time>,
     type_registry: Res<AppTypeRegistry>,
+    query_chunk: Query<&ChunkContainer>
 ) {
+    let chunk_count = query_chunk.iter().count();
+
     let egui_context = contexts.ctx_mut();
 
     egui::Window::new("Debug Menu")
@@ -116,6 +122,12 @@ fn debug_gui(
                 columns[0].label("Vertical:");
                 reflect_inspector::ui_for_value_readonly(&debug_config.player_speed.y, &mut columns[1], &type_registry.0.read());
             });
+
+            ui.separator();
+            ui.columns(2, |columns| {
+                columns[0].label("Chunks:");
+                reflect_inspector::ui_for_value_readonly(&chunk_count, &mut columns[1], &type_registry.0.read());
+            });
         });
 }
 
@@ -124,8 +136,8 @@ fn set_free_camera_legend_visibility(
     debug_config: Res<DebugConfiguration>
 ) {
     if debug_config.is_changed() {
-        let mut visibility = query.single_mut();
-        helpers::set_visibility(&mut visibility, debug_config.free_camera);
+        let visibility = query.single_mut();
+        helpers::set_visibility(visibility, debug_config.free_camera);
     }
 }
 
@@ -140,9 +152,13 @@ fn spawn_free_camera_legend(
     };
 
     commands.spawn((
+        Name::new("Free Camera Legend Text"),
+        FreeCameraLegendText,
+        DespawnOnGameExit,
         TextBundle {
             style: Style {
-                position: UiRect::new(Val::Px(20.), Val::Undefined, Val::Undefined, Val::Px(50.)),
+                left: Val::Px(20.),
+                bottom: Val::Px(50.),
                 position_type: PositionType::Absolute,
                 ..default()
             },
@@ -152,8 +168,6 @@ fn spawn_free_camera_legend(
             visibility: Visibility::Hidden,
             ..default()
         },
-        Name::new("Free Camera Legend Text"),
-        FreeCameraLegendText
     ));
 }
 
@@ -219,11 +233,11 @@ fn block_gui(
 }
 
 fn block_hover(
-    cursor: Res<CursorPosition>,
+    cursor: Res<CursorPosition<MainCamera>>,
     world_data: Res<WorldData>,
     mut block_data: ResMut<HoverBlockData>
 ) {
-    let tile_pos = get_tile_pos_from_world_coords(cursor.world_position);
+    let tile_pos = get_tile_pos_from_world_coords(cursor.world);
     let block_type = world_data.get_block(tile_pos).map(|b| *b);
     let neighbors = world_data.get_block_neighbors(tile_pos, true);
 

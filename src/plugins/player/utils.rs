@@ -1,8 +1,8 @@
 use bevy::{prelude::{Query, With, Component, Res}, sprite::TextureAtlasSprite};
 
-use crate::{common::state::MovementState, plugins::inventory::{UseItemAnimationData, SwingAnimation}};
+use crate::plugins::inventory::{UseItemAnimationData, SwingAnimation};
 
-use super::{Player, AnimationData, PlayerSpriteBody};
+use super::{AnimationData, PlayerSpriteBody};
 
 pub(super) fn simple_animation<C: AnimationData + Component>(
     swing_animation: Res<SwingAnimation>,
@@ -15,42 +15,7 @@ pub(super) fn simple_animation<C: AnimationData + Component>(
     });
 }
 
-pub(super) fn is_walking(
-    query_player: Query<&MovementState, With<Player>>,
-) -> bool {
-    if let Ok(state) = query_player.get_single() {
-        if *state == MovementState::Walking {
-            return true;
-        }
-    }
-
-    false
-}
-
-pub(super) fn is_idle(
-    query_player: Query<&MovementState, With<Player>>,
-) -> bool {
-    if let Ok(state) = query_player.get_single() {
-        if *state == MovementState::Idle {
-            return true;
-        }
-    }
-
-    false
-}
-
-pub(super) fn is_flying(
-    query_player: Query<&MovementState, With<Player>>,
-) -> bool {
-    if let Ok(state) = query_player.get_single() {
-        if *state == MovementState::Flying {
-            return true;
-        }
-    }
-
-    false
-}
-
+#[inline]
 pub(super) fn get_fall_distance(position: f32, fall_start: Option<f32>) -> f32 {
     fall_start.map(|fs| (position - fs).abs()).unwrap_or(0.)
 }

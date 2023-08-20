@@ -2,6 +2,8 @@
 .DS_Store
 target/
 /worlds
-settings.json
+config.json
 Cargo.lock
 world.png
+*.tracy
+/.vscode

@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use bevy::prelude::Component;
 use bevy_ecs_tilemap::helpers::square_grid::neighbors::Neighbors;
 use rand::{thread_rng, Rng};
@@ -9,7 +11,7 @@ use super::{tree::{Tree, TreeFrameType}, TerrariaFrame};
 pub(crate) type BlockId = u8;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "debug", derive(bevy::reflect::Reflect, bevy::reflect::FromReflect))]
+#[cfg_attr(feature = "debug", derive(bevy::reflect::Reflect))]
 pub(crate) enum BlockType {
     Dirt,
     Stone,
@@ -72,57 +74,22 @@ pub(crate) struct Block {
 }
 
 impl From<BlockType> for Block {
-    fn from(block_type: BlockType) -> Self {
-        Block { block_type, hp: block_type.max_health() }
+    fn from(block_type: BlockType) -> Self { Block::new(block_type) }
+}
+
+impl Deref for Block {
+    type Target = BlockType;
+
+    fn deref(&self) -> &Self::Target {
+        &self.block_type
     }
 }
 
 impl Block {
     #[inline(always)]
-    pub(crate) const fn id(&self) -> BlockId {
-        self.block_type.id()
+    pub(crate) fn new(block_type: BlockType) -> Block {
+        Self { block_type, hp: block_type.max_health() }
     }
-
-    #[inline(always)]
-    pub(crate) const fn frame(&self) -> Option<TerrariaFrame> {
-        self.block_type.frame()
-    }
-
-    #[inline(always)]
-    pub(crate) const fn max_health(&self) -> i32 {
-        self.block_type.max_health()
-    }
-    
-    #[inline(always)]
-    pub(crate) const fn dirt_mergable(&self) -> bool {
-        self.block_type.dirt_mergable()
-    }
-
-    #[inline(always)]
-    pub(crate) const fn is_solid(&self) -> bool {
-        self.block_type.is_solid()
-    }
-
-    #[inline(always)]
-    pub(crate) const fn check_required_tool(&self, tool: Tool) -> bool {
-        self.block_type.check_required_tool(tool)
-    }
-}
-
-macro_rules! block {
-    ($block_name: ident) => {
-        pub(crate) const $block_name: Block = Block {
-            block_type: BlockType::$block_name,
-            hp: BlockType::$block_name.max_health()
-        };
-    };
-}
-
-#[allow(non_upper_case_globals)]
-impl Block {
-    block!(Dirt);
-    block!(Grass);
-    block!(Stone);
 }
 
 impl Block {

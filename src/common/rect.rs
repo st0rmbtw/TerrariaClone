@@ -1,9 +1,5 @@
 #[cfg(feature = "debug")]
-use bevy_prototype_debug_lines::DebugLines;
-#[cfg(feature = "debug")]
-use bevy::prelude::Vec3;
-#[cfg(feature = "debug")]
-use bevy::prelude::Color;
+use bevy::prelude::{Gizmos, Vec2, Color};
 
 #[derive(Clone, PartialEq, Debug, Default)]
 pub(crate) struct FRect {
@@ -45,7 +41,7 @@ impl FRect {
             self.bottom() <= other.top()
     }
 
-    pub(crate) fn inside(&self, point: (f32, f32)) -> bool {
+    pub(crate) fn contains(&self, point: (f32, f32)) -> bool {
         point.0 > self.left && point.0 < self.right && point.1 > self.bottom() && point.1 < self.top()
     }
 
@@ -58,40 +54,36 @@ impl FRect {
     }
 
     #[cfg(feature = "debug")]
-    pub(crate) fn draw_left_side(&self, debug_lines: &mut DebugLines, duration: f32, color: Color) {
-        debug_lines.line_colored(
-            Vec3::new(self.left, self.bottom(), 10.),
-            Vec3::new(self.left, self.top(), 10.),
-            duration,
+    pub(crate) fn draw_left_side(&self, debug_lines: &mut Gizmos, color: Color) {
+        debug_lines.line_2d(
+            Vec2::new(self.left, self.bottom()),
+            Vec2::new(self.left, self.top()),
             color
         );
     }
 
     #[cfg(feature = "debug")]
-    pub(crate) fn draw_right_side(&self, debug_lines: &mut DebugLines, duration: f32, color: Color) {
-        debug_lines.line_colored(
-            Vec3::new(self.right, self.bottom(), 10.),
-            Vec3::new(self.right, self.top(), 10.),
-            duration,
+    pub(crate) fn draw_right_side(&self, debug_lines: &mut Gizmos, color: Color) {
+        debug_lines.line_2d(
+            Vec2::new(self.right, self.bottom()),
+            Vec2::new(self.right, self.top()),
             color
         );
     }
 
     #[cfg(feature = "debug")]
-    pub(crate) fn draw_top_side(&self, debug_lines: &mut DebugLines, duration: f32, color: Color) {
-        debug_lines.line_colored(
-            Vec3::new(self.left, self.top(), 10.),
-            Vec3::new(self.right, self.top(), 10.),
-            duration,
+    pub(crate) fn draw_top_side(&self, debug_lines: &mut Gizmos, color: Color) {
+        debug_lines.line_2d(
+            Vec2::new(self.left, self.top()),
+            Vec2::new(self.right, self.top()),
             color
         );
     }
     #[cfg(feature = "debug")]
-    pub(crate) fn draw_bottom_side(&self, debug_lines: &mut DebugLines, duration: f32, color: Color) {
-        debug_lines.line_colored(
-            Vec3::new(self.left, self.bottom(), 10.),
-            Vec3::new(self.right, self.bottom(), 10.),
-            duration,
+    pub(crate) fn draw_bottom_side(&self, debug_lines: &mut Gizmos, color: Color) {
+        debug_lines.line_2d(
+            Vec2::new(self.left, self.bottom()),
+            Vec2::new(self.right, self.bottom()),
             color
         );
     }

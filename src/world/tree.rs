@@ -2,7 +2,7 @@ use crate::common::TextureAtlasPos;
 
 use super::TerrariaFrame;
 
-#[cfg_attr(feature = "debug", derive(bevy::reflect::Reflect, bevy::reflect::FromReflect))]
+#[cfg_attr(feature = "debug", derive(bevy::reflect::Reflect))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq,)]
 pub(crate) enum TreeFrameType {
     // A trunk
@@ -95,13 +95,13 @@ impl TreeFrameType {
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "debug", derive(bevy::reflect::Reflect, bevy::reflect::FromReflect))]
+#[cfg_attr(feature = "debug", derive(bevy::reflect::Reflect))]
 pub(crate) enum TreeType {
     Forest
 }
 
 #[derive(Debug, Clone, Copy, Eq)]
-#[cfg_attr(feature = "debug", derive(bevy::reflect::Reflect, bevy::reflect::FromReflect))]
+#[cfg_attr(feature = "debug", derive(bevy::reflect::Reflect))]
 pub(crate) struct Tree {
     pub(crate) tree_type: TreeType,
     pub(crate) frame_type: TreeFrameType,

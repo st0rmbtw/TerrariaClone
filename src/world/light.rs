@@ -5,7 +5,7 @@ use super::WorldData;
 
 type LightMap = Array2::<u8>;
 
-pub(crate) const CLUSTER_SIZE: usize = 2;
+pub(crate) const CLUSTER_SIZE: usize = 1;
 
 #[allow(dead_code)]
 pub(crate) fn generate_light_map(world: &WorldData) -> LightMap {

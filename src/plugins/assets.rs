@@ -1,4 +1,4 @@
-use bevy::prelude::{Resource, AudioSource, IntoSystemAppConfig, OnExit};
+use bevy::prelude::{Resource, AudioSource, OnExit};
 use bevy::utils::default;
 use bevy::{
     math::Vec2,
@@ -8,13 +8,15 @@ use bevy::{
     text::Font,
 };
 use bevy_asset_loader::prelude::{AssetCollection, LoadingState, LoadingStateAppExt};
-use rand::RngCore;
+use rand::{RngCore, thread_rng};
 use rand::seq::SliceRandom;
 
 use crate::items::{Item, Pickaxe, Tool, Axe, Seed};
-use crate::common::state::{GameState, MenuState};
+use crate::common::state::GameState;
 use crate::world::block::BlockType;
 use crate::world::wall::Wall;
+
+use super::audio::{SoundType, MusicType};
 
 macro_rules! handles {
     (
@@ -50,13 +52,14 @@ impl Plugin for AssetsPlugin {
     fn build(&self, app: &mut App) {
         app.add_loading_state(
             LoadingState::new(GameState::AssetLoading)
-                .continue_to_state(GameState::Menu(MenuState::Main))
+                .continue_to_state(GameState::Menu)
         );
 
         app.add_collection_to_loading_state::<_, BlockAssets>(GameState::AssetLoading);
         app.add_collection_to_loading_state::<_, WallAssets>(GameState::AssetLoading);
         app.add_collection_to_loading_state::<_, UiAssets>(GameState::AssetLoading);
         app.add_collection_to_loading_state::<_, SoundAssets>(GameState::AssetLoading);
+        app.add_collection_to_loading_state::<_, MusicAssets>(GameState::AssetLoading);
         app.add_collection_to_loading_state::<_, PlayerAssets>(GameState::AssetLoading);
         app.add_collection_to_loading_state::<_, FontAssets>(GameState::AssetLoading);
         app.add_collection_to_loading_state::<_, ItemAssets>(GameState::AssetLoading);
@@ -64,10 +67,26 @@ impl Plugin for AssetsPlugin {
         app.add_collection_to_loading_state::<_, BackgroundAssets>(GameState::AssetLoading);
         app.add_collection_to_loading_state::<_, CelestialBodyAssets>(GameState::AssetLoading);
         
-        app.add_system(setup.in_schedule(OnExit(GameState::AssetLoading)));
+        app.add_systems(OnExit(GameState::AssetLoading), setup);
     }
 }
 
+fn setup(
+    mut images: ResMut<Assets<Image>>,
+    ui_assets: Res<UiAssets>,
+    cursor_assets: Res<CursorAssets>,
+    background_assets: Res<BackgroundAssets>,
+) {
+    let mut handles = ui_assets.handles();
+    handles.append(&mut cursor_assets.handles());
+    handles.append(&mut background_assets.handles());
+
+    for handle in handles.iter() {
+        let image = images.get_mut(handle).unwrap();
+
+        image.sampler_descriptor = ImageSampler::linear();
+    }
+}
 
 #[derive(Resource, AssetCollection)]
 pub(crate) struct BlockAssets {
@@ -93,6 +112,17 @@ pub(crate) struct BlockAssets {
     pub(crate) tree_tops_forest: Handle<Image>,
 }
 
+impl BlockAssets {
+    pub(crate) fn get_by_block(&self, block: BlockType) -> Option<Handle<Image>> {
+        match block {
+            BlockType::Dirt => Some(self.dirt.clone_weak()),
+            BlockType::Stone => Some(self.stone.clone_weak()),
+            BlockType::Grass => Some(self.grass.clone_weak()),
+            BlockType::Tree(_) => todo!(),
+        }
+    }
+}
+
 handles! {
     Handle<Image>,
     #[derive(Resource, AssetCollection)]
@@ -114,107 +144,53 @@ handles! {
 
         #[asset(path = "sprites/ui/Logo.png")]
         pub(crate) logo: Handle<Image>,
+
+        #[asset(path = "sprites/ui/SliderBorder.png")]
+        pub(crate) slider_border: Handle<Image>,
+
+        #[asset(path = "sprites/ui/SliderBackground.png")]
+        pub(crate) slider_background: Handle<Image>,
+
+        #[asset(path = "sprites/ui/SliderHandle.png")]
+        pub(crate) slider_handle: Handle<Image>,
     }
 }
 
 #[derive(Resource, AssetCollection)]
 pub(crate) struct PlayerAssets {
-    #[asset(texture_atlas(
-        tile_size_x = 40.,
-        tile_size_y = 48.,
-        columns = 1,
-        rows = 14,
-        padding_x = 0.,
-        padding_y = 0.
-    ))]
+    #[asset(texture_atlas(tile_size_x = 40., tile_size_y = 48., columns = 1, rows = 14))]
     #[asset(path = "sprites/player/Player_0_0.png")]
     pub(crate) head: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(
-        tile_size_x = 32.,
-        tile_size_y = 64.,
-        columns = 27,
-        rows = 1,
-        padding_x = 0.,
-        padding_y = 0.
-    ))]
+    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 64., columns = 27, rows = 1))]
     #[asset(path = "sprites/player/Player_Left_Shoulder.png")]
     pub(crate) left_shoulder: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(
-        tile_size_x = 32.,
-        tile_size_y = 64.,
-        columns = 27,
-        rows = 1,
-        padding_x = 0.,
-        padding_y = 0.
-    ))]
+    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 64., columns = 27, rows = 1))]
     #[asset(path = "sprites/player/Player_Left_Hand.png")]
     pub(crate) left_hand: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(
-        tile_size_x = 32.,
-        tile_size_y = 80.,
-        columns = 18,
-        rows = 1,
-        padding_x = 0.,
-        padding_y = 0.
-    ))]
+    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 80., columns = 18, rows = 1))]
     #[asset(path = "sprites/player/Player_Right_Arm.png")]
     pub(crate) right_arm: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(
-        tile_size_x = 40.,
-        tile_size_y = 64.,
-        columns = 1,
-        rows = 14,
-        padding_x = 0.,
-        padding_y = 0.
-    ))]
+    #[asset(texture_atlas(tile_size_x = 40., tile_size_y = 64., columns = 1, rows = 14))]
     #[asset(path = "sprites/player/Player_Hair_1.png")]
     pub(crate) hair: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(
-        tile_size_x = 32.,
-        tile_size_y = 64.,
-        columns = 1,
-        rows = 14,
-        padding_x = 8.,
-        padding_y = 0.
-    ))]
+    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 64., columns = 1, rows = 14, padding_x = 8.))]
     #[asset(path = "sprites/player/Player_Body.png")]
     pub(crate) chest: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(
-        tile_size_x = 40.,
-        tile_size_y = 64.,
-        columns = 1,
-        rows = 19,
-        padding_x = 0.,
-        padding_y = 0.
-    ))]
+    #[asset(texture_atlas(tile_size_x = 40., tile_size_y = 64., columns = 1, rows = 19))]
     #[asset(path = "sprites/player/Player_0_11.png")]
     pub(crate) feet: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(
-        tile_size_x = 40.,
-        tile_size_y = 64.,
-        columns = 1,
-        rows = 20,
-        padding_x = 0.,
-        padding_y = 0.
-    ))]
+    #[asset(texture_atlas(tile_size_x = 40., tile_size_y = 64., columns = 1, rows = 20))]
     #[asset(path = "sprites/player/Player_0_1.png")]
     pub(crate) eyes_1: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(
-        tile_size_x = 40.,
-        tile_size_y = 64.,
-        columns = 1,
-        rows = 20,
-        padding_x = 0.,
-        padding_y = 0.
-    ))]
+    #[asset(texture_atlas(tile_size_x = 40., tile_size_y = 64., columns = 1, rows = 20))]
     #[asset(path = "sprites/player/Player_0_2.png")]
     pub(crate) eyes_2: Handle<TextureAtlas>,
 }
@@ -244,6 +220,23 @@ pub(crate) struct ItemAssets {
 
     #[asset(path = "sprites/items/Item_3506.png")]
     pub(crate) copper_axe: Handle<Image>,
+}
+
+impl ItemAssets {
+    pub(crate) fn get_by_item(&self, item: Item) -> Handle<Image> {
+        match item {
+            Item::Block(block) => {
+                match block {
+                    BlockType::Dirt => self.dirt_block.clone_weak(),
+                    BlockType::Stone => self.stone_block.clone_weak(),
+                    _ => default()
+                }
+            }
+            Item::Tool(Tool::Pickaxe(Pickaxe::CopperPickaxe)) => self.copper_pickaxe.clone_weak(),
+            Item::Tool(Tool::Axe(Axe::CopperAxe)) => self.copper_axe.clone_weak(),
+            Item::Seed(Seed::Grass) => self.grass_seed.clone_weak()
+        }
+    }
 }
 
 handles! {
@@ -317,13 +310,51 @@ handles! {
 
 #[derive(Resource, AssetCollection)]
 pub(crate) struct CelestialBodyAssets {
-    #[asset(texture_atlas(tile_size_x = 114., tile_size_y = 114., columns = 1, rows = 1, padding_x = 0., padding_y = 0.))]
+    #[asset(texture_atlas(tile_size_x = 114., tile_size_y = 114., columns = 1, rows = 1))]
     #[asset(path = "sprites/backgrounds/Sun.png")]
     pub(crate) sun: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 7, padding_x = 0., padding_y = 0.))]
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8))]
     #[asset(path = "sprites/backgrounds/Moon_0.png")]
     pub(crate) moon_0: Handle<TextureAtlas>,
+
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8))]
+    #[asset(path = "sprites/backgrounds/Moon_1.png")]
+    pub(crate) moon_1: Handle<TextureAtlas>,
+
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8))]
+    #[asset(path = "sprites/backgrounds/Moon_2.png")]
+    pub(crate) moon_2: Handle<TextureAtlas>,
+
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8))]
+    #[asset(path = "sprites/backgrounds/Moon_3.png")]
+    pub(crate) moon_3: Handle<TextureAtlas>,
+
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8))]
+    #[asset(path = "sprites/backgrounds/Moon_4.png")]
+    pub(crate) moon_4: Handle<TextureAtlas>,
+
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8))]
+    #[asset(path = "sprites/backgrounds/Moon_5.png")]
+    pub(crate) moon_5: Handle<TextureAtlas>,
+
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8))]
+    #[asset(path = "sprites/backgrounds/Moon_6.png")]
+    pub(crate) moon_6: Handle<TextureAtlas>,
+
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8))]
+    #[asset(path = "sprites/backgrounds/Moon_7.png")]
+    pub(crate) moon_7: Handle<TextureAtlas>,
+
+    #[asset(texture_atlas(tile_size_x = 50., tile_size_y = 50., columns = 1, rows = 8))]
+    #[asset(path = "sprites/backgrounds/Moon_8.png")]
+    pub(crate) moon_8: Handle<TextureAtlas>,
+}
+
+impl CelestialBodyAssets {
+    pub(crate) const fn moons(&self) -> [&Handle<TextureAtlas>; 9] {
+        [&self.moon_0, &self.moon_1, &self.moon_2, &self.moon_3, &self.moon_4, &self.moon_5, &self.moon_6, &self.moon_7, &self.moon_8]
+    }
 }
 
 #[derive(Resource, AssetCollection)]
@@ -333,6 +364,15 @@ pub(crate) struct WallAssets {
 
     #[asset(path = "sprites/walls/Walls.png")]
     pub(crate) walls: Handle<Image>,
+}
+
+impl WallAssets {
+    pub(crate) fn get_by_wall(&self, wall: Wall) -> Option<Handle<Image>> {
+        match wall {
+            Wall::Dirt => Some(self.wall_2.clone_weak()),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Resource, AssetCollection)]
@@ -356,45 +396,19 @@ pub(crate) struct SoundAssets {
     pub(crate) tink: Vec<Handle<AudioSource>>,
 }
 
-impl WallAssets {
-    pub(crate) fn get_by_wall(&self, wall: Wall) -> Option<Handle<Image>> {
-        match wall {
-            Wall::Dirt => Some(self.wall_2.clone_weak()),
-            _ => None,
-        }
-    }
-}
-
-impl ItemAssets {
-    pub(crate) fn get_by_item(&self, item: Item) -> Handle<Image> {
-        match item {
-            Item::Block(block) => {
-                match block.block_type {
-                    BlockType::Dirt => self.dirt_block.clone_weak(),
-                    BlockType::Stone => self.stone_block.clone_weak(),
-                    _ => default()
-                }
-            }
-            Item::Tool(Tool::Pickaxe(Pickaxe::CopperPickaxe)) => self.copper_pickaxe.clone_weak(),
-            Item::Tool(Tool::Axe(Axe::CopperAxe)) => self.copper_axe.clone_weak(),
-            Item::Seed(Seed::Grass) => self.grass_seed.clone_weak()
-        }
-    }
-}
-
-impl BlockAssets {
-    pub(crate) fn get_by_block(&self, block: BlockType) -> Option<Handle<Image>> {
-        match block {
-            BlockType::Dirt => Some(self.dirt.clone_weak()),
-            BlockType::Stone => Some(self.stone.clone_weak()),
-            BlockType::Grass => Some(self.grass.clone_weak()),
-            BlockType::Tree(_) => todo!(),
-        }
-    }
-}
-
 impl SoundAssets {
-    pub(crate) fn get_by_block<Rng: RngCore>(&self, block: BlockType, rng: &mut Rng) -> Handle<AudioSource> {
+    pub(crate) fn get_handle_by_sound_type(&self, sound_type: SoundType) -> Handle<AudioSource> {
+        match sound_type {
+            SoundType::MenuTick => self.menu_tick.clone_weak(),
+            SoundType::MenuOpen => self.menu_open.clone_weak(),
+            SoundType::MenuClose => self.menu_close.clone_weak(),
+            SoundType::BlockHit(block_type) => self.get_by_block(block_type, &mut thread_rng()),
+            SoundType::BlockPlace(block_type) => self.get_by_block(block_type, &mut thread_rng()),
+            SoundType::PlayerToolSwing(_tool) => self.swing.choose(&mut thread_rng()).unwrap().clone_weak(),
+        }
+    }
+    
+    fn get_by_block<Rng: RngCore>(&self, block: BlockType, rng: &mut Rng) -> Handle<AudioSource> {
         match block {
             BlockType::Stone => self.tink.choose(rng).unwrap().clone_weak(),
             _ => self.dig.choose(rng).unwrap().clone_weak()
@@ -402,19 +416,16 @@ impl SoundAssets {
     }
 }
 
-fn setup(
-    mut images: ResMut<Assets<Image>>,
-    ui_assets: Res<UiAssets>,
-    cursor_assets: Res<CursorAssets>,
-    background_assets: Res<BackgroundAssets>,
-) {
-    let mut handles = ui_assets.handles();
-    handles.append(&mut cursor_assets.handles());
-    handles.append(&mut background_assets.handles());
+#[derive(Resource, AssetCollection)]
+pub(crate) struct MusicAssets {
+    #[asset(path = "music/Title_Screen.mp3")]
+    pub(crate) title_screen: Handle<AudioSource>,
+}
 
-    for handle in handles.iter() {
-        let mut image = images.get_mut(handle).unwrap();
-
-        image.sampler_descriptor = ImageSampler::linear();
+impl MusicAssets {
+    pub(crate) fn get_handle_by_music_type(&self, music_type: MusicType) -> Handle<AudioSource> {
+        match music_type {
+            MusicType::TitleScreen => self.title_screen.clone_weak(),
+        }
     }
 }

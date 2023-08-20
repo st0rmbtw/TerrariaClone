@@ -66,7 +66,5 @@ pub(crate) struct LayerTextureComponent {
 
 #[derive(Component)]
 pub(crate) struct LayerDataComponent {
-    /// Width of the texture
-    pub fill_screen_height: bool,
     pub position: Vec2
 }

@@ -9,13 +9,11 @@ pub(crate) use resources::*;
 pub(crate) use body_sprites::*;
 use systems::*;
 
-use crate::{common::{state::GameState, helpers::tile_pos_to_world_coords}, plugins::player::utils::{simple_animation, is_walking, is_idle, is_flying}, world::WorldData};
+use crate::{common::{state::{GameState, MovementState}, helpers::tile_pos_to_world_coords, systems::{component_equals, despawn_with}}, plugins::player::utils::simple_animation, world::WorldData};
 use std::time::Duration;
-use bevy_hanabi::prelude::*;
-use bevy::{prelude::*, time::{Timer, TimerMode}, sprite::Anchor, math::vec2};
-use autodefault::autodefault;
+use bevy::{prelude::*, time::{Timer, TimerMode}, math::vec2};
 
-use super::{assets::PlayerAssets, world::TILE_SIZE, inventory::UseItemAnimationData};
+use super::{assets::PlayerAssets, world::constants::TILE_SIZE, inventory::UseItemAnimationData, InGameSystemSet};
 
 #[cfg(feature = "debug")]
 use crate::plugins::debug::DebugConfiguration;
@@ -38,91 +36,61 @@ const JUMP_SPEED: f32 = 5.01;
 pub(crate) const MAX_RUN_SPEED: f32 = 3.;
 pub(crate) const MAX_FALL_SPEED: f32 = -10.;
 
-#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
-enum PhysicsSet {
-    SetVelocity,
-    Update
-}
-
 pub(crate) struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(InputAxis::default());
-        app.insert_resource(MovementAnimationIndex::default());
-        app.insert_resource(MovementAnimationTimer(Timer::new(Duration::from_millis(80), TimerMode::Repeating)));
-        app.init_resource::<PlayerVelocity>();
-        app.init_resource::<Collisions>();
-        app.init_resource::<PlayerData>();
-
-        app.add_system(spawn_player.in_schedule(OnEnter(GameState::InGame)));
+        app.add_systems(OnEnter(GameState::InGame), (setup, spawn_player));
+        app.add_systems(OnExit(GameState::InGame), (cleanup, despawn_with::<Player>));
 
         let flip_player_systems = (
             update_face_direction,
             flip_player,
             flip_using_item
         )
-        .chain()
-        .in_set(OnUpdate(GameState::InGame));
-
-        #[cfg(not(feature = "debug"))]
-        app.add_systems(flip_player_systems);
+        .chain();
 
         #[cfg(feature = "debug")]
-        app.add_systems(
-            flip_player_systems.distributive_run_if(|config: Res<DebugConfiguration>| !config.free_camera)
-        );
+        let flip_player_systems = flip_player_systems.run_if(|config: Res<DebugConfiguration>| !config.free_camera);
 
         app.add_systems(
+            Update,
             (
+                flip_player_systems,
                 update_movement_state,
-                spawn_particles
+                (
+                    update_movement_animation_timer,
+                    update_movement_animation_index,
+                    walking_animation.run_if(component_equals::<Player, _>(MovementState::Walking)),
+                ).chain(),
+                simple_animation::<IdleAnimationData>.run_if(component_equals::<Player, _>(MovementState::Idle)),
+                simple_animation::<FlyingAnimationData>.run_if(component_equals::<Player, _>(MovementState::Flying))
             )
-            .after(PhysicsSet::Update)
-            .in_set(OnUpdate(GameState::InGame))
+            .in_set(InGameSystemSet::Update)
         );
 
-        app.add_systems(
-            (
-                update_movement_animation_timer,
-                update_movement_animation_index,
-                walking_animation.run_if(is_walking),
-                simple_animation::<IdleAnimationData>.run_if(is_idle),
-                simple_animation::<FlyingAnimationData>.run_if(is_flying)
-            )
-            .in_set(OnUpdate(GameState::InGame))
-        );
-
-        app.add_system(update_input_axis.in_set(OnUpdate(GameState::InGame)));
+        app.add_systems(PreUpdate, update_input_axis.in_set(InGameSystemSet::PreUpdate));
 
         let handle_player_movement_systems = (
-                horizontal_movement,
-                update_jump,
-            )
-            .in_set(PhysicsSet::SetVelocity)
-            .before(PhysicsSet::Update)
-            .distributive_run_if(in_state(GameState::InGame));
-
-        #[cfg(not(feature = "debug"))]
-        app.add_systems(handle_player_movement_systems.in_schedule(CoreSchedule::FixedUpdate));
-
-        #[cfg(feature = "debug")]
-        app.add_systems(
-            handle_player_movement_systems
-                .distributive_run_if(|config: Res<DebugConfiguration>| !config.free_camera)
-                .in_schedule(CoreSchedule::FixedUpdate)
+            horizontal_movement,
+            update_jump,
         );
 
+        #[cfg(feature = "debug")]
+        let handle_player_movement_systems = handle_player_movement_systems.run_if(|config: Res<DebugConfiguration>| !config.free_camera);
+
         app.add_systems(
+            FixedUpdate,
             (
-                gravity,
-                detect_collisions,
-                move_player,
-                update_player_rect
+                handle_player_movement_systems,
+                (
+                    gravity,
+                    detect_collisions,
+                    move_player,
+                    update_player_rect,
+                )
+                .chain()
             )
-            .chain()
-            .distributive_run_if(in_state(GameState::InGame))
-            .in_set(PhysicsSet::Update)
-            .in_schedule(CoreSchedule::FixedUpdate)
+            .in_set(InGameSystemSet::FixedUpdate)
         );
 
         #[cfg(feature = "debug")]
@@ -130,94 +98,65 @@ impl Plugin for PlayerPlugin {
             use bevy::input::common_conditions::input_just_pressed;
 
             app.add_systems(
+                Update,
                 (
+                    current_speed,
                     draw_hitbox.run_if(|config: Res<DebugConfiguration>| config.show_hitboxes),
                     teleport_player.run_if(
                         (|config: Res<DebugConfiguration>| config.free_camera)
                             .and_then(input_just_pressed(MouseButton::Right))
                     )
                 )
-                .in_set(OnUpdate(GameState::InGame))
+                .in_set(InGameSystemSet::Update)
             );
-
-            app.add_system(current_speed);
         }
     }
 }
 
-#[autodefault(except(GroundSensor, PlayerParticleEffects))]
+fn setup(mut commands: Commands) {
+    commands.init_resource::<PlayerVelocity>();
+    commands.init_resource::<Collisions>();
+    commands.init_resource::<PlayerData>();
+    commands.insert_resource(InputAxis::default());
+    commands.insert_resource(MovementAnimationIndex::default());
+    commands.insert_resource(MovementAnimationTimer(Timer::new(Duration::from_millis(80), TimerMode::Repeating)));
+}
+
+fn cleanup(mut commands: Commands) {
+    commands.remove_resource::<PlayerVelocity>();
+    commands.remove_resource::<Collisions>();
+    commands.remove_resource::<PlayerData>();
+    commands.remove_resource::<InputAxis>();
+    commands.remove_resource::<MovementAnimationIndex>();
+    commands.remove_resource::<MovementAnimationTimer>();
+}
+
 fn spawn_player(
     mut commands: Commands,
     player_assets: Res<PlayerAssets>,
-    mut effects: ResMut<Assets<EffectAsset>>,
     world_data: Res<WorldData>
 ) {
-    let spawner = Spawner::rate(40.0.into());
-    let effect = effects.add(
-        EffectAsset {
-            name: "PlayerFeetDust".to_string(),
-            capacity: 50,
-            spawner,
-            z_layer_2d: 10.,
-        }
-        .init(InitPositionCone3dModifier {
-            base_radius: 5.,
-            top_radius: 5.,
-            height: 1.,
-            dimension: ShapeDimension::Surface,
-        })
-        .init(InitVelocitySphereModifier {
-            speed: 10.0.into()
-        })
-        .init(InitSizeModifier {
-            size: DimValue::D1(Value::Uniform((0.8, 2.)))
-        })
-        .update(AccelModifier::constant(Vec3::new(0., 0., 0.)))
-        .init(InitLifetimeModifier { lifetime: 0.2.into() })
-        .render(ColorOverLifetimeModifier { 
-            gradient: Gradient::constant(Vec4::new(114. / 255., 81. / 255., 56. / 255., 1.))
-        }),
-    );
-
-    let effect_entity = commands
-        .spawn(
-            ParticleEffectBundle {
-                effect: ParticleEffect::new(effect),
-                transform: Transform::from_xyz(0., -(TILE_SIZE * 3. / 2.), 0.),
-                ..default()
-            }
-            .with_spawner(spawner)
-        )
-        .insert(Name::new("Particle Spawner"))
-        .id();
-
     let spawn_point = tile_pos_to_world_coords(world_data.spawn_point) 
         + TILE_SIZE / 2.
         + vec2(PLAYER_HALF_WIDTH, PLAYER_HALF_HEIGHT);
 
     commands
-        .spawn((
-            PlayerBundle::new(spawn_point.x, spawn_point.y),
-            PlayerParticleEffects {
-                walking: effect_entity,
-            }
-        ))
-        .add_child(effect_entity)
+        .spawn(PlayerBundle::new(spawn_point.x, spawn_point.y))
         .with_children(|cmd| {
             use body_sprites::*;
-            spawn_player_hair(cmd, player_assets.hair.clone_weak());
+            spawn_player_hair(cmd, player_assets.hair.clone_weak(), 0.5);
 
-            spawn_player_head(cmd, player_assets.head.clone_weak());
+            spawn_player_head(cmd, player_assets.head.clone_weak(), 0.1);
 
-            spawn_player_eyes(cmd, player_assets.eyes_1.clone_weak(), player_assets.eyes_2.clone_weak());
+            spawn_player_eyes(cmd, player_assets.eyes_1.clone_weak(), player_assets.eyes_2.clone_weak(), 0.2);
 
-            spawn_player_left_hand(cmd, player_assets.left_shoulder.clone_weak(), player_assets.left_hand.clone_weak());
-            spawn_player_right_hand(cmd, player_assets.right_arm.clone_weak());
+            spawn_player_left_hand(cmd, player_assets.left_shoulder.clone_weak(), player_assets.left_hand.clone_weak(), 0.9);
+            spawn_player_right_hand(cmd, player_assets.right_arm.clone_weak(), 0.);
 
-            spawn_player_chest(cmd, player_assets.chest.clone_weak());
+            spawn_player_chest(cmd, player_assets.chest.clone_weak(), 0.1);
 
-            spawn_player_feet(cmd, player_assets.feet.clone_weak());
+            spawn_player_feet(cmd, player_assets.feet.clone_weak(), 0.2);
 
-            spawn_player_item_in_hand(cmd);
+            spawn_player_item_in_hand(cmd, 0.7);
         });
 }

@@ -2,35 +2,19 @@
 #![allow(clippy::needless_update)]
 #![allow(clippy::too_many_arguments)]
 
-use std::error::Error;
+use std::{error::Error, time::Duration};
 
-use animation::TweeningPlugin;
 use bevy::{
+    DefaultPlugins,
     log::{Level, LogPlugin},
-    prelude::{
-        default, App, AssetPlugin, ClearColor, Color, FixedTime, ImagePlugin, Msaa, PluginGroup, UVec2,
-    },
+    prelude::{default, App, AssetPlugin, ClearColor, Color, FixedTime, ImagePlugin, Msaa, PluginGroup},
     window::{Cursor, MonitorSelection, Window, WindowPlugin, WindowPosition, WindowResolution},
-    DefaultPlugins
+    asset::ChangeWatcher
 };
-use bevy_ecs_tilemap::{prelude::TilemapRenderSettings, TilemapPlugin};
-use bevy_hanabi::HanabiPlugin;
-use common::state::GameState;
+
 use language::{load_language, Language};
-use lighting::LightingPlugin;
-use parallax::ParallaxPlugin;
 use plugins::{
-    assets::AssetsPlugin,
-    background::BackgroundPlugin,
-    camera::{CameraPlugin, UpdateLightEvent},
-    cursor::CursorPlugin,
-    fps::FpsPlugin,
-    inventory::PlayerInventoryPlugin,
-    menu::MenuPlugin,
-    player::PlayerPlugin,
-    settings::{FullScreen, Resolution, SettingsPlugin, VSync},
-    ui::PlayerUiPlugin,
-    world::WorldPlugin,
+    config::{FullScreen, Resolution, ConfigPlugin, VSync}, main::MainPlugin,
 };
 use rand::seq::SliceRandom;
 
@@ -45,13 +29,18 @@ pub(crate) mod world;
 
 pub use world::WorldSize;
 
+pub(crate) const BACKGROUND_LAYER: f32 = 0.;
+pub(crate) const WALL_LAYER: f32 = 1.;
+pub(crate) const TILES_LAYER: f32 = 2.;
+pub(crate) const PLAYER_LAYER: f32 = 3.;
+
 pub fn create_app() -> Result<App, Box<dyn Error>> {
     let language_content = load_language(Language::English)?;
     let title = language_content.titles.choose(&mut rand::thread_rng()).unwrap();
 
     let mut app = App::new();
 
-    app.add_plugin(SettingsPlugin);
+    app.add_plugins(ConfigPlugin);
 
     let resolution = *app.world.resource::<Resolution>();
     let vsync = *app.world.resource::<VSync>();
@@ -66,17 +55,20 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
                         visible: false,
                         ..default()
                     },
+                    focused: true,
                     present_mode: vsync.as_present_mode(),
                     mode: fullscreen.as_window_mode(),
                     resolution: WindowResolution::new(resolution.width, resolution.height),
                     title: title.to_owned(),
                     position: WindowPosition::Centered(MonitorSelection::Current),
+                    resizable: false,
                     ..default()
                 }),
+                close_when_requested: false,
                 ..default()
             })
             .set(AssetPlugin {
-                watch_for_changes: true,
+                watch_for_changes: ChangeWatcher::with_delay(Duration::from_millis(50)),
                 ..default()
             })
             .set(LogPlugin {
@@ -85,35 +77,10 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
             })
             .set(ImagePlugin::default_nearest())
         )
-        .insert_resource(TilemapRenderSettings {
-            render_chunk_size: UVec2::new(100, 100),
-            y_sort: false,
-        })
         .insert_resource(language_content)
         .insert_resource(ClearColor(Color::BLACK))
         .insert_resource(FixedTime::new_from_secs(1. / 60.))
-        .add_event::<UpdateLightEvent>()
-        .add_state::<GameState>()
-        .add_plugin(TweeningPlugin)
-        .add_plugin(TilemapPlugin)
-        .add_plugin(AssetsPlugin)
-        .add_plugin(HanabiPlugin)
-        .add_plugin(CursorPlugin)
-        .add_plugin(CameraPlugin)
-        // .add_plugin(LightingPlugin)
-        .add_plugin(ParallaxPlugin)
-        .add_plugin(BackgroundPlugin)
-        .add_plugin(PlayerUiPlugin)
-        .add_plugin(MenuPlugin)
-        .add_plugin(WorldPlugin)
-        .add_plugin(PlayerInventoryPlugin)
-        .add_plugin(FpsPlugin)
-        .add_plugin(PlayerPlugin);
-
-    #[cfg(feature = "debug")] {
-        use plugins::debug::DebugPlugin;
-        app.add_plugin(DebugPlugin);
-    }
+        .add_plugins(MainPlugin);
 
     Ok(app)
 }

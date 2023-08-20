@@ -1,13 +1,13 @@
-use bevy::prelude::{Vec2, OrthographicProjection};
+use bevy::prelude::{Vec2, OrthographicProjection, UVec2};
 use bevy_ecs_tilemap::tiles::TilePos;
 
 use crate::world::{chunk::ChunkPos, Size};
 
-use super::{CHUNK_SIZE_U, CHUNK_SIZE, TILE_SIZE, CameraFov, ChunkRange};
+use super::{constants::{CHUNK_SIZE_U, CHUNK_SIZE, TILE_SIZE}, CameraFov, ChunkRange};
 
 #[inline]
 pub(super) fn get_chunk_pos(pos: TilePos) -> ChunkPos {
-    ChunkPos::new(pos.x, pos.y) / CHUNK_SIZE_U
+    ChunkPos::from(pos) / CHUNK_SIZE_U
 }
 
 #[inline]
@@ -21,18 +21,16 @@ pub(super) fn get_chunk_tile_pos(map_tile_pos: TilePos) -> TilePos {
 #[inline]
 pub(super) fn get_camera_fov(camera_pos: Vec2, projection: &OrthographicProjection) -> CameraFov {
     CameraFov {
-        left: camera_pos.x + projection.area.min.x,
-        right: camera_pos.x + projection.area.max.x,
-        top: camera_pos.y + projection.area.max.y,
-        bottom: camera_pos.y + projection.area.min.y,
+        min: camera_pos + projection.area.min,
+        max: camera_pos + projection.area.max
     }
 }
 
 pub(super) fn get_chunk_range_by_camera_fov(camera_fov: CameraFov, world_size: Size) -> ChunkRange {
-    let left = (camera_fov.left / (CHUNK_SIZE * TILE_SIZE)).floor() as u32;
-    let mut right = (camera_fov.right / (CHUNK_SIZE * TILE_SIZE)).ceil() as u32;
-    let top = (camera_fov.top / (CHUNK_SIZE * TILE_SIZE)).ceil().abs() as u32;
-    let mut bottom = (camera_fov.bottom / (CHUNK_SIZE * TILE_SIZE)).floor().abs() as u32;
+    let left = (camera_fov.min.x / (CHUNK_SIZE * TILE_SIZE)).floor() as u32;
+    let mut right = (camera_fov.max.x / (CHUNK_SIZE * TILE_SIZE)).ceil() as u32;
+    let top = (camera_fov.max.y / (CHUNK_SIZE * TILE_SIZE)).ceil().abs() as u32;
+    let mut bottom = (camera_fov.min.y / (CHUNK_SIZE * TILE_SIZE)).floor().abs() as u32;
 
     let max_chunk_x = world_size.width as u32 / CHUNK_SIZE_U;
     let max_chunk_y = world_size.height as u32 / CHUNK_SIZE_U;
@@ -46,7 +44,7 @@ pub(super) fn get_chunk_range_by_camera_fov(camera_fov: CameraFov, world_size: S
     }
 
     ChunkRange {
-        x: left..=right,
-        y: top..=bottom
+        min: UVec2::new(left, top),
+        max: UVec2::new(right, bottom),
     }
 }

@@ -1,1 +1,0 @@
-pub(crate) struct ToggleExtraUiEvent(pub(crate) bool);

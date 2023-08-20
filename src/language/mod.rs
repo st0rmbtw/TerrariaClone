@@ -28,6 +28,7 @@ pub(crate) struct UI {
     pub(crate) single_player: String,
     pub(crate) interface: String,
     pub(crate) video: String,
+    pub(crate) volume: String,
     pub(crate) tile_grid: String,
     pub(crate) cursor: String,
     pub(crate) exit: String,
@@ -37,6 +38,9 @@ pub(crate) struct UI {
     pub(crate) apply: String,
     pub(crate) resolution: String,
     pub(crate) full_screen: String,
+    pub(crate) music: String,
+    pub(crate) sound: String,
+    pub(crate) language: String,
     #[serde(rename = "VSync")]
     pub(crate) vsync: String,
     pub(crate) full_screen_resolution: String
@@ -68,7 +72,7 @@ impl LanguageContent {
     pub(crate) fn item_name(&self, item: Item) -> String {
         match item {
             Item::Tool(tool) => self.tool_name(tool),
-            Item::Block(block) => self.block_name(block.block_type),
+            Item::Block(block) => self.block_name(block),
             Item::Seed(seed) => self.seed_name(seed)
         }
     }

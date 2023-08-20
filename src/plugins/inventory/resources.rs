@@ -1,11 +1,9 @@
 use bevy::{prelude::{Resource, Deref, DerefMut, ReflectResource}, reflect::Reflect};
 
-use crate::items::ItemStack;
-
-use super::CELL_COUNT_IN_ROW;
+use crate::{items::ItemStack, plugins::ui::inventory::CELL_COUNT_IN_ROW};
 
 #[derive(Resource, Default, Deref, DerefMut)]
-pub(super) struct SelectedItem(pub Option<ItemStack>);
+pub(crate) struct SelectedItem(pub Option<ItemStack>);
 
 #[derive(Resource, Default, Deref, DerefMut)]
 pub(super) struct SwingItemCooldown(pub u32);
@@ -25,8 +23,8 @@ pub(crate) struct UseItemAnimationIndex(usize);
 
 #[derive(Resource)]
 pub(crate) struct Inventory {
-    pub(super) items: [Option<ItemStack>; 50],
-    pub(super) selected_slot: usize,
+    pub(crate) items: [Option<ItemStack>; 50],
+    pub(crate) selected_slot: usize,
 }
 
 impl Default for Inventory {

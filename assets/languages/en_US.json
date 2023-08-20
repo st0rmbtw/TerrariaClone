@@ -73,6 +73,7 @@
 		"Interface": "Interface",
 		"Video": "Video",
 		"Cursor": "Cursor",
+		"Volume": "Volume",
 		"TileGrid": "Tile Grid",
 		"Exit": "Exit",
 		"On": "On",
@@ -82,6 +83,9 @@
 		"Resolution": "Resolution",
 		"FullScreen": "Fullscreen",
 		"FullScreenResolution": "Fullscreen Resolution",
-		"VSync": "VSync"
+		"VSync": "VSync",
+		"Music": "Music",
+		"Sound": "Sound",
+		"Language": "Language"
 	}
 }

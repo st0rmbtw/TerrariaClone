@@ -1,6 +1,6 @@
-use bevy::{prelude::{Component, Entity, Bundle, Name, SpatialBundle, Transform, Deref, DerefMut}, utils::default};
+use bevy::{prelude::{Name, SpatialBundle, Transform, Deref, DerefMut, Component, Bundle}, utils::default};
 
-use crate::common::{state::MovementState, rect::FRect};
+use crate::{common::{state::MovementState, rect::FRect}, PLAYER_LAYER};
 
 use super::{InputAxis, WALKING_ANIMATION_MAX_INDEX, PLAYER_HEIGHT, PLAYER_WIDTH};
 
@@ -60,12 +60,6 @@ impl Default for WalkingAnimationData {
     }
 }
 
-#[derive(Component)]
-pub(super) struct PlayerParticleEffects {
-    pub(super) walking: Entity,
-}
-
-
 #[derive(Component, Clone, Copy, Default)]
 pub(super) struct IdleAnimationData(pub usize);
 
@@ -97,14 +91,13 @@ pub(super) struct PlayerBundle {
     pub(super) movement_state: MovementState,
     pub(super) face_direction: FaceDirection,
     pub(super) player_rect: PlayerRect,
-    #[bundle]
     pub(super) spatial: SpatialBundle
 }
 
 impl PlayerBundle {
     pub(crate) fn new(x: f32, y: f32) -> Self {
         Self {
-            spatial: SpatialBundle::from_transform(Transform::from_xyz(x, y, 5.)),
+            spatial: SpatialBundle::from_transform(Transform::from_xyz(x, y, PLAYER_LAYER)),
             player_rect: PlayerRect(FRect::new_center(x, y, PLAYER_WIDTH, PLAYER_HEIGHT)),
             ..default()
         }

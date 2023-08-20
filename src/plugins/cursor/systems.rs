@@ -3,35 +3,31 @@ use std::time::Duration;
 use autodefault::autodefault;
 use bevy::{
     prelude::{
-        Res, Commands, Vec3, Color, NodeBundle, default, TextBundle, Name, ImageBundle, Transform, 
-        Component, GlobalTransform, Query, With, ResMut, Camera, Visibility, 
-        BuildChildren, DetectChanges, Changed
+        Res, Commands, Vec3, Color, NodeBundle, default, TextBundle, Name, ImageBundle, Transform, Query, With, Visibility, 
+        BuildChildren, Changed
     }, 
     ui::{
-        Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Size, Val, AlignSelf, ZIndex, FlexDirection, UiRect, Interaction
+        Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Val, AlignSelf, ZIndex, FlexDirection, UiRect, Interaction
     }, 
     text::{Text, TextStyle}, 
-    sprite::{SpriteBundle, Sprite}, 
-    window::{Window, PrimaryWindow}
+    sprite::{SpriteBundle, Sprite}
 };
 use interpolation::EaseFunction;
 
 use crate::{
     plugins::{
         assets::{FontAssets, CursorAssets, UiAssets}, 
-        camera::MainCamera, 
-        ui::UiVisibility, 
-        world::TILE_SIZE, settings::{ShowTileGrid, CursorColor}
+        camera::components::MainCamera, 
+        world::constants::TILE_SIZE, config::CursorColor, DespawnOnGameExit
     }, 
     animation::{Tween, lens::TransformScaleLens, Animator, RepeatStrategy, RepeatCount}, 
-    common::{lens::BackgroundColorLens, helpers},
+    common::lens::BackgroundColorLens,
 };
 
 use crate::plugins::player::{PlayerVelocity, MAX_RUN_SPEED, MAX_FALL_SPEED};
 
-use super::{CursorInfoMarker, CursorContainer, CursorForeground, CursorBackground, TileGrid, MAX_TILE_GRID_OPACITY, CursorPosition, MIN_TILE_GRID_OPACITY, components::Hoverable, CURSOR_SIZE};
+use super::{MAX_TILE_GRID_OPACITY, MIN_TILE_GRID_OPACITY, CURSOR_SIZE, components::{Hoverable, CursorBackground, CursorForeground, CursorInfoMarker, CursorContainer, TileGrid}, position::CursorPosition};
 
-#[autodefault(except(TransformScaleLens, BackgroundColorLens))]
 pub(super) fn setup(
     mut commands: Commands, 
     cursor_assets: Res<CursorAssets>, 
@@ -79,11 +75,14 @@ pub(super) fn setup(
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
                     align_self: AlignSelf::FlexStart,
-                    size: Size::new(Val::Px(CURSOR_SIZE), Val::Px(CURSOR_SIZE)),
+                    width: Val::Px(CURSOR_SIZE),
+                    height: Val::Px(CURSOR_SIZE),
+                    ..default()
                 },
                 focus_policy: FocusPolicy::Pass,
                 image: cursor_assets.cursor_background.clone_weak().into(),
                 background_color: cursor_color.background_color.into(),
+                ..default()
             })
             .insert(CursorBackground)
             .insert(Animator::new(animate_scale))
@@ -93,11 +92,14 @@ pub(super) fn setup(
                         justify_content: JustifyContent::Center,
                         align_items: AlignItems::Center,
                         align_self: AlignSelf::Center,
-                        size: Size::new(Val::Px(16.), Val::Px(16.)),
+                        width: Val::Px(16.),
+                        height: Val::Px(16.),
+                        ..default()
                     },
                     focus_policy: FocusPolicy::Pass,
                     image: cursor_assets.cursor.clone_weak().into(),
                     background_color: cursor_color.foreground_color.into(),
+                    ..default()
                 })
                 .insert(CursorForeground)
                 .insert(Animator::new(animate_color));
@@ -108,7 +110,8 @@ pub(super) fn setup(
             c.spawn(TextBundle {
                 style: Style {
                     align_self: AlignSelf::FlexEnd,
-                    margin: UiRect::left(Val::Px(CURSOR_SIZE))
+                    margin: UiRect::left(Val::Px(CURSOR_SIZE)),
+                    ..default()
                 },
                 text: Text::from_section(
                     "",
@@ -117,7 +120,8 @@ pub(super) fn setup(
                         font_size: 22.,
                         color: Color::WHITE,
                     },
-                )
+                ),
+                ..default()
             })
             .insert(CursorInfoMarker);
         })
@@ -130,59 +134,39 @@ pub(super) fn spawn_tile_grid(
     mut commands: Commands, 
     ui_assets: Res<UiAssets>
 ) {
-    commands
-        .spawn(SpriteBundle {
+    commands.spawn((
+        Name::new("TileGrid"),
+        TileGrid,
+        DespawnOnGameExit,
+        SpriteBundle {
             sprite: Sprite {
                 color: Color::rgba(1., 1., 1., MAX_TILE_GRID_OPACITY),
             },
             texture: ui_assets.radial.clone_weak(),
             transform: Transform::from_xyz(0., 0., 5.),
             visibility: Visibility::Hidden
-        })
-        .insert(TileGrid);
+        }
+    ));
 }
 
 pub(super) fn update_cursor_position(
-    mut cursor: ResMut<CursorPosition>,
-    query_window: Query<&Window, With<PrimaryWindow>>,
-    query_main_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
+    cursor_pos: Res<CursorPosition<MainCamera>>,
     mut query_cursor: Query<&mut Style, With<CursorContainer>>,
 ) {
-    if let Ok((camera, camera_transform)) = query_main_camera.get_single() {
-        let window = query_window.single();
 
-        let Some(screen_pos) = window.cursor_position() else { return; };
-
-        if let Ok(mut style) = query_cursor.get_single_mut() {
-            style.position.left = Val::Px(screen_pos.x);
-            style.position.top = Val::Px(window.height() - screen_pos.y);
-        }
-
-        if let Some(world_pos) = camera.viewport_to_world_2d(camera_transform, screen_pos) {
-            cursor.position = screen_pos;
-            cursor.world_position = world_pos;
-        }
-    }
-}
-
-pub(super) fn set_visibility<C: Component>(
-    ui_visibility: Res<UiVisibility>,
-    mut query: Query<&mut Visibility, With<C>>,
-) {
-    if ui_visibility.is_changed() {
-        for mut visibility in &mut query {
-            helpers::set_visibility(&mut visibility, ui_visibility.0);
-        }
+    if let Ok(mut style) = query_cursor.get_single_mut() {
+        style.left = Val::Px(cursor_pos.screen.x);
+        style.top = Val::Px(cursor_pos.screen.y);
     }
 }
 
 pub(super) fn update_tile_grid_position(
-    cursor: Res<CursorPosition>,
+    cursor_pos: Res<CursorPosition<MainCamera>>,
     mut query: Query<&mut Transform, With<TileGrid>>,
 ) {
     let mut transform = query.single_mut();
     
-    let tile_coords = (cursor.world_position / TILE_SIZE).round();
+    let tile_coords = (cursor_pos.world / TILE_SIZE).round();
     transform.translation.x = tile_coords.x * TILE_SIZE;
     transform.translation.y = tile_coords.y * TILE_SIZE;
 }
@@ -206,14 +190,6 @@ pub(super) fn update_tile_grid_opacity(
     sprite.color = *sprite.color.set_a(opacity.clamp(0., MAX_TILE_GRID_OPACITY));
 }
 
-pub(super) fn update_tile_grid_visibility(
-    mut query_tile_grid: Query<&mut Visibility, With<TileGrid>>,
-    show_tile_grid: Res<ShowTileGrid>
-) {
-    let mut visibility = query_tile_grid.single_mut();
-    helpers::set_visibility(&mut visibility, show_tile_grid.0);
-}
-
 pub(super) fn update_cursor_info(
     query_hoverable: Query<(&Hoverable, &Interaction), Changed<Interaction>>,
     mut query_info: Query<(&mut Text, &mut Visibility), With<CursorInfoMarker>>,
@@ -221,13 +197,11 @@ pub(super) fn update_cursor_info(
     let (mut text, mut visibility) = query_info.single_mut();
 
     query_hoverable.for_each(|(hoverable, interaction)| {
-        helpers::set_visibility(
-            &mut visibility, 
-            !matches!(hoverable, Hoverable::None) && !matches!(interaction, Interaction::None)
-        );
-
         if let (Hoverable::SimpleText(info), Interaction::Hovered) = (hoverable, interaction) {
             text.sections[0].value = info.clone();
+            *visibility = Visibility::Visible;
+        } else {
+            *visibility = Visibility::Hidden;
         }
     });
 }

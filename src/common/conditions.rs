@@ -1,19 +1,11 @@
-use bevy::{prelude::{State, Res, Component, Changed, With, Button, Query}, ui::Interaction};
+use bevy::{prelude::{Component, Changed, With, Button, Query}, ui::Interaction};
 
-use super::state::GameState;
-
-pub(crate) fn in_menu_state(state: Res<State<GameState>>) -> bool {
-    matches!(&state.0, GameState::Menu(_))
-}
-
-pub(crate) fn on_btn_clicked<B: Component>(
+pub(crate) fn on_click<B: Component>(
     query: Query<&Interaction, (Changed<Interaction>, With<Button>, With<B>)>,
 ) -> bool {
-    for interaction in query.iter() {
-        if *interaction == Interaction::Clicked {
-            return true;
-        }
-    }
+    let Ok(interaction) = query.get_single() else { 
+        return false;
+    };
 
-    false
+    matches!(interaction, Interaction::Pressed)
 }

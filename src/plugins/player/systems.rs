@@ -1,18 +1,14 @@
-use bevy::{prelude::*, math::Vec3Swizzles};
-use bevy_hanabi::prelude::*;
+use bevy::{prelude::*, math::Vec3Swizzles, sprite::Anchor};
 
 use crate::{
     plugins::{
-        world::TILE_SIZE,
+        world::constants::TILE_SIZE,
         inventory::{ItemInHand, SwingAnimation},
     },
     common::{math::{move_towards, map_range_usize}, state::MovementState, rect::FRect}, world::WorldData,
 };
 
 use super::{*, utils::get_fall_distance};
-
-#[cfg(feature = "debug")]
-use bevy_prototype_debug_lines::DebugLines;
 
 pub(super) fn horizontal_movement(
     axis: Res<InputAxis>,
@@ -89,7 +85,7 @@ pub(super) fn detect_collisions(
     mut player_data: ResMut<PlayerData>,
     mut query_player: Query<(&mut Transform, &FaceDirection, &PlayerRect), With<Player>>,
     #[cfg(feature = "debug")]
-    mut debug_lines: ResMut<DebugLines>,
+    mut gizmos: Gizmos,
     #[cfg(feature = "debug")]
     debug_config: Res<DebugConfiguration>,
 ) {
@@ -165,7 +161,7 @@ pub(super) fn detect_collisions(
 
                             #[cfg(feature = "debug")]
                             if debug_config.show_collisions {
-                                tile_rect.draw_right_side(&mut debug_lines, 0.1, Color::BLUE);
+                                tile_rect.draw_right_side(&mut gizmos, Color::BLUE);
                             }
                         } else {
                             velocity.x = 0.;
@@ -178,7 +174,7 @@ pub(super) fn detect_collisions(
 
                             #[cfg(feature = "debug")]
                             if debug_config.show_collisions {
-                                tile_rect.draw_left_side(&mut debug_lines, 0.1, Color::GREEN);
+                                tile_rect.draw_left_side(&mut gizmos, Color::GREEN);
                             }
                         }
                     } else {
@@ -195,7 +191,7 @@ pub(super) fn detect_collisions(
 
                                 #[cfg(feature = "debug")]
                                 if debug_config.show_collisions {
-                                    tile_rect.draw_bottom_side(&mut debug_lines, 0.1, Color::YELLOW);
+                                    tile_rect.draw_bottom_side(&mut gizmos, Color::YELLOW);
                                 }
                             } else {
                                 new_collisions.bottom = true;
@@ -216,7 +212,7 @@ pub(super) fn detect_collisions(
 
                                 #[cfg(feature = "debug")]
                                 if debug_config.show_collisions {
-                                    tile_rect.draw_top_side(&mut debug_lines, 0.1, Color::RED);
+                                    tile_rect.draw_top_side(&mut gizmos, Color::RED);
                                 }
                             }
                         }
@@ -257,20 +253,6 @@ pub(super) fn update_player_rect(
     let Vec2 { x, y } = transform.translation.xy();
 
     *player_rect = PlayerRect(FRect::new_center(x, y, PLAYER_WIDTH, PLAYER_HEIGHT));
-}
-
-pub(super) fn spawn_particles(
-    player: Query<(&MovementState, &PlayerParticleEffects), With<Player>>,
-    mut effects: Query<&mut ParticleEffect>,
-    collisions: Res<Collisions>
-) {
-    let (movement_state, particle_effects) = player.single();
-    let mut effect = effects.get_mut(particle_effects.walking).unwrap();
-
-    effect
-        .maybe_spawner()
-        .unwrap()   
-        .set_active(*movement_state == MovementState::Walking && collisions.bottom);
 }
 
 pub(super) fn update_movement_state(
@@ -398,55 +380,24 @@ pub(super) fn current_speed(
 #[cfg(feature = "debug")]
 pub(super) fn draw_hitbox(
     query_player: Query<&Transform, With<Player>>,
-    mut debug_lines: ResMut<DebugLines>,
+    mut gizmos: Gizmos
 ) {
     let transform = query_player.single();
+    let player_pos = transform.translation.truncate();
 
-    let left = transform.translation.x - PLAYER_HALF_WIDTH;
-    let right = transform.translation.x + PLAYER_HALF_WIDTH;
-
-    let top = transform.translation.y - PLAYER_HALF_HEIGHT;
-    let bottom = transform.translation.y + PLAYER_HALF_HEIGHT;
-
-    debug_lines.line_colored(
-        Vec3::new(left, top, 10.0),
-        Vec3::new(right, top, 10.0),
-        0.,
-        Color::RED
-    );
-
-    debug_lines.line_colored(
-        Vec3::new(left, bottom, 10.0),
-        Vec3::new(right, bottom, 10.0),
-        0.,
-        Color::RED
-    );
-
-    debug_lines.line_colored(
-        Vec3::new(left, top, 10.0),
-        Vec3::new(left, bottom, 10.0),
-        0.,
-        Color::RED
-    );
-
-    debug_lines.line_colored(
-        Vec3::new(right, top, 10.0),
-        Vec3::new(right, bottom, 10.0),
-        0.,
-        Color::RED
-    );
+    gizmos.rect_2d(player_pos, 0., Vec2::new(PLAYER_WIDTH, PLAYER_HEIGHT), Color::RED);
 }
 
 #[cfg(feature = "debug")]
-use crate::plugins::cursor::CursorPosition;
+use crate::plugins::{cursor::position::CursorPosition, camera::components::MainCamera};
 
 #[cfg(feature = "debug")]
 pub(super) fn teleport_player(
-    cursor_position: Res<CursorPosition>,
+    cursor_position: Res<CursorPosition<MainCamera>>,
     mut query_player: Query<&mut Transform, With<Player>>,
 ) {
     if let Ok(mut transform) = query_player.get_single_mut() {
-        transform.translation.x = cursor_position.world_position.x;
-        transform.translation.y = cursor_position.world_position.y;
+        transform.translation.x = cursor_position.world.x;
+        transform.translation.y = cursor_position.world.y;
     }
 }

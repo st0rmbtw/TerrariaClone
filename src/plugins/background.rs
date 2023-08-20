@@ -1,13 +1,13 @@
 use crate::{
-    parallax::{LayerData, LayerSpeed, follow_camera_system, ParallaxContainer, ParallaxCameraComponent},
-    common::state::GameState, world::WorldData,
+    parallax::{LayerData, LayerSpeed, ParallaxContainer, ParallaxCameraComponent, LayerComponent, LayerDataComponent},
+    common::{state::GameState, systems::despawn_with}, world::WorldData, BACKGROUND_LAYER
 };
 use bevy::{
-    prelude::{default, App, Commands, Plugin, Res, Vec2, Component, Query, Camera, With, OnEnter, OnExit, IntoSystemAppConfig, IntoSystemConfig, IntoSystemConfigs, IntoSystemAppConfigs, Name, Entity, DespawnRecursiveExt, Assets, Image, Camera2dBundle, Camera2d, UiCameraConfig, CoreSet, in_state},
-    sprite::Anchor, core_pipeline::clear_color::ClearColorConfig, render::view::RenderLayers,
+    prelude::{default, App, Commands, Plugin, Res, Vec2, Query, Camera, With, OnExit, IntoSystemConfigs, Name, Assets, Image, Camera2dBundle, UiCameraConfig, PostUpdate, Transform, Without, Component, OnEnter},
+    sprite::Anchor, render::view::RenderLayers,
 };
 
-use super::{assets::BackgroundAssets, camera::{BackgroundCamera, CameraSet}, world::TILE_SIZE};
+use super::{assets::BackgroundAssets, camera::{components::BackgroundCamera, CameraSet}, world::constants::TILE_SIZE, InGameSystemSet, DespawnOnGameExit};
 
 pub(crate) const BACKGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(25);
 
@@ -16,31 +16,28 @@ pub(crate) struct BackgroundPlugin;
 impl Plugin for BackgroundPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
+            OnEnter(GameState::Menu),
             (
                 spawn_background_camera,
                 setup_main_menu_background
             )
-            .in_schedule(OnExit(GameState::AssetLoading))
         );
 
         app.add_systems(
+            OnExit(GameState::WorldLoading),
             (
-                despawn_menu_background,
+                despawn_with::<MenuParallaxContainer>,
                 spawn_sky_background,
                 spawn_ingame_background,
                 spawn_forest_background,
             )
-            .chain()
-            .in_schedule(OnEnter(GameState::InGame))
         );
 
-        app.add_system(despawn_menu_background.in_schedule(OnExit(GameState::InGame)));
-
-        app.add_system(
+        app.add_systems(
+            PostUpdate,
             follow_camera_system
-                .run_if(in_state(GameState::InGame))
-                .after(CameraSet::MoveCamera)
-                .in_base_set(CoreSet::PostUpdate)
+                .in_set(InGameSystemSet::PostUpdate)
+                .after(CameraSet::MoveCamera),
         );
     }
 }
@@ -55,29 +52,35 @@ pub(crate) struct BiomeParallaxContainer;
 #[derive(Component)]
 pub(crate) struct InGameParallaxContainer;
 
-fn despawn_menu_background(
-    mut commands: Commands,
-    query_menu_parallax_container: Query<Entity, With<MenuParallaxContainer>>
+fn follow_camera_system(
+    query_parallax_camera: Query<&Transform, With<ParallaxCameraComponent>>,
+    mut query_layer: Query<(&mut Transform, &LayerComponent, &LayerDataComponent), Without<ParallaxCameraComponent>>,
 ) {
-    let entity = query_menu_parallax_container.single();
-    commands.entity(entity).despawn_recursive();
+    let Ok(camera_transform) = query_parallax_camera.get_single() else { return; };
+    let camera_translation = camera_transform.translation.truncate();
+    
+    for (mut layer_transform, layer, layer_data) in &mut query_layer {
+        let new_translation = camera_translation + (layer_data.position - camera_translation) * layer.speed;
+
+        layer_transform.translation.x = new_translation.x;
+        layer_transform.translation.y = new_translation.y;
+    }
 }
 
 fn spawn_background_camera(
     mut commands: Commands
 ) {
     commands.spawn((
+        Name::new("BackgroundCamera"),
         BackgroundCamera,
         ParallaxCameraComponent,
         BACKGROUND_RENDER_LAYER,
         UiCameraConfig { show_ui: false },
+        DespawnOnGameExit,
         Camera2dBundle {
             camera: Camera {
                 order: -1,
                 ..default()
-            },
-            camera_2d: Camera2d {
-                clear_color: ClearColorConfig::Default
             },
             ..default()
         },
@@ -97,7 +100,7 @@ fn setup_main_menu_background(
             LayerData {
                 speed: LayerSpeed::Horizontal(1.),
                 scale: 1.,
-                z: 0.0,
+                z: BACKGROUND_LAYER,
                 image: backgrounds.background_0.clone_weak(),
                 fill_screen_height: true,
                 ..default()
@@ -105,7 +108,7 @@ fn setup_main_menu_background(
             LayerData {
                 speed: LayerSpeed::Horizontal(0.9),
                 image: backgrounds.background_7.clone_weak(),
-                z: 0.1,
+                z: BACKGROUND_LAYER + 0.2,
                 transition_factor: 1.,
                 position: Vec2::NEG_Y * pos,
                 scale: 1.5,
@@ -114,7 +117,7 @@ fn setup_main_menu_background(
             LayerData {
                 speed: LayerSpeed::Horizontal(0.8),
                 image: backgrounds.background_90.clone_weak(),
-                z: 1.0,
+                z: BACKGROUND_LAYER + 0.3,
                 transition_factor: 1.,
                 position: Vec2::NEG_Y * pos - 200.,
                 scale: 1.5,
@@ -123,7 +126,7 @@ fn setup_main_menu_background(
             LayerData {
                 speed: LayerSpeed::Horizontal(0.7),
                 image: backgrounds.background_91.clone_weak(),
-                z: 2.0,
+                z: BACKGROUND_LAYER + 0.4,
                 transition_factor: 1.,
                 position: Vec2::NEG_Y * pos - 300.,
                 scale: 1.5,
@@ -132,7 +135,7 @@ fn setup_main_menu_background(
             LayerData {
                 speed: LayerSpeed::Horizontal(0.6),
                 image: backgrounds.background_92.clone_weak(),
-                z: 3.0,
+                z: BACKGROUND_LAYER + 0.5,
                 transition_factor: 1.,
                 position: Vec2::NEG_Y * pos - 400.,
                 scale: 1.5,
@@ -141,7 +144,7 @@ fn setup_main_menu_background(
             LayerData {
                 speed: LayerSpeed::Horizontal(0.7),
                 image: backgrounds.background_112.clone_weak(),
-                z: 4.0,
+                z: BACKGROUND_LAYER + 0.6,
                 transition_factor: 1.,
                 scale: 1.2,
                 position: Vec2::NEG_Y * pos + 200.,
@@ -158,11 +161,12 @@ fn spawn_sky_background(
 ) { 
     commands.spawn((
         Name::new("Sky Parallax Container"),
+        DespawnOnGameExit,
         ParallaxContainer::new(vec![
             LayerData {
                 speed: LayerSpeed::Bidirectional(1., 0.),
                 image: backgrounds.background_0.clone_weak(),
-                z: 0.,
+                z: BACKGROUND_LAYER,
                 scale: 1.,
                 position: Vec2::ZERO,
                 anchor: Anchor::Center,
@@ -189,7 +193,7 @@ fn spawn_ingame_background(
 
     let layer_options = LayerData {
         speed: LayerSpeed::Horizontal(0.8),
-        z: 0.5,
+        z: BACKGROUND_LAYER + 0.4,
         transition_factor: 1.2,
         scale: 1.,
         ..default()
@@ -217,6 +221,7 @@ fn spawn_ingame_background(
     commands.spawn((
         Name::new("InGame Parallax Container"),
         InGameParallaxContainer,
+        DespawnOnGameExit,
         ParallaxContainer::new(layers)
     ));
 }
@@ -229,11 +234,12 @@ fn spawn_forest_background(
     commands.spawn((
         Name::new("Biome Parallax Container"),
         BiomeParallaxContainer,
+        DespawnOnGameExit,
         ParallaxContainer::new(vec![
             LayerData {
                 speed: LayerSpeed::Bidirectional(0.9, 0.6),
                 image: backgrounds.background_55.clone_weak(),
-                z: 0.4,
+                z: BACKGROUND_LAYER + 0.3,
                 transition_factor: 1.,
                 scale: 2.,
                 position: (world_data.layer.underground - world_data.layer.dirt_height) as f32 * TILE_SIZE * Vec2::NEG_Y,
@@ -243,7 +249,7 @@ fn spawn_forest_background(
             LayerData {
                 speed: LayerSpeed::Bidirectional(0.4, 0.5),
                 image: backgrounds.background_114.clone_weak(),
-                z: 0.3,
+                z: BACKGROUND_LAYER + 0.2,
                 transition_factor: 1.,
                 scale: 2.,
                 position: (world_data.layer.underground - world_data.layer.dirt_height) as f32 * TILE_SIZE * Vec2::NEG_Y,
@@ -253,7 +259,7 @@ fn spawn_forest_background(
             LayerData {
                 speed: LayerSpeed::Bidirectional(0.2, 0.4),
                 image: backgrounds.background_93.clone_weak(),
-                z: 0.2,
+                z: BACKGROUND_LAYER + 0.1,
                 transition_factor: 1.,
                 scale: 2.,
                 position: (world_data.layer.underground - world_data.layer.dirt_height) as f32 * TILE_SIZE * Vec2::NEG_Y,

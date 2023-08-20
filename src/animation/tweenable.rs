@@ -81,7 +81,7 @@ pub(crate) enum TweenState {
 /// updated anymore, a state which is never reached for looping animation. Here
 /// the [`TweenCompleted`] event instead marks the end of a single loop
 /// iteration.
-#[derive(Copy, Clone)]
+#[derive(Event, Copy, Clone)]
 pub(crate) struct TweenCompleted {
     /// The [`Entity`] the tween which completed and its animator are attached
     /// to.
