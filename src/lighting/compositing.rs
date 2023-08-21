@@ -10,11 +10,15 @@ use bevy_ecs_tilemap::prelude::MaterialTilemap;
 use crate::plugins::world::resources::LightMap;
 
 
-#[derive(AsBindGroup, TypePath, TypeUuid, Clone)]
+#[derive(AsBindGroup, TypePath, TypeUuid, Clone, Default)]
 #[uuid = "9114bbd2-1bb3-4b5a-a710-8965798db745"]
 pub(crate) struct TileMaterial {
-    #[uniform(0)]
-    pub(crate) test: f32
+    #[texture(0)]
+    #[sampler(1)]
+    pub(crate) shadow_map_image: Handle<Image>,
+
+    #[uniform(2)]
+    pub(crate) chunk_pos: UVec2
 }
 
 impl MaterialTilemap for TileMaterial {
@@ -89,8 +93,8 @@ pub(super) fn setup_post_processing_camera(
 ) {
     let mut bytes = vec![0; light_map.colors.len() * 4];
 
-    for ((row, col), color) in light_map.colors.indexed_iter() {
-        let index = ((row * light_map.colors.ncols()) + col) * 4;
+    for ((y, x), color) in light_map.colors.indexed_iter() {
+        let index = ((y * light_map.colors.ncols()) + x) * 4;
 
         bytes[index]     = *color;
         bytes[index + 1] = *color;

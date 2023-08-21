@@ -1,6 +1,6 @@
 use bevy::{prelude::{App, Plugin, ResMut, Commands, TextBundle, Res, Color, OnEnter, Query, Visibility, With, DetectChanges, Name, AppTypeRegistry, Vec2, Update, IntoSystemConfigs, Resource, Component}, utils::default, text::{Text, TextSection, TextStyle}, ui::{Style, Val, PositionType}, sprite::TextureAtlasSprite, time::Time, reflect::{Reflect, ReflectMut}};
 use bevy_ecs_tilemap::{tiles::TilePos, helpers::square_grid::neighbors::Neighbors};
-use bevy_inspector_egui::{bevy_egui::{EguiPlugin, egui, EguiContexts}, egui::{Align2, CollapsingHeader, ScrollArea}, quick::WorldInspectorPlugin, reflect_inspector};
+use bevy_inspector_egui::{bevy_egui::{egui, EguiContexts}, egui::{Align2, CollapsingHeader, ScrollArea}, quick::WorldInspectorPlugin, reflect_inspector};
 
 use crate::{common::{state::GameState, helpers::{self, get_tile_pos_from_world_coords}}, world::{block::BlockType, WorldData, chunk::ChunkContainer}};
 
@@ -9,10 +9,7 @@ use super::{assets::FontAssets, inventory::{UseItemAnimationIndex, UseItemAnimat
 pub(crate) struct DebugPlugin;
 impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((
-            EguiPlugin,
-            WorldInspectorPlugin::new()
-        ));
+        app.add_plugins(WorldInspectorPlugin::new());
 
         app.insert_resource(HoverBlockData {
             pos: TilePos::default(),
@@ -188,7 +185,7 @@ fn block_gui(
     egui::Window::new("Hover Block Data")
         .anchor(Align2::RIGHT_BOTTOM, (-10., -10.))
         .resizable(false)
-        .default_size((320., 160.))
+        .default_size((320., 200.))
         .show(egui_context, |ui| {
             ScrollArea::vertical().show(ui, |ui| {
                 ui.columns(3, |columns| {
@@ -200,31 +197,58 @@ fn block_gui(
                 ui.columns(2, |columns| {
                     columns[0].label("Block Type:");
                     
-                    if let Some(block_type) = block_data.block_type {
-                        reflect_inspector::ui_for_value_readonly(&block_type, &mut columns[1], &type_registry.0.read());
+                    if let Some(block_type) = &block_data.block_type {
+                        reflect_inspector::ui_for_value_readonly(block_type, &mut columns[1], &type_registry.0.read());
                     } else {
                         reflect_inspector::ui_for_value_readonly(&Option::<BlockType>::None, &mut columns[1], &type_registry.0.read());
                     }
                 });
 
                 CollapsingHeader::new("Neighbors").show(ui, |ui| {
-                    ui.label("North:");
-                    reflect_inspector::ui_for_value_readonly(&block_data.neighbors.north, ui, &type_registry.0.read());
-                    
-                    ui.label("South:");
-                    reflect_inspector::ui_for_value_readonly(&block_data.neighbors.south, ui, &type_registry.0.read());
+                    ui.columns(2, |columns| {
+                        columns[0].label("North:");
+                        columns[0].label("South:");
+                        columns[0].label("East:");
+                        columns[0].label("West:");
+                        columns[0].label("NorthWest:");
+                        columns[0].label("NorthEast:");
 
-                    ui.label("East:");
-                    reflect_inspector::ui_for_value_readonly(&block_data.neighbors.east, ui, &type_registry.0.read());
+                        if let Some(n) = &block_data.neighbors.north {
+                            reflect_inspector::ui_for_value_readonly(n, &mut columns[1], &type_registry.0.read());
+                        } else {
+                            reflect_inspector::ui_for_value_readonly(&Option::<BlockType>::None, &mut columns[1], &type_registry.0.read());
+                        }
+                        
+                        if let Some(n) = &block_data.neighbors.south {
+                            reflect_inspector::ui_for_value_readonly(n, &mut columns[1], &type_registry.0.read());
+                        } else {
+                            reflect_inspector::ui_for_value_readonly(&Option::<BlockType>::None, &mut columns[1], &type_registry.0.read());
+                        }
 
-                    ui.label("West:");
-                    reflect_inspector::ui_for_value_readonly(&block_data.neighbors.west, ui, &type_registry.0.read());
+                        if let Some(n) = &block_data.neighbors.east {
+                            reflect_inspector::ui_for_value_readonly(n, &mut columns[1], &type_registry.0.read());
+                        } else {
+                            reflect_inspector::ui_for_value_readonly(&Option::<BlockType>::None, &mut columns[1], &type_registry.0.read());
+                        }
 
-                    ui.label("NorthWest:");
-                    reflect_inspector::ui_for_value_readonly(&block_data.neighbors.north_west, ui, &type_registry.0.read());
+                        if let Some(n) = &block_data.neighbors.west {
+                            reflect_inspector::ui_for_value_readonly(n, &mut columns[1], &type_registry.0.read());
+                        } else {
+                            reflect_inspector::ui_for_value_readonly(&Option::<BlockType>::None, &mut columns[1], &type_registry.0.read());
+                        }
 
-                    ui.label("NorthEast:");
-                    reflect_inspector::ui_for_value_readonly(&block_data.neighbors.north_east, ui, &type_registry.0.read());
+                        if let Some(n) = &block_data.neighbors.north_west {
+                            reflect_inspector::ui_for_value_readonly(n, &mut columns[1], &type_registry.0.read());
+                        } else {
+                            reflect_inspector::ui_for_value_readonly(&Option::<BlockType>::None, &mut columns[1], &type_registry.0.read());
+                        }
+
+                        if let Some(n) = &block_data.neighbors.north_east {
+                            reflect_inspector::ui_for_value_readonly(n, &mut columns[1], &type_registry.0.read());
+                        } else {
+                            reflect_inspector::ui_for_value_readonly(&Option::<BlockType>::None, &mut columns[1], &type_registry.0.read());
+                        }
+                    });
                 });
 
                 ui.allocate_space(ui.available_size());
