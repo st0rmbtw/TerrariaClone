@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use bevy::{
     prelude::{*},
     render::render_resource::{
@@ -7,7 +9,7 @@ use bevy::{
 };
 use bevy_ecs_tilemap::prelude::MaterialTilemap;
 
-use crate::{plugins::{world::resources::LightMap, camera::events::UpdateLightEvent}, world::{WorldData, light::propagate_light}};
+use crate::{plugins::{world::resources::LightMap, camera::events::UpdateLightEvent}, world::{WorldData, light::{propagate_light, PassDirection}}};
 
 
 #[derive(AsBindGroup, TypePath, TypeUuid, Clone, Default)]
@@ -43,52 +45,38 @@ pub(super) fn update_light_map(
     let image = images.get_mut(&light_map_texture.0).unwrap();
     
     for event in update_light_events.iter() {
-        let range_y = event.tile_pos.y - 5 .. event.tile_pos.y + 5;
-        let range_x = event.tile_pos.x - 5 .. event.tile_pos.x + 5;
-
-        // Left to right
-        for y in range_y.clone() {
-            for x in range_x.clone() {
-                propagate_light(x as usize, y as usize, &mut light_map, &world_data, IVec2::new(-1, 0));
-            }
-        }
+        let range_y = event.tile_pos.y as usize - 10 .. event.tile_pos.y as usize + 10;
+        let range_x = event.tile_pos.x as usize - 10 .. event.tile_pos.x as usize + 10;
 
         // Top to bottom
         for x in range_x.clone() {
             for y in range_y.clone() {
-                propagate_light(x as usize, y as usize, &mut light_map, &world_data, IVec2::new(0, -1));
+                propagate_light(x, y, &mut light_map, &world_data, PassDirection::TopToBottom);
+            }
+        }
+
+        // Left to right
+        for y in range_y.clone() {
+            for x in range_x.clone() {
+                propagate_light(x, y, &mut light_map, &world_data, PassDirection::LeftToRight);
             }
         }
 
         // Right to left
         for y in range_y.clone() {
             for x in range_x.clone().rev() {
-                propagate_light(x as usize, y as usize, &mut light_map, &world_data, IVec2::new(1, 0));
+                propagate_light(x, y, &mut light_map, &world_data, PassDirection::RightToLeft);
             }
         }
 
         // Bottom to top
         for x in range_x.clone() {
             for y in range_y.clone().rev() {
-                propagate_light(x as usize, y as usize, &mut light_map, &world_data, IVec2::new(0, 1));
+                propagate_light(x, y, &mut light_map, &world_data, PassDirection::BottomToTop);
             }
         }
 
-        for y in range_y.clone() {
-            for x in range_x.clone() {
-                let y = y as usize;
-                let x = x as usize;
-
-                let color = light_map[(y, x)];
-                let color_bytes = color.to_le_bytes();
-                let index = (y * light_map.ncols() + x) * 4;    
-
-                image.data[index]     = color_bytes[0];
-                image.data[index + 1] = color_bytes[1];
-                image.data[index + 2] = color_bytes[2];
-                image.data[index + 3] = color_bytes[3];    
-            }
-        }
+        copy_light_map_to_texture(range_x.clone(), range_y.clone(), &light_map, &mut image.data);
     }
 
     for (_, material) in materials.iter_mut() {
@@ -103,21 +91,15 @@ pub(super) fn setup_post_processing_camera(
 ) {
     let mut bytes = vec![0; light_map.len() * 4];
 
-    for ((y, x), color) in light_map.indexed_iter() {
-        let index = (y * light_map.ncols() + x) * 4;
+    let width = light_map.ncols();
+    let height = light_map.nrows();
 
-        let color_bytes = color.to_le_bytes();
-
-        bytes[index]     = color_bytes[0];
-        bytes[index + 1] = color_bytes[1];
-        bytes[index + 2] = color_bytes[2];
-        bytes[index + 3] = color_bytes[3];
-    }
+    copy_light_map_to_texture(0..width, 0..height, &light_map, &mut bytes);
 
     let light_map_image = Image::new(
         Extent3d {
-            width: light_map.ncols() as u32,
-            height: light_map.nrows() as u32,
+            width: width as u32,
+            height: height as u32,
             ..default()
         },
         TextureDimension::D2,
@@ -128,4 +110,25 @@ pub(super) fn setup_post_processing_camera(
     let light_map_image_handle = images.add(light_map_image);
 
     commands.insert_resource(LightMapTexture(light_map_image_handle));
+}
+
+fn copy_light_map_to_texture(
+    range_x: Range<usize>,
+    range_y: Range<usize>,
+    light_map: &LightMap,
+    bytes: &mut Vec<u8>
+) {
+    for y in range_y {
+        for x in range_x.clone() {
+            let color = light_map[(y, x)];
+            let index = (y * light_map.ncols() + x) * 4;
+
+            let color_bytes = color.to_le_bytes();
+
+            bytes[index]     = color_bytes[0];
+            bytes[index + 1] = color_bytes[1];
+            bytes[index + 2] = color_bytes[2];
+            bytes[index + 3] = color_bytes[3];
+        }
+    }
 }

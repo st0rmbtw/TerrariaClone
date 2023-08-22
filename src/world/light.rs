@@ -8,6 +8,25 @@ type LightMap = Array2::<f32>;
 
 pub(crate) const SUBDIVISION: usize = 1;
 
+#[derive(Clone, Copy)]
+pub(crate) enum PassDirection {
+    LeftToRight,
+    TopToBottom,
+    RightToLeft,
+    BottomToTop
+}
+
+impl PassDirection {
+    pub(crate) const fn to_ivec2(&self) -> IVec2 {
+        match self {
+            PassDirection::LeftToRight => IVec2::new(-1, 0),
+            PassDirection::TopToBottom => IVec2::new(0, -1),
+            PassDirection::RightToLeft => IVec2::new(1, 0),
+            PassDirection::BottomToTop => IVec2::new(0, 1),
+        }
+    }
+}
+
 #[allow(dead_code)]
 pub(crate) fn generate_light_map(world: &WorldData) -> LightMap {
     println!("Generating light map...");
@@ -33,40 +52,42 @@ pub(crate) fn generate_light_map(world: &WorldData) -> LightMap {
     // Left to right
     for y in 0..light_map_height {
         for x in 0..light_map_width {
-            propagate_light(x, y, &mut light_map, world, IVec2::new(-1, 0));
+            propagate_light(x, y, &mut light_map, world, PassDirection::LeftToRight);
         }
     }
 
     // Top to bottom
     for x in 0..light_map_width {
         for y in 0..light_map_height {
-            propagate_light(x, y, &mut light_map, world, IVec2::new(0, -1));
+            propagate_light(x, y, &mut light_map, world, PassDirection::TopToBottom);
         }
     }
 
     // Right to left
     for y in 0..light_map_height {
         for x in (0..light_map_width).rev() {
-            propagate_light(x, y, &mut light_map, world, IVec2::new(1, 0));
+            propagate_light(x, y, &mut light_map, world, PassDirection::RightToLeft);
         }
     }
 
     // Bottom to top
     for x in 0..light_map_width {
         for y in (0..light_map_height).rev() {
-            propagate_light(x, y, &mut light_map, world, IVec2::new(0, 1));
+            propagate_light(x, y, &mut light_map, world, PassDirection::BottomToTop);
         }
     }
 
     light_map
 }
 
-pub(crate) fn propagate_light(x: usize, y: usize, light_map: &mut LightMap, world: &WorldData, offset: IVec2) { 
+pub(crate) fn propagate_light(x: usize, y: usize, light_map: &mut LightMap, world: &WorldData, direction: PassDirection) { 
     if x >= light_map.ncols() - 1 { return; }
     if y >= light_map.nrows() - 1 { return; }
 
     if (x / SUBDIVISION).checked_sub(1).is_none() { return; }
     if (y / SUBDIVISION).checked_sub(1).is_none() { return; }
+
+    let offset = direction.to_ivec2();
 
     let neighbor_world_pos = (
         ((x / SUBDIVISION) as i32 + offset.x) as usize,
