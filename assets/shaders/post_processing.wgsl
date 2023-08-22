@@ -43,7 +43,7 @@ const SUBDIVISON: u32 = 1u;
 
 @fragment
 fn fragment(in: MeshVertexOutput) -> @location(0) vec4<f32> {
-    let tile_chunk_pos: vec2<u32> = vec2(in.storage_position.x, 25u - in.storage_position.y);
+    let tile_chunk_pos: vec2<u32> = vec2(in.storage_position.x, 25u - 1u - in.storage_position.y);
     let tile_map_pos = (chunk_pos * 25u * SUBDIVISON) + tile_chunk_pos * SUBDIVISON;
 
     let uv: vec2<f32> = vec2(in.uv.x * f32(SUBDIVISON), in.uv.y * f32(SUBDIVISON));
