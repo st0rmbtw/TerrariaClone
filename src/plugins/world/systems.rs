@@ -258,7 +258,7 @@ pub(super) fn spawn_chunk(
             },
             transform: Transform::from_xyz(0., 0., TILES_LAYER + 0.5),
             material: materials.add(TileMaterial {
-                shadow_map_image: shadow_map_texture.0.clone_weak(),
+                light_map_image: shadow_map_texture.0.clone_weak(),
                 chunk_pos
             }),
             ..default()
@@ -281,7 +281,7 @@ pub(super) fn spawn_chunk(
             },
             transform: Transform::from_xyz(0., 0., WALL_LAYER),
             material: materials.add(TileMaterial {
-                shadow_map_image: shadow_map_texture.0.clone_weak(),
+                light_map_image: shadow_map_texture.0.clone_weak(),
                 chunk_pos
             }),
             ..Default::default()

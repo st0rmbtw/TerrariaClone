@@ -15,7 +15,7 @@ use crate::{plugins::{world::resources::LightMap, camera::events::UpdateLightEve
 pub(crate) struct TileMaterial {
     #[texture(0)]
     #[sampler(1)]
-    pub(crate) shadow_map_image: Handle<Image>,
+    pub(crate) light_map_image: Handle<Image>,
 
     #[uniform(2)]
     pub(crate) chunk_pos: UVec2
@@ -35,7 +35,8 @@ pub(super) fn update_light_map(
     world_data: Res<WorldData>,
     light_map_texture: Res<LightMapTexture>,
     mut light_map: ResMut<LightMap>,
-    mut images: ResMut<Assets<Image>>
+    mut images: ResMut<Assets<Image>>,
+    mut materials: ResMut<Assets<TileMaterial>>
 ) {
     if update_light_events.is_empty() { return; }
 
@@ -80,7 +81,7 @@ pub(super) fn update_light_map(
 
                 let color = light_map[(y, x)];
                 let color_bytes = color.to_le_bytes();
-                let index = ((y * light_map.ncols()) + x) * 4;    
+                let index = (y * light_map.ncols() + x) * 4;    
 
                 image.data[index]     = color_bytes[0];
                 image.data[index + 1] = color_bytes[1];
@@ -88,6 +89,10 @@ pub(super) fn update_light_map(
                 image.data[index + 3] = color_bytes[3];    
             }
         }
+    }
+
+    for (_, material) in materials.iter_mut() {
+        material.light_map_image = light_map_texture.0.clone();
     }
 }
 
@@ -99,7 +104,7 @@ pub(super) fn setup_post_processing_camera(
     let mut bytes = vec![0; light_map.len() * 4];
 
     for ((y, x), color) in light_map.indexed_iter() {
-        let index = ((y * light_map.ncols()) + x) * 4;
+        let index = (y * light_map.ncols() + x) * 4;
 
         let color_bytes = color.to_le_bytes();
 
