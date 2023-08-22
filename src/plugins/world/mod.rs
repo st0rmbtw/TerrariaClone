@@ -35,7 +35,7 @@ impl Plugin for WorldPlugin {
                 systems::handle_break_block_event,
                 systems::handle_update_neighbors_event,
                 systems::handle_update_block_event,
-                systems::handle_seed_event
+                systems::handle_seed_event,
             )
             .in_set(InGameSystemSet::Update)
         );

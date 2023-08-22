@@ -7,7 +7,7 @@ use bevy::{
 };
 use bevy_ecs_tilemap::prelude::MaterialTilemap;
 
-use crate::plugins::world::resources::LightMap;
+use crate::{plugins::{world::resources::LightMap, camera::events::UpdateLightEvent}, world::{WorldData, light::propagate_light}};
 
 
 #[derive(AsBindGroup, TypePath, TypeUuid, Clone, Default)]
@@ -27,93 +27,100 @@ impl MaterialTilemap for TileMaterial {
     }
 }
 
-#[derive(Component)]
-pub(super) struct ShadowMap;
-
 #[derive(Resource)]
-pub(crate) struct ShadowMapTexture(pub(crate) Handle<Image>);
+pub(crate) struct LightMapTexture(pub(crate) Handle<Image>);
 
-// pub(super) fn update_light_map(
-//     query_camera: Query<(&Handle<PostProcessingMaterial>, &OrthographicProjection, &GlobalTransform), With<MainCamera>>,
-//     mut update_light_events: EventReader<UpdateLightEvent>,
-//     post_processing_materials: Res<Assets<PostProcessingMaterial>>,
-//     mut images: ResMut<Assets<Image>>,
-//     mut light_map: ResMut<LightMap>,
-//     world_data: Res<WorldData>
-// ) {
-//     if let Ok((lighting_material_handle, projection, camera_transform)) = query_camera.get_single() {
-//         if update_light_events.iter().last().is_some() {
-//             let lighting_material = post_processing_materials
-//                 .get(lighting_material_handle)
-//                 .unwrap();
-//             let light_map_texture = images.get_mut(&lighting_material.shadow_map_image).unwrap();
-            
-//             let x_from = ((camera_transform.translation().x + projection.area.min.x) / TILE_SIZE * light::CLUSTER_SIZE as f32) as usize;
-//             let x_to = ((camera_transform.translation().x + projection.area.max.x) / TILE_SIZE * light::CLUSTER_SIZE as f32) as usize;
+pub(super) fn update_light_map(
+    mut update_light_events: EventReader<UpdateLightEvent>,
+    world_data: Res<WorldData>,
+    light_map_texture: Res<LightMapTexture>,
+    mut light_map: ResMut<LightMap>,
+    mut images: ResMut<Assets<Image>>
+) {
+    if update_light_events.is_empty() { return; }
 
-//             let y_from = ((camera_transform.translation().y + projection.area.max.y) / TILE_SIZE * light::CLUSTER_SIZE as f32).abs() as usize;
-//             let y_to = ((camera_transform.translation().y + projection.area.min.y) / TILE_SIZE * light::CLUSTER_SIZE as f32).abs() as usize;
+    let image = images.get_mut(&light_map_texture.0).unwrap();
+    
+    for event in update_light_events.iter() {
+        let range_y = event.tile_pos.y - 5 .. event.tile_pos.y + 5;
+        let range_x = event.tile_pos.x - 5 .. event.tile_pos.x + 5;
 
-//             for y in y_from..y_to {
-//                 for x in x_from..x_to {
-//                     light::propagate_light(x, y, &mut light_map.colors, &world_data);
+        // Left to right
+        for y in range_y.clone() {
+            for x in range_x.clone() {
+                propagate_light(x as usize, y as usize, &mut light_map, &world_data, IVec2::new(-1, 0));
+            }
+        }
 
-//                     if let Some(color) = light_map.colors.get((y, x)) {
-//                         let index = ((y * light_map.colors.ncols()) + x) * 4;
-//                         light_map_texture.data[index]     = *color; // R
-//                         light_map_texture.data[index + 1] = *color; // G
-//                         light_map_texture.data[index + 2] = *color; // B
-//                         light_map_texture.data[index + 3] = 0xFF; // A
-//                     }
-//                 }
-//             }
+        // Top to bottom
+        for x in range_x.clone() {
+            for y in range_y.clone() {
+                propagate_light(x as usize, y as usize, &mut light_map, &world_data, IVec2::new(0, -1));
+            }
+        }
 
-//             for y in (y_from..y_to).rev() {
-//                 for x in (x_from..x_to).rev() {
-//                     light::propagate_light(x, y, &mut light_map.colors, &world_data);
+        // Right to left
+        for y in range_y.clone() {
+            for x in range_x.clone().rev() {
+                propagate_light(x as usize, y as usize, &mut light_map, &world_data, IVec2::new(1, 0));
+            }
+        }
 
-//                     if let Some(color) = light_map.colors.get((y, x)) {
-//                         let index = ((y * light_map.colors.ncols()) + x) * 4;
-//                         light_map_texture.data[index]     = *color; // R
-//                         light_map_texture.data[index + 1] = *color; // G
-//                         light_map_texture.data[index + 2] = *color; // B
-//                         light_map_texture.data[index + 3] = 0xFF; // A
-//                     }
-//                 }
-//             }
-//         }
-//     }
-// }       
+        // Bottom to top
+        for x in range_x.clone() {
+            for y in range_y.clone().rev() {
+                propagate_light(x as usize, y as usize, &mut light_map, &world_data, IVec2::new(0, 1));
+            }
+        }
 
-#[allow(dead_code)]
+        for y in range_y.clone() {
+            for x in range_x.clone() {
+                let y = y as usize;
+                let x = x as usize;
+
+                let color = light_map[(y, x)];
+                let color_bytes = color.to_le_bytes();
+                let index = ((y * light_map.ncols()) + x) * 4;    
+
+                image.data[index]     = color_bytes[0];
+                image.data[index + 1] = color_bytes[1];
+                image.data[index + 2] = color_bytes[2];
+                image.data[index + 3] = color_bytes[3];    
+            }
+        }
+    }
+}
+
 pub(super) fn setup_post_processing_camera(
     mut commands: Commands,
     mut images: ResMut<Assets<Image>>,
     light_map: Res<LightMap>,
 ) {
-    let mut bytes = vec![0; light_map.colors.len() * 4];
+    let mut bytes = vec![0; light_map.len() * 4];
 
-    for ((y, x), color) in light_map.colors.indexed_iter() {
-        let index = ((y * light_map.colors.ncols()) + x) * 4;
+    for ((y, x), color) in light_map.indexed_iter() {
+        let index = ((y * light_map.ncols()) + x) * 4;
 
-        bytes[index]     = *color;
-        bytes[index + 1] = *color;
-        bytes[index + 2] = *color;
-        bytes[index + 3] = 0xFF;
+        let color_bytes = color.to_le_bytes();
+
+        bytes[index]     = color_bytes[0];
+        bytes[index + 1] = color_bytes[1];
+        bytes[index + 2] = color_bytes[2];
+        bytes[index + 3] = color_bytes[3];
     }
 
-    let shadow_map_image = Image::new(
+    let light_map_image = Image::new(
         Extent3d {
-            width: light_map.colors.ncols() as u32,
-            height: light_map.colors.nrows() as u32,
+            width: light_map.ncols() as u32,
+            height: light_map.nrows() as u32,
             ..default()
         },
         TextureDimension::D2,
         bytes,
-        TextureFormat::Rgba8UnormSrgb,
+        TextureFormat::R32Float,
     );
 
-    let shadow_map_image_handle = images.add(shadow_map_image);
+    let light_map_image_handle = images.add(light_map_image);
 
-    commands.insert_resource(ShadowMapTexture(shadow_map_image_handle));
+    commands.insert_resource(LightMapTexture(light_map_image_handle));
 }

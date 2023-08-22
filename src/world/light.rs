@@ -4,28 +4,28 @@ use ndarray::Array2;
 
 use super::WorldData;
 
-type LightMap = Array2::<u8>;
+type LightMap = Array2::<f32>;
 
-pub(crate) const CLUSTER_SIZE: usize = 1;
+pub(crate) const SUBDIVISION: usize = 1;
 
 #[allow(dead_code)]
 pub(crate) fn generate_light_map(world: &WorldData) -> LightMap {
     println!("Generating light map...");
 
-    let light_map_width = world.size.width;
-    let light_map_height = world.size.height;
+    let light_map_width = world.size.width * SUBDIVISION;
+    let light_map_height = world.size.height * SUBDIVISION;
 
     let mut light_map = LightMap::default((light_map_height, light_map_width));
 
     for y in 0..light_map_height {
         for x in 0..light_map_width {
-            let block = world.get_block((x, y));
-            let wall = world.get_wall((x, y));
+            let block = world.get_block((x / SUBDIVISION, y / SUBDIVISION));
+            let wall = world.get_wall((x / SUBDIVISION, y / SUBDIVISION));
             
             if block.is_some() || wall.is_some() {
-                light_map[(y, x)] = 0;
+                light_map[(y, x)] = 0.;
             } else {
-                light_map[(y, x)] = 255;
+                light_map[(y, x)] = 1.;
             }
         }
     }
@@ -38,7 +38,7 @@ pub(crate) fn generate_light_map(world: &WorldData) -> LightMap {
     }
 
     // Top to bottom
-    for x in (0..light_map_width).rev() {
+    for x in 0..light_map_width {
         for y in 0..light_map_height {
             propagate_light(x, y, &mut light_map, world, IVec2::new(0, -1));
         }
@@ -65,26 +65,25 @@ pub(crate) fn propagate_light(x: usize, y: usize, light_map: &mut LightMap, worl
     if x >= light_map.ncols() - 1 { return; }
     if y >= light_map.nrows() - 1 { return; }
 
-    if x.checked_sub(1).is_none() { return; }
-    if y.checked_sub(1).is_none() { return; }
+    if (x / SUBDIVISION).checked_sub(1).is_none() { return; }
+    if (y / SUBDIVISION).checked_sub(1).is_none() { return; }
+
+    let neighbor_world_pos = (
+        ((x / SUBDIVISION) as i32 + offset.x) as usize,
+        ((y / SUBDIVISION) as i32 + offset.y) as usize,
+    );
 
     let neighbor_pos = (
         (x as i32 + offset.x) as usize,
         (y as i32 + offset.y) as usize,
     );
 
-    let decay = if world.solid_block_exists(neighbor_pos) { 
-        50
-    } else if world.wall_exists(neighbor_pos) {
-        25
-    } else {
-        0
-    };
+    let decay = if world.solid_block_exists(neighbor_world_pos) { 0.56 } else { 0.91 };
 
     let this_light = light_map[(y, x)];
     let neighbor_light = light_map[(neighbor_pos.1, neighbor_pos.0)];
 
-    if neighbor_light > 0 && this_light == 0 {
-        light_map[(y, x)] = neighbor_light.saturating_sub(decay);
+    if this_light < neighbor_light {
+        light_map[(y, x)] = neighbor_light * decay;
     }
 }

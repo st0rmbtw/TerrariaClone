@@ -39,14 +39,18 @@ fn uintToColor(x: u32) -> vec3<f32>
     );
 }
 
+const SUBDIVISON: u32 = 1u;
+
 @fragment
 fn fragment(in: MeshVertexOutput) -> @location(0) vec4<f32> {
     let tile_chunk_pos: vec2<u32> = vec2(in.storage_position.x, 25u - in.storage_position.y);
-    let tile_map_pos = (chunk_pos * 25u) + tile_chunk_pos;
+    let tile_map_pos = (chunk_pos * 25u * SUBDIVISON) + tile_chunk_pos * SUBDIVISON;
 
-    let light = textureSample(light_map_texture, light_map_texture_sampler, vec2<f32>(tile_map_pos) / vec2(1749., 901.));
+    let uv: vec2<f32> = vec2(in.uv.x * f32(SUBDIVISON), in.uv.y * f32(SUBDIVISON));
+
+    let light = textureSample(light_map_texture, light_map_texture_sampler, (vec2<f32>(tile_map_pos) + uv) / vec2<f32>(textureDimensions(light_map_texture))).r;
 
     let color = process_fragment(in);
 
-    return color * light;
+    return vec4(color.rgb * light, 1.);
 }

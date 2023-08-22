@@ -19,7 +19,7 @@ use bevy_ecs_tilemap::{
     TilemapBundle, helpers::square_grid::neighbors::Neighbors, MaterialTilemapBundle
 };
 
-use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::{components::MainCamera, events::UpdateLightEvent}, player::{Player, PlayerRect}, audio::{PlaySoundEvent, SoundType}, world::resources::LightMap, DespawnOnGameExit}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world, light::generate_light_map}, lighting::compositing::{TileMaterial, ShadowMapTexture}, WALL_LAYER, TILES_LAYER};
+use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::{components::MainCamera, events::UpdateLightEvent}, player::{Player, PlayerRect}, audio::{PlaySoundEvent, SoundType}, world::resources::LightMap, DespawnOnGameExit}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world, light::generate_light_map}, lighting::compositing::{TileMaterial, LightMapTexture}, WALL_LAYER, TILES_LAYER};
 
 use super::{
     utils::{get_chunk_pos, get_camera_fov, get_chunk_tile_pos, get_chunk_range_by_camera_fov}, 
@@ -101,7 +101,7 @@ pub(super) fn spawn_chunks(
         (With<MainCamera>, Changed<Transform>),
     >,
     mut materials: ResMut<Assets<TileMaterial>>,
-    shadow_map_texture: Res<ShadowMapTexture>
+    shadow_map_texture: Res<LightMapTexture>
 ) {
     if let Ok((camera_transform, projection)) = query_camera.get_single() {
 
@@ -148,7 +148,7 @@ pub(super) fn spawn_chunk(
     wall_assets: &WallAssets,
     world_data: &WorldData,
     materials: &mut Assets<TileMaterial>,
-    shadow_map_texture: &ShadowMapTexture,
+    shadow_map_texture: &LightMapTexture,
     chunk_pos: ChunkPos,
 ) { 
     let chunk = commands.spawn((
@@ -368,7 +368,7 @@ pub(super) fn handle_break_block_event(
 
                 ChunkManager::remove_block(&mut commands, &mut query_chunk, tile_pos, block.block_type);
 
-                update_light.send(UpdateLightEvent);
+                update_light.send(UpdateLightEvent { tile_pos });
             }
 
             play_sound.send(PlaySoundEvent(SoundType::BlockHit(block.block_type)));
@@ -442,7 +442,7 @@ pub(super) fn handle_place_block_event(
         ChunkManager::spawn_block(&mut commands, &mut query_chunk, tile_pos, &new_block, index);
 
         update_neighbors.send(UpdateNeighborsEvent { tile_pos });
-        update_light.send(UpdateLightEvent);
+        update_light.send(UpdateLightEvent { tile_pos });
         play_sound.send(PlaySoundEvent(SoundType::BlockHit(block)));
     }
 }
