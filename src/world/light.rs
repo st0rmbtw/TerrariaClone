@@ -38,7 +38,12 @@ pub(crate) fn generate_light_map(world: &WorldData) -> LightMap {
 
     for y in 0..light_map_height {
         for x in 0..light_map_width {
-            let block = world.get_block((x / SUBDIVISION, y / SUBDIVISION));
+            if y >= world.layer.underground {
+                light_map[(y, x)] = 0.;
+                continue;
+            }
+
+            let block = world.get_solid_block((x / SUBDIVISION, y / SUBDIVISION));
             let wall = world.get_wall((x / SUBDIVISION, y / SUBDIVISION));
             
             if block.is_some() || wall.is_some() {
@@ -49,17 +54,17 @@ pub(crate) fn generate_light_map(world: &WorldData) -> LightMap {
         }
     }
 
-    // Left to right
-    for y in 0..light_map_height {
-        for x in 0..light_map_width {
-            propagate_light(x, y, &mut light_map, world, PassDirection::LeftToRight);
-        }
-    }
-
     // Top to bottom
     for x in 0..light_map_width {
         for y in 0..light_map_height {
             propagate_light(x, y, &mut light_map, world, PassDirection::TopToBottom);
+        }
+    }
+
+    // Left to right
+    for y in 0..light_map_height {
+        for x in 0..light_map_width {
+            propagate_light(x, y, &mut light_map, world, PassDirection::LeftToRight);
         }
     }
 

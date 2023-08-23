@@ -8,7 +8,7 @@ use bevy::{
     time::Time, core_pipeline::clear_color::ClearColorConfig
 };
 
-use crate::{plugins::{world::constants::TILE_SIZE, DespawnOnGameExit}, common::helpers::tile_pos_to_world_coords, world::WorldData};
+use crate::{plugins::{world::constants::TILE_SIZE, DespawnOnGameExit}, common::{helpers::tile_pos_to_world_coords, math::map_range_f32}, world::WorldData};
 
 use crate::plugins::player::Player;
 
@@ -46,14 +46,16 @@ pub(super) fn zoom(
 ) {
     let mut projection = query_camera.single_mut();
 
+    let new_scale = map_range_f32(MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, 0.25, 1.5, projection.scale) * CAMERA_ZOOM_STEP * time.delta_seconds();
+
     if input.pressed(KeyCode::Equals) {
-        let scale = projection.scale - (CAMERA_ZOOM_STEP * time.delta_seconds());
+        let scale = projection.scale - new_scale;
 
         projection.scale = scale.max(MIN_CAMERA_ZOOM);
     }
 
     if input.pressed(KeyCode::Minus) {
-        let scale = projection.scale + (CAMERA_ZOOM_STEP * time.delta_seconds());
+        let scale = projection.scale + new_scale;
 
         projection.scale = scale.min(MAX_CAMERA_ZOOM);
     }

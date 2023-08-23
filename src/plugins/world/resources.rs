@@ -1,4 +1,4 @@
-use bevy::{utils::HashSet, prelude::{Resource, Query, Entity, UVec2, Commands, DespawnRecursiveExt, BuildChildren, Deref, DerefMut}};
+use bevy::{utils::HashSet, prelude::{Resource, Query, Entity, UVec2, Commands, DespawnRecursiveExt, BuildChildren, Deref, DerefMut, Handle, Mesh}};
 use bevy_ecs_tilemap::tiles::{TilePos, TileStorage};
 use ndarray::Array2;
 
@@ -15,6 +15,9 @@ impl LightMap {
         Self(colors)
     }
 }
+
+#[derive(Resource, Deref)]
+pub(crate) struct LightMapChunkMesh(pub(crate) Handle<Mesh>);
 
 #[derive(Resource, Default)]
 pub(super) struct ChunkManager {
