@@ -33,7 +33,10 @@ impl Plugin for CameraPlugin {
                 .in_set(InGameSystemSet::PostUpdate)
         );
 
-        app.add_systems(OnExit(GameState::WorldLoading), systems::setup_camera);
+        app.add_systems(
+            OnExit(GameState::WorldLoading),
+            (systems::setup_main_camera, systems::setup_world_camera)
+        );
         app.add_systems(Update, systems::zoom.in_set(InGameSystemSet::Update));
         app.add_systems(
             PostUpdate,

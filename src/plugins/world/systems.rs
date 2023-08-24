@@ -19,13 +19,13 @@ use bevy_ecs_tilemap::{
     TilemapBundle, helpers::square_grid::neighbors::Neighbors
 };
 
-use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::{components::MainCamera, events::UpdateLightEvent}, player::{Player, PlayerRect}, audio::{PlaySoundEvent, SoundType}, world::resources::LightMap, DespawnOnGameExit}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world, light::generate_light_map}, lighting::compositing::{LightMapTexture, TileMaterial}, WALL_LAYER, TILES_LAYER, PLAYER_LAYER};
+use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::{components::MainCamera, events::UpdateLightEvent}, player::{Player, PlayerRect}, audio::{PlaySoundEvent, SoundType}, world::resources::LightMap, DespawnOnGameExit}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world, light::generate_light_map}, lighting::compositing::{LightMapTexture, LightMapMaterial}, WALL_LAYER, TILES_LAYER, PLAYER_LAYER};
 
 use super::{
     utils::{get_chunk_pos, get_camera_fov, get_chunk_tile_pos, get_chunk_range_by_camera_fov}, 
     events::{UpdateNeighborsEvent, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent, UpdateBlockEvent, SeedEvent},
     resources::{ChunkManager, LightMapChunkMesh}, 
-    constants::{CHUNK_SIZE_U, WALL_SIZE, CHUNKMAP_SIZE, TREE_SIZE, TREE_BRANCHES_SIZE, TREE_TOPS_SIZE, CHUNK_SIZE, TILE_SIZE}
+    constants::{CHUNK_SIZE_U, WALL_SIZE, CHUNKMAP_SIZE, TREE_SIZE, TREE_BRANCHES_SIZE, TREE_TOPS_SIZE, CHUNK_SIZE, TILE_SIZE}, WORLD_RENDER_LAYER
 };
 
 #[cfg(feature = "debug")]
@@ -105,7 +105,7 @@ pub(super) fn spawn_chunks(
     light_map_texture: Res<LightMapTexture>,
     light_map_mesh: Res<LightMapChunkMesh>,
     mut chunk_manager: ResMut<ChunkManager>,
-    mut tile_materials: ResMut<Assets<TileMaterial>>,
+    mut tile_materials: ResMut<Assets<LightMapMaterial>>,
     query_camera: Query<
         (&GlobalTransform, &OrthographicProjection),
         (With<MainCamera>, Changed<Transform>),
@@ -155,7 +155,7 @@ pub(super) fn spawn_chunk(
     block_assets: &BlockAssets,
     wall_assets: &WallAssets,
     world_data: &WorldData,
-    tile_materials: &mut Assets<TileMaterial>,
+    light_map_materials: &mut Assets<LightMapMaterial>,
     light_map_texture: &LightMapTexture,
     light_map_mesh: &LightMapChunkMesh,
     chunk_pos: ChunkPos,
@@ -249,7 +249,7 @@ pub(super) fn spawn_chunk(
     let mesh = commands.spawn((
         MaterialMesh2dBundle {
             mesh: Mesh2dHandle(light_map_mesh.clone_weak()),
-            material: tile_materials.add(TileMaterial {
+            material: light_map_materials.add(LightMapMaterial {
                 light_map_image: light_map_texture.0.clone_weak(),
                 chunk_pos,
             }),
@@ -261,6 +261,7 @@ pub(super) fn spawn_chunk(
             ..default()
         },
         NoFrustumCulling,
+        WORLD_RENDER_LAYER
     ))
     .id();
 
@@ -268,101 +269,116 @@ pub(super) fn spawn_chunk(
 
     commands
         .entity(tilemap_entity)
-        .insert(Chunk::new(chunk_pos, ChunkType::Tile))
-        .insert(TilemapBundle {
-            grid_size: TilemapGridSize {
-                x: TILE_SIZE,
-                y: TILE_SIZE,
-            },
-            size: CHUNKMAP_SIZE,
-            storage: tile_storage,
-            texture: TilemapTexture::Single(block_assets.tiles.clone_weak()),
-            tile_size: TilemapTileSize {
-                x: TILE_SIZE,
-                y: TILE_SIZE,
-            },
-            spacing: TilemapSpacing {
-                x: 2.,
-                y: 2.
-            },
-            transform: Transform::from_xyz(0., 0., TILES_LAYER + 0.5),
-            ..default()
-        });
+        .insert((
+            Chunk::new(chunk_pos, ChunkType::Tile),
+            WORLD_RENDER_LAYER,
+            TilemapBundle {
+                grid_size: TilemapGridSize {
+                    x: TILE_SIZE,
+                    y: TILE_SIZE,
+                },
+                size: CHUNKMAP_SIZE,
+                storage: tile_storage,
+                texture: TilemapTexture::Single(block_assets.tiles.clone_weak()),
+                tile_size: TilemapTileSize {
+                    x: TILE_SIZE,
+                    y: TILE_SIZE,
+                },
+                spacing: TilemapSpacing {
+                    x: 2.,
+                    y: 2.
+                },
+                transform: Transform::from_xyz(0., 0., TILES_LAYER + 0.5),
+                ..default()
+            }
+        ));
 
     commands
         .entity(wallmap_entity)
-        .insert(Chunk::new(chunk_pos, ChunkType::Wall))
-        .insert(TilemapBundle {
-            grid_size: TilemapGridSize {
-                x: TILE_SIZE,
-                y: TILE_SIZE,
-            },
-            size: CHUNKMAP_SIZE,
-            storage: wall_storage,
-            texture: TilemapTexture::Single(wall_assets.walls.clone_weak()),
-            tile_size: TilemapTileSize {
-                x: WALL_SIZE,
-                y: WALL_SIZE,
-            },
-            transform: Transform::from_xyz(0., 0., WALL_LAYER),
-            ..Default::default()
-        });
+        .insert((
+            Chunk::new(chunk_pos, ChunkType::Wall),
+            WORLD_RENDER_LAYER,
+            TilemapBundle {
+                grid_size: TilemapGridSize {
+                    x: TILE_SIZE,
+                    y: TILE_SIZE,
+                },
+                size: CHUNKMAP_SIZE,
+                storage: wall_storage,
+                texture: TilemapTexture::Single(wall_assets.walls.clone_weak()),
+                tile_size: TilemapTileSize {
+                    x: WALL_SIZE,
+                    y: WALL_SIZE,
+                },
+                transform: Transform::from_xyz(0., 0., WALL_LAYER),
+                ..Default::default()
+            }
+        ));
 
     commands
         .entity(treemap_entity)
-        .insert(Chunk::new(chunk_pos, ChunkType::Tree))
-        .insert(TilemapBundle {
-            grid_size: TilemapGridSize {
-                x: TILE_SIZE,
-                y: TILE_SIZE,
-            },
-            size: CHUNKMAP_SIZE,
-            storage: tree_storage,
-            texture: TilemapTexture::Single(block_assets.trees.clone_weak()),
-            tile_size: TREE_SIZE,
-            transform: Transform::from_xyz(0., 0., TILES_LAYER + 0.1),
-            spacing: TilemapSpacing { 
-                x: 2.,
-                y: 2.,
-            },
-            ..Default::default()
-        });
+        .insert((
+            Chunk::new(chunk_pos, ChunkType::Tree),
+            WORLD_RENDER_LAYER,
+            TilemapBundle {
+                grid_size: TilemapGridSize {
+                    x: TILE_SIZE,
+                    y: TILE_SIZE,
+                },
+                size: CHUNKMAP_SIZE,
+                storage: tree_storage,
+                texture: TilemapTexture::Single(block_assets.trees.clone_weak()),
+                tile_size: TREE_SIZE,
+                transform: Transform::from_xyz(0., 0., TILES_LAYER + 0.1),
+                spacing: TilemapSpacing { 
+                    x: 2.,
+                    y: 2.,
+                },
+                ..Default::default()
+            }
+        ));
 
     commands
         .entity(tree_branches_map_entity)
-        .insert(Chunk::new(chunk_pos, ChunkType::TreeBranch))
-        .insert(TilemapBundle {
-            grid_size: TilemapGridSize {
-                x: TILE_SIZE,
-                y: TILE_SIZE,
-            },
-            size: CHUNKMAP_SIZE,
-            storage: tree_branches_storage,
-            texture: TilemapTexture::Single(block_assets.tree_branches_forest.clone_weak()),
-            tile_size: TREE_BRANCHES_SIZE,
-            transform: Transform::from_xyz(0., 0., TILES_LAYER + 0.2),
-            spacing: TilemapSpacing { 
-                x: 2.,
-                y: 2.,
-            },
-            ..Default::default()
-        });
+        .insert((
+            Chunk::new(chunk_pos, ChunkType::TreeBranch),
+            WORLD_RENDER_LAYER,
+            TilemapBundle {
+                grid_size: TilemapGridSize {
+                    x: TILE_SIZE,
+                    y: TILE_SIZE,
+                },
+                size: CHUNKMAP_SIZE,
+                storage: tree_branches_storage,
+                texture: TilemapTexture::Single(block_assets.tree_branches_forest.clone_weak()),
+                tile_size: TREE_BRANCHES_SIZE,
+                transform: Transform::from_xyz(0., 0., TILES_LAYER + 0.2),
+                spacing: TilemapSpacing { 
+                    x: 2.,
+                    y: 2.,
+                },
+                ..Default::default()
+            }
+        ));
 
     commands
         .entity(tree_tops_map_entity)
-        .insert(Chunk::new(chunk_pos, ChunkType::TreeTop))
-        .insert(TilemapBundle {
-            grid_size: TilemapGridSize {
-                x: TILE_SIZE,
-                y: TILE_SIZE,
-            },
-            size: CHUNKMAP_SIZE,
-            storage: tree_tops_storage,
-            texture: TilemapTexture::Single(block_assets.tree_tops_forest.clone_weak()),
-            tile_size: TREE_TOPS_SIZE,
-            transform: Transform::from_xyz(0., 0., TILES_LAYER + 0.2),
-            ..Default::default()
-        });
+        .insert((
+            Chunk::new(chunk_pos, ChunkType::TreeTop),
+            WORLD_RENDER_LAYER,
+            TilemapBundle {
+                grid_size: TilemapGridSize {
+                    x: TILE_SIZE,
+                    y: TILE_SIZE,
+                },
+                size: CHUNKMAP_SIZE,
+                storage: tree_tops_storage,
+                texture: TilemapTexture::Single(block_assets.tree_tops_forest.clone_weak()),
+                tile_size: TREE_TOPS_SIZE,
+                transform: Transform::from_xyz(0., 0., TILES_LAYER + 0.2),
+                ..Default::default()
+            }
+        ));
 
     commands
         .entity(chunk)

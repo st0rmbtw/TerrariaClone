@@ -7,9 +7,9 @@ use bevy::{
     sprite::Anchor, render::view::RenderLayers,
 };
 
-use super::{assets::BackgroundAssets, camera::{components::BackgroundCamera, CameraSet}, world::constants::TILE_SIZE, InGameSystemSet, DespawnOnGameExit};
+use super::{assets::BackgroundAssets, camera::{components::{BackgroundCamera, MoveCamera}, CameraSet}, world::constants::TILE_SIZE, InGameSystemSet, DespawnOnGameExit};
 
-pub(crate) const BACKGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(25);
+pub(crate) const BACKGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(24);
 
 // region: Plugin
 pub(crate) struct BackgroundPlugin;
@@ -73,6 +73,7 @@ fn spawn_background_camera(
     commands.spawn((
         Name::new("BackgroundCamera"),
         BackgroundCamera,
+        MoveCamera,
         ParallaxCameraComponent,
         BACKGROUND_RENDER_LAYER,
         UiCameraConfig { show_ui: false },
@@ -222,7 +223,7 @@ fn spawn_ingame_background(
         Name::new("InGame Parallax Container"),
         InGameParallaxContainer,
         DespawnOnGameExit,
-        ParallaxContainer::new(layers)
+        ParallaxContainer::new(layers).with_render_layer(BACKGROUND_RENDER_LAYER)
     ));
 }
 

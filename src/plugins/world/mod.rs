@@ -5,10 +5,15 @@ mod systems;
 mod utils;
 
 use crate::common::state::GameState;
-use bevy::{prelude::{Plugin, App, OnEnter, IntoSystemConfigs, Update, Rect, OnExit}, math::URect};
+use bevy::{prelude::{Plugin, App, OnEnter, IntoSystemConfigs, Update, Rect, OnExit}, math::URect, render::view::RenderLayers};
 use bevy_ecs_tilemap::TilemapPlugin;
 
 use super::InGameSystemSet;
+
+pub(crate) const WORLD_RENDER_LAYER: RenderLayers = RenderLayers::layer(26);
+
+pub(super) type CameraFov = Rect;
+pub(super) type ChunkRange = URect;
 
 pub(crate) struct WorldPlugin;
 impl Plugin for WorldPlugin {
@@ -44,6 +49,3 @@ impl Plugin for WorldPlugin {
         app.add_systems(Update, systems::set_tiles_visibility.in_set(InGameSystemSet::Update));
     }
 }
-
-pub(super) type CameraFov = Rect;
-pub(super) type ChunkRange = URect;

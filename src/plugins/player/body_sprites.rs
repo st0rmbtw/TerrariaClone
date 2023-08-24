@@ -1,6 +1,6 @@
 use bevy::{prelude::{Name, Color, default, Transform, Handle, ChildBuilder, Visibility, Component}, sprite::{SpriteSheetBundle, TextureAtlasSprite, TextureAtlas, SpriteBundle, Sprite, Anchor}};
 
-use crate::plugins::inventory::{UseItemAnimationData, ItemInHand};
+use crate::plugins::{inventory::{UseItemAnimationData, ItemInHand}, world::WORLD_RENDER_LAYER};
 
 use super::{MovementAnimationBundle, WalkingAnimationData, FlyingAnimationData, IdleAnimationData};
 
@@ -27,7 +27,8 @@ pub(super) fn spawn_player_hair(commands: &mut ChildBuilder, hair: Handle<Textur
             transform: Transform::from_xyz(0., 0., z),
             texture_atlas: hair,
             ..default()
-        }
+        },
+        WORLD_RENDER_LAYER
     ));
 }
 
@@ -45,7 +46,8 @@ pub(super) fn spawn_player_head(commands: &mut ChildBuilder, head: Handle<Textur
             texture_atlas: head,
             transform: Transform::from_xyz(0., 0., z),
             ..default()
-        }
+        },
+        WORLD_RENDER_LAYER
     ));
 }
 
@@ -66,6 +68,7 @@ pub(super) fn spawn_player_eyes(commands: &mut ChildBuilder, left_eye: Handle<Te
             texture_atlas: left_eye,
             ..default()
         },
+        WORLD_RENDER_LAYER
     ));
 
     commands.spawn((
@@ -88,6 +91,7 @@ pub(super) fn spawn_player_eyes(commands: &mut ChildBuilder, left_eye: Handle<Te
             texture_atlas: right_eye,
             ..default()
         },
+        WORLD_RENDER_LAYER
     ));
 }
 
@@ -114,6 +118,7 @@ pub(super) fn spawn_player_left_hand(commands: &mut ChildBuilder, left_shoulder:
             texture_atlas: left_shoulder,
             ..default()
         },
+        WORLD_RENDER_LAYER
     ));
 
     commands.spawn((
@@ -138,6 +143,7 @@ pub(super) fn spawn_player_left_hand(commands: &mut ChildBuilder, left_shoulder:
             texture_atlas: left_hand,
             ..default()
         },
+        WORLD_RENDER_LAYER
     ));
 }
 
@@ -161,6 +167,7 @@ pub(super) fn spawn_player_right_hand(commands: &mut ChildBuilder, right_hand: H
             texture_atlas: right_hand,
             ..default()
         },
+        WORLD_RENDER_LAYER
     ));
 }
 
@@ -180,6 +187,7 @@ pub(super) fn spawn_player_chest(commands: &mut ChildBuilder, chest: Handle<Text
             texture_atlas: chest,
             ..default()
         },
+        WORLD_RENDER_LAYER
     ));
 }
 
@@ -205,7 +213,8 @@ pub(super) fn spawn_player_feet(commands: &mut ChildBuilder, feet: Handle<Textur
             texture_atlas: feet,
             transform: Transform::from_xyz(0., 0., z),
             ..default()
-        }
+        },
+        WORLD_RENDER_LAYER
     ));
 }
 
@@ -223,6 +232,7 @@ pub(super) fn spawn_player_item_in_hand(commands: &mut ChildBuilder, z: f32) {
             visibility: Visibility::Hidden,
             transform: Transform::from_xyz(0., 0., z),
             ..default()
-        }
+        },
+        WORLD_RENDER_LAYER
     ));
 }

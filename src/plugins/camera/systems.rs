@@ -3,19 +3,19 @@ use bevy::{
     prelude::{
         Commands, Camera2dBundle, OrthographicProjection, Transform, Res, KeyCode, Query, 
         With, Input,
-        Without, Camera2d, Name, Mut,
+        Without, Camera2d, Name, Mut, Color, UiCameraConfig, default,
     }, 
     time::Time, core_pipeline::clear_color::ClearColorConfig
 };
 
-use crate::{plugins::{world::constants::TILE_SIZE, DespawnOnGameExit}, common::{helpers::tile_pos_to_world_coords, math::map_range_f32}, world::WorldData};
+use crate::{plugins::{world::{constants::TILE_SIZE, WORLD_RENDER_LAYER}, DespawnOnGameExit}, common::{helpers::tile_pos_to_world_coords, math::map_range_f32}, world::WorldData};
 
 use crate::plugins::player::Player;
 
-use super::{CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, components::{MainCamera, LightMapCamera, BackgroundCamera}, INITIAL_ZOOM};
+use super::{CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, components::{MainCamera, BackgroundCamera, WorldCamera, ZoomableCamera, MoveCamera}, INITIAL_ZOOM};
 
-#[autodefault(except(TextureDescriptor, ShadowMapMaterial, LightMapMaterial, SunMaterial, LightingMaterial))]
-pub(super) fn setup_camera(
+#[autodefault]
+pub(super) fn setup_main_camera(
     mut commands: Commands,
     world_data: Res<WorldData>
 ) {
@@ -24,46 +24,75 @@ pub(super) fn setup_camera(
     commands
         .spawn((
             Name::new("MainCamera"),
-            MainCamera,
-            LightMapCamera,
             DespawnOnGameExit,
+            MainCamera,
+            ZoomableCamera,
+            MoveCamera,
+            UiCameraConfig { show_ui: false },
             Camera2dBundle {
                 projection: OrthographicProjection { 
                     scale: INITIAL_ZOOM
                 },
                 transform: Transform::from_xyz(player_spawn_point.x, player_spawn_point.y, 500.),
                 camera_2d: Camera2d {
-                    clear_color: ClearColorConfig::None
+                    clear_color: ClearColorConfig::Custom(Color::NONE)
                 }
             }
         ));
 }
 
+pub(super) fn setup_world_camera(
+    mut commands: Commands,
+    world_data: Res<WorldData>
+) {
+    let player_spawn_point = tile_pos_to_world_coords(world_data.spawn_point);
+
+    commands.spawn((
+        Name::new("WorldCamera"),
+        DespawnOnGameExit,
+        WorldCamera,
+        ZoomableCamera,
+        MoveCamera,
+        UiCameraConfig { show_ui: false },
+        Camera2dBundle {
+            projection: OrthographicProjection {
+                scale: INITIAL_ZOOM,
+                ..default()
+            },
+            transform: Transform::from_xyz(player_spawn_point.x, player_spawn_point.y, 500.),
+            camera_2d: Camera2d {
+                clear_color: ClearColorConfig::Custom(Color::NONE)
+            },
+            ..default()
+        },
+        WORLD_RENDER_LAYER
+    ));
+}
+
 pub(super) fn zoom(
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
-    mut query_camera: Query<&mut OrthographicProjection, With<MainCamera>>,
+    mut query_camera: Query<&mut OrthographicProjection, With<ZoomableCamera>>,
 ) {
-    let mut projection = query_camera.single_mut();
+    for mut projection in &mut query_camera {
+        let new_scale = map_range_f32(MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, 0.25, 1.5, projection.scale) * CAMERA_ZOOM_STEP * time.delta_seconds();
 
-    let new_scale = map_range_f32(MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, 0.25, 1.5, projection.scale) * CAMERA_ZOOM_STEP * time.delta_seconds();
+        if input.pressed(KeyCode::Equals) {
+            let scale = projection.scale - new_scale;
 
-    if input.pressed(KeyCode::Equals) {
-        let scale = projection.scale - new_scale;
+            projection.scale = scale.max(MIN_CAMERA_ZOOM);
+        }
 
-        projection.scale = scale.max(MIN_CAMERA_ZOOM);
-    }
+        if input.pressed(KeyCode::Minus) {
+            let scale = projection.scale + new_scale;
 
-    if input.pressed(KeyCode::Minus) {
-        let scale = projection.scale + new_scale;
-
-        projection.scale = scale.min(MAX_CAMERA_ZOOM);
+            projection.scale = scale.min(MAX_CAMERA_ZOOM);
+        }
     }
 }
 
 pub(super) fn move_camera(
-    mut query_main_camera: Query<&mut Transform, (With<MainCamera>, Without<Player>)>,
-    mut query_background_camera: Query<&mut Transform, (With<BackgroundCamera>, Without<MainCamera>, Without<Player>)>,
+    mut query_move_camera: Query<&mut Transform, (With<MoveCamera>, Without<Player>)>,
     query_player: Query<&Transform, (With<Player>, Without<MainCamera>)>,
     #[cfg(feature = "debug")]
     time: Res<Time>,
@@ -72,21 +101,20 @@ pub(super) fn move_camera(
     #[cfg(feature = "debug")]
     debug_config: Res<crate::plugins::debug::DebugConfiguration>
 ) {
-    let main_camera_transform = query_main_camera.get_single_mut().ok();
-    let background_camera_transform = query_background_camera.get_single_mut().ok();
-
-    #[cfg(not(feature = "debug"))] {
-        if let Ok(player_transform) = query_player.get_single() {
-            follow_player(player_transform, main_camera_transform, background_camera_transform);
-        }
-    }
-
-    #[cfg(feature = "debug")] {
-        if debug_config.free_camera {
-            free_camera(time, input, main_camera_transform, background_camera_transform);
-        } else {
+    for camera_transform in &mut query_move_camera {
+        #[cfg(not(feature = "debug"))] {
             if let Ok(player_transform) = query_player.get_single() {
-                follow_player(player_transform, main_camera_transform, background_camera_transform);
+                follow_player(player_transform, camera_transform);
+            }
+        }
+
+        #[cfg(feature = "debug")] {
+            if debug_config.free_camera {
+                free_camera(&time, &input, camera_transform);
+            } else {
+                if let Ok(player_transform) = query_player.get_single() {
+                    follow_player(player_transform, camera_transform);
+                }
             }
         }
     }
@@ -94,27 +122,17 @@ pub(super) fn move_camera(
 
 pub(super) fn follow_player(
     player_transform: &Transform,
-    main_camera_transform: Option<Mut<Transform>>,
-    background_camera_transform: Option<Mut<Transform>>,
+    mut camera_transform: Mut<Transform>,
 ) {
     let player_pos = player_transform.translation.truncate();
-
-    if let Some(mut transform) = main_camera_transform {
-        transform.translation.x = player_pos.x;
-        transform.translation.y = player_pos.y;
-    }
-
-    if let Some(mut transform) = background_camera_transform {
-        transform.translation.x = player_pos.x;
-        transform.translation.y = player_pos.y;
-    }
+    camera_transform.translation.x = player_pos.x;
+    camera_transform.translation.y = player_pos.y;
 }
 #[cfg(feature = "debug")]
 pub(super) fn free_camera(
-    time: Res<Time>,
-    input: Res<bevy::prelude::Input<KeyCode>>,
-    main_camera_transform: Option<Mut<Transform>>,
-    background_camera_transform: Option<Mut<Transform>>,
+    time: &Res<Time>,
+    input: &Res<bevy::prelude::Input<KeyCode>>,
+    mut camera_transform: Mut<Transform>,
 ) {
     use bevy::prelude::Vec2;
 
@@ -145,15 +163,8 @@ pub(super) fn free_camera(
 
     let velocity = move_direction * camera_speed * time.delta_seconds();
 
-    if let Some(mut transform) = main_camera_transform {
-        transform.translation.x += velocity.x;
-        transform.translation.y += velocity.y;
-    }
-
-    if let Some(mut transform) = background_camera_transform {
-        transform.translation.x += velocity.x;
-        transform.translation.y += velocity.y;
-    }
+    camera_transform.translation.x += velocity.x;
+    camera_transform.translation.y += velocity.y;
 }
 
 pub(super) fn keep_camera_inside_world_bounds(
