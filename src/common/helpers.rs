@@ -1,7 +1,7 @@
 use bevy::{prelude::{Visibility, Component, With, Query, Vec2, Mut}, math::vec2};
 use bevy_ecs_tilemap::tiles::TilePos;
 
-use crate::{plugins::world::constants::TILE_SIZE, world::{block::BlockType, wall::Wall}};
+use crate::{plugins::world::constants::TILE_SIZE, world::{block::BlockType, wall::Wall, Size}};
 
 use super::TextureAtlasPos;
 
@@ -41,8 +41,11 @@ pub(crate) fn set_visibility(mut visibility: Mut<Visibility>, visible: bool) {
     }
 }
 
-pub(crate) fn get_tile_pos_from_world_coords(world_coords: Vec2) -> TilePos {
-    let tile_pos = (world_coords / TILE_SIZE).round().abs();
+pub(crate) fn get_tile_pos_from_world_coords(world_size: Size, world_coords: Vec2) -> TilePos {
+    let tile_pos = (Vec2::new(world_coords.x, world_coords.y.abs()) / TILE_SIZE)
+        .round()
+        .clamp(Vec2::new(0., 0.), Vec2::new(world_size.width as f32, world_size.height as f32));
+
     TilePos::new(tile_pos.x as u32, tile_pos.y as u32)
 }
 

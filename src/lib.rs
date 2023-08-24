@@ -55,7 +55,6 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
                         visible: false,
                         ..default()
                     },
-                    focused: true,
                     present_mode: vsync.as_present_mode(),
                     mode: fullscreen.as_window_mode(),
                     resolution: WindowResolution::new(resolution.width, resolution.height),

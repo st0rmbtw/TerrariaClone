@@ -2,7 +2,7 @@ use bevy::{prelude::{App, Plugin, ResMut, Commands, TextBundle, Res, Color, OnEn
 use bevy_ecs_tilemap::{tiles::TilePos, helpers::square_grid::neighbors::Neighbors};
 use bevy_inspector_egui::{bevy_egui::{egui, EguiContexts}, egui::{Align2, CollapsingHeader, ScrollArea}, quick::WorldInspectorPlugin, reflect_inspector};
 
-use crate::{common::{state::GameState, helpers::{self, get_tile_pos_from_world_coords}}, world::{block::BlockType, WorldData, chunk::ChunkContainer}};
+use crate::{common::{state::GameState, helpers}, world::{block::BlockType, WorldData, chunk::ChunkContainer}};
 
 use super::{assets::FontAssets, inventory::{UseItemAnimationIndex, UseItemAnimationData}, camera::components::MainCamera, cursor::position::CursorPosition, DespawnOnGameExit, InGameSystemSet};
 
@@ -261,7 +261,7 @@ fn block_hover(
     world_data: Res<WorldData>,
     mut block_data: ResMut<HoverBlockData>
 ) {
-    let tile_pos = get_tile_pos_from_world_coords(cursor.world);
+    let tile_pos = helpers::get_tile_pos_from_world_coords(world_data.size, cursor.world);
     let block_type = world_data.get_block(tile_pos).map(|b| *b);
     let neighbors = world_data.get_block_neighbors(tile_pos, true);
 

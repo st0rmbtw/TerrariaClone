@@ -237,7 +237,7 @@ fn spawn_forest_background(
         DespawnOnGameExit,
         ParallaxContainer::new(vec![
             LayerData {
-                speed: LayerSpeed::Bidirectional(0.9, 0.6),
+                speed: LayerSpeed::Bidirectional(0.8, 0.6),
                 image: backgrounds.background_55.clone_weak(),
                 z: BACKGROUND_LAYER + 0.3,
                 transition_factor: 1.,

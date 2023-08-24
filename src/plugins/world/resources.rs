@@ -7,7 +7,7 @@ use crate::world::{chunk::{ChunkPos, Chunk, ChunkType}, block::{BlockType, Block
 use super::{systems::spawn_block, utils::{get_chunk_pos, get_chunk_tile_pos}};
 
 #[derive(Resource, Deref, DerefMut)]
-pub(crate) struct LightMap(Array2<f32>);
+pub(crate) struct LightMap(pub(crate) Array2<f32>);
 
 impl LightMap {
     #[inline(always)]

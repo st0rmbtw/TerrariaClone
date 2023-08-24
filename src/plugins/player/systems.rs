@@ -203,10 +203,7 @@ pub(super) fn detect_collisions(
                                     velocity.y = 0.;
                                 }
 
-                                let fall_distance = (get_fall_distance(player_rect.bottom(), player_data.fall_start) / TILE_SIZE).ceil();
-                                if fall_distance > 0. {
-                                    debug!(fall_distance);
-                                }
+                                let _fall_distance = (get_fall_distance(player_rect.bottom(), player_data.fall_start) / TILE_SIZE).ceil();
 
                                 player_data.fall_start = None;
 

@@ -186,41 +186,48 @@ impl WorldData {
         self.get_wall(world_pos).is_some()
     }
 
-    pub(crate) fn get_block_neighbors<Pos: AsWorldPos>(&self, world_pos: Pos, solid: bool) -> Neighbors<&Block> {
+    pub(crate) fn get_block_neighbors<Pos: AsWorldPos + Copy>(&self, world_pos: Pos, solid: bool) -> Neighbors<&Block> {
         let tile_pos = world_pos.as_tile_pos();
+        let tilemap_size = &self.size.as_tilemap_size();
 
-        let get_block = move |pos: TilePos| -> Option<&Block> {
-            if solid {
-                self.get_solid_block(pos)
-            } else {
-                self.get_block(pos)
+        let get_block = move |pos: Option<TilePos>| -> Option<&Block> {
+            match pos {
+                Some(pos) => {
+                    if solid {
+                        self.get_solid_block(pos)
+                    } else {
+                        self.get_block(pos)
+                    }
+                },
+                None => self.get_solid_block(world_pos),
             }
         };
 
         Neighbors {
-            west: tile_pos.square_offset(&SquareDirection::West, &self.size.as_tilemap_size()).and_then(get_block),
-            east: tile_pos.square_offset(&SquareDirection::East, &self.size.as_tilemap_size()).and_then(get_block),
-            north: tile_pos.square_offset(&SquareDirection::South, &self.size.as_tilemap_size()).and_then(get_block),
-            south: tile_pos.square_offset(&SquareDirection::North, &self.size.as_tilemap_size()).and_then(get_block),
-            north_west: tile_pos.square_offset(&SquareDirection::SouthWest, &self.size.as_tilemap_size()).and_then(get_block),
-            south_west: tile_pos.square_offset(&SquareDirection::NorthWest, &self.size.as_tilemap_size()).and_then(get_block),
-            south_east: tile_pos.square_offset(&SquareDirection::NorthEast, &self.size.as_tilemap_size()).and_then(get_block),
-            north_east: tile_pos.square_offset(&SquareDirection::SouthEast, &self.size.as_tilemap_size()).and_then(get_block),
+            west:       get_block(tile_pos.square_offset(&SquareDirection::West,      tilemap_size)),
+            east:       get_block(tile_pos.square_offset(&SquareDirection::East,      tilemap_size)),
+            north:      get_block(tile_pos.square_offset(&SquareDirection::South,     tilemap_size)),
+            south:      get_block(tile_pos.square_offset(&SquareDirection::North,     tilemap_size)),
+            north_west: get_block(tile_pos.square_offset(&SquareDirection::SouthWest, tilemap_size)),
+            south_west: get_block(tile_pos.square_offset(&SquareDirection::NorthWest, tilemap_size)),
+            south_east: get_block(tile_pos.square_offset(&SquareDirection::NorthEast, tilemap_size)),
+            north_east: get_block(tile_pos.square_offset(&SquareDirection::SouthEast, tilemap_size)),
         }
     }
 
     pub(crate) fn get_wall_neighbors<Pos: AsWorldPos>(&self, world_pos: Pos) -> Neighbors<&Wall> {
         let tile_pos = world_pos.as_tile_pos();
+        let tilemap_size = &self.size.as_tilemap_size();
 
         Neighbors {
-            west: tile_pos.square_offset(&SquareDirection::West, &self.size.as_tilemap_size()).and_then(|pos| self.get_wall(pos)),
-            east: tile_pos.square_offset(&SquareDirection::East, &self.size.as_tilemap_size()).and_then(|pos| self.get_wall(pos)),
-            north: tile_pos.square_offset(&SquareDirection::South, &self.size.as_tilemap_size()).and_then(|pos| self.get_wall(pos)),
-            south: tile_pos.square_offset(&SquareDirection::North, &self.size.as_tilemap_size()).and_then(|pos| self.get_wall(pos)),
-            north_west: tile_pos.square_offset(&SquareDirection::SouthWest, &self.size.as_tilemap_size()).and_then(|pos| self.get_wall(pos)),
-            south_west: tile_pos.square_offset(&SquareDirection::NorthWest, &self.size.as_tilemap_size()).and_then(|pos| self.get_wall(pos)),
-            south_east: tile_pos.square_offset(&SquareDirection::NorthEast, &self.size.as_tilemap_size()).and_then(|pos| self.get_wall(pos)),
-            north_east: tile_pos.square_offset(&SquareDirection::SouthEast, &self.size.as_tilemap_size()).and_then(|pos| self.get_wall(pos)),
+            west:       tile_pos.square_offset(&SquareDirection::West,      tilemap_size).and_then(|pos| self.get_wall(pos)),
+            east:       tile_pos.square_offset(&SquareDirection::East,      tilemap_size).and_then(|pos| self.get_wall(pos)),
+            north:      tile_pos.square_offset(&SquareDirection::South,     tilemap_size).and_then(|pos| self.get_wall(pos)),
+            south:      tile_pos.square_offset(&SquareDirection::North,     tilemap_size).and_then(|pos| self.get_wall(pos)),
+            north_west: tile_pos.square_offset(&SquareDirection::SouthWest, tilemap_size).and_then(|pos| self.get_wall(pos)),
+            south_west: tile_pos.square_offset(&SquareDirection::NorthWest, tilemap_size).and_then(|pos| self.get_wall(pos)),
+            south_east: tile_pos.square_offset(&SquareDirection::NorthEast, tilemap_size).and_then(|pos| self.get_wall(pos)),
+            north_east: tile_pos.square_offset(&SquareDirection::SouthEast, tilemap_size).and_then(|pos| self.get_wall(pos)),
         }
     }
 }

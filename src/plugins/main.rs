@@ -1,4 +1,6 @@
-use bevy::prelude::{Plugin, App, OnExit, PreUpdate, Update, PostUpdate, FixedUpdate, in_state, GizmoConfig, default, IntoSystemSetConfig, UVec2};
+use std::time::Duration;
+
+use bevy::{prelude::{Plugin, App, OnExit, PreUpdate, Update, PostUpdate, FixedUpdate, in_state, GizmoConfig, default, IntoSystemSetConfig, UVec2}, winit::{WinitSettings, UpdateMode}};
 use bevy_ecs_tilemap::prelude::TilemapRenderSettings;
 use bevy_hanabi::HanabiPlugin;
 
@@ -47,6 +49,14 @@ impl Plugin for MainPlugin {
         app.insert_resource(TilemapRenderSettings {
             render_chunk_size: UVec2::new(100, 100),
             y_sort: false,
+        });
+
+        app.insert_resource(WinitSettings {
+            focused_mode: UpdateMode::Continuous,
+            unfocused_mode: UpdateMode::ReactiveLowPower {
+                max_wait: Duration::from_millis(1000 / 30),
+            },
+            ..default()
         });
 
         app.configure_set(PreUpdate, InGameSystemSet::PreUpdate.run_if(in_state(GameState::InGame)));

@@ -16,7 +16,7 @@ const CAMERA_ZOOM_STEP: f32 = 1.;
 #[cfg(feature = "debug")]
 const CAMERA_MOVE_SPEED: f32 = 1000.;
 #[cfg(feature = "debug")]
-const CAMERA_MOVE_SPEED_FASTER: f32 = CAMERA_MOVE_SPEED * 2.;
+const CAMERA_MOVE_SPEED_FASTER: f32 = CAMERA_MOVE_SPEED * 3.;
 #[cfg(feature = "debug")]
 const CAMERA_MOVE_SPEED_SLOWER: f32 = CAMERA_MOVE_SPEED / 2.;
 

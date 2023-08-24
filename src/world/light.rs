@@ -43,10 +43,10 @@ pub(crate) fn generate_light_map(world: &WorldData) -> LightMap {
                 continue;
             }
 
-            let block = world.get_solid_block((x / SUBDIVISION, y / SUBDIVISION));
-            let wall = world.get_wall((x / SUBDIVISION, y / SUBDIVISION));
+            let block_exists = world.solid_block_exists((x / SUBDIVISION, y / SUBDIVISION));
+            let wall_exists = world.wall_exists((x / SUBDIVISION, y / SUBDIVISION));
             
-            if block.is_some() || wall.is_some() {
+            if block_exists || wall_exists {
                 light_map[(y, x)] = 0.;
             } else {
                 light_map[(y, x)] = 1.;
@@ -86,17 +86,17 @@ pub(crate) fn generate_light_map(world: &WorldData) -> LightMap {
 }
 
 pub(crate) fn propagate_light(x: usize, y: usize, light_map: &mut LightMap, world: &WorldData, direction: PassDirection) { 
-    if x >= light_map.ncols() - 1 { return; }
-    if y >= light_map.nrows() - 1 { return; }
-
-    if (x / SUBDIVISION).checked_sub(1).is_none() { return; }
-    if (y / SUBDIVISION).checked_sub(1).is_none() { return; }
-
     let offset = direction.to_ivec2();
 
+    if ((x / SUBDIVISION) as i32 + offset.x) as usize >= light_map.ncols() { return; }
+    if ((y / SUBDIVISION) as i32 + offset.y) as usize >= light_map.nrows() { return; }
+
+    if (x / SUBDIVISION) as i32 + offset.x < 0 { return; }
+    if (y / SUBDIVISION) as i32 + offset.y < 0 { return; }
+
     let neighbor_world_pos = (
-        ((x / SUBDIVISION) as i32 + offset.x) as usize,
-        ((y / SUBDIVISION) as i32 + offset.y) as usize,
+        ((x as i32 + offset.x) as usize / SUBDIVISION),
+        ((y as i32 + offset.y) as usize / SUBDIVISION),
     );
 
     let neighbor_pos = (
@@ -104,7 +104,7 @@ pub(crate) fn propagate_light(x: usize, y: usize, light_map: &mut LightMap, worl
         (y as i32 + offset.y) as usize,
     );
 
-    let decay = if world.solid_block_exists(neighbor_world_pos) { 0.56 } else { 0.91 };
+    let decay = if world.solid_block_exists(neighbor_world_pos) { 0.4 } else { 0.91 };
 
     let this_light = light_map[(y, x)];
     let neighbor_light = light_map[(neighbor_pos.1, neighbor_pos.0)];

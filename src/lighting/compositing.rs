@@ -45,8 +45,17 @@ pub(super) fn update_light_map(
     let image = images.get_mut(&light_map_texture.0).unwrap();
     
     for event in update_light_events.iter() {
-        let range_y = event.tile_pos.y as usize - 20 .. event.tile_pos.y as usize + 20;
-        let range_x = event.tile_pos.x as usize - 20 .. event.tile_pos.x as usize + 20;
+        let x = event.tile_pos.x as usize;
+        let y = event.tile_pos.y as usize;
+
+        if world_data.solid_block_exists((x, y)) || world_data.wall_exists((x, y)) {
+            light_map[(y, x)] = 0.;
+        } else {
+            light_map[(y, x)] = 1.;
+        }
+
+        let range_y = y.saturating_sub(20) .. (y + 20).min(world_data.size.height);
+        let range_x = x.saturating_sub(20) .. (x + 20).min(world_data.size.width);
 
         // Top to bottom
         for x in range_x.clone() {
