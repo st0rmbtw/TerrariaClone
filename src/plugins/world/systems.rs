@@ -18,12 +18,13 @@ use bevy_ecs_tilemap::{
     }, 
     TilemapBundle, helpers::square_grid::neighbors::Neighbors
 };
+use rand::{thread_rng, Rng};
 
-use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::{components::MainCamera, events::UpdateLightEvent}, player::{Player, PlayerRect}, audio::{PlaySoundEvent, SoundType}, world::resources::LightMap, DespawnOnGameExit}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world, light::generate_light_map}, lighting::compositing::{LightMapTexture, LightMapMaterial}, WALL_LAYER, TILES_LAYER, PLAYER_LAYER};
+use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::{components::MainCamera, events::UpdateLightEvent}, player::{Player, PlayerRect}, audio::{PlaySoundEvent, SoundType}, world::resources::LightMap, DespawnOnGameExit}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect, TextureAtlasPos, math::map_range_i32}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world, light::generate_light_map}, lighting::compositing::{LightMapTexture, LightMapMaterial}, WALL_LAYER, TILES_LAYER, PLAYER_LAYER};
 
 use super::{
     utils::{get_chunk_pos, get_camera_fov, get_chunk_tile_pos, get_chunk_range_by_camera_fov}, 
-    events::{UpdateNeighborsEvent, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent, UpdateBlockEvent, SeedEvent},
+    events::{UpdateNeighborsEvent, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent, UpdateBlockEvent, SeedEvent, UpdateCracksEvent},
     resources::{ChunkManager, LightMapChunkMesh}, 
     constants::{CHUNK_SIZE_U, WALL_SIZE, CHUNKMAP_SIZE, TREE_SIZE, TREE_BRANCHES_SIZE, TREE_TOPS_SIZE, CHUNK_SIZE, TILE_SIZE}, WORLD_RENDER_LAYER
 };
@@ -79,6 +80,21 @@ pub(super) fn spawn_block(
         })
         .insert(block)
         .id()
+}
+
+pub(super) fn spawn_cracks(
+    commands: &mut Commands,
+    tile_pos: TilePos,
+    tilemap_entity: Entity,
+    index: u32
+) -> Entity {
+    commands.spawn(TileBundle {
+        position: tile_pos,
+        tilemap_id: TilemapId(tilemap_entity),
+        texture_index: TileTextureIndex(index),
+        ..default()
+    })
+    .id()
 }
 
 pub(super) fn spawn_wall(
@@ -174,6 +190,9 @@ pub(super) fn spawn_chunk(
     let tilemap_entity = commands.spawn_empty().id();
     let mut tile_storage = TileStorage::empty(CHUNKMAP_SIZE);
 
+    let tile_crack_map_entity = commands.spawn_empty().id();
+    let tile_crack_storage = TileStorage::empty(CHUNKMAP_SIZE);
+
     let wallmap_entity = commands.spawn_empty().id();
     let mut wall_storage = TileStorage::empty(CHUNKMAP_SIZE);
 
@@ -222,7 +241,7 @@ pub(super) fn spawn_chunk(
                 } else {
                     let index = Block::get_sprite_index(
                         &world_data.get_block_neighbors(map_tile_pos, block.is_solid()).map_ref(|b| b.block_type), 
-                        block.block_type
+                        &block
                     );
 
                     let tile_entity = spawn_block(commands, block, chunk_tile_pos, tilemap_entity, index);
@@ -290,6 +309,28 @@ pub(super) fn spawn_chunk(
                 },
                 transform: Transform::from_xyz(0., 0., TILES_LAYER + 0.5),
                 ..default()
+            }
+        ));
+
+    commands
+        .entity(tile_crack_map_entity)
+        .insert((
+            Chunk::new(chunk_pos, ChunkType::Cracks),
+            WORLD_RENDER_LAYER,
+            TilemapBundle {
+                grid_size: TilemapGridSize {
+                    x: TILE_SIZE,
+                    y: TILE_SIZE,
+                },
+                size: CHUNKMAP_SIZE,
+                storage: tile_crack_storage,
+                texture: TilemapTexture::Single(block_assets.tile_cracks.clone_weak()),
+                tile_size: TilemapTileSize {
+                    x: TILE_SIZE,
+                    y: TILE_SIZE,
+                },
+                transform: Transform::from_xyz(0., 0., TILES_LAYER + 0.6),
+                ..Default::default()
             }
         ));
 
@@ -383,7 +424,7 @@ pub(super) fn spawn_chunk(
     commands
         .entity(chunk)
         .push_children(
-            &[tilemap_entity, wallmap_entity, treemap_entity, tree_branches_map_entity, tree_tops_map_entity]
+            &[tilemap_entity, wallmap_entity, treemap_entity, tree_branches_map_entity, tree_tops_map_entity, tile_crack_map_entity]
         );
 }
 
@@ -403,7 +444,8 @@ pub(super) fn handle_break_block_event(
             } else {
                 world_data.remove_block(tile_pos);
 
-                ChunkManager::remove_block(&mut commands, &mut query_chunk, tile_pos, block.block_type);
+                ChunkManager::remove(&mut commands, &mut query_chunk, tile_pos, ChunkType::from(block.block_type));
+                ChunkManager::remove(&mut commands, &mut query_chunk, tile_pos, ChunkType::Cracks);
 
                 update_light.send(UpdateLightEvent { tile_pos });
             }
@@ -418,6 +460,7 @@ pub(super) fn handle_dig_block_event(
     mut world_data: ResMut<WorldData>,
     mut break_block_events: EventWriter<BreakBlockEvent>,
     mut update_block_events: EventWriter<UpdateBlockEvent>,
+    mut update_cracks_events: EventWriter<UpdateCracksEvent>,
     mut dig_block_events: EventReader<DigBlockEvent>,
     mut play_sound: EventWriter<PlaySoundEvent>
 ) {
@@ -432,13 +475,15 @@ pub(super) fn handle_dig_block_event(
                 
                 if block.block_type == BlockType::Grass {
                     block.block_type = BlockType::Dirt;
-
-                    update_block_events.send(UpdateBlockEvent {
-                        tile_pos,
-                        block_type: block.block_type,
-                        update_neighbors: true
-                    });
                 }
+
+                update_block_events.send(UpdateBlockEvent {
+                    tile_pos,
+                    block: *block,
+                    update_neighbors: true
+                });
+                
+                update_cracks_events.send(UpdateCracksEvent { tile_pos, block: *block });
             }
         }
     }
@@ -474,7 +519,7 @@ pub(super) fn handle_place_block_event(
             .get_block_neighbors(tile_pos, block.is_solid())
             .map_ref(|b| b.block_type);
         
-        let index = Block::get_sprite_index(&neighbors, block);
+        let index = Block::get_sprite_index(&neighbors, &new_block);
 
         ChunkManager::spawn_block(&mut commands, &mut query_chunk, tile_pos, &new_block, index);
 
@@ -501,7 +546,7 @@ pub(super) fn handle_update_neighbors_event(
             if let Some(block) = world_data.get_block(*pos) {
                 update_block_events.send(UpdateBlockEvent { 
                     tile_pos: *pos,
-                    block_type: block.block_type,
+                    block: *block,
                     update_neighbors: false
                 });
             }
@@ -516,17 +561,17 @@ pub(super) fn handle_update_block_event(
     query_chunk: Query<(&Chunk, &TileStorage)>,
     world_data: Res<WorldData>
 ) {
-    for &UpdateBlockEvent { tile_pos, block_type, update_neighbors } in update_block_events.iter() {
+    for &UpdateBlockEvent { tile_pos, block, update_neighbors } in update_block_events.iter() {
         let neighbors = world_data
-            .get_block_neighbors(tile_pos, block_type.is_solid())
+            .get_block_neighbors(tile_pos, block.is_solid())
             .map_ref(|b| b.block_type);
 
         let chunk_pos = get_chunk_pos(tile_pos);
         let chunk_tile_pos = get_chunk_tile_pos(tile_pos);
 
-        if let Some(block_entity) = ChunkManager::get_block_entity(&query_chunk, chunk_pos, chunk_tile_pos, block_type) {
+        if let Some(block_entity) = ChunkManager::get_block_entity(&query_chunk, chunk_pos, chunk_tile_pos, block.block_type) {
             if let Ok(mut tile_texture) = query_tile.get_mut(block_entity) {
-                tile_texture.0 = Block::get_sprite_index(&neighbors, block_type);
+                tile_texture.0 = Block::get_sprite_index(&neighbors, &block);
             }
         }
 
@@ -550,10 +595,27 @@ pub(super) fn handle_seed_event(
 
             update_block_events.send(UpdateBlockEvent { 
                 tile_pos,
-                block_type: block.block_type,
+                block: *block,
                 update_neighbors: true
             });
         }
+    }
+}
+
+pub(super) fn handle_update_cracks_event(
+    mut commands: Commands,
+    mut update_cracks_events: EventReader<UpdateCracksEvent>,
+    mut query_tile: Query<&mut TileTextureIndex>,
+    mut query_chunk: Query<(&Chunk, &mut TileStorage, Entity)>,
+) {
+    let mut rng = thread_rng();
+
+    for &UpdateCracksEvent { tile_pos, block } in update_cracks_events.iter() {
+        let x = rng.gen_range(0..6);
+        let y = map_range_i32(block.max_health(), 0, 0, 3, block.hp) as u32;
+        let index = TextureAtlasPos::new(x, y).to_2d_index(6);
+        
+        ChunkManager::update_tile_cracks(&mut commands, &mut query_chunk, &mut query_tile, tile_pos, index);
     }
 }
 
@@ -568,7 +630,7 @@ fn break_tree(
         if let BlockType::Tree(tree) = block.block_type {
             world_data.remove_block(pos);
 
-            ChunkManager::remove_block(commands, chunks, pos, block.block_type);
+            ChunkManager::remove(commands, chunks, pos, ChunkType::from(block.block_type));
 
             if tree.frame_type.is_stem() || tree_falling {
                 break_tree(commands, world_data, chunks, TilePos::new(pos.x + 1, pos.y), true);

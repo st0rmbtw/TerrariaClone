@@ -19,11 +19,7 @@ pub(crate) const DIRT_HILL_HEIGHT: usize = 75;
 
 macro_rules! tree {
     ($tree_type: path, $frame_type: ident, $variant: ident) => {
-        super::block::Block {
-            block_type: super::block::BlockType::Tree(super::tree::Tree::new($tree_type, $frame_type, $variant)),
-            hp: super::block::BlockType::Tree(super::tree::Tree::new($tree_type, $frame_type, $variant)).max_health(),
-        }
-        
+        super::block::Block::new(super::block::BlockType::Tree(super::tree::Tree::new($tree_type, $frame_type, $variant)))
     };
 }
 

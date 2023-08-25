@@ -10,23 +10,24 @@ pub(crate) struct ChunkContainer {
     pub(crate) pos: ChunkPos
 }
 
-#[derive(Component, PartialEq, Eq)]
+#[derive(Component, PartialEq, Eq, Clone, Copy)]
 pub(crate) enum ChunkType {
     Tile,
+    Cracks,
     Wall,
     Tree,
     TreeBranch,
     TreeTop,
 }
 
-impl ChunkType {
-    pub(crate) const fn from_block_type(block_type: BlockType) -> Self {
+impl From<BlockType> for ChunkType {
+    fn from(block_type: BlockType) -> Self {
         match block_type {
             BlockType::Tree(Tree { frame_type: TreeFrameType::BranchLeftLeaves | TreeFrameType::BranchRightLeaves, .. }) => ChunkType::TreeBranch,
             BlockType::Tree(Tree { frame_type: TreeFrameType::TopLeaves, .. }) => ChunkType::TreeTop,
             BlockType::Tree(_) => ChunkType::Tree,
             _ => ChunkType::Tile
-        }
+        }       
     }
 }
 

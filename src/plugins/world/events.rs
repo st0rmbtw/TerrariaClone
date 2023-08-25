@@ -1,7 +1,7 @@
 use bevy::prelude::Event;
 use bevy_ecs_tilemap::tiles::TilePos;
 
-use crate::{items::{Tool, Seed}, world::block::BlockType};
+use crate::{items::{Tool, Seed}, world::block::{BlockType, Block}};
 
 #[derive(Event)]
 pub(crate) struct BreakBlockEvent {
@@ -28,8 +28,14 @@ pub(super) struct UpdateNeighborsEvent {
 #[derive(Event)]
 pub(crate) struct UpdateBlockEvent {
     pub(crate) tile_pos: TilePos,
-    pub(crate) block_type: BlockType,
+    pub(crate) block: Block,
     pub(crate) update_neighbors: bool
+}
+
+#[derive(Event)]
+pub(crate) struct UpdateCracksEvent {
+    pub(crate) tile_pos: TilePos,
+    pub(crate) block: Block
 }
 
 #[derive(Event)]

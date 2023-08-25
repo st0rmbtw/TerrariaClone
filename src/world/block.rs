@@ -70,7 +70,8 @@ impl BlockType {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Component)]
 pub(crate) struct Block {
     pub(crate) block_type: BlockType,
-    pub(crate) hp: i32
+    pub(crate) hp: i32,
+    pub(crate) variant: u32
 }
 
 impl From<BlockType> for Block {
@@ -88,39 +89,38 @@ impl Deref for Block {
 impl Block {
     #[inline(always)]
     pub(crate) fn new(block_type: BlockType) -> Block {
-        Self { block_type, hp: block_type.max_health() }
+        let mut rng = thread_rng();
+        Self { block_type, hp: block_type.max_health(), variant: rng.gen_range(0..3) }
     }
 }
 
 impl Block {
-    pub(crate) fn get_sprite_index(neighbors: &Neighbors<BlockType>, block_type: BlockType) -> u32 {
+    pub(crate) fn get_sprite_index(neighbors: &Neighbors<BlockType>, block: &Block) -> u32 {
         /*
          * "$" - Any block
          * "#" - Dirt
          * "X" - This block
         */
 
-        if let BlockType::Tree(tree) = block_type {
-            return get_tree_sprite_index(neighbors, tree).to_2d_index_from_block_type(block_type);
+        if let BlockType::Tree(tree) = block.block_type {
+            return get_tree_sprite_index(neighbors, tree).to_2d_index_from_block_type(block.block_type);
         }
 
-        let variant: u32 = thread_rng().gen_range(0..3);
+        let mut index = Self::get_sprite_index_by_neighbors(neighbors, block.variant);
 
-        let mut index = Self::get_sprite_index_by_neighbors(neighbors, variant);
-
-        if block_type.dirt_mergable() {
-            if let Some(idx) = Self::get_sprite_index_by_dirt_connections(neighbors, variant) {
+        if block.dirt_mergable() {
+            if let Some(idx) = Self::get_sprite_index_by_dirt_connections(neighbors, block.variant) {
                 index = idx;
             }
         }
 
-        if block_type == BlockType::Grass {
-            if let Some(idx) = get_grass_sprite_index_by_dirt_connections(neighbors, variant) {
+        if block.block_type == BlockType::Grass {
+            if let Some(idx) = get_grass_sprite_index_by_dirt_connections(neighbors, block.variant) {
                 index = idx;
             }
         }
 
-        (get_tile_start_index(block_type) + index).to_block_index()
+        (get_tile_start_index(block.block_type) + index).to_block_index()
     }
 
     fn get_sprite_index_by_dirt_connections(neighbors: &Neighbors<BlockType>, variant: u32) -> Option<TextureAtlasPos> {

@@ -25,6 +25,7 @@ impl Plugin for WorldPlugin {
         app.add_event::<events::PlaceBlockEvent>();
         app.add_event::<events::UpdateNeighborsEvent>();
         app.add_event::<events::UpdateBlockEvent>();
+        app.add_event::<events::UpdateCracksEvent>();
         app.add_event::<events::SeedEvent>();
 
         app.add_systems(OnEnter(GameState::WorldLoading), (systems::setup, systems::spawn_terrain).chain());
@@ -41,6 +42,7 @@ impl Plugin for WorldPlugin {
                 systems::handle_update_neighbors_event,
                 systems::handle_update_block_event,
                 systems::handle_seed_event,
+                systems::handle_update_cracks_event,
             )
             .in_set(InGameSystemSet::Update)
         );

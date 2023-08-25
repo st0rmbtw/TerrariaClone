@@ -102,6 +102,9 @@ pub(crate) struct BlockAssets {
     #[asset(path = "sprites/tiles/Tiles2.png")]
     pub(crate) tiles: Handle<Image>,
 
+    #[asset(path = "sprites/tiles/TileCracks.png")]
+    pub(crate) tile_cracks: Handle<Image>,
+
     #[asset(path = "sprites/tiles/Tiles_5.png")]
     pub(crate) trees: Handle<Image>,
 

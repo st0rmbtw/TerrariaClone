@@ -5,7 +5,7 @@ use bevy_hanabi::Gradient;
 use interpolation::{Lerp, EaseFunction};
 use rand::{thread_rng, Rng, seq::SliceRandom};
 
-use crate::{plugins::{assets::{CelestialBodyAssets, BackgroundAssets}, camera::components::BackgroundCamera, background::{BACKGROUND_RENDER_LAYER, BackgroundPlugin}, cursor::position::CursorPosition, MenuSystemSet}, animation::{Tween, Animator, RepeatStrategy, RepeatCount, lens::TransformScaleLens}, common::state::GameState, common::{math::map_range_f32, rect::FRect, systems::despawn_with}, parallax::{LayerTextureComponent, ParallaxSet}, BACKGROUND_LAYER};
+use crate::{plugins::{assets::{CelestialBodyAssets, BackgroundAssets}, camera::components::BackgroundCamera, background::{BACKGROUND_RENDER_LAYER, BackgroundPlugin}, cursor::position::CursorPosition, MenuSystemSet}, animation::{Tween, Animator, RepeatStrategy, RepeatCount, lens::TransformScaleLens}, common::state::GameState, common::{rect::FRect, systems::despawn_with, math::map_range_f32}, parallax::{LayerTextureComponent, ParallaxSet}, BACKGROUND_LAYER};
 
 use super::DespawnOnMenuExit;
 
