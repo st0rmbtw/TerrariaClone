@@ -80,7 +80,7 @@ impl TreeFrameType {
         }
     }
 
-    pub(crate) const fn is_stem(&self) -> bool {
+    pub(crate) const fn is_trunk(&self) -> bool {
         matches!(self, Self::TrunkPlain | Self::BasePlainA | Self::BasePlainD | Self::BasePlainAD)
     }
 

@@ -640,7 +640,7 @@ fn break_tree(
 
             ChunkManager::remove(commands, chunks, pos, ChunkType::from(block.block_type));
 
-            if tree.frame_type.is_stem() || tree_falling {
+            if tree.frame_type.is_trunk() || tree_falling {
                 break_tree(commands, world_data, chunks, TilePos::new(pos.x + 1, pos.y), true);
                 break_tree(commands, world_data, chunks, TilePos::new(pos.x - 1, pos.y), true);
                 break_tree(commands, world_data, chunks, TilePos::new(pos.x, pos.y - 1), true);
