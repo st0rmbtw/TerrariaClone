@@ -35,7 +35,7 @@ pub(crate) struct UpdateBlockEvent {
 #[derive(Event)]
 pub(crate) struct UpdateCracksEvent {
     pub(crate) tile_pos: TilePos,
-    pub(crate) block: Block
+    pub(crate) index: u32
 }
 
 #[derive(Event)]

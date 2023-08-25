@@ -35,17 +35,13 @@ impl ChunkManager {
         chunk_tile_pos: TilePos,
         block_type: BlockType
     ) -> Option<Entity> {
-        let filtered_chunks = query_chunk
+        let filtered_chunk = query_chunk
             .iter()
             .find(|(chunk, _)| {
                 ChunkManager::filter_chunk(chunk, chunk_pos, block_type)
             });
 
-        if let Some((_, tile_storage)) = filtered_chunks {
-            tile_storage.get(&chunk_tile_pos)
-        } else {
-            None
-        }
+        filtered_chunk.and_then(|(_, storage)| storage.get(&chunk_tile_pos))
     }
 
     pub(super) fn remove(
@@ -57,16 +53,17 @@ impl ChunkManager {
         let chunk_pos = get_chunk_pos(tile_pos);
         let chunk_tile_pos = get_chunk_tile_pos(tile_pos);
 
-        let filtered_chunks = query_chunk
+        let filtered_chunk = query_chunk
             .iter_mut()
             .find(|(chunk, _)| {
                 chunk.pos == chunk_pos && chunk.chunk_type == chunk_type
             });
 
-        if let Some((_, mut tile_storage)) = filtered_chunks {
-            let block_entity = tile_storage.get(&chunk_tile_pos).unwrap();
-            commands.entity(block_entity).despawn_recursive();
-            tile_storage.remove(&chunk_tile_pos);
+        if let Some((_, mut tile_storage)) = filtered_chunk {
+            if let Some(tile_entity) = tile_storage.get(&chunk_tile_pos) {
+                commands.entity(tile_entity).despawn_recursive();
+                tile_storage.remove(&chunk_tile_pos);
+            }
         }
     }
 

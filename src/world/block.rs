@@ -58,7 +58,7 @@ impl BlockType {
         }
     }
 
-    pub(crate) const fn max_health(&self) -> i32 {
+    pub(crate) const fn max_hp(&self) -> i32 {
         match self {
             BlockType::Dirt | BlockType::Grass => 50,
             BlockType::Stone => 100,
@@ -71,7 +71,8 @@ impl BlockType {
 pub(crate) struct Block {
     pub(crate) block_type: BlockType,
     pub(crate) hp: i32,
-    pub(crate) variant: u32
+    pub(crate) variant: u32,
+    pub(crate) cracks_index: Option<u32>
 }
 
 impl From<BlockType> for Block {
@@ -87,10 +88,15 @@ impl Deref for Block {
 }
 
 impl Block {
-    #[inline(always)]
+    #[inline]
     pub(crate) fn new(block_type: BlockType) -> Block {
         let mut rng = thread_rng();
-        Self { block_type, hp: block_type.max_health(), variant: rng.gen_range(0..3) }
+        Self {
+            block_type,
+            hp: block_type.max_hp(),
+            variant: rng.gen_range(0..3),
+            cracks_index: None
+        }
     }
 }
 

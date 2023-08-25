@@ -249,6 +249,12 @@ pub(super) fn spawn_chunk(
                     commands.entity(tilemap_entity).add_child(tile_entity);
                     tile_storage.set(&chunk_tile_pos, tile_entity);
                 }
+
+                if let Some(index) = block.cracks_index {
+                    let cracks_entity = spawn_cracks(commands, chunk_tile_pos, tilemap_entity, index);
+                    commands.entity(tilemap_entity).add_child(cracks_entity);
+                    tile_storage.set(&chunk_tile_pos, cracks_entity);
+                }
             }
 
             if let Some(wall) = world_data.get_wall(map_tile_pos) {
@@ -464,6 +470,8 @@ pub(super) fn handle_dig_block_event(
     mut dig_block_events: EventReader<DigBlockEvent>,
     mut play_sound: EventWriter<PlaySoundEvent>
 ) {
+    let mut rng = thread_rng();
+
     for &DigBlockEvent { tile_pos, tool } in dig_block_events.iter() {
         if let Some(block) = world_data.get_block_mut(tile_pos) {
             block.hp -= tool.power();
@@ -477,13 +485,19 @@ pub(super) fn handle_dig_block_event(
                     block.block_type = BlockType::Dirt;
                 }
 
+                let x = rng.gen_range(0..6);
+                let y = map_range_i32(block.max_hp(), 0, 0, 3, block.hp) as u32;
+                let index = TextureAtlasPos::new(x, y).to_2d_index(6);
+
+                block.cracks_index = Some(index);
+
                 update_block_events.send(UpdateBlockEvent {
                     tile_pos,
                     block: *block,
                     update_neighbors: true
                 });
-                
-                update_cracks_events.send(UpdateCracksEvent { tile_pos, block: *block });
+
+                update_cracks_events.send(UpdateCracksEvent { tile_pos, index });
             }
         }
     }
@@ -608,13 +622,7 @@ pub(super) fn handle_update_cracks_event(
     mut query_tile: Query<&mut TileTextureIndex>,
     mut query_chunk: Query<(&Chunk, &mut TileStorage, Entity)>,
 ) {
-    let mut rng = thread_rng();
-
-    for &UpdateCracksEvent { tile_pos, block } in update_cracks_events.iter() {
-        let x = rng.gen_range(0..6);
-        let y = map_range_i32(block.max_health(), 0, 0, 3, block.hp) as u32;
-        let index = TextureAtlasPos::new(x, y).to_2d_index(6);
-        
+    for &UpdateCracksEvent { tile_pos, index } in update_cracks_events.iter() {
         ChunkManager::update_tile_cracks(&mut commands, &mut query_chunk, &mut query_tile, tile_pos, index);
     }
 }
