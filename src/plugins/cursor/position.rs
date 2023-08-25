@@ -16,7 +16,7 @@ impl<M: Component> Default for CursorPosition<M> {
         Self {
             screen: Default::default(),
             world: Default::default(),
-            marker: PhantomData::default()
+            marker: PhantomData
         }
     }
 }
@@ -27,7 +27,7 @@ pub(crate) struct CursorPositionPlugin<CameraMarker: Component> {
 
 impl<M: Component> Default for CursorPositionPlugin<M> {
     fn default() -> Self {
-        Self { marker: PhantomData::default() }
+        Self { marker: PhantomData }
     }
 }
 

@@ -13,7 +13,7 @@ use super::ui::{UiVisibility, FpsText};
 pub(crate) struct FpsPlugin;
 impl Plugin for FpsPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_plugins(FrameTimeDiagnosticsPlugin::default());
+        app.add_plugins(FrameTimeDiagnosticsPlugin);
 
         app.add_systems(
             Update,

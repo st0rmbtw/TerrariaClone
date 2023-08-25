@@ -90,7 +90,7 @@ pub(super) fn update_image_to_window_size(
                         ..Default::default()
                     }
                 };
-                let image = images.get_mut(&fit_to_window).expect(
+                let image = images.get_mut(fit_to_window).expect(
                     "FitToWindowSize is referring to an Image, but this Image could not be found",
                 );
                 image.resize(size);
@@ -221,14 +221,14 @@ pub(super) fn setup_post_processing_camera(
     };
 
     let mut main_texture = Image::new_fill(
-        size.clone(),
+        size,
         TextureDimension::D2,
         &[0, 0, 0, 0],
         BevyDefault::bevy_default()
     );
 
     let mut world_texture = Image::new_fill(
-        size.clone(),
+        size,
         TextureDimension::D2,
         &[0, 0, 0, 0],
         BevyDefault::bevy_default()
@@ -292,7 +292,7 @@ fn copy_light_map_to_texture(
     range_x: Range<usize>,
     range_y: Range<usize>,
     light_map: &LightMap,
-    bytes: &mut Vec<u8>
+    bytes: &mut [u8]
 ) {
     for y in range_y {
         for x in range_x.clone() {

@@ -17,7 +17,7 @@ pub(crate) enum PassDirection {
 }
 
 impl PassDirection {
-    pub(crate) const fn to_ivec2(&self) -> IVec2 {
+    pub(crate) const fn to_ivec2(self) -> IVec2 {
         match self {
             PassDirection::LeftToRight => IVec2::new(-1, 0),
             PassDirection::TopToBottom => IVec2::new(0, -1),
