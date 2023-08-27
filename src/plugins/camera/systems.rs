@@ -12,7 +12,7 @@ use crate::{plugins::{world::{constants::TILE_SIZE, WORLD_RENDER_LAYER}, Despawn
 
 use crate::plugins::player::Player;
 
-use super::{CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, components::{MainCamera, BackgroundCamera, WorldCamera, ZoomableCamera, MoveCamera}, INITIAL_ZOOM};
+use super::{CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, components::{MainCamera, WorldCamera, ZoomableCamera, MoveCamera}, INITIAL_ZOOM};
 
 #[autodefault]
 pub(super) fn setup_main_camera(
@@ -92,8 +92,8 @@ pub(super) fn zoom(
 }
 
 pub(super) fn move_camera(
-    mut query_move_camera: Query<&mut Transform, (With<MoveCamera>, Without<Player>)>,
-    query_player: Query<&Transform, (With<Player>, Without<MainCamera>)>,
+    mut query_move_camera: Query<&mut Transform, With<MoveCamera>>,
+    query_player: Query<&Transform, (With<Player>, Without<MoveCamera>)>,
     #[cfg(feature = "debug")]
     time: Res<Time>,
     #[cfg(feature = "debug")]
@@ -128,6 +128,7 @@ pub(super) fn follow_player(
     camera_transform.translation.x = player_pos.x;
     camera_transform.translation.y = player_pos.y;
 }
+
 #[cfg(feature = "debug")]
 pub(super) fn free_camera(
     time: &Res<Time>,
@@ -168,27 +169,21 @@ pub(super) fn free_camera(
 }
 
 pub(super) fn keep_camera_inside_world_bounds(
-    mut query_main_camera: Query<(&mut Transform, &OrthographicProjection), (With<MainCamera>, Without<Player>)>,
-    mut query_background_camera: Query<&mut Transform, (With<BackgroundCamera>, Without<MainCamera>, Without<Player>)>,
-    world_data: Res<WorldData>
+    world_data: Res<WorldData>,
+    mut query_main_camera: Query<(&mut Transform, &OrthographicProjection), With<MoveCamera>>,
 ) {
-    let Ok((mut main_camera_transform, projection)) = query_main_camera.get_single_mut() else { return; };
-    
-    let projection_left = projection.area.min.x;
-    let projection_right = projection.area.max.x;
-    let projection_top = projection.area.max.y;
+    for (mut camera_transform, projection) in &mut query_main_camera {
+        let projection_left = projection.area.min.x;
+        let projection_right = projection.area.max.x;
+        let projection_top = projection.area.max.y;
 
-    let x_min = projection_left.abs() - TILE_SIZE / 2.;
-    let x_max = (world_data.size.width as f32 * 16.) - projection_right - TILE_SIZE / 2.;
+        let x_min = projection_left.abs() - TILE_SIZE / 2.;
+        let x_max = (world_data.size.width as f32 * 16.) - projection_right - TILE_SIZE / 2.;
 
-    let y_min = -(world_data.size.height as f32 * 16.) - projection_top - TILE_SIZE / 2.;
-    let y_max = -projection_top - TILE_SIZE / 2.;
+        let y_min = -(world_data.size.height as f32 * 16.) - projection_top - TILE_SIZE / 2.;
+        let y_max = -projection_top - TILE_SIZE / 2.;
 
-    main_camera_transform.translation.x = main_camera_transform.translation.x.clamp(x_min, x_max);
-    main_camera_transform.translation.y = main_camera_transform.translation.y.clamp(y_min, y_max);
-
-    if let Ok(mut background_camera_transform) = query_background_camera.get_single_mut() {
-        background_camera_transform.translation.x = background_camera_transform.translation.x.clamp(x_min, x_max);
-        background_camera_transform.translation.y = background_camera_transform.translation.y.clamp(y_min, y_max);
+        camera_transform.translation.x = camera_transform.translation.x.clamp(x_min, x_max);
+        camera_transform.translation.y = camera_transform.translation.y.clamp(y_min, y_max);
     }
 }

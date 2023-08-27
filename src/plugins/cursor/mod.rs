@@ -23,6 +23,7 @@ impl Plugin for CursorPlugin {
         app.add_plugins((
             CursorPositionPlugin::<MainCamera>::default(),
             CursorPositionPlugin::<BackgroundCamera>::default()
+                .run_if(in_state(GameState::Menu))
         ));
 
         app.add_systems(OnExit(GameState::AssetLoading), systems::setup);

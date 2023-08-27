@@ -1,6 +1,6 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, sync::Mutex};
 
-use bevy::{prelude::{Component, Plugin, App, Vec2, ResMut, Query, With, Camera, GlobalTransform, PreUpdate, IntoSystemConfigs, in_state, not, Resource}, window::{Window, PrimaryWindow}};
+use bevy::{prelude::{Component, Plugin, App, Vec2, ResMut, Query, With, Camera, GlobalTransform, PreUpdate, IntoSystemConfigs, in_state, not, Resource, Condition, IntoSystem}, window::{Window, PrimaryWindow}, ecs::schedule::BoxedCondition};
 
 use crate::common::state::GameState;
 
@@ -22,12 +22,24 @@ impl<M: Component> Default for CursorPosition<M> {
 }
 
 pub(crate) struct CursorPositionPlugin<CameraMarker: Component> {
+    condition: Mutex<Option<BoxedCondition>>,
     marker: PhantomData<CameraMarker>,
+}
+
+impl<CM: Component> CursorPositionPlugin<CM> {
+    pub(crate) fn run_if<M>(mut self, condition: impl Condition<M>) -> Self {
+        let condition_system = IntoSystem::into_system(condition);
+        self.condition = Mutex::new(Some(Box::new(condition_system) as BoxedCondition));
+        self
+    }
 }
 
 impl<M: Component> Default for CursorPositionPlugin<M> {
     fn default() -> Self {
-        Self { marker: PhantomData }
+        Self {
+            condition: Mutex::default(),
+            marker: PhantomData
+        }
     }
 }
 
@@ -35,11 +47,14 @@ impl<M: Component> Plugin for CursorPositionPlugin<M> {
     fn build(&self, app: &mut App) {
         app.init_resource::<CursorPosition<M>>();
 
-        app.add_systems(
-            PreUpdate,
-            update_cursor_position::<M>
-                .run_if(not(in_state(GameState::AssetLoading)))
-        );
+        let mut system = update_cursor_position::<M>
+            .run_if(not(in_state(GameState::AssetLoading)));
+
+        if let Some(condition) = self.condition.try_lock().unwrap().take() {
+            system.run_if_inner(condition);
+        }
+
+        app.add_systems(PreUpdate, system);
     }
 
     fn is_unique(&self) -> bool {
