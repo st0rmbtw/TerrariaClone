@@ -8,7 +8,7 @@ use bevy::{
     }, texture::BevyDefault, camera::RenderTarget, view::RenderLayers, mesh::InnerMeshVertexBufferLayout}, reflect::{TypePath, TypeUuid}, sprite::{Material2d, MaterialMesh2dBundle, Material2dKey}, window::{PrimaryWindow, WindowResized}, core_pipeline::fullscreen_vertex_shader::FULLSCREEN_SHADER_HANDLE, utils::Hashed,
 };
 
-use crate::{plugins::{world::resources::LightMap, camera::{events::UpdateLightEvent, components::{WorldCamera, MainCamera, BackgroundCamera}}}, world::{WorldData, light::{propagate_light, PassDirection}}};
+use crate::{plugins::{world::resources::LightMap, camera::{events::UpdateLightEvent, components::{WorldCamera, MainCamera, BackgroundCamera}}}, world::{WorldData, light::{propagate_light, PassDirection, SUBDIVISION}}};
 
 
 #[derive(AsBindGroup, TypePath, TypeUuid, Clone, Default)]
@@ -120,14 +120,17 @@ pub(super) fn update_light_map(
         let x = event.tile_pos.x as usize;
         let y = event.tile_pos.y as usize;
 
+        let light_map_x = x * SUBDIVISION;
+        let light_map_y = y * SUBDIVISION;
+
         if world_data.solid_block_exists((x, y)) || world_data.wall_exists((x, y)) {
-            light_map[(y, x)] = 0.;
+            light_map[(light_map_y, light_map_x)] = 0.;
         } else {
-            light_map[(y, x)] = 1.;
+            light_map[(light_map_y, light_map_x)] = 1.;
         }
 
-        let range_y = y.saturating_sub(20) .. (y + 20).min(world_data.size.height);
-        let range_x = x.saturating_sub(20) .. (x + 20).min(world_data.size.width);
+        let range_x = light_map_x.saturating_sub(20) .. (light_map_x + 20).min(light_map.ncols());
+        let range_y = light_map_y.saturating_sub(20) .. (light_map_y + 20).min(light_map.nrows());
 
         // Top to bottom
         for x in range_x.clone() {

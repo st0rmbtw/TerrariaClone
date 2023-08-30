@@ -33,7 +33,7 @@ bevy-inspector-egui = { version = "0.19", optional = true }
 bevy_hanabi = { version = "0.7", default-features = false, features = ["2d"] }
 bevy_ecs_tilemap = { git = "https://github.com/StarArawn/bevy_ecs_tilemap.git" }
 rand = "0.8.5"
-interpolation = "0.2.0"
+interpolation = "0.3.0"
 ndarray = "0.15.6"
 simdnoise = "3.1.6"
 noise = "0.8.2"

@@ -9,7 +9,7 @@ var light_map_texture_sampler: sampler;
 @group(1) @binding(2)
 var<uniform> chunk_pos: vec2<u32>;
 
-const SUBDIVISON: u32 = 1u;
+const SUBDIVISON: u32 = 2u;
 
 @fragment
 fn fragment(in: MeshVertexOutput) -> @location(0) vec4<f32> {

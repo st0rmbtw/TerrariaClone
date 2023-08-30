@@ -6,7 +6,7 @@ use super::WorldData;
 
 type LightMap = Array2::<f32>;
 
-pub(crate) const SUBDIVISION: usize = 1;
+pub(crate) const SUBDIVISION: usize = 2;
 
 #[derive(Clone, Copy)]
 pub(crate) enum PassDirection {
@@ -27,7 +27,6 @@ impl PassDirection {
     }
 }
 
-#[allow(dead_code)]
 pub(crate) fn generate_light_map(world: &WorldData) -> LightMap {
     println!("Generating light map...");
 
@@ -38,7 +37,7 @@ pub(crate) fn generate_light_map(world: &WorldData) -> LightMap {
 
     for y in 0..light_map_height {
         for x in 0..light_map_width {
-            if y >= world.layer.underground {
+            if y / SUBDIVISION >= world.layer.underground {
                 light_map[(y, x)] = 0.;
                 continue;
             }
@@ -88,11 +87,11 @@ pub(crate) fn generate_light_map(world: &WorldData) -> LightMap {
 pub(crate) fn propagate_light(x: usize, y: usize, light_map: &mut LightMap, world: &WorldData, direction: PassDirection) { 
     let offset = direction.to_ivec2();
 
-    if ((x / SUBDIVISION) as i32 + offset.x) as usize >= light_map.ncols() { return; }
-    if ((y / SUBDIVISION) as i32 + offset.y) as usize >= light_map.nrows() { return; }
+    if (x as i32 + offset.x) as usize >= light_map.ncols() { return; }
+    if (y as i32 + offset.y) as usize >= light_map.nrows() { return; }
 
-    if (x / SUBDIVISION) as i32 + offset.x < 0 { return; }
-    if (y / SUBDIVISION) as i32 + offset.y < 0 { return; }
+    if x as i32 + offset.x < 0 { return; }
+    if y as i32 + offset.y < 0 { return; }
 
     let neighbor_world_pos = (
         ((x as i32 + offset.x) as usize / SUBDIVISION),
