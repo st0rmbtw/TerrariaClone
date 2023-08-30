@@ -10,6 +10,7 @@ pub(crate) mod math;
 pub(crate) mod rect;
 pub(crate) mod state;
 pub(crate) mod systems;
+pub(crate) mod components;
 
 
 pub(crate) trait IsVisible {

@@ -4,10 +4,10 @@ mod systems;
 mod utils;
 mod body_sprites;
 
-pub(crate) use components::*;
-pub(crate) use resources::*;
-pub(crate) use body_sprites::*;
+use resources::*;
 use systems::*;
+pub(crate) use components::*;
+pub(crate) use body_sprites::*;
 
 use crate::{common::{state::{GameState, MovementState}, helpers::tile_pos_to_world_coords, systems::{component_equals, despawn_with}}, plugins::player::utils::simple_animation, world::WorldData};
 use std::time::Duration;
@@ -114,7 +114,6 @@ impl Plugin for PlayerPlugin {
 }
 
 fn setup(mut commands: Commands) {
-    commands.init_resource::<PlayerVelocity>();
     commands.init_resource::<Collisions>();
     commands.init_resource::<PlayerData>();
     commands.insert_resource(InputAxis::default());
@@ -123,7 +122,6 @@ fn setup(mut commands: Commands) {
 }
 
 fn cleanup(mut commands: Commands) {
-    commands.remove_resource::<PlayerVelocity>();
     commands.remove_resource::<Collisions>();
     commands.remove_resource::<PlayerData>();
     commands.remove_resource::<InputAxis>();

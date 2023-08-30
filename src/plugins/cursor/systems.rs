@@ -12,19 +12,19 @@ use bevy::{
     text::{Text, TextStyle}, 
     sprite::{SpriteBundle, Sprite}
 };
-use interpolation::EaseFunction;
+use interpolation::{EaseFunction, Lerp};
 
 use crate::{
     plugins::{
         assets::{FontAssets, CursorAssets, UiAssets}, 
         camera::components::MainCamera, 
-        world::constants::TILE_SIZE, config::CursorColor, DespawnOnGameExit
+        world::constants::TILE_SIZE, config::CursorColor, DespawnOnGameExit, player::Player
     }, 
     animation::{Tween, lens::TransformScaleLens, Animator, RepeatStrategy, RepeatCount}, 
-    common::lens::BackgroundColorLens,
+    common::{lens::BackgroundColorLens, components::Velocity},
 };
 
-use crate::plugins::player::{PlayerVelocity, MAX_RUN_SPEED, MAX_FALL_SPEED};
+use crate::plugins::player::{MAX_RUN_SPEED, MAX_FALL_SPEED};
 
 use super::{MAX_TILE_GRID_OPACITY, MIN_TILE_GRID_OPACITY, CURSOR_SIZE, components::{Hoverable, CursorBackground, CursorForeground, CursorInfoMarker, CursorContainer, TileGrid}, position::CursorPosition};
 
@@ -172,11 +172,11 @@ pub(super) fn update_tile_grid_position(
 }
 
 pub(super) fn update_tile_grid_opacity(
-    velocity: Res<PlayerVelocity>,
+    query_player: Query<&Velocity, With<Player>>,
     mut query_tile_grid: Query<&mut Sprite, With<TileGrid>>,
 ) {
-    use interpolation::Lerp;
-
+    let Ok(velocity) = query_player.get_single() else { return; };
+    
     let mut sprite = query_tile_grid.single_mut();
 
     let opacity = if velocity.x.abs() > 0. {

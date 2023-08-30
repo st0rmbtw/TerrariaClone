@@ -5,15 +5,17 @@ use crate::{
         world::constants::TILE_SIZE,
         inventory::{ItemInHand, SwingAnimation},
     },
-    common::{math::{move_towards, map_range_usize}, state::MovementState, rect::FRect}, world::WorldData,
+    common::{math::{move_towards, map_range_usize}, state::MovementState, rect::FRect, components::Velocity}, world::WorldData,
 };
 
 use super::{*, utils::get_fall_distance};
 
 pub(super) fn horizontal_movement(
     axis: Res<InputAxis>,
-    mut velocity: ResMut<PlayerVelocity>
+    mut query_player: Query<&mut Velocity, With<Player>>,
 ) {
+    let Ok(mut velocity) = query_player.get_single_mut() else { return; };
+
     if axis.x > 0. {
         if velocity.x < 0. {
             velocity.x *= 0.9;
@@ -34,10 +36,12 @@ pub(super) fn horizontal_movement(
 pub(super) fn update_jump(
     input: Res<Input<KeyCode>>,
     collisions: Res<Collisions>,
-    mut velocity: ResMut<PlayerVelocity>,
     mut player_data: ResMut<PlayerData>,
+    mut query_player: Query<&mut Velocity, With<Player>>,
     mut jump: Local<i32>
 ) {
+    let Ok(mut velocity) = query_player.get_single_mut() else { return; };
+    
     // TODO: Call just_pressed instead when https://github.com/bevyengine/bevy/issues/6183 is fixed
     if input.pressed(KeyCode::Space) && collisions.bottom {
         *jump = JUMP_HEIGHT;
@@ -63,12 +67,12 @@ pub(super) fn update_jump(
 pub(super) fn gravity(
     collisions: Res<Collisions>,
     mut player_data: ResMut<PlayerData>,
-    mut velocity: ResMut<PlayerVelocity>,
-    query_player: Query<&PlayerRect, With<Player>>
+    mut query_player: Query<(&mut Velocity, &PlayerRect), With<Player>>
 ) {
+    let Ok((mut velocity, rect)) = query_player.get_single_mut() else { return; };
+
     if !collisions.bottom {
         if velocity.y <= 0. && player_data.fall_start.is_none() {
-            let rect = query_player.single();
             player_data.fall_start = Some(rect.bottom());
         }
 
@@ -81,18 +85,19 @@ pub(super) fn gravity(
 pub(super) fn detect_collisions(
     world_data: Res<WorldData>,
     mut collisions: ResMut<Collisions>,
-    mut velocity: ResMut<PlayerVelocity>,
     mut player_data: ResMut<PlayerData>,
-    mut query_player: Query<(&mut Transform, &FaceDirection, &PlayerRect), With<Player>>,
+    mut query_player: Query<(&mut Transform, &mut Velocity, &FaceDirection, &PlayerRect), With<Player>>,
     #[cfg(feature = "debug")]
     mut gizmos: Gizmos,
     #[cfg(feature = "debug")]
     debug_config: Res<DebugConfiguration>,
 ) {
-    let (mut transform, face_direction, PlayerRect(player_rect)) = query_player.single_mut();
+    let Ok((
+        mut transform, mut velocity, face_direction, PlayerRect(player_rect)
+    )) = query_player.get_single_mut() else { return; };
 
     let position = transform.translation.xy();
-    let next_position = transform.translation.xy() + **velocity;
+    let next_position = transform.translation.xy() + velocity.0;
 
     let next_player_rect = FRect::new_center(next_position.x, next_position.y, PLAYER_WIDTH, PLAYER_HEIGHT);
 
@@ -141,12 +146,7 @@ pub(super) fn detect_collisions(
 
                         if is_enough_space && is_bottom_tile && f32::from(face_direction) == delta_x.signum() {
                             new_collisions.bottom = true;
-                            transform.translation.y = tile_rect.top() + player_rect.height / 2.;
-                            if delta_x > 0. {
-                                transform.translation.x = tile_rect.left - player_rect.width / 2. + 2.;
-                            } else if delta_x < 0. {
-                                transform.translation.x = tile_rect.right + player_rect.width / 2. - 2.;
-                            }
+                            velocity.y = (tile_rect.top() - player_rect.bottom()) * 0.2;
                             break 'outer;
                         }
 
@@ -225,10 +225,9 @@ pub(super) fn detect_collisions(
 #[allow(non_upper_case_globals)]
 pub(super) fn move_player(
     world_data: Res<WorldData>,
-    velocity: Res<PlayerVelocity>,
-    mut query_player: Query<&mut Transform, With<Player>>,
+    mut query_player: Query<(&mut Transform, &Velocity), With<Player>>,
 ) {
-    let mut transform = query_player.single_mut();
+    let Ok((mut transform, velocity)) = query_player.get_single_mut() else { return; };
 
     const min_x: f32 = PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
     let min_y: f32 = -(world_data.size.height as f32) * TILE_SIZE + PLAYER_HALF_HEIGHT;
@@ -245,7 +244,7 @@ pub(super) fn move_player(
 pub(super) fn update_player_rect(
     mut query_player: Query<(&Transform, &mut PlayerRect), With<Player>>,
 ) {
-    let (transform, mut player_rect) = query_player.single_mut();
+    let Ok((transform, mut player_rect)) = query_player.get_single_mut() else { return; };
 
     let Vec2 { x, y } = transform.translation.xy();
 
@@ -255,10 +254,9 @@ pub(super) fn update_player_rect(
 pub(super) fn update_movement_state(
     collisions: Res<Collisions>,
     player_data: Res<PlayerData>,
-    velocity: Res<PlayerVelocity>,
-    mut query: Query<(&PlayerRect, &mut MovementState), With<Player>>,
+    mut query: Query<(&PlayerRect, &Velocity, &mut MovementState), With<Player>>,
 ) {
-    let (player_rect, mut movement_state) = query.single_mut();
+    let Ok((player_rect, velocity, mut movement_state)) = query.get_single_mut() else { return; };
 
     let fall_distance = get_fall_distance(player_rect.bottom(), player_data.fall_start);
 
@@ -289,9 +287,11 @@ pub(super) fn update_input_axis(input: Res<Input<KeyCode>>, mut axis: ResMut<Inp
 }
 
 pub(super) fn update_movement_animation_timer(
-    velocity: Res<PlayerVelocity>,
+    query_player: Query<&Velocity, With<Player>>,
     mut timer: ResMut<MovementAnimationTimer>,
 ) {
+    let Ok(velocity) = query_player.get_single() else { return; };
+
     if velocity.x != 0. {
         let time = 100. / velocity.x.abs();
 
@@ -365,9 +365,11 @@ pub(super) fn walking_animation(
 
 #[cfg(feature = "debug")]
 pub(super) fn current_speed(
-    velocity: Res<PlayerVelocity>,
-    mut debug_config: ResMut<DebugConfiguration>
+    mut debug_config: ResMut<DebugConfiguration>,
+    query_player: Query<&Velocity, With<Player>>,
 ) {
+    let Ok(velocity) = query_player.get_single() else { return; };
+
     // https://terraria.fandom.com/wiki/Stopwatch
     const FACTOR: f32 = (60. * 3600.) / 42240.;
 
@@ -391,10 +393,11 @@ use crate::plugins::{cursor::position::CursorPosition, camera::components::MainC
 #[cfg(feature = "debug")]
 pub(super) fn teleport_player(
     cursor_position: Res<CursorPosition<MainCamera>>,
-    mut query_player: Query<&mut Transform, With<Player>>,
+    mut query_player: Query<(&mut Transform, &mut Velocity), With<Player>>,
 ) {
-    if let Ok(mut transform) = query_player.get_single_mut() {
+    if let Ok((mut transform, mut velocity)) = query_player.get_single_mut() {
         transform.translation.x = cursor_position.world.x;
         transform.translation.y = cursor_position.world.y;
+        velocity.0 = Vec2::ZERO;
     }
 }

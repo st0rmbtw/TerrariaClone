@@ -1,4 +1,4 @@
-use bevy::{prelude::{Deref, DerefMut, Resource, Vec2}, time::Timer};
+use bevy::{prelude::{Deref, DerefMut, Resource}, time::Timer};
 
 #[derive(Resource, Default, Clone, Copy)]
 pub(super) struct InputAxis {
@@ -10,9 +10,6 @@ pub(super) struct MovementAnimationTimer(pub Timer);
 
 #[derive(Resource, Default, Clone, Copy)]
 pub(super) struct MovementAnimationIndex(pub usize);
-
-#[derive(Resource, Clone, Copy, Default, Deref, DerefMut)]
-pub(crate) struct PlayerVelocity(pub Vec2);
 
 #[derive(Resource, Default)]
 pub(super) struct PlayerData {

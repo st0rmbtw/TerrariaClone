@@ -1,6 +1,6 @@
 use bevy::{prelude::{Name, SpatialBundle, Transform, Deref, DerefMut, Component, Bundle}, utils::default};
 
-use crate::{common::{state::MovementState, rect::FRect}, PLAYER_LAYER};
+use crate::{common::{state::MovementState, rect::FRect, components::Velocity}, PLAYER_LAYER};
 
 use super::{InputAxis, WALKING_ANIMATION_MAX_INDEX, PLAYER_HEIGHT, PLAYER_WIDTH};
 
@@ -91,6 +91,7 @@ pub(super) struct PlayerBundle {
     pub(super) movement_state: MovementState,
     pub(super) face_direction: FaceDirection,
     pub(super) player_rect: PlayerRect,
+    pub(super) velocity: Velocity,
     pub(super) spatial: SpatialBundle
 }
 
@@ -108,11 +109,12 @@ impl Default for PlayerBundle {
     fn default() -> Self {
         Self { 
             name: Name::new("Player"),
-            player: default(),
-            movement_state: default(),
-            face_direction: default(),
-            spatial: default(),
-            player_rect: default()
+            player: Default::default(),
+            movement_state: Default::default(),
+            face_direction: Default::default(),
+            spatial: Default::default(),
+            player_rect: Default::default(),
+            velocity: Default::default()
         }
     }
 }
