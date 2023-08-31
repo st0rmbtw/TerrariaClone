@@ -20,7 +20,7 @@ use bevy_ecs_tilemap::{
 };
 use rand::{thread_rng, Rng};
 
-use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::{components::MainCamera, events::UpdateLightEvent}, player::{Player, PlayerRect}, audio::{PlaySoundEvent, SoundType}, world::resources::LightMap, DespawnOnGameExit}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect, TextureAtlasPos, math::map_range_i32}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world, light::generate_light_map}, lighting::compositing::LightMapMaterial, WALL_LAYER, TILES_LAYER, PLAYER_LAYER};
+use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::components::MainCamera, player::{Player, PlayerRect}, audio::{PlaySoundEvent, SoundType}, world::resources::LightMap, DespawnOnGameExit}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect, TextureAtlasPos, math::map_range_i32}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world, light::generate_light_map}, lighting::compositing::LightMapMaterial, WALL_LAYER, TILES_LAYER, PLAYER_LAYER};
 
 use super::{
     utils::{get_chunk_pos, get_camera_fov, get_chunk_tile_pos, get_chunk_range_by_camera_fov}, 
@@ -439,7 +439,6 @@ pub(super) fn handle_break_block_event(
     mut query_chunk: Query<(&Chunk, &mut TileStorage)>,
     mut world_data: ResMut<WorldData>,
     mut break_block: EventReader<BreakBlockEvent>,
-    mut update_light: EventWriter<UpdateLightEvent>,
     mut update_neighbors: EventWriter<UpdateNeighborsEvent>,
     mut play_sound: EventWriter<PlaySoundEvent>
 ) {
@@ -452,8 +451,6 @@ pub(super) fn handle_break_block_event(
 
                 ChunkManager::remove(&mut commands, &mut query_chunk, tile_pos, ChunkType::from(block.block_type));
                 ChunkManager::remove(&mut commands, &mut query_chunk, tile_pos, ChunkType::Cracks);
-
-                update_light.send(UpdateLightEvent { tile_pos });
             }
 
             play_sound.send(PlaySoundEvent(SoundType::BlockHit(block.block_type)));
@@ -509,7 +506,6 @@ pub(super) fn handle_place_block_event(
     mut query_chunk: Query<(&Chunk, &mut TileStorage, Entity)>,
     mut world_data: ResMut<WorldData>,
     mut place_block: EventReader<PlaceBlockEvent>,
-    mut update_light: EventWriter<UpdateLightEvent>,
     mut update_neighbors: EventWriter<UpdateNeighborsEvent>,
     mut play_sound: EventWriter<PlaySoundEvent>
 ) {
@@ -538,7 +534,6 @@ pub(super) fn handle_place_block_event(
         ChunkManager::spawn_block(&mut commands, &mut query_chunk, tile_pos, &new_block, index);
 
         update_neighbors.send(UpdateNeighborsEvent { tile_pos });
-        update_light.send(UpdateLightEvent { tile_pos });
         play_sound.send(PlaySoundEvent(SoundType::BlockHit(block)));
     }
 }

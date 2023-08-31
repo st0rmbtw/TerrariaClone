@@ -2,8 +2,6 @@ use bevy::prelude::{Plugin, App, Update, IntoSystemConfigs, PostUpdate};
 use bevy::sprite::Material2dPlugin;
 use crate::plugins::InGameSystemSet;
 
-use crate::plugins::camera::events::UpdateLightEvent;
-
 use self::compositing::{LightMapMaterial, PostProcessingMaterial};
 
 pub mod compositing;
@@ -15,8 +13,6 @@ impl Plugin for LightingPlugin {
             Material2dPlugin::<LightMapMaterial>::default(),
             Material2dPlugin::<PostProcessingMaterial>::default(),
         ));
-
-        app.add_event::<UpdateLightEvent>();
 
         app.add_systems(
             Update,

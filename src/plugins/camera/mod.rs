@@ -5,7 +5,6 @@ use crate::common::state::GameState;
 use super::InGameSystemSet;
 
 pub(crate) mod components;
-pub(crate) mod events;
 mod systems;
 
 const INITIAL_ZOOM: f32 = 0.9;
