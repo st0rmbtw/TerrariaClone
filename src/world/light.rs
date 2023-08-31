@@ -5,6 +5,8 @@ use super::WorldData;
 type LightMap = Image;
 
 pub(crate) const SUBDIVISION: usize = 2;
+const DECAY_THROUGH_SOLID: f32 = 0.56;
+const DECAY_THROUGH_AIR: f32 = 0.91;
 
 #[derive(Clone, Copy)]
 pub(crate) enum PassDirection {
@@ -119,17 +121,17 @@ pub(crate) fn propagate_light(x: usize, y: usize, light_map: &mut LightMap, worl
     if x as i32 + offset.x < 0 { return; }
     if y as i32 + offset.y < 0 { return; }
 
-    let neighbor_world_pos = (
-        ((x as i32 + offset.x) as usize / SUBDIVISION),
-        ((y as i32 + offset.y) as usize / SUBDIVISION),
-    );
-
     let neighbor_pos = (
         (x as i32 + offset.x) as usize,
         (y as i32 + offset.y) as usize,
     );
 
-    let decay = if world.solid_block_exists(neighbor_world_pos) { 0.4 } else { 0.91 };
+    let neighbor_world_pos = (
+        neighbor_pos.0 / SUBDIVISION,
+        neighbor_pos.1 / SUBDIVISION
+    );
+
+    let decay = if world.solid_block_exists(neighbor_world_pos) { DECAY_THROUGH_SOLID } else { DECAY_THROUGH_AIR };
 
     let this_light = get_light(x, y, light_map);
     let neighbor_light = get_light(neighbor_pos.0, neighbor_pos.1, light_map);
