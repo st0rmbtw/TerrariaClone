@@ -60,12 +60,12 @@ impl Plugin for PlayerInventoryPlugin {
         app.add_systems(
             Update,
             (
-                systems::scroll_select_inventory_item,
+                systems::scroll_select_inventory_item.run_if(resource_exists_and_equals(ExtraUiVisibility::HIDDEN)),
                 systems::select_inventory_cell,
                 systems::set_selected_item.run_if(resource_exists_and_changed::<Inventory>())
             )
+            .chain()
             .in_set(InGameSystemSet::Update)
-            .run_if(resource_exists_and_equals(ExtraUiVisibility::HIDDEN))
         );
     }
 }

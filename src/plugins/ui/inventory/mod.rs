@@ -26,9 +26,10 @@ impl Plugin for InventoryUiPlugin {
                 systems::update_selected_item_name_alignment,
                 systems::update_selected_item_name_text,
                 (
-                    systems::update_selected_cell_size,
-                    systems::update_selected_cell_image,
-                    systems::update_hoverable
+                    systems::update_cell_size,
+                    systems::update_cell_background_image,
+                    systems::update_hoverable,
+                    systems::update_cell_index_text
                 )
                 .distributive_run_if(
                     resource_exists_and_changed::<Inventory>().or_else(resource_added::<Inventory>())
@@ -36,7 +37,7 @@ impl Plugin for InventoryUiPlugin {
                 (
                     (
                         systems::update_cell,
-                        systems::update_cell_image
+                        systems::update_cell_item_image
                     ).chain(),
                     (
                         systems::update_item_amount,

@@ -6,7 +6,7 @@ pub(crate) enum Seed {
 }
 
 impl Seed {
-    pub(crate) fn seeded_dirt(&self) -> BlockType {
+    pub(crate) const fn seeded_dirt(&self) -> BlockType {
         match self {
             Seed::Grass => BlockType::Grass,
         }

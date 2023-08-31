@@ -14,21 +14,21 @@ pub(crate) enum Item {
 }
 
 impl Item {
-    pub(crate) fn consumable(&self) -> bool {
+    pub(crate) const fn consumable(&self) -> bool {
         match self {
             Item::Tool(_) => false,
             _ => true
         }
     }
 
-    pub(crate) fn max_stack(&self) -> Stack {
+    pub(crate) const fn max_stack(&self) -> Stack {
         match self {
             Item::Tool(_) => 1,
             _ => 9999
         }
     }
 
-    pub(crate) fn swing_cooldown(&self) -> u32 {
+    pub(crate) const fn swing_cooldown(&self) -> u32 {
         match self {
             Item::Tool(tool) => tool.swing_cooldown(),
             Item::Block(_) | Item::Seed(_) => 15,
@@ -55,15 +55,14 @@ impl ItemStack {
         ItemStack { item: Item::Seed(seed), stack: 1 }
     }
 
-    pub(crate) fn with_stack(self, stack: Stack) -> Self {
-        Self { stack, ..self }
+    pub(crate) fn with_stack(mut self, stack: Stack) -> Self {
+        self.stack = stack;
+        self
     }
 
-    pub(crate) fn with_max_stack(self) -> Self {
-        Self { 
-            stack: self.item.max_stack(),
-            ..self
-        }
+    pub(crate) fn with_max_stack(mut self) -> Self {
+        self.stack = self.item.max_stack();
+        self
     }
 }
 

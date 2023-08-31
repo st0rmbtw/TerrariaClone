@@ -13,10 +13,13 @@ pub(super) struct HotbarCell;
 pub(super) struct SelectedItemName;
 
 #[derive(Component)]
-pub(super) struct InventoryCellIndex(pub usize);
+pub(super) struct HotbarCellIndex;
+
+#[derive(Component)]
+pub(super) struct CellIndex(pub usize);
 
 #[derive(Component, Default)]
-pub(super) struct InventoryCellItemImage(pub Handle<Image>);
+pub(super) struct CellItemImage(pub Handle<Image>);
 
 #[derive(Component, Default)]
-pub(super) struct InventoryItemAmount(pub u16);
+pub(super) struct ItemAmount(pub u16);
