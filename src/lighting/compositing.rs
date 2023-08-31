@@ -2,7 +2,7 @@ use bevy::{
     prelude::{*, shape::Quad},
     render::{render_resource::{
         Extent3d, ShaderRef,
-        TextureDimension, AsBindGroup, RenderPipelineDescriptor, SpecializedMeshPipelineError, PrimitiveState, TextureUsages,
+        TextureDimension, AsBindGroup, RenderPipelineDescriptor, SpecializedMeshPipelineError, PrimitiveState, TextureUsages, ShaderDefVal,
     }, texture::BevyDefault, camera::RenderTarget, view::RenderLayers, mesh::InnerMeshVertexBufferLayout}, reflect::{TypePath, TypeUuid}, sprite::{Material2d, MaterialMesh2dBundle, Material2dKey}, window::{PrimaryWindow, WindowResized}, core_pipeline::fullscreen_vertex_shader::FULLSCREEN_SHADER_HANDLE, utils::Hashed, math::{URect, Vec3Swizzles},
 };
 
@@ -23,6 +23,17 @@ pub(crate) struct LightMapMaterial {
 impl Material2d for LightMapMaterial {
     fn fragment_shader() -> ShaderRef {
         "shaders/tile_material.wgsl".into()
+    }
+
+    fn specialize(
+        descriptor: &mut RenderPipelineDescriptor,
+        _layout: &bevy::render::mesh::MeshVertexBufferLayout,
+        _key: Material2dKey<Self>,
+    ) -> Result<(), SpecializedMeshPipelineError> {
+        let fragment = descriptor.fragment.as_mut().unwrap();
+        fragment.shader_defs.push(ShaderDefVal::UInt("SUBDIVISION".into(), SUBDIVISION as u32));
+
+        Ok(())
     }
 }
 
