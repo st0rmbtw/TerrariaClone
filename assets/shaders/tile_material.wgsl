@@ -9,12 +9,12 @@ var light_map_texture_sampler: sampler;
 @group(1) @binding(2)
 var<uniform> chunk_pos: vec2<u32>;
 
-const SUBDIVISON: u32 = 2u;
+const SUBDIVISON: f32 = 2.;
 
 @fragment
 fn fragment(in: MeshVertexOutput) -> @location(0) vec4<f32> {
-    var tile_chunk_pos = in.uv * 25. * f32(SUBDIVISON);
-    let tile_map_pos = vec2<f32>(chunk_pos) * 25. * f32(SUBDIVISON) + tile_chunk_pos;
+    var tile_chunk_pos = in.uv * 25. * SUBDIVISON;
+    let tile_map_pos = vec2<f32>(chunk_pos) * 25. * SUBDIVISON + tile_chunk_pos;
 
     let c = tile_map_pos / vec2<f32>(textureDimensions(light_map_texture));
 

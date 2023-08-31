@@ -1,7 +1,6 @@
-use bevy::prelude::{Plugin, App, Update, resource_added, IntoSystemConfigs, PostUpdate};
+use bevy::prelude::{Plugin, App, Update, IntoSystemConfigs, PostUpdate};
 use bevy::sprite::Material2dPlugin;
 use crate::plugins::InGameSystemSet;
-use crate::plugins::world::resources::LightMap;
 
 use crate::plugins::camera::events::UpdateLightEvent;
 

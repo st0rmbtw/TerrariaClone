@@ -2,7 +2,7 @@ use bevy::{
     prelude::{*, shape::Quad},
     render::{render_resource::{
         Extent3d, ShaderRef,
-        TextureDimension, TextureFormat, AsBindGroup, RenderPipelineDescriptor, SpecializedMeshPipelineError, PrimitiveState, TextureUsages,
+        TextureDimension, AsBindGroup, RenderPipelineDescriptor, SpecializedMeshPipelineError, PrimitiveState, TextureUsages,
     }, texture::BevyDefault, camera::RenderTarget, view::RenderLayers, mesh::InnerMeshVertexBufferLayout}, reflect::{TypePath, TypeUuid}, sprite::{Material2d, MaterialMesh2dBundle, Material2dKey}, window::{PrimaryWindow, WindowResized}, core_pipeline::fullscreen_vertex_shader::FULLSCREEN_SHADER_HANDLE, utils::Hashed, math::{URect, Vec3Swizzles},
 };
 
@@ -113,8 +113,8 @@ pub(super) fn update_light_map(
     let camera_position = camera_transform.translation().xy().abs();
 
     let area = URect::from_corners(
-        ((camera_position + projection.area.min) / TILE_SIZE - 16.).as_uvec2() * SUBDIVISION as u32,
-        ((camera_position + projection.area.max) / TILE_SIZE + 16.).as_uvec2() * SUBDIVISION as u32,
+        ((camera_position + projection.area.min) / TILE_SIZE - 8.).as_uvec2() * SUBDIVISION as u32,
+        ((camera_position + projection.area.max) / TILE_SIZE + 8.).as_uvec2() * SUBDIVISION as u32,
     );
 
     blur(area, light_map_texture, &world_data);

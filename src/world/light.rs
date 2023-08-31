@@ -38,41 +38,45 @@ pub(crate) fn generate_light_map(world: &WorldData) -> LightMap {
             ..default()
         },
         TextureDimension::D2,
-        &[0, 0, 0, 0],
-        TextureFormat::R32Float
+        &[0],
+        TextureFormat::R8Unorm
     );
 
-    for y in 0..world.layer.underground * SUBDIVISION {
-        for x in 0..light_map_width {
-            let block_exists = world.solid_block_exists((x / SUBDIVISION, y / SUBDIVISION));
-            let wall_exists = world.wall_exists((x / SUBDIVISION, y / SUBDIVISION));
-            
-            if block_exists || wall_exists {
-                set_light(x, y, 0., &mut light_map);
-            } else {
-                set_light(x, y, 1., &mut light_map);
-            }
-        }
-    }
-
-    blur(URect::new(0, 0, light_map_width as u32, light_map_height as u32), &mut light_map, world);
+    scan(URect::new(0, 0, light_map_width as u32, light_map_height as u32), &mut light_map, world);
 
     light_map
 }
 
 fn set_light(x: usize, y: usize, light: f32, light_map: &mut Image) {
-    let index = (y * light_map.texture_descriptor.size.width as usize + x) * 4;
-    let bytes = light.to_le_bytes();
-
-    light_map.data[index] = bytes[0];
-    light_map.data[index + 1] = bytes[1];
-    light_map.data[index + 2] = bytes[2];
-    light_map.data[index + 3] = bytes[3];
+    let index = y * light_map.texture_descriptor.size.width as usize + x;
+    light_map.data[index] = (light * u8::MAX as f32) as u8;
 }
 
 fn get_light(x: usize, y: usize, light_map: &Image) -> f32 {
-    let index = (y * light_map.texture_descriptor.size.width as usize + x) * 4;
-    f32::from_le_bytes([light_map.data[index], light_map.data[index + 1], light_map.data[index + 2], light_map.data[index + 3]])
+    let index = y * light_map.texture_descriptor.size.width as usize + x;
+    let byte = light_map.data[index];
+    byte as f32 / u8::MAX as f32
+}
+
+pub(crate) fn scan(area: URect, light_map: &mut LightMap, world: &WorldData) {
+    let min_y = area.min.y as usize;
+    let max_y = (area.max.y as usize).min(world.layer.underground * SUBDIVISION);
+
+    let min_x = area.min.x as usize;
+    let max_x = area.max.x as usize;
+
+    for y in min_y..max_y {
+        for x in min_x..max_x {
+            let block_exists = world.solid_block_exists((x / SUBDIVISION, y / SUBDIVISION));
+            let wall_exists = world.wall_exists((x / SUBDIVISION, y / SUBDIVISION));
+            
+            if block_exists || wall_exists {
+                set_light(x, y, 0., light_map);
+            } else {
+                set_light(x, y, 1., light_map);
+            }
+        }
+    }
 }
 
 pub(crate) fn blur(area: URect, light_map: &mut LightMap, world: &WorldData) {
@@ -90,6 +94,13 @@ pub(crate) fn blur(area: URect, light_map: &mut LightMap, world: &WorldData) {
         }
     }
 
+    // Bottom to top
+    for x in area.min.x..area.max.x {
+        for y in (area.min.y..area.max.y).rev() {
+            propagate_light(x as usize, y as usize, light_map, world, PassDirection::BottomToTop);
+        }
+    }
+
     // Right to left
     for y in area.min.y..area.max.y {
         for x in (area.min.x..area.max.x).rev() {
@@ -97,12 +108,6 @@ pub(crate) fn blur(area: URect, light_map: &mut LightMap, world: &WorldData) {
         }
     }
 
-    // Bottom to top
-    for x in area.min.x..area.max.x {
-        for y in (area.min.y..area.max.y).rev() {
-            propagate_light(x as usize, y as usize, light_map, world, PassDirection::BottomToTop);
-        }
-    }
 }
 
 pub(crate) fn propagate_light(x: usize, y: usize, light_map: &mut LightMap, world: &WorldData, direction: PassDirection) { 
