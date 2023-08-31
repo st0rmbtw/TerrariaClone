@@ -62,9 +62,6 @@ impl Material2d for PostProcessingMaterial {
     }
 }
 
-#[derive(Resource)]
-pub(crate) struct LightMapTexture(pub(crate) Handle<Image>);
-
 #[derive(Component, Deref)]
 pub(crate) struct FitToWindowSize(Handle<Image>);
 
@@ -103,15 +100,15 @@ pub(super) fn update_image_to_window_size(
 
 pub(super) fn update_light_map(
     world_data: Res<WorldData>,
-    light_map_texture: Res<LightMapTexture>,
     materials: Res<Assets<LightMapMaterial>>,
-    mut light_map: ResMut<LightMap>,
+    light_map: ResMut<LightMap>,
     mut images: ResMut<Assets<Image>>,
     mut asset_events: EventWriter<AssetEvent<LightMapMaterial>>,
     query_camera: Query<(&GlobalTransform, &OrthographicProjection), With<MainCamera>>
 ) {
+    let light_map_texture = images.get_mut(&light_map.0).unwrap();
+
     let Ok((camera_transform, projection)) = query_camera.get_single() else { return };
-    let image = images.get_mut(&light_map_texture.0).unwrap();
 
     let camera_position = camera_transform.translation().xy().abs();
 
@@ -120,37 +117,11 @@ pub(super) fn update_light_map(
         ((camera_position + projection.area.max) / TILE_SIZE + 16.).as_uvec2() * SUBDIVISION as u32,
     );
 
-    blur(area, &mut light_map, &world_data);
-
-    copy_light_map_to_texture(area, &light_map, &mut image.data);
+    blur(area, light_map_texture, &world_data);
 
     for id in materials.ids() {
         asset_events.send(AssetEvent::Modified { handle: Handle::weak(id) });
     }
-}
-
-pub(super) fn setup_light_map_texture(
-    mut commands: Commands,
-    mut images: ResMut<Assets<Image>>,
-    light_map: Res<LightMap>,
-) {
-    let width = light_map.ncols();
-    let height = light_map.nrows();
-
-    let light_map_image = Image::new_fill(
-        Extent3d {
-            width: width as u32,
-            height: height as u32,
-            ..default()
-        },
-        TextureDimension::D2,
-        &[0, 0, 0, 0],
-        TextureFormat::R32Float,
-    );
-
-    let light_map_image_handle = images.add(light_map_image);
-
-    commands.insert_resource(LightMapTexture(light_map_image_handle));
 }
 
 pub(super) fn setup_post_processing_camera(
@@ -246,27 +217,4 @@ pub(super) fn setup_post_processing_camera(
     ));
 
     *processed = true;
-}
-
-fn copy_light_map_to_texture(
-    area: URect,
-    light_map: &LightMap,
-    bytes: &mut [u8]
-) {
-    for y in area.min.y..area.max.y {
-        for x in area.min.x..area.max.x {
-            let x = x as usize;
-            let y = y as usize;
-
-            let color = light_map[(y, x)];
-            let index = (y * light_map.ncols() + x) * 4;
-
-            let color_bytes = color.to_le_bytes();
-
-            bytes[index]     = color_bytes[0];
-            bytes[index + 1] = color_bytes[1];
-            bytes[index + 2] = color_bytes[2];
-            bytes[index + 3] = color_bytes[3];
-        }
-    }
 }

@@ -22,7 +22,6 @@ impl Plugin for LightingPlugin {
         app.add_systems(
             Update,
             (
-                compositing::setup_light_map_texture.run_if(resource_added::<LightMap>()),
                 compositing::update_image_to_window_size,
                 compositing::setup_post_processing_camera.in_set(InGameSystemSet::Update),
             )

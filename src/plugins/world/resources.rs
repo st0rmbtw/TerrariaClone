@@ -1,20 +1,12 @@
-use bevy::{utils::HashSet, prelude::{Resource, Query, Entity, UVec2, Commands, DespawnRecursiveExt, BuildChildren, Deref, DerefMut, Handle, Mesh}};
+use bevy::{utils::HashSet, prelude::{Resource, Query, Entity, UVec2, Commands, DespawnRecursiveExt, BuildChildren, Deref, DerefMut, Handle, Mesh, Image}};
 use bevy_ecs_tilemap::tiles::{TilePos, TileStorage, TileTextureIndex};
-use ndarray::Array2;
 
 use crate::world::{chunk::{ChunkPos, Chunk, ChunkType}, block::{BlockType, Block}};
 
 use super::{systems::{spawn_block, spawn_cracks}, utils::{get_chunk_pos, get_chunk_tile_pos}};
 
 #[derive(Resource, Deref, DerefMut)]
-pub(crate) struct LightMap(pub(crate) Array2<f32>);
-
-impl LightMap {
-    #[inline(always)]
-    pub(crate) fn new(colors: Array2<f32>) -> Self {
-        Self(colors)
-    }
-}
+pub(crate) struct LightMap(pub(crate) Handle<Image>);
 
 #[derive(Resource, Deref)]
 pub(crate) struct LightMapChunkMesh(pub(crate) Handle<Mesh>);
