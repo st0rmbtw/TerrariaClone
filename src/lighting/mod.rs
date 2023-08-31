@@ -1,4 +1,4 @@
-use bevy::prelude::{Plugin, App, Update, resource_added, IntoSystemConfigs};
+use bevy::prelude::{Plugin, App, Update, resource_added, IntoSystemConfigs, PostUpdate};
 use bevy::sprite::Material2dPlugin;
 use crate::plugins::InGameSystemSet;
 use crate::plugins::world::resources::LightMap;
@@ -24,11 +24,10 @@ impl Plugin for LightingPlugin {
             (
                 compositing::setup_light_map_texture.run_if(resource_added::<LightMap>()),
                 compositing::update_image_to_window_size,
-                (
-                    compositing::setup_post_processing_camera,
-                    compositing::update_light_map   
-                ).in_set(InGameSystemSet::Update)
+                compositing::setup_post_processing_camera.in_set(InGameSystemSet::Update),
             )
         );
+
+        app.add_systems(PostUpdate, compositing::update_light_map.in_set(InGameSystemSet::PostUpdate));
     }
 }

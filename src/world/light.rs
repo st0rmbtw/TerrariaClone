@@ -1,4 +1,4 @@
-use bevy::prelude::IVec2;
+use bevy::{prelude::IVec2, math::URect};
 
 use ndarray::Array2;
 
@@ -53,35 +53,39 @@ pub(crate) fn generate_light_map(world: &WorldData) -> LightMap {
         }
     }
 
+    blur(URect::new(0, 0, light_map_width as u32, light_map_height as u32), &mut light_map, world);
+
+    light_map
+}
+
+pub(crate) fn blur(area: URect, light_map: &mut LightMap, world: &WorldData) {
     // Top to bottom
-    for x in 0..light_map_width {
-        for y in 0..light_map_height {
-            propagate_light(x, y, &mut light_map, world, PassDirection::TopToBottom);
+    for x in area.min.x..area.max.x {
+        for y in area.min.y..area.max.y {
+            propagate_light(x as usize, y as usize, light_map, world, PassDirection::TopToBottom);
         }
     }
 
     // Left to right
-    for y in 0..light_map_height {
-        for x in 0..light_map_width {
-            propagate_light(x, y, &mut light_map, world, PassDirection::LeftToRight);
+    for y in area.min.y..area.max.y {
+        for x in area.min.x..area.max.x {
+            propagate_light(x as usize, y as usize, light_map, world, PassDirection::LeftToRight);
         }
     }
 
     // Right to left
-    for y in 0..light_map_height {
-        for x in (0..light_map_width).rev() {
-            propagate_light(x, y, &mut light_map, world, PassDirection::RightToLeft);
+    for y in area.min.y..area.max.y {
+        for x in (area.min.x..area.max.x).rev() {
+            propagate_light(x as usize, y as usize, light_map, world, PassDirection::RightToLeft);
         }
     }
 
     // Bottom to top
-    for x in 0..light_map_width {
-        for y in (0..light_map_height).rev() {
-            propagate_light(x, y, &mut light_map, world, PassDirection::BottomToTop);
+    for x in area.min.x..area.max.x {
+        for y in (area.min.y..area.max.y).rev() {
+            propagate_light(x as usize, y as usize, light_map, world, PassDirection::BottomToTop);
         }
     }
-
-    light_map
 }
 
 pub(crate) fn propagate_light(x: usize, y: usize, light_map: &mut LightMap, world: &WorldData, direction: PassDirection) { 

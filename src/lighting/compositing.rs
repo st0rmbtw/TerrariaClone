@@ -1,14 +1,12 @@
-use std::ops::Range;
-
 use bevy::{
     prelude::{*, shape::Quad},
     render::{render_resource::{
         Extent3d, ShaderRef,
         TextureDimension, TextureFormat, AsBindGroup, RenderPipelineDescriptor, SpecializedMeshPipelineError, PrimitiveState, TextureUsages,
-    }, texture::BevyDefault, camera::RenderTarget, view::RenderLayers, mesh::InnerMeshVertexBufferLayout}, reflect::{TypePath, TypeUuid}, sprite::{Material2d, MaterialMesh2dBundle, Material2dKey}, window::{PrimaryWindow, WindowResized}, core_pipeline::fullscreen_vertex_shader::FULLSCREEN_SHADER_HANDLE, utils::Hashed,
+    }, texture::BevyDefault, camera::RenderTarget, view::RenderLayers, mesh::InnerMeshVertexBufferLayout}, reflect::{TypePath, TypeUuid}, sprite::{Material2d, MaterialMesh2dBundle, Material2dKey}, window::{PrimaryWindow, WindowResized}, core_pipeline::fullscreen_vertex_shader::FULLSCREEN_SHADER_HANDLE, utils::Hashed, math::{URect, Vec3Swizzles},
 };
 
-use crate::{plugins::{world::resources::LightMap, camera::{events::UpdateLightEvent, components::{WorldCamera, MainCamera, BackgroundCamera}}}, world::{WorldData, light::{propagate_light, PassDirection, SUBDIVISION}}};
+use crate::{plugins::{world::{resources::LightMap, constants::TILE_SIZE}, camera::components::{WorldCamera, MainCamera, BackgroundCamera}}, world::{WorldData, light::{SUBDIVISION, blur}}};
 
 
 #[derive(AsBindGroup, TypePath, TypeUuid, Clone, Default)]
@@ -104,64 +102,27 @@ pub(super) fn update_image_to_window_size(
 }
 
 pub(super) fn update_light_map(
-    mut update_light_events: EventReader<UpdateLightEvent>,
     world_data: Res<WorldData>,
     light_map_texture: Res<LightMapTexture>,
     materials: Res<Assets<LightMapMaterial>>,
     mut light_map: ResMut<LightMap>,
     mut images: ResMut<Assets<Image>>,
-    mut asset_events: EventWriter<AssetEvent<LightMapMaterial>>
+    mut asset_events: EventWriter<AssetEvent<LightMapMaterial>>,
+    query_camera: Query<(&GlobalTransform, &OrthographicProjection), With<MainCamera>>
 ) {
-    if update_light_events.is_empty() { return; }
-
+    let Ok((camera_transform, projection)) = query_camera.get_single() else { return };
     let image = images.get_mut(&light_map_texture.0).unwrap();
-    
-    for event in update_light_events.iter() {
-        let x = event.tile_pos.x as usize;
-        let y = event.tile_pos.y as usize;
 
-        let light_map_x = x * SUBDIVISION;
-        let light_map_y = y * SUBDIVISION;
+    let camera_position = camera_transform.translation().xy().abs();
 
-        if world_data.solid_block_exists((x, y)) || world_data.wall_exists((x, y)) {
-            light_map[(light_map_y, light_map_x)] = 0.;
-        } else {
-            light_map[(light_map_y, light_map_x)] = 1.;
-        }
+    let area = URect::from_corners(
+        ((camera_position + projection.area.min) / TILE_SIZE - 16.).as_uvec2() * SUBDIVISION as u32,
+        ((camera_position + projection.area.max) / TILE_SIZE + 16.).as_uvec2() * SUBDIVISION as u32,
+    );
 
-        let range_x = light_map_x.saturating_sub(20) .. (light_map_x + 20).min(light_map.ncols());
-        let range_y = light_map_y.saturating_sub(20) .. (light_map_y + 20).min(light_map.nrows());
+    blur(area, &mut light_map, &world_data);
 
-        // Top to bottom
-        for x in range_x.clone() {
-            for y in range_y.clone() {
-                propagate_light(x, y, &mut light_map, &world_data, PassDirection::TopToBottom);
-            }
-        }
-
-        // Left to right
-        for y in range_y.clone() {
-            for x in range_x.clone() {
-                propagate_light(x, y, &mut light_map, &world_data, PassDirection::LeftToRight);
-            }
-        }
-
-        // Right to left
-        for y in range_y.clone() {
-            for x in range_x.clone().rev() {
-                propagate_light(x, y, &mut light_map, &world_data, PassDirection::RightToLeft);
-            }
-        }
-
-        // Bottom to top
-        for x in range_x.clone() {
-            for y in range_y.clone().rev() {
-                propagate_light(x, y, &mut light_map, &world_data, PassDirection::BottomToTop);
-            }
-        }
-
-        copy_light_map_to_texture(range_x.clone(), range_y.clone(), &light_map, &mut image.data);
-    }
+    copy_light_map_to_texture(area, &light_map, &mut image.data);
 
     for id in materials.ids() {
         asset_events.send(AssetEvent::Modified { handle: Handle::weak(id) });
@@ -173,21 +134,17 @@ pub(super) fn setup_light_map_texture(
     mut images: ResMut<Assets<Image>>,
     light_map: Res<LightMap>,
 ) {
-    let mut bytes = vec![0; light_map.len() * 4];
-
     let width = light_map.ncols();
     let height = light_map.nrows();
 
-    copy_light_map_to_texture(0..width, 0..height, &light_map, &mut bytes);
-
-    let light_map_image = Image::new(
+    let light_map_image = Image::new_fill(
         Extent3d {
             width: width as u32,
             height: height as u32,
             ..default()
         },
         TextureDimension::D2,
-        bytes,
+        &[0, 0, 0, 0],
         TextureFormat::R32Float,
     );
 
@@ -292,13 +249,15 @@ pub(super) fn setup_post_processing_camera(
 }
 
 fn copy_light_map_to_texture(
-    range_x: Range<usize>,
-    range_y: Range<usize>,
+    area: URect,
     light_map: &LightMap,
     bytes: &mut [u8]
 ) {
-    for y in range_y {
-        for x in range_x.clone() {
+    for y in area.min.y..area.max.y {
+        for x in area.min.x..area.max.x {
+            let x = x as usize;
+            let y = y as usize;
+
             let color = light_map[(y, x)];
             let index = (y * light_map.ncols() + x) * 4;
 
