@@ -17,7 +17,7 @@ use crate::{
     parallax::{parallax_animation_system, ParallaxSet},
     language::LanguageContent,
     animation::{Animator, RepeatCount, Tween, RepeatStrategy}, 
-    plugins::{slider::Slider, assets::{FontAssets, UiAssets}, camera::components::MainCamera, audio::{PlaySoundEvent, SoundType, PlayMusicEvent, MusicType, MusicAudio}, MenuSystemSet}
+    plugins::{slider::Slider, assets::{FontAssets, UiAssets}, camera::components::MainCamera, audio::{PlaySoundEvent, SoundType}, MenuSystemSet}
 };
 use self::{settings::SettingsMenuPlugin, celestial_body::CelestialBodyPlugin, builders::{menu, menu_button}, events::{Back, EnterMenu}};
 
@@ -48,7 +48,6 @@ impl Plugin for MenuPlugin {
             (
                 setup_camera,
                 spawn_menu_container,
-                play_menu_music,
                 set_state(MenuState::Main)
             )
         );
@@ -56,13 +55,7 @@ impl Plugin for MenuPlugin {
         app.add_systems(OnEnter(MenuState::Main), setup_main_menu);
         app.add_systems(OnExit(MenuState::Main), despawn_with::<Menu>);
 
-        app.add_systems(
-            OnExit(GameState::Menu),
-            (
-                despawn_with::<DespawnOnMenuExit>,
-                despawn_with::<MusicAudio>
-            )
-        );
+        app.add_systems(OnExit(GameState::Menu), despawn_with::<DespawnOnMenuExit>);
 
         app.add_systems(
             Update,
@@ -252,12 +245,6 @@ fn setup_main_menu(
             ExitButton,
         );
     });
-}
-
-fn play_menu_music(
-    mut play_music: EventWriter<PlayMusicEvent>
-) {
-    play_music.send(PlayMusicEvent(MusicType::TitleScreen));
 }
 
 fn handle_back_event(

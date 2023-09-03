@@ -6,7 +6,7 @@ use bevy::{
     }, texture::BevyDefault, camera::RenderTarget, view::RenderLayers, mesh::InnerMeshVertexBufferLayout}, reflect::{TypePath, TypeUuid}, sprite::{Material2d, MaterialMesh2dBundle, Material2dKey}, window::{PrimaryWindow, WindowResized}, core_pipeline::fullscreen_vertex_shader::FULLSCREEN_SHADER_HANDLE, utils::Hashed, math::{URect, Vec3Swizzles},
 };
 
-use crate::{plugins::{world::{resources::LightMap, constants::TILE_SIZE}, camera::components::{WorldCamera, MainCamera, BackgroundCamera}}, world::{WorldData, light::{SUBDIVISION, blur}}};
+use crate::{plugins::{world::{resources::LightMap, constants::TILE_SIZE}, camera::components::{WorldCamera, MainCamera, BackgroundCamera}, DespawnOnGameExit}, world::{WorldData, light::{SUBDIVISION, blur}}};
 
 
 #[derive(AsBindGroup, TypePath, TypeUuid, Clone, Default)]
@@ -202,6 +202,7 @@ pub(super) fn setup_post_processing_camera(
     let post_processing_layer = RenderLayers::layer(RenderLayers::TOTAL_LAYERS as u8 - 1);
 
     commands.spawn((
+        DespawnOnGameExit,
         MaterialMesh2dBundle {
             mesh: meshes.add(Quad::new(Vec2::new(1., 1.)).into()).into(),
             material: materials.add(PostProcessingMaterial {
@@ -216,6 +217,7 @@ pub(super) fn setup_post_processing_camera(
     ));
 
     commands.spawn((
+        DespawnOnGameExit,
         Camera2dBundle {
             camera: Camera {
                 order: 100,

@@ -1,8 +1,8 @@
-use bevy::{prelude::{Commands, EventReader, Res, AudioBundle, PlaybackSettings, Query, Entity, With, ResMut, AudioSink, AudioSinkPlayback}, audio::Volume};
+use bevy::{prelude::{Commands, EventReader, Res, AudioBundle, PlaybackSettings, Query, Entity, With, ResMut, AudioSink, AudioSinkPlayback, EventWriter}, audio::Volume};
 
 use crate::plugins::{assets::{MusicAssets, SoundAssets}, config::{MusicVolume, SoundVolume}};
 
-use super::{PlaySoundEvent, PlayMusicEvent, MusicAudio, UpdateMusicVolume, UpdateSoundVolume, SoundAudio};
+use super::{PlaySoundEvent, PlayMusicEvent, MusicAudio, UpdateMusicVolume, UpdateSoundVolume, SoundAudio, MusicType, ToBeDespawned};
 
 pub(super) fn handle_play_sound_event(
     mut commands: Commands,
@@ -30,7 +30,7 @@ pub(super) fn handle_play_music_event(
 ) {
     for event in event_reader.iter() {
         if let Ok(entity) = query_music.get_single() {
-            commands.entity(entity).despawn();
+            commands.entity(entity).insert(ToBeDespawned);
         }
 
         commands.spawn((
@@ -40,6 +40,19 @@ pub(super) fn handle_play_music_event(
                 settings: PlaybackSettings::LOOP.with_volume(Volume::Relative(**music_volume)),
             }
         ));
+    }
+}
+
+pub(super) fn update_to_be_despawned_audio(
+    mut commands: Commands,
+    mut query_music: Query<(Entity, &mut AudioSink), (With<MusicAudio>, With<ToBeDespawned>)>
+) {
+    for (entity, sink) in &mut query_music {
+        sink.set_volume(sink.volume() - 0.25e-3);
+
+        if sink.volume() <= 0. {
+            commands.entity(entity).despawn();
+        }
     }
 }
 
@@ -67,4 +80,16 @@ pub(super) fn handle_update_sound_volume_event(
             sink.set_volume(event.0);
         }
     }
+}
+
+pub(super) fn play_menu_music(
+    mut play_music: EventWriter<PlayMusicEvent>
+) {
+    play_music.send(PlayMusicEvent(MusicType::TitleScreen));
+}
+
+pub(super) fn play_ingame_music(
+    mut play_music: EventWriter<PlayMusicEvent>
+) {
+    play_music.send(PlayMusicEvent(MusicType::OverworldDay));
 }

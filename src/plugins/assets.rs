@@ -14,7 +14,6 @@ use rand::seq::SliceRandom;
 use crate::items::{Item, Pickaxe, Tool, Axe, Seed};
 use crate::common::state::GameState;
 use crate::world::block::BlockType;
-use crate::world::wall::Wall;
 
 use super::audio::{SoundType, MusicType};
 
@@ -90,15 +89,6 @@ fn setup(
 
 #[derive(Resource, AssetCollection)]
 pub(crate) struct BlockAssets {
-    #[asset(path = "sprites/tiles/Tiles_0.png")]
-    pub(crate) dirt: Handle<Image>,
-
-    #[asset(path = "sprites/tiles/Tiles_2.png")]
-    pub(crate) grass: Handle<Image>,
-
-    #[asset(path = "sprites/tiles/Tiles_1.png")]
-    pub(crate) stone: Handle<Image>,
-
     #[asset(path = "sprites/tiles/Tiles2.png")]
     pub(crate) tiles: Handle<Image>,
 
@@ -113,17 +103,6 @@ pub(crate) struct BlockAssets {
 
     #[asset(path = "sprites/tiles/Tree_Tops_0.png")]
     pub(crate) tree_tops_forest: Handle<Image>,
-}
-
-impl BlockAssets {
-    pub(crate) fn get_by_block(&self, block: BlockType) -> Option<Handle<Image>> {
-        match block {
-            BlockType::Dirt => Some(self.dirt.clone_weak()),
-            BlockType::Stone => Some(self.stone.clone_weak()),
-            BlockType::Grass => Some(self.grass.clone_weak()),
-            BlockType::Tree(_) => todo!(),
-        }
-    }
 }
 
 handles! {
@@ -362,20 +341,8 @@ impl CelestialBodyAssets {
 
 #[derive(Resource, AssetCollection)]
 pub(crate) struct WallAssets {
-    #[asset(path = "sprites/walls/Wall_2.png")]
-    pub(crate) wall_2: Handle<Image>,
-
     #[asset(path = "sprites/walls/Walls.png")]
     pub(crate) walls: Handle<Image>,
-}
-
-impl WallAssets {
-    pub(crate) fn get_by_wall(&self, wall: Wall) -> Option<Handle<Image>> {
-        match wall {
-            Wall::Dirt => Some(self.wall_2.clone_weak()),
-            _ => None,
-        }
-    }
 }
 
 #[derive(Resource, AssetCollection)]
@@ -421,14 +388,18 @@ impl SoundAssets {
 
 #[derive(Resource, AssetCollection)]
 pub(crate) struct MusicAssets {
-    #[asset(path = "music/Title_Screen.mp3")]
+    #[asset(path = "music/TitleScreen.mp3")]
     pub(crate) title_screen: Handle<AudioSource>,
+
+    #[asset(path = "music/OverworldDay.mp3")]
+    pub(crate) overworld_day: Handle<AudioSource>,
 }
 
 impl MusicAssets {
     pub(crate) fn get_handle_by_music_type(&self, music_type: MusicType) -> Handle<AudioSource> {
         match music_type {
             MusicType::TitleScreen => self.title_screen.clone_weak(),
+            MusicType::OverworldDay => self.overworld_day.clone_weak(),
         }
     }
 }
