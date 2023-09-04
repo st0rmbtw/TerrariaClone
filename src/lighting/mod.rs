@@ -1,5 +1,6 @@
-use bevy::prelude::{Plugin, App, Update, IntoSystemConfigs, PostUpdate};
+use bevy::prelude::{Plugin, App, Update, IntoSystemConfigs, PostUpdate, OnEnter};
 use bevy::sprite::Material2dPlugin;
+use crate::common::state::GameState;
 use crate::plugins::InGameSystemSet;
 
 use self::compositing::{LightMapMaterial, PostProcessingMaterial};
@@ -18,9 +19,10 @@ impl Plugin for LightingPlugin {
             Update,
             (
                 compositing::update_image_to_window_size,
-                compositing::setup_post_processing_camera.in_set(InGameSystemSet::Update),
             )
         );
+
+        app.add_systems(OnEnter(GameState::InGame), compositing::setup_post_processing_camera);
 
         app.add_systems(PostUpdate, compositing::update_light_map.in_set(InGameSystemSet::PostUpdate));
     }

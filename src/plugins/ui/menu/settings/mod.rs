@@ -74,7 +74,7 @@ fn setup_settings_menu(
 
     let container = query_container.single();
 
-    menu(SettingsMenu, &mut commands, container, 50., |builder| {
+    menu(SettingsMenu, &mut commands, container, 5., |builder| {
         menu_button(builder, text_style.clone(), language_content.ui.interface.clone(), InterfaceButton);
         menu_button(builder, text_style.clone(), language_content.ui.video.clone(), VideoButton);
         menu_button(builder, text_style.clone(), language_content.ui.volume.clone(), VolumeButton);

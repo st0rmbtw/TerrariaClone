@@ -57,7 +57,7 @@ fn setup_interface_menu(
 
     let container = query_container.single();
 
-    menu(InterfaceMenu, &mut commands, container, 50., |builder| {
+    menu(InterfaceMenu, &mut commands, container, 5., |builder| {
         menu_button(builder, text_style.clone(), language_content.ui.tile_grid.clone(), ToggleTileGridButton);
 
         control_buttons_layout(builder, |control_button_builder| {

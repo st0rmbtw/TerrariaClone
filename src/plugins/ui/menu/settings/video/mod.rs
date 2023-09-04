@@ -67,7 +67,7 @@ fn setup_video_menu(
 
     let container = query_container.single();
 
-    menu(VideoMenu, &mut commands, container, 50., |builder| {
+    menu(VideoMenu, &mut commands, container, 5., |builder| {
         menu_button(builder, text_style.clone(), language_content.ui.resolution.clone(), ResolutionButton);
         menu_button(builder, text_style.clone(), language_content.ui.vsync.clone(), VSyncButton);
 

@@ -2,7 +2,7 @@ mod settings;
 mod celestial_body;
 mod components;
 mod systems;
-mod builders;
+pub(super) mod builders;
 mod events;
 
 use std::time::Duration;
@@ -11,19 +11,19 @@ use components::*;
 use interpolation::EaseFunction;
 use systems::*;
 
-use bevy::{prelude::{Plugin, App, IntoSystemConfigs, OnEnter, OnExit, Color, Update, KeyCode, PostUpdate, Button, EventWriter, Res, Query, Entity, With, Commands, Name, NodeBundle, BuildChildren, ImageBundle, default, Visibility, TextBundle, Transform, Quat, Vec3, Camera2dBundle, Camera2d, State, ResMut, NextState, EventReader, Component}, input::common_conditions::input_just_pressed, app::AppExit, text::{TextStyle, Text, TextSection}, ui::{Style, PositionType, AlignSelf, Val, UiRect, FlexDirection, UiImage}, core_pipeline::clear_color::ClearColorConfig};
+use bevy::{prelude::{Plugin, App, IntoSystemConfigs, OnEnter, OnExit, Color, Update, KeyCode, PostUpdate, EventWriter, Res, Query, Entity, With, Commands, Name, NodeBundle, BuildChildren, ImageBundle, default, Visibility, TextBundle, Transform, Quat, Vec3, Camera2dBundle, Camera2d, State, ResMut, NextState, EventReader, Component}, input::common_conditions::input_just_pressed, app::AppExit, text::{TextStyle, Text, TextSection}, ui::{Style, PositionType, AlignSelf, Val, UiRect, FlexDirection, UiImage}, core_pipeline::clear_color::ClearColorConfig};
 use crate::{
-    common::{state::{GameState, MenuState, SettingsMenuState}, conditions::on_click, systems::{animate_button_scale, play_sound_on_hover, send_event, despawn_with, set_state}, lens::TransformLens},
+    common::{state::{GameState, MenuState, SettingsMenuState}, conditions::on_click, systems::{send_event, despawn_with, set_state}, lens::TransformLens},
     parallax::{parallax_animation_system, ParallaxSet},
     language::LanguageContent,
     animation::{Animator, RepeatCount, Tween, RepeatStrategy}, 
-    plugins::{slider::Slider, assets::{FontAssets, UiAssets}, camera::components::MainCamera, audio::{PlaySoundEvent, SoundType}, MenuSystemSet}
+    plugins::{assets::{FontAssets, UiAssets}, camera::components::MainCamera, audio::{PlaySoundEvent, SoundType}, MenuSystemSet}
 };
 use self::{settings::SettingsMenuPlugin, celestial_body::CelestialBodyPlugin, builders::{menu, menu_button}, events::{Back, EnterMenu}};
 
 use super::FpsText;
 
-pub(super) const TEXT_COLOR: Color = Color::rgb(0.58, 0.58, 0.58);
+pub(crate) const TEXT_COLOR: Color = Color::rgb(0.58, 0.58, 0.58);
 pub(super) const MENU_BUTTON_FONT_SIZE: f32 = 42.;
 
 #[derive(Component)]
@@ -78,11 +78,8 @@ impl Plugin for MenuPlugin {
             Update,
             (
                 parallax_animation_system(150.).in_set(ParallaxSet::FollowCamera),
-                animate_button_scale::<Button>,
                 animate_button_color,
                 animate_slider_border_color,
-                play_sound_on_hover::<Button>,
-                play_sound_on_hover::<Slider>,
             )
             .in_set(MenuSystemSet::Update)
         );
@@ -225,7 +222,7 @@ fn setup_main_menu(
 
     let container = query_container.single();
 
-    menu(Menu, &mut commands, container, 70., |builder| {
+    menu(Menu, &mut commands, container, 10., |builder| {
         menu_button(
             builder,
             text_style.clone(),

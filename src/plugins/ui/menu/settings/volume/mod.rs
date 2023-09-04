@@ -81,7 +81,7 @@ fn setup_volume_menu(
 
     let container = query_container.single();
 
-    menu(VolumeMenu, &mut commands, container, 50., |builder| {
+    menu(VolumeMenu, &mut commands, container, 5., |builder| {
         menu_text(builder, title_text_style, language_content.ui.volume.clone());
 
         slider_layout(

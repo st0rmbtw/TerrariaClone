@@ -146,13 +146,10 @@ pub(super) fn setup_post_processing_camera(
     mut query_main_camera: Query<&mut Camera, With<MainCamera>>,
     mut query_world_camera: Query<&mut Camera, (With<WorldCamera>, Without<MainCamera>)>,
     mut query_background_camera: Query<&mut Camera, (With<BackgroundCamera>, Without<MainCamera>, Without<WorldCamera>)>,
-    mut processed: Local<bool>
 ) {
-    if *processed { return; }
-
-    let mut main_camera = query_main_camera.single_mut();
-    let mut world_camera = query_world_camera.single_mut();
-    let mut background_camera = query_background_camera.single_mut();
+    let Ok(mut main_camera) = query_main_camera.get_single_mut() else { return; };
+    let Ok(mut world_camera) = query_world_camera.get_single_mut() else { return; };
+    let Ok(mut background_camera) = query_background_camera.get_single_mut() else { return; };
     
     let window = query_window.single();
     
@@ -165,21 +162,21 @@ pub(super) fn setup_post_processing_camera(
     let mut main_texture = Image::new_fill(
         size,
         TextureDimension::D2,
-        &[0, 0, 0, 0],
+        &[0, 0, 0, 255],
         BevyDefault::bevy_default()
     );
 
     let mut world_texture = Image::new_fill(
         size,
         TextureDimension::D2,
-        &[0, 0, 0, 0],
+        &[0, 0, 0, 255],
         BevyDefault::bevy_default()
     );
 
     let mut background_texture = Image::new_fill(
         size,
         TextureDimension::D2,
-        &[0, 0, 0, 0],
+        &[0, 0, 0, 255],
         BevyDefault::bevy_default()
     );
 
@@ -195,9 +192,18 @@ pub(super) fn setup_post_processing_camera(
     world_camera.target = RenderTarget::Image(world_texture_handle.clone());
     background_camera.target = RenderTarget::Image(background_texture_handle.clone());
 
-    commands.spawn(FitToWindowSize(main_texture_handle.clone()));
-    commands.spawn(FitToWindowSize(world_texture_handle.clone()));
-    commands.spawn(FitToWindowSize(background_texture_handle.clone()));
+    commands.spawn((
+        DespawnOnGameExit,
+        FitToWindowSize(main_texture_handle.clone())
+    ));
+    commands.spawn((
+        DespawnOnGameExit,
+        FitToWindowSize(world_texture_handle.clone())
+    ));
+    commands.spawn((
+        DespawnOnGameExit,
+        FitToWindowSize(background_texture_handle.clone())
+    ));
 
     let post_processing_layer = RenderLayers::layer(RenderLayers::TOTAL_LAYERS as u8 - 1);
 
@@ -228,6 +234,4 @@ pub(super) fn setup_post_processing_camera(
         },
         post_processing_layer
     ));
-
-    *processed = true;
 }

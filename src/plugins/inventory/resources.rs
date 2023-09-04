@@ -1,6 +1,6 @@
 use bevy::{prelude::{Resource, Deref, DerefMut, ReflectResource}, reflect::Reflect};
 
-use crate::{items::ItemStack, plugins::ui::inventory::CELL_COUNT_IN_ROW};
+use crate::{items::ItemStack, plugins::ui::ingame::inventory::CELL_COUNT_IN_ROW};
 
 #[derive(Resource, Default, Deref, DerefMut)]
 pub(crate) struct SelectedItem(pub Option<ItemStack>);

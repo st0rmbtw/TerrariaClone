@@ -13,8 +13,12 @@ pub(crate) mod systems;
 pub(crate) mod components;
 
 
-pub(crate) trait IsVisible {
-    fn is_visible(&self) -> bool;
+pub(crate) trait BoolValue {
+    fn value(&self) -> bool;
+}
+
+pub(crate) trait Toggle {
+    fn toggle(&mut self);
 }
 
 #[derive(Debug, Clone, Copy)]

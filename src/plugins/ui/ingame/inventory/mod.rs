@@ -1,11 +1,11 @@
-pub(super) mod systems;
+pub(in crate::plugins::ui) mod systems;
 mod components;
 
 use bevy::prelude::{Plugin, App, resource_changed, IntoSystemConfigs, resource_exists_and_changed, resource_added, Update, Condition};
 
-use crate::{common::systems::set_visibility, plugins::{inventory::Inventory, InGameSystemSet}};
+use crate::{common::systems::{set_visibility, set_visibility_negated}, plugins::{inventory::Inventory, InGameSystemSet, ui::SettingsMenuVisibility}};
 
-use super::ExtraUiVisibility;
+use crate::plugins::ui::InventoryUiVisibility;
 
 const INVENTORY_ROWS: usize = 5 - 1;
 
@@ -15,14 +15,15 @@ const HOTBAR_CELL_SIZE_SELECTED: f32 = HOTBAR_CELL_SIZE * 1.3;
 
 pub(crate) const CELL_COUNT_IN_ROW: usize = 10;
 
-pub(super) struct InventoryUiPlugin;
+pub(in crate::plugins::ui) struct InventoryUiPlugin;
 impl Plugin for InventoryUiPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
             (
-                set_visibility::<components::InventoryUi, ExtraUiVisibility>,
-                systems::trigger_inventory_changed.run_if(resource_changed::<ExtraUiVisibility>()),
+                set_visibility::<components::InventoryUi, InventoryUiVisibility>,
+                set_visibility_negated::<components::InventoryUiContainer, SettingsMenuVisibility>,
+                systems::trigger_inventory_changed.run_if(resource_changed::<InventoryUiVisibility>()),
                 systems::update_selected_item_name_alignment,
                 systems::update_selected_item_name_text,
                 (

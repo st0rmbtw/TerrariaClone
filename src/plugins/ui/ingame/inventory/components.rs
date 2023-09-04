@@ -4,6 +4,9 @@ use bevy::prelude::{Component, Image, Handle};
 pub(super) struct InventoryUi;
 
 #[derive(Component)]
+pub(super) struct InventoryUiContainer;
+
+#[derive(Component)]
 pub(super) struct HotbarUi;
 
 #[derive(Component)]

@@ -69,6 +69,8 @@
 		"Inventory": "Inventory",
 		"Items": "Items",
 		"Settings": "Settings",
+		"SettingsMenu": "Settings menu",
+		"General": "General",
 		"SinglePlayer": "Single Player",
 		"Interface": "Interface",
 		"Video": "Video",
@@ -86,6 +88,8 @@
 		"VSync": "VSync",
 		"Music": "Music",
 		"Sound": "Sound",
-		"Language": "Language"
+		"Language": "Language",
+		"CloseMenu": "Close menu",
+		"SaveAndExit": "Save & Exit"
 	}
 }

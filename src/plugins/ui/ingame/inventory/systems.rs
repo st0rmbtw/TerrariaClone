@@ -1,7 +1,7 @@
 use autodefault::autodefault;
 use bevy::{prelude::{Commands, Name, NodeBundle, BuildChildren, TextBundle, Color, Entity, ImageBundle, default, ChildBuilder, Handle, Image, Visibility, With, Res, Query, DetectChanges, Changed, ResMut, DetectChangesMut, Without}, ui::{Style, FlexDirection, UiRect, Val, AlignSelf, AlignItems, JustifyContent, Interaction, BackgroundColor, ZIndex, FocusPolicy, AlignContent, PositionType, UiImage, widget::UiImageSize}, text::{Text, TextStyle, TextAlignment}};
 
-use crate::{plugins::{assets::{UiAssets, FontAssets, ItemAssets}, cursor::components::Hoverable, inventory::{Inventory, SelectedItem}, ui::ExtraUiVisibility}, language::LanguageContent, common::{extensions::EntityCommandsExtensions, IsVisible, helpers}};
+use crate::{plugins::{assets::{UiAssets, FontAssets, ItemAssets}, cursor::components::Hoverable, inventory::{Inventory, SelectedItem}, ui::InventoryUiVisibility}, language::LanguageContent, common::{extensions::EntityCommandsExtensions, BoolValue, helpers}};
 
 use super::{components::*, INVENTORY_ROWS, CELL_COUNT_IN_ROW, HOTBAR_CELL_SIZE, INVENTORY_CELL_SIZE, HOTBAR_CELL_SIZE_SELECTED};
 
@@ -15,6 +15,7 @@ pub(crate) fn spawn_inventory_ui(
     commands
         .spawn((
             Name::new("InventoryContainer"),
+            InventoryUiContainer,
             NodeBundle {
                 style: Style {
                     flex_direction: FlexDirection::Column,
@@ -230,13 +231,13 @@ fn spawn_inventory_cell(
 
 pub(super) fn update_cell_size(
     inventory: Res<Inventory>,
-    visibility: Res<ExtraUiVisibility>,
+    visibility: Res<InventoryUiVisibility>,
     mut hotbar_cells: Query<(&CellIndex, &mut Style), (With<HotbarCell>, Without<CellItemImage>)>,
     mut item_images: Query<(&CellIndex, &UiImageSize, &mut Style), (Without<HotbarCell>, With<CellItemImage>)>
 ) {
     for (cell_index, mut style) in &mut hotbar_cells {
         let selected = cell_index.0 == inventory.selected_slot;
-        if visibility.is_visible() {
+        if visibility.value() {
             style.width = Val::Px(INVENTORY_CELL_SIZE);
             style.height = Val::Px(INVENTORY_CELL_SIZE);
         } else if selected {
@@ -252,7 +253,7 @@ pub(super) fn update_cell_size(
         let selected = cell_index.0 == inventory.selected_slot;
         let image_size = image_size.size();
 
-        if visibility.is_visible() {
+        if visibility.value() {
             style.width = Val::Px(image_size.x * 0.95);
             style.height = Val::Px(image_size.y * 0.95);
         } else if selected {
@@ -267,11 +268,11 @@ pub(super) fn update_cell_size(
 
 pub(super) fn update_cell_index_text(
     inventory: Res<Inventory>,
-    visibility: Res<ExtraUiVisibility>,
+    visibility: Res<InventoryUiVisibility>,
     mut hotbar_cells: Query<(&CellIndex, &mut Text), With<HotbarCellIndex>>,
 ) {
     for (cell_index, mut text) in &mut hotbar_cells {
-        let (color, font_size) = if visibility.is_visible() {
+        let (color, font_size) = if visibility.value() {
             if inventory.selected_slot == cell_index.0 {
                 (Color::WHITE, 18.)
             } else {
@@ -289,12 +290,12 @@ pub(super) fn update_cell_index_text(
 pub(super) fn update_cell_background_image(
     inventory: Res<Inventory>,
     ui_assets: Res<UiAssets>,
-    visibility: Res<ExtraUiVisibility>,
+    visibility: Res<InventoryUiVisibility>,
     mut hotbar_cells: Query<(&CellIndex, &mut UiImage), With<HotbarCell>>,
 ) {
     for (cell_index, mut image) in &mut hotbar_cells {
         let selected = cell_index.0 == inventory.selected_slot;
-        let texture = if selected && !visibility.is_visible() {
+        let texture = if selected && !visibility.value() {
             &ui_assets.selected_inventory_background
         } else {
             &ui_assets.inventory_background
@@ -325,12 +326,12 @@ pub(super) fn update_hoverable(
 }
 
 pub(super) fn update_selected_item_name_alignment(
-    visibility: Res<ExtraUiVisibility>,
+    visibility: Res<InventoryUiVisibility>,
     mut query_selected_item_name: Query<&mut Style, With<SelectedItemName>>
 ) {
     if visibility.is_changed() {
         let mut style = query_selected_item_name.single_mut();
-        style.align_self = if visibility.is_visible() {
+        style.align_self = if visibility.value() {
             AlignSelf::FlexStart
         } else {
             AlignSelf::Center
@@ -340,14 +341,14 @@ pub(super) fn update_selected_item_name_alignment(
 
 pub(super) fn update_selected_item_name_text(
     current_item: Res<SelectedItem>,
-    visibility: Res<ExtraUiVisibility>,
+    visibility: Res<InventoryUiVisibility>,
     language_content: Res<LanguageContent>,
     mut query_selected_item_name: Query<&mut Text, With<SelectedItemName>>
 ) {
     if current_item.is_changed() || visibility.is_changed() {
         let mut text = query_selected_item_name.single_mut();
 
-        text.sections[0].value = if visibility.is_visible() {
+        text.sections[0].value = if visibility.value() {
             language_content.ui.inventory.clone()
         } else {
             current_item.0

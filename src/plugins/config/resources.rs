@@ -1,7 +1,7 @@
 use bevy::{prelude::{Resource, Color, Deref, DerefMut}, window::{PresentMode, WindowMode}, audio::VolumeLevel};
 use serde::{Deserialize, Serialize};
 
-use crate::common::IsVisible;
+use crate::common::BoolValue;
 
 #[derive(Resource, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub(crate) struct Resolution {
@@ -30,8 +30,8 @@ pub(crate) struct FullScreen(pub(crate) bool);
 #[derive(Resource, PartialEq, Clone, Copy)]
 pub(crate) struct ShowTileGrid(pub(crate) bool);
 
-impl IsVisible for ShowTileGrid {
-    fn is_visible(&self) -> bool {
+impl BoolValue for ShowTileGrid {
+    fn value(&self) -> bool {
         self.0
     }
 }

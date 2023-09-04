@@ -1,8 +1,8 @@
-use bevy::{ui::Interaction, prelude::{Changed, Component, Query, With, EventWriter, Visibility, Resource, Res, DetectChanges, Event, Entity, Commands, DespawnRecursiveExt, States, ResMut, NextState}, text::Text};
+use bevy::{ui::{Interaction, Style, Display}, prelude::{Changed, Component, Query, With, EventWriter, Visibility, Resource, Res, DetectChanges, Event, Entity, Commands, DespawnRecursiveExt, States, ResMut, NextState}, text::Text};
 
 use crate::{animation::{Animator, TweeningDirection, Tween, Tweenable}, plugins::audio::{PlaySoundEvent, SoundType}};
 
-use super::{helpers, IsVisible};
+use super::{helpers, BoolValue, Toggle};
 
 pub(crate) fn animate_button_scale<B: Component>(
     mut query: Query<
@@ -40,13 +40,45 @@ pub(crate) fn play_sound_on_hover<B: Component>(
     }
 }
 
-pub(crate) fn set_visibility<C: Component, R: IsVisible + Resource>(
+pub(crate) fn set_visibility<C: Component, R: BoolValue + Resource>(
     mut query_visibility: Query<&mut Visibility, With<C>>,
-    res_visibility: Res<R>
+    opt_res_visibility: Option<Res<R>>
 ) {
+    let Some(res_visibility) = opt_res_visibility else { return; };
+
     if res_visibility.is_changed() {
         query_visibility.for_each_mut(|visibility| {
-            helpers::set_visibility(visibility, res_visibility.is_visible());
+            helpers::set_visibility(visibility, res_visibility.value());
+        });
+    }
+}
+
+pub(crate) fn set_display<C: Component, R: BoolValue + Resource>(
+    mut query_visibility: Query<&mut Style, With<C>>,
+    opt_res_visibility: Option<Res<R>>
+) {
+    let Some(res_visibility) = opt_res_visibility else { return; };
+
+    if res_visibility.is_changed() {
+        query_visibility.for_each_mut(|mut style| {
+            if res_visibility.value() {
+                style.display = Display::Flex;
+            } else {
+                style.display = Display::None;
+            }
+        });
+    }
+}
+
+pub(crate) fn set_visibility_negated<C: Component, R: BoolValue + Resource>(
+    mut query_visibility: Query<&mut Visibility, With<C>>,
+    opt_res_visibility: Option<Res<R>>
+) {
+    let Some(res_visibility) = opt_res_visibility else { return; };
+
+    if res_visibility.is_changed() {
+        query_visibility.for_each_mut(|visibility| {
+            helpers::set_visibility(visibility, !res_visibility.value());
         });
     }
 }
@@ -74,4 +106,8 @@ pub(crate) fn set_state<S: States + Clone>(state: S) -> impl FnMut(ResMut<NextSt
     move |mut next_state: ResMut<NextState<S>>| {
         next_state.set(state.clone());
     }
+}
+
+pub(crate) fn toggle_resource<T: Toggle + Resource>(mut ui_visibility: ResMut<T>) {
+    ui_visibility.toggle()
 }

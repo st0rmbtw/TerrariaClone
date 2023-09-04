@@ -7,7 +7,7 @@ use crate::{animation::{AnimatorState, Animator, Tween, EaseMethod, RepeatStrate
 
 use super::{MENU_BUTTON_FONT_SIZE, components::Menu};
 
-pub(super) fn menu(marker: impl Component, commands: &mut Commands, container: Entity, gap: f32, spawn_children: impl FnOnce(&mut ChildBuilder)) {
+pub(crate) fn menu(marker: impl Component, commands: &mut Commands, container: Entity, gap: f32, spawn_children: impl FnOnce(&mut ChildBuilder)) {
     let menu = commands.spawn((
         Name::new("Menu"),
         NodeBundle {
@@ -32,10 +32,10 @@ pub(super) fn menu(marker: impl Component, commands: &mut Commands, container: E
 }
 
 #[autodefault]
-pub(super) fn menu_button(
+pub(crate) fn menu_button(
     builder: &mut ChildBuilder,
     text_style: TextStyle,
-    button_name: String,
+    button_name: impl Into<String>,
     marker: impl Component,
 ) {
     builder
@@ -43,6 +43,7 @@ pub(super) fn menu_button(
             style: Style {
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
+                height: Val::Px(text_style.font_size),
             },
             focus_policy: FocusPolicy::Pass
         })
@@ -56,14 +57,14 @@ pub(super) fn menu_button(
                     style: Style {
                         position_type: PositionType::Absolute,
                     },
-                    text: Text::from_section(button_name, text_style.clone()).with_no_wrap(),
+                    text: Text::from_section(button_name.into(), text_style.clone()).with_no_wrap(),
                 }
             ));
         });
 }
 
 #[autodefault]
-pub(super) fn menu_text(builder: &mut ChildBuilder, text_style: TextStyle, text: impl Into<String>) {
+pub(crate) fn menu_text(builder: &mut ChildBuilder, text_style: TextStyle, text: impl Into<String>) {
     builder.spawn((
         Name::new("MenuText"),
         TextBundle {
@@ -73,7 +74,7 @@ pub(super) fn menu_text(builder: &mut ChildBuilder, text_style: TextStyle, text:
 }
 
 #[autodefault]
-pub(super) fn control_buttons_layout(
+pub(crate) fn control_buttons_layout(
     builder: &mut ChildBuilder,
     spawn_builder: impl FnOnce(&mut ChildBuilder)
 ) {
@@ -90,7 +91,7 @@ pub(super) fn control_buttons_layout(
 }
 
 #[autodefault]
-pub(super) fn control_button(
+pub(crate) fn control_button(
     builder: &mut ChildBuilder,
     text_style: TextStyle,
     name: String,
@@ -119,7 +120,7 @@ pub(super) fn control_button(
     });
 }
 
-pub(super) fn slider_layout(
+pub(crate) fn slider_layout(
     builder: &mut ChildBuilder,
     slider_builder: impl FnOnce(&mut ChildBuilder),
     output_builder: impl FnOnce(&mut ChildBuilder)
@@ -169,7 +170,7 @@ pub(super) fn slider_layout(
 }
 
 #[autodefault]
-pub(super) fn menu_slider(
+pub(crate) fn menu_slider(
     builder: &mut ChildBuilder,
     ui_assets: &UiAssets,
     text_style: TextStyle,
@@ -245,7 +246,7 @@ pub(super) fn menu_slider(
     });
 }
 
-pub(super) fn slider_value_text(builder: &mut ChildBuilder, text_style: TextStyle, value: f32, output_marker: impl Component) {
+pub(crate) fn slider_value_text(builder: &mut ChildBuilder, text_style: TextStyle, value: f32, output_marker: impl Component) {
     builder.spawn((
         Name::new("SliderValueText"),
         TextBundle {

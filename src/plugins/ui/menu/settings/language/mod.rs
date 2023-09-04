@@ -47,7 +47,7 @@ fn setup_language_menu(
         color: TEXT_COLOR,
     };
 
-    menu(LanguageMenu, &mut commands, container, 50., |builder| {
+    menu(LanguageMenu, &mut commands, container, 5., |builder| {
         menu_text(builder, title_text_style.clone(), "Select Language");
 
         menu_text(builder, title_text_style, "To do...");

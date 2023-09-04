@@ -2,32 +2,23 @@ mod components;
 mod resources;
 mod systems;
 
-pub(crate) mod inventory;
+pub(crate) mod ingame;
 pub(crate) mod menu;
 
-use std::time::Duration;
-
-use interpolation::EaseFunction;
 pub(crate) use resources::*;
 
-use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Component, Entity, Color, TextBundle, Button}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, Interaction, AlignSelf, PositionType}, text::{TextAlignment, Text, TextStyle, TextSection}};
-use crate::{common::{state::GameState, systems::{set_visibility, animate_button_scale, play_sound_on_hover, despawn_with, set_state}, lens::TextFontSizeLens, conditions::on_click}, language::LanguageContent, animation::{Tween, RepeatStrategy, Animator}};
+use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Color, TextBundle, Condition, Button, resource_exists_and_equals, not, Component}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, PositionType}, text::{TextAlignment, Text, TextStyle, TextSection}};
+use crate::{common::{state::GameState, systems::{set_visibility, despawn_with, toggle_resource, animate_button_scale, play_sound_on_hover}}, language::LanguageContent};
 
 use self::{
     components::MainUiContainer,
-    inventory::{systems::spawn_inventory_ui, InventoryUiPlugin},
+    ingame::{inventory::{systems::spawn_inventory_ui, InventoryUiPlugin}, settings::{systems::spawn_ingame_settings_button, InGameSettingsUiPlugin}},
     menu::MenuPlugin,
 };
 
 use crate::plugins::assets::{FontAssets, UiAssets};
 
-use super::{InGameSystemSet, DespawnOnGameExit};
-
-#[derive(Component)]
-pub(super) struct ExitButtonContainer;
-
-#[derive(Component)]
-pub(super) struct ExitButton;
+use super::{InGameSystemSet, DespawnOnGameExit, slider::Slider};
 
 #[derive(Component)]
 pub(crate) struct FpsText;
@@ -35,37 +26,38 @@ pub(crate) struct FpsText;
 pub(crate) struct UiPlugin;
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((InventoryUiPlugin, MenuPlugin));
+        app.add_plugins((InventoryUiPlugin, InGameSettingsUiPlugin, MenuPlugin));
 
-        app.init_resource::<ExtraUiVisibility>();
+        app.init_resource::<InventoryUiVisibility>();
         app.init_resource::<UiVisibility>();
 
         app.add_systems(OnExit(GameState::WorldLoading), spawn_ui_container);
         app.add_systems(OnExit(GameState::WorldLoading), spawn_fps_text);
         app.add_systems(OnExit(GameState::InGame), despawn_with::<MainUiContainer>);
 
-        app.add_systems(Update,
+        app.add_systems(
+            Update,
             (
-                systems::toggle_extra_ui_visibility.run_if(input_just_pressed(KeyCode::Escape)),
-                systems::toggle_ui_visibility.run_if(input_just_pressed(KeyCode::F11)),
-                set_visibility::<MainUiContainer, UiVisibility>
+                animate_button_scale::<Button>,
+                play_sound_on_hover::<Button>,
+                play_sound_on_hover::<Slider>,
             )
-            .in_set(InGameSystemSet::Update)
-        );
-
-        app.add_systems(
-            Update,
-            set_state(GameState::Menu)
-                .in_set(InGameSystemSet::Update)
-                .run_if(on_click::<ExitButton>)
         );
 
         app.add_systems(
             Update,
             (
-                animate_button_scale::<ExitButton>,
-                play_sound_on_hover::<ExitButton>,
-                set_visibility::<ExitButtonContainer, ExtraUiVisibility>,
+                (
+                    toggle_resource::<InventoryUiVisibility>,
+                    systems::play_sound_on_toggle::<InventoryUiVisibility>
+                )
+                .chain()
+                .run_if(
+                    not(resource_exists_and_equals(SettingsMenuVisibility(true))).and_then(input_just_pressed(KeyCode::Escape))
+                ),
+
+                toggle_resource::<UiVisibility>.run_if(input_just_pressed(KeyCode::F11)),
+                set_visibility::<MainUiContainer, UiVisibility>
             )
             .in_set(InGameSystemSet::Update)
         );
@@ -136,7 +128,7 @@ fn spawn_ui_container(
         .id();
 
     let inventory = spawn_inventory_ui(&mut commands, &ui_assets, &font_assets, &language_content);
-    let settings_btn = spawn_exit_button(&mut commands, &font_assets, &language_content);
+    let settings_btn = spawn_ingame_settings_button(&mut commands, &font_assets, &language_content);
 
     // TODO: Make a health bar in the feature, stub for now
     let health_bar = commands
@@ -160,62 +152,6 @@ fn spawn_ui_container(
         .push_children(&[health_bar, settings_btn]);
 
     commands.entity(main_id).push_children(&[left_id, right_id]);
-}
-
-fn spawn_exit_button(
-    commands: &mut Commands, 
-    fonts: &FontAssets,
-    language_content: &LanguageContent
-) -> Entity {
-    let tween = Tween::new(
-        EaseFunction::QuadraticInOut,
-        RepeatStrategy::MirroredRepeat,
-        Duration::from_millis(150),
-        TextFontSizeLens {
-            start: 32.,
-            end: 38.,
-        },
-    );
-
-    commands
-        .spawn(NodeBundle {
-            style: Style {
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                align_self: AlignSelf::End,
-                padding: UiRect::all(Val::Px(10.)),
-                width: Val::Px(100.),
-                height: Val::Px(38.),
-                ..default()
-            },
-            visibility: Visibility::Hidden,
-            ..default()
-        })
-        .insert(ExitButtonContainer)
-        .with_children(|c| {
-            c.spawn(TextBundle {
-                style: Style {
-                    margin: UiRect::all(Val::Auto),
-                    flex_shrink: 0.,
-                    ..default()
-                },
-                text: Text::from_section(
-                    language_content.ui.exit.clone(),
-                    TextStyle {
-                        font: fonts.andy_bold.clone_weak(),
-                        font_size: 32.,
-                        color: Color::WHITE,
-                    },
-                ).with_alignment(TextAlignment::Center),
-                ..default()
-            })
-            .insert(Name::new("ExitButton"))
-            .insert(Interaction::default())
-            .insert(ExitButton)
-            .insert(Button)
-            .insert(Animator::new(tween));
-        })
-        .id()
 }
 
 pub(super) fn spawn_fps_text(mut commands: Commands, font_assets: Res<FontAssets>) {

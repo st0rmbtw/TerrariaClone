@@ -9,7 +9,7 @@ pub(crate) use resources::*;
 
 use crate::{common::state::GameState, items::{ItemStack, Tool, Axe, Pickaxe, Seed}, world::block::BlockType};
 
-use super::{InGameSystemSet, ui::ExtraUiVisibility};
+use super::{InGameSystemSet, ui::InventoryUiVisibility};
 
 const ITEM_ROTATION: f32 = 1.7;
 
@@ -17,6 +17,7 @@ pub struct PlayerInventoryPlugin;
 impl Plugin for PlayerInventoryPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnExit(GameState::WorldLoading), setup);
+        app.add_systems(OnExit(GameState::InGame), cleanup);
 
         app.add_systems(
             FixedUpdate,
@@ -60,7 +61,7 @@ impl Plugin for PlayerInventoryPlugin {
         app.add_systems(
             Update,
             (
-                systems::scroll_select_inventory_item.run_if(resource_exists_and_equals(ExtraUiVisibility::HIDDEN)),
+                systems::scroll_select_inventory_item.run_if(resource_exists_and_equals(InventoryUiVisibility::HIDDEN)),
                 systems::select_inventory_cell,
                 systems::set_selected_item.run_if(resource_exists_and_changed::<Inventory>())
             )
@@ -86,4 +87,14 @@ fn setup(mut commands: Commands) {
     inventory.add_item(ItemStack::new_seed(Seed::Grass).with_max_stack());
 
     commands.insert_resource(inventory);
+}
+
+fn cleanup(mut commands: Commands) {
+    commands.remove_resource::<SelectedItem>();
+    commands.remove_resource::<SwingItemCooldown>();
+    commands.remove_resource::<SwingItemCooldownMax>();
+    commands.remove_resource::<UseItemAnimationIndex>();
+    commands.remove_resource::<PlayerUsingItem>();
+    commands.remove_resource::<SwingAnimation>();
+    commands.remove_resource::<Inventory>();
 }

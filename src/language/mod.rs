@@ -24,7 +24,9 @@ impl Language {
 pub(crate) struct UI {
     pub(crate) items: String,
     pub(crate) inventory: String,
+    pub(crate) general: String,
     pub(crate) settings: String,
+    pub(crate) settings_menu: String,
     pub(crate) single_player: String,
     pub(crate) interface: String,
     pub(crate) video: String,
@@ -43,7 +45,9 @@ pub(crate) struct UI {
     pub(crate) language: String,
     #[serde(rename = "VSync")]
     pub(crate) vsync: String,
-    pub(crate) full_screen_resolution: String
+    pub(crate) full_screen_resolution: String,
+    pub(crate) close_menu: String,
+    pub(crate) save_and_exit: String,
 }
 
 #[derive(Deserialize)]
