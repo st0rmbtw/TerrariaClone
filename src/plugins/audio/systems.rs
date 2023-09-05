@@ -10,6 +10,10 @@ pub(super) fn handle_play_sound_event(
     sound_assets: Res<SoundAssets>,
     sound_volume: Res<SoundVolume>
 ) {
+    if sound_volume.get() < f32::EPSILON {
+        return;
+    }
+    
     for event in event_reader.iter() {
         commands.spawn((
             SoundAudio,
@@ -33,11 +37,17 @@ pub(super) fn handle_play_music_event(
             commands.entity(entity).insert(ToBeDespawned);
         }
 
+        let mut settings = PlaybackSettings::LOOP.with_volume(Volume::Relative(**music_volume));
+
+        if music_volume.get() < f32::EPSILON {
+            settings.paused = true;
+        }
+
         commands.spawn((
             MusicAudio,
             AudioBundle {
                 source: music_assets.get_handle_by_music_type(event.0),
-                settings: PlaybackSettings::LOOP.with_volume(Volume::Relative(**music_volume)),
+                settings,
             }
         ));
     }
@@ -64,7 +74,7 @@ pub(super) fn handle_update_music_volume_event(
     if let Some(event) = event_reader.iter().last() {
         *music_volume = MusicVolume::new(event.0);
         if let Ok(sink) = query_music.get_single() {
-            if event.0 > 0. {
+            if event.0 > f32::EPSILON {
                 sink.play();
                 sink.set_volume(event.0);
             } else {

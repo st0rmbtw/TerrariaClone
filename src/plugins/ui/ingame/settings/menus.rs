@@ -113,8 +113,8 @@ pub(super) fn general_menu(
             },
             AlignItems::Center,
             |second_column| {
-                menu_slider(second_column, &ui_assets, music_volume.get(), Color::WHITE, 0.8, Val::Px(slider_text_style.font_size), MusicVolumeSlider);
-                menu_slider(second_column, &ui_assets, sound_volume.get(), Color::WHITE, 0.8, Val::Px(slider_text_style.font_size), SoundVolumeSlider);
+                menu_slider(second_column, ui_assets, music_volume.get(), Color::WHITE, 0.8, Val::Px(slider_text_style.font_size), MusicVolumeSlider);
+                menu_slider(second_column, ui_assets, sound_volume.get(), Color::WHITE, 0.8, Val::Px(slider_text_style.font_size), SoundVolumeSlider);
             }
         );
 
@@ -134,7 +134,7 @@ pub(super) fn general_menu(
             },
             AlignItems::Center,
             |second_column| {
-                menu_slider(second_column, &ui_assets, zoom.get(), Color::WHITE, 0.8, Val::Px(slider_text_style.font_size), ZoomSlider);
+                menu_slider(second_column, ui_assets, zoom.get(), Color::WHITE, 0.8, Val::Px(slider_text_style.font_size), ZoomSlider);
             }
         );
     });
