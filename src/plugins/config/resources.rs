@@ -63,7 +63,7 @@ impl VSync {
 impl FullScreen {
     pub(crate) fn as_window_mode(&self) -> WindowMode {
         match self.0 {
-            true => WindowMode::BorderlessFullscreen,
+            true => WindowMode::Fullscreen,
             false => WindowMode::Windowed
         }
     }
@@ -74,17 +74,8 @@ pub(crate) struct MusicVolume(VolumeLevel);
 
 impl MusicVolume {
     pub(crate) fn new(value: f32) -> Self {
-        assert!((0.0..=1.0).contains(&value));
+        debug_assert!((0.0..=1.0).contains(&value));
         Self(VolumeLevel::new(value))
-    }
-
-    pub(crate) fn from_slider_value(value: f32) -> Self {
-        assert!((0.0..=100.0).contains(&value));
-        Self::new(value / 100.)
-    }
-
-    pub(crate) fn slider_value(&self) -> f32 {
-        self.get() * 100.
     }
 }
 
@@ -93,16 +84,7 @@ pub(crate) struct SoundVolume(VolumeLevel);
 
 impl SoundVolume {
     pub(crate) fn new(value: f32) -> Self {
-        assert!((0.0..=1.0).contains(&value));
+        debug_assert!((0.0..=1.0).contains(&value));
         Self(VolumeLevel::new(value))
-    }
-
-    pub(crate) fn from_slider_value(value: f32) -> Self {
-        assert!((0.0..=100.0).contains(&value));
-        Self::new(value / 100.)
-    }
-
-    pub(crate) fn slider_value(&self) -> f32 {
-        self.get() * 100.
     }
 }

@@ -181,11 +181,9 @@ pub(crate) fn menu_slider(
         Name::new("SliderContainer"),
         NodeBundle {
             style: Style {
-                flex_direction: FlexDirection::Row,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
-                column_gap: Val::Px(10.),
-                height,
+                height
             }
         }
     )).with_children(|b| {
@@ -212,8 +210,8 @@ pub(crate) fn menu_slider(
                         align_items: AlignItems::Center,
                     },
                     image: ui_assets.slider_border.clone_weak().into(),
-                    slider: Slider::new(0., 100.)
-                        .with_step(1.)
+                    slider: Slider::new(0., 1.)
+                        .with_step(0.01)
                         .with_value(value).unwrap(),
                 }
             ))
@@ -266,6 +264,17 @@ pub(crate) fn slider_value_text(builder: &mut ChildBuilder, text_style: TextStyl
         }
     ))
     .insert(output_marker);
+}
+
+#[inline(always)]
+pub(crate) fn spacer(builder: &mut ChildBuilder, height: f32) {
+    builder.spawn(NodeBundle {
+        style: Style {
+            height: Val::Px(height),
+            ..default()
+        },
+        ..default()
+    });
 }
 
 #[inline(always)]

@@ -3,7 +3,7 @@ use bevy::{
     prelude::{
         Commands, Camera2dBundle, OrthographicProjection, Transform, Res, KeyCode, Query, 
         With, Input,
-        Without, Camera2d, Name, Mut, Color, UiCameraConfig, default,
+        Without, Camera2d, Name, Mut, Color, UiCameraConfig, default, ResMut,
     }, 
     time::Time, core_pipeline::clear_color::ClearColorConfig
 };
@@ -12,7 +12,7 @@ use crate::{plugins::{world::{constants::TILE_SIZE, WORLD_RENDER_LAYER}, Despawn
 
 use crate::plugins::player::Player;
 
-use super::{CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, components::{MainCamera, WorldCamera, ZoomableCamera, MoveCamera}, INITIAL_ZOOM};
+use super::{CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, components::{MainCamera, WorldCamera, ZoomableCamera, MoveCamera}, resources::Zoom};
 
 #[autodefault]
 pub(super) fn setup_main_camera(
@@ -30,9 +30,6 @@ pub(super) fn setup_main_camera(
             MoveCamera,
             UiCameraConfig { show_ui: false },
             Camera2dBundle {
-                projection: OrthographicProjection { 
-                    scale: INITIAL_ZOOM
-                },
                 transform: Transform::from_xyz(player_spawn_point.x, player_spawn_point.y, 500.),
                 camera_2d: Camera2d {
                     clear_color: ClearColorConfig::Custom(Color::NONE)
@@ -55,10 +52,6 @@ pub(super) fn setup_world_camera(
         MoveCamera,
         UiCameraConfig { show_ui: false },
         Camera2dBundle {
-            projection: OrthographicProjection {
-                scale: INITIAL_ZOOM,
-                ..default()
-            },
             transform: Transform::from_xyz(player_spawn_point.x, player_spawn_point.y, 500.),
             camera_2d: Camera2d {
                 clear_color: ClearColorConfig::Custom(Color::NONE)
@@ -72,22 +65,18 @@ pub(super) fn setup_world_camera(
 pub(super) fn zoom(
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
-    mut query_camera: Query<&mut OrthographicProjection, With<ZoomableCamera>>,
+    mut zoom: ResMut<Zoom>,
 ) {
-    for mut projection in &mut query_camera {
-        let new_scale = map_range_f32(MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, 0.25, 1.5, projection.scale) * CAMERA_ZOOM_STEP * time.delta_seconds();
+    let scale = zoom.get();
 
-        if input.pressed(KeyCode::Equals) {
-            let scale = projection.scale - new_scale;
+    let new_scale = map_range_f32(0., 1., 1.5, 0.25, scale) * CAMERA_ZOOM_STEP * time.delta_seconds();
 
-            projection.scale = scale.max(MIN_CAMERA_ZOOM);
-        }
+    if input.pressed(KeyCode::Equals) {
+        zoom.set((scale - new_scale).max(0.));
+    }
 
-        if input.pressed(KeyCode::Minus) {
-            let scale = projection.scale + new_scale;
-
-            projection.scale = scale.min(MAX_CAMERA_ZOOM);
-        }
+    if input.pressed(KeyCode::Minus) {
+        zoom.set((scale + new_scale).min(1.));
     }
 }
 
@@ -185,5 +174,14 @@ pub(super) fn keep_camera_inside_world_bounds(
 
         camera_transform.translation.x = camera_transform.translation.x.clamp(x_min, x_max);
         camera_transform.translation.y = camera_transform.translation.y.clamp(y_min, y_max);
+    }
+}
+
+pub(super) fn update_camera_scale(
+    zoom: Res<Zoom>,
+    mut query_camera: Query<&mut OrthographicProjection, With<ZoomableCamera>>
+) {
+    for mut projection in &mut query_camera {
+        projection.scale = map_range_f32(0., 1., MAX_CAMERA_ZOOM, MIN_CAMERA_ZOOM, zoom.get());
     }
 }

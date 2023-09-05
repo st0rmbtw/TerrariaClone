@@ -21,7 +21,7 @@ pub(super) fn update_music_volume(
     mut update_music_volume: EventWriter<UpdateMusicVolume>
 ) {
     if let Ok(slider) = query_slider.get_single() {
-        update_music_volume.send(UpdateMusicVolume(slider.value() / 100.));
+        update_music_volume.send(UpdateMusicVolume(slider.value()));
     }
 }
 
@@ -30,7 +30,7 @@ pub(super) fn update_sound_volume(
     mut update_sound_volume: EventWriter<UpdateSoundVolume>
 ) {
     if let Ok(slider) = query_slider.get_single() {
-        update_sound_volume.send(UpdateSoundVolume(slider.value() / 100.));
+        update_sound_volume.send(UpdateSoundVolume(slider.value()));
     }
 }
 
@@ -41,7 +41,7 @@ pub(super) fn bind_slider_to_output<S: Component, O: Component>(
     let Ok(slider) = query_slider.get_single() else { return; };
     let Ok(mut text) = query_output.get_single_mut() else { return; };
 
-    text.sections[0].value = format!("{:.0}", slider.value());
+    text.sections[0].value = format!("{:.0}", slider.value() * 100.);
 }
 
 pub(super) fn animate_slider_border_color(
@@ -50,10 +50,10 @@ pub(super) fn animate_slider_border_color(
     for (interaction, mut background_color) in query.iter_mut() {
         match interaction {
             Interaction::Hovered => {
-                *background_color = Color::YELLOW.into();
+                background_color.0 = Color::YELLOW;
             }
             Interaction::None => {
-                *background_color = Color::WHITE.into();
+                background_color.0 = Color::WHITE;
             },
             _ => {}
         }

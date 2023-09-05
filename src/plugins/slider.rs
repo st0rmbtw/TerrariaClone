@@ -240,9 +240,9 @@ pub fn update_slider_handle(
             {
                 let slider_width = slider_node.size().x - slider_handle_node.size().x;
 
-                slider_handle_style.left = Val::Px(
-                    (slider.value() - slider.min()) * slider_width / (slider.max() - slider.min()),
-                );
+                let px = (slider.value() - slider.min()) * slider_width / (slider.max() - slider.min());
+
+                slider_handle_style.left = Val::Px(px.round());
             }
         }
     }

@@ -66,8 +66,8 @@ impl Plugin for ConfigPlugin {
         app.insert_resource(FullScreen(config.full_screen));
         app.insert_resource(ShowTileGrid(config.show_tile_grid));
         app.insert_resource(VSync(config.vsync));
-        app.insert_resource(MusicVolume::from_slider_value(config.music_volume));
-        app.insert_resource(SoundVolume::from_slider_value(config.sound_volume));
+        app.insert_resource(MusicVolume::new(config.music_volume));
+        app.insert_resource(SoundVolume::new(config.sound_volume));
         app.insert_resource(config.cursor_color);
         app.insert_resource(config.resolution);
 
@@ -96,8 +96,8 @@ fn on_exit(
         vsync: vsync.0,
         resolution: *resolution,
         cursor_color: *cursor_color,
-        sound_volume: sound_volume.slider_value(),
-        music_volume: music_volume.slider_value()
+        sound_volume: sound_volume.get(),
+        music_volume: music_volume.get()
     });
 }
 

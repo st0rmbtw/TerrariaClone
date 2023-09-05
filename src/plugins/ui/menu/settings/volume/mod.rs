@@ -1,4 +1,4 @@
-use bevy::{prelude::{Plugin, App, Commands, OnEnter, Query, Entity, With, Res, Color, OnExit, NodeBundle, BuildChildren, Component, Bundle}, text::TextStyle, utils::default, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems}};
+use bevy::{prelude::{Plugin, App, Commands, OnEnter, Query, Entity, With, Res, Color, OnExit, NodeBundle, BuildChildren, Component}, text::TextStyle, utils::default, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems}};
 
 use crate::{
     common::{state::{MenuState, SettingsMenuState}, systems::despawn_with},
@@ -74,7 +74,7 @@ fn setup_volume_menu(
                     },
                     ..default()
                 }).with_children(|b| {
-                    menu_slider(b, &ui_assets, music_volume.slider_value(), Color::WHITE, 1., Val::Auto, MusicVolumeSlider);
+                    menu_slider(b, &ui_assets, music_volume.get(), Color::WHITE, 1., Val::Auto, MusicVolumeSlider);
                     slider_name_text(b, slider_text_style.clone(), language_content.ui.music.clone());
                 });
                 
@@ -88,13 +88,13 @@ fn setup_volume_menu(
                     },
                     ..default()
                 }).with_children(|b| {
-                    menu_slider(b, &ui_assets, sound_volume.slider_value(), Color::WHITE, 1., Val::Auto, SoundVolumeSlider);
+                    menu_slider(b, &ui_assets, sound_volume.get(), Color::WHITE, 1., Val::Auto, SoundVolumeSlider);
                     slider_name_text(b, slider_text_style.clone(), language_content.ui.sound.clone());
                 });
             }, 
             |output_builder| {
-                slider_value_text(output_builder, slider_text_style.clone(), music_volume.slider_value(), 100., MusicVolumeSliderOutput);
-                slider_value_text(output_builder, slider_text_style.clone(), sound_volume.slider_value(), 100., SoundVolumeSliderOutput);
+                slider_value_text(output_builder, slider_text_style.clone(), music_volume.get(), 100., MusicVolumeSliderOutput);
+                slider_value_text(output_builder, slider_text_style.clone(), sound_volume.get(), 100., SoundVolumeSliderOutput);
             }
         );
 

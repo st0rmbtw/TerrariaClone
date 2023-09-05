@@ -15,12 +15,7 @@ impl Plugin for LightingPlugin {
             Material2dPlugin::<PostProcessingMaterial>::default(),
         ));
 
-        app.add_systems(
-            Update,
-            (
-                compositing::update_image_to_window_size,
-            )
-        );
+        app.add_systems(Update, compositing::update_image_to_window_size);
 
         app.add_systems(OnEnter(GameState::InGame), compositing::setup_post_processing_camera);
 

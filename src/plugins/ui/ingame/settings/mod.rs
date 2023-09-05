@@ -4,9 +4,9 @@ mod menus;
 
 use bevy::{prelude::{Plugin, App, Update, IntoSystemConfigs, OnEnter, KeyCode, Condition, Commands, OnExit, resource_exists_and_equals, not, Component, Resource}, input::common_conditions::input_just_pressed};
 
-use crate::{common::{systems::{set_visibility, toggle_resource, set_state, set_display, despawn_with, set_resource}, state::GameState, conditions::on_click}, plugins::{InGameSystemSet, ui::{InventoryUiVisibility, SettingsMenuVisibility, systems::play_sound_on_toggle}}};
+use crate::{common::{systems::{set_visibility, toggle_resource, set_state, set_display, despawn_with, set_resource, play_sound_on_hover}, state::GameState, conditions::on_click}, plugins::{InGameSystemSet, ui::{InventoryUiVisibility, SettingsMenuVisibility, systems::play_sound_on_toggle}}};
 
-use self::{components::{SettingsButton, buttons::SaveAndExitButton, buttons::{CloseMenuButton, GeneralButton}, TabMenu}, systems::{spawn_general_menu, update_tab_buttons}};
+use self::{components::{SettingsButton, buttons::SaveAndExitButton, buttons::{CloseMenuButton, GeneralButton}, TabMenu, TabButton}, systems::{spawn_general_menu, update_tab_buttons, bind_zoom_slider_to_output, update_zoom}};
 
 #[derive(Component, Resource, Clone, Copy, Default, PartialEq)]
 enum SelectedTab {
@@ -31,20 +31,25 @@ impl Plugin for InGameSettingsUiPlugin {
                 systems::animate_button_scale,
                 set_visibility::<components::SettingsButtonContainer, InventoryUiVisibility>,
                 set_display::<components::MenuContainer, SettingsMenuVisibility>,
+
                 (
+                    spawn_general_menu,
                     toggle_resource::<SettingsMenuVisibility>,
-                    spawn_general_menu
-                ).run_if(on_click::<SettingsButton>),
+                )
+                .chain()
+                .run_if(on_click::<SettingsButton>),
 
                 (
                     (
                         toggle_resource::<SettingsMenuVisibility>,
                         play_sound_on_toggle::<SettingsMenuVisibility>
                     )
-                    .chain()
                     .run_if(input_just_pressed(KeyCode::Escape)),
 
-                    update_tab_buttons
+                    update_tab_buttons,
+                    play_sound_on_hover::<TabButton>,
+                    bind_zoom_slider_to_output,
+                    update_zoom
                 )
                 .run_if(resource_exists_and_equals(SettingsMenuVisibility(true)))
             )

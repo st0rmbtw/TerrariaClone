@@ -64,7 +64,12 @@ pub(super) fn handle_update_music_volume_event(
     if let Some(event) = event_reader.iter().last() {
         *music_volume = MusicVolume::new(event.0);
         if let Ok(sink) = query_music.get_single() {
-            sink.set_volume(event.0);
+            if event.0 > 0. {
+                sink.play();
+                sink.set_volume(event.0);
+            } else {
+                sink.pause();
+            }
         }
     }
 }

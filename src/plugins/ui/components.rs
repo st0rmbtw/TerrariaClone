@@ -10,7 +10,13 @@ pub(super) struct MusicVolumeSlider;
 pub(super) struct SoundVolumeSlider;
 
 #[derive(Component)]
+pub(super) struct ZoomSlider;
+
+#[derive(Component)]
 pub(super) struct MusicVolumeSliderOutput;
 
 #[derive(Component)]
 pub(super) struct SoundVolumeSliderOutput;
+
+#[derive(Component)]
+pub(super) struct ZoomSliderOutput;

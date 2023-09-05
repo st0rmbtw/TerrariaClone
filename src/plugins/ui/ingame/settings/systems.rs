@@ -1,10 +1,10 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Entity, NodeBundle, Visibility, default, TextBundle, Color, Name, Button, BuildChildren, Res, Query, With, Changed}, ui::{Style, JustifyContent, AlignItems, AlignSelf, UiRect, Val, Interaction, PositionType, FlexDirection, Display, BackgroundColor}, text::{Text, TextAlignment, TextStyle}};
+use bevy::{prelude::{Commands, Entity, NodeBundle, Visibility, default, TextBundle, Color, Name, Button, BuildChildren, Res, Query, With, Changed, ResMut}, ui::{Style, JustifyContent, AlignItems, AlignSelf, UiRect, Val, Interaction, PositionType, FlexDirection, Display, BackgroundColor}, text::{Text, TextAlignment, TextStyle}};
 use interpolation::EaseFunction;
 
-use crate::{language::LanguageContent, plugins::{assets::{FontAssets, UiAssets}, DespawnOnGameExit, config::{MusicVolume, SoundVolume}, ui::menu::MENU_BUTTON_COLOR}, animation::{Tween, RepeatStrategy, Animator, Tweenable, TweeningDirection}, common::lens::TextFontSizeLens};
+use crate::{language::LanguageContent, plugins::{assets::{FontAssets, UiAssets}, DespawnOnGameExit, config::{MusicVolume, SoundVolume}, ui::{menu::MENU_BUTTON_COLOR, components::{ZoomSlider, ZoomSliderOutput}}, slider::Slider, camera::resources::Zoom}, animation::{Tween, RepeatStrategy, Animator, Tweenable, TweeningDirection}, common::lens::TextFontSizeLens};
 
 use super::{components::{MenuContainer, SettingsButton, SettingsButtonContainer, TabMenuContainer, TabButton, TabMenu}, menus::{tabs_menu, general_menu}, SelectedTab, TAB_BUTTON_TEXT_SIZE};
 
@@ -147,13 +147,14 @@ pub(super) fn spawn_general_menu(
     language_content: Res<LanguageContent>,
     music_volume: Res<MusicVolume>,
     sound_volume: Res<SoundVolume>,
+    zoom: Res<Zoom>,
     query_tab_menu: Query<(), With<TabMenu>>,
     query_container: Query<Entity, With<TabMenuContainer>>
 ) {
     if !query_tab_menu.is_empty() { return; };
 
     let Ok(container) = query_container.get_single() else { return; };
-    general_menu(&mut commands, container, &font_assets, &ui_assets, &language_content, &music_volume, &sound_volume)
+    general_menu(&mut commands, container, &font_assets, &ui_assets, &language_content, &music_volume, &sound_volume, &zoom);
 }
 
 pub(super) fn update_tab_buttons(
@@ -208,5 +209,24 @@ pub(super) fn animate_button_scale(
                 }
             }
         }
+    }
+}
+
+pub(super) fn bind_zoom_slider_to_output(
+    query_slider: Query<&Slider, With<ZoomSlider>>,
+    mut query_output: Query<&mut Text, With<ZoomSliderOutput>>
+) {
+    let Ok(slider) = query_slider.get_single() else { return; };
+    let Ok(mut text) = query_output.get_single_mut() else { return; };
+
+    text.sections[0].value = format!("{:.0}", (slider.value() + 1.) * 100.);
+}
+
+pub(super) fn update_zoom(
+    mut zoom: ResMut<Zoom>,
+    query_slider: Query<&Slider, (With<ZoomSlider>, Changed<Slider>)>,
+) {
+    if let Ok(slider) = query_slider.get_single() {
+        zoom.set(slider.value());
     }
 }
