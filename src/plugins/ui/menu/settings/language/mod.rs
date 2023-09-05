@@ -3,7 +3,7 @@ use bevy::{prelude::{Plugin, App, Commands, OnEnter, OnExit, Component, Res, Ent
 use crate::{
     common::{state::{MenuState, SettingsMenuState}, systems::despawn_with},
     plugins::{
-        ui::menu::{builders::{menu, menu_text, control_buttons_layout, control_button}, components::MenuContainer, MENU_BUTTON_FONT_SIZE, TEXT_COLOR, BackButton},
+        ui::menu::{builders::{menu, menu_text, control_buttons_layout, control_button}, components::{MenuContainer, MenuButton}, MENU_BUTTON_FONT_SIZE, MENU_BUTTON_COLOR, BackButton},
         assets::FontAssets
     },
     language::LanguageContent
@@ -44,7 +44,7 @@ fn setup_language_menu(
     let button_text_style = TextStyle {
         font: fonts.andy_bold.clone_weak(),
         font_size: MENU_BUTTON_FONT_SIZE,
-        color: TEXT_COLOR,
+        color: MENU_BUTTON_COLOR,
     };
 
     menu(LanguageMenu, &mut commands, container, 5., |builder| {
@@ -53,7 +53,7 @@ fn setup_language_menu(
         menu_text(builder, title_text_style, "To do...");
 
         control_buttons_layout(builder, |control_button_builder| {
-            control_button(control_button_builder, button_text_style, language_content.ui.back.clone(), BackButton);
+            control_button(control_button_builder, button_text_style, language_content.ui.back.clone(), (MenuButton, BackButton));
         });
     });
 }

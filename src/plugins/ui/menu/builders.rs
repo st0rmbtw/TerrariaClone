@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Name, NodeBundle, TextBundle, ChildBuilder, Button, Component, default, Color, ImageBundle, BuildChildren, Commands, Entity}, ui::{Style, JustifyContent, AlignItems, FocusPolicy, PositionType, Interaction, Val, FlexDirection, UiRect}, text::{Text, TextStyle, TextSection, TextAlignment}};
+use bevy::{prelude::{Name, NodeBundle, TextBundle, ChildBuilder, Component, default, Color, ImageBundle, BuildChildren, Commands, Entity, Bundle}, ui::{Style, JustifyContent, AlignItems, FocusPolicy, PositionType, Interaction, Val, FlexDirection, UiRect}, text::{Text, TextStyle, TextSection, TextAlignment}};
 
 use crate::{animation::{AnimatorState, Animator, Tween, EaseMethod, RepeatStrategy}, plugins::{slider::{SliderHandleBundle, SliderBundle, Slider}, assets::UiAssets}, common::lens::TextFontSizeLens};
 
@@ -36,7 +36,7 @@ pub(crate) fn menu_button(
     builder: &mut ChildBuilder,
     text_style: TextStyle,
     button_name: impl Into<String>,
-    marker: impl Component,
+    bundle: impl Bundle,
 ) {
     builder
         .spawn(NodeBundle {
@@ -49,10 +49,9 @@ pub(crate) fn menu_button(
         })
         .with_children(|b| {
             b.spawn((
-                Button,
                 Interaction::default(),
                 Animator::new(text_tween(text_style.font_size)).with_state(AnimatorState::Paused),
-                marker,
+                bundle,
                 TextBundle {
                     style: Style {
                         position_type: PositionType::Absolute,
@@ -95,7 +94,7 @@ pub(crate) fn control_button(
     builder: &mut ChildBuilder,
     text_style: TextStyle,
     name: String,
-    marker: impl Component
+    bundle: impl Bundle
 ) {
     builder.spawn(NodeBundle {
         style: Style {
@@ -106,10 +105,9 @@ pub(crate) fn control_button(
     })
     .with_children(|b| {
         b.spawn((
-            Button,
             Interaction::default(),
             Animator::new(text_tween(MENU_BUTTON_FONT_SIZE)).with_state(AnimatorState::Paused),
-            marker,
+            bundle,
             TextBundle {
                 style: Style {
                     position_type: PositionType::Absolute,
@@ -122,8 +120,9 @@ pub(crate) fn control_button(
 
 pub(crate) fn slider_layout(
     builder: &mut ChildBuilder,
-    slider_builder: impl FnOnce(&mut ChildBuilder),
-    output_builder: impl FnOnce(&mut ChildBuilder)
+    gap: f32,
+    first_column_builder: impl FnOnce(&mut ChildBuilder),
+    second_column_builder: impl FnOnce(&mut ChildBuilder)
 ) {
     builder.spawn((
         Name::new("SliderLayout"),
@@ -132,7 +131,7 @@ pub(crate) fn slider_layout(
                 flex_direction: FlexDirection::Row,
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
-                column_gap: Val::Px(5.),
+                column_gap: Val::Px(gap),
                 width: Val::Percent(100.),
                 ..default()
             },
@@ -140,32 +139,31 @@ pub(crate) fn slider_layout(
         }
     )).with_children(|b| {
         b.spawn((
-            Name::new("SliderColumn"),
+            Name::new("FirstColumn"),
             NodeBundle {
                 style: Style {
                     flex_direction: FlexDirection::Column,
-                    align_items: AlignItems::Start,
+                    align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
-                    flex_shrink: 0.,
+                    height: Val::Percent(100.),
                     ..default()
                 },
                 ..default()
             }
-        )).with_children(slider_builder);
+        )).with_children(first_column_builder);
 
         b.spawn((
-            Name::new("SliderOutputColumn"),
+            Name::new("SecondColumn"),
             NodeBundle {
                 style: Style {
                     flex_direction: FlexDirection::Column,
-                    align_items: AlignItems::Start,
+                    align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
-                    width: Val::Px(100.),
                     ..default()
                 },
                 ..default()
             }
-        )).with_children(output_builder);
+        )).with_children(second_column_builder);
     });
 }
 
@@ -173,11 +171,11 @@ pub(crate) fn slider_layout(
 pub(crate) fn menu_slider(
     builder: &mut ChildBuilder,
     ui_assets: &UiAssets,
-    text_style: TextStyle,
-    name: impl Into<String>,
     value: f32,
     background_color: Color,
-    slider_marker: impl Component
+    scale: f32,
+    height: Val,
+    slider_marker: impl Component,
 ) {
     builder.spawn((
         Name::new("SliderContainer"),
@@ -187,6 +185,7 @@ pub(crate) fn menu_slider(
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
                 column_gap: Val::Px(10.),
+                height,
             }
         }
     )).with_children(|b| {
@@ -194,8 +193,8 @@ pub(crate) fn menu_slider(
             Name::new("SliderBackground"),
             ImageBundle {
                 style: Style {
-                    width: Val::Px(180.),
-                    height: Val::Px(16.),
+                    width: Val::Px(180. * scale),
+                    height: Val::Px(16. * scale),
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
                 },
@@ -207,8 +206,8 @@ pub(crate) fn menu_slider(
                 Name::new("SliderBorder"),
                 SliderBundle {
                     style: Style {
-                        width: Val::Px(180.),
-                        height: Val::Px(16.),
+                        width: Val::Px(180. * scale),
+                        height: Val::Px(16. * scale),
                         justify_content: JustifyContent::Center,
                         align_items: AlignItems::Center,
                     },
@@ -225,31 +224,40 @@ pub(crate) fn menu_slider(
                     SliderHandleBundle {
                         style: Style {
                             position_type: PositionType::Absolute,
-                            width: Val::Px(12.),
-                            height: Val::Px(25.),
+                            width: Val::Px(12. * scale),
+                            height: Val::Px(25. * scale),
                         },
                         image: ui_assets.slider_handle.clone_weak().into(),
                     }
                 ));
             });
         });
-
-        b.spawn((
-            Name::new("SliderNameText"),
-            TextBundle {
-                text: Text::from_sections([
-                    TextSection::new(name, text_style.clone()),
-                    TextSection::new(":", text_style)
-                ]).with_no_wrap(),
-            }
-        ));
     });
 }
 
-pub(crate) fn slider_value_text(builder: &mut ChildBuilder, text_style: TextStyle, value: f32, output_marker: impl Component) {
+#[inline(always)]
+pub(crate) fn slider_name_text(builder: &mut ChildBuilder, text_style: TextStyle, name: impl Into<String>) {
+    builder.spawn((
+        Name::new("SliderNameText"),
+        TextBundle {
+            text: Text::from_sections([
+                TextSection::new(name, text_style.clone()),
+                TextSection::new(":", text_style)
+            ]).with_no_wrap(),
+            ..default()
+        }
+    ));
+}
+
+#[inline(always)]
+pub(crate) fn slider_value_text(builder: &mut ChildBuilder, text_style: TextStyle, value: f32, min_width: f32, output_marker: impl Component) {
     builder.spawn((
         Name::new("SliderValueText"),
         TextBundle {
+            style: Style {
+                min_width: Val::Px(min_width),
+                ..default()
+            },
             text: Text::from_sections([
                 TextSection::new(value.to_string(), text_style.clone()),
                 TextSection::new("%", text_style)
@@ -265,7 +273,7 @@ fn text_tween(initial_font_size: f32) -> Tween<Text> {
     Tween::new(
         EaseMethod::Linear,
         RepeatStrategy::MirroredRepeat,
-        Duration::from_millis(200),
+        Duration::from_millis(150),
         TextFontSizeLens {
             start: initial_font_size,
             end: initial_font_size * 1.2,

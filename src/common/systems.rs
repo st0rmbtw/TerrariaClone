@@ -1,33 +1,8 @@
-use bevy::{ui::{Interaction, Style, Display}, prelude::{Changed, Component, Query, With, EventWriter, Visibility, Resource, Res, DetectChanges, Event, Entity, Commands, DespawnRecursiveExt, States, ResMut, NextState}, text::Text};
+use bevy::{ui::{Interaction, Style, Display}, prelude::{Changed, Component, Query, With, EventWriter, Visibility, Resource, Res, DetectChanges, Event, Entity, Commands, DespawnRecursiveExt, States, ResMut, NextState, Color}, text::Text};
 
-use crate::{animation::{Animator, TweeningDirection, Tween, Tweenable}, plugins::audio::{PlaySoundEvent, SoundType}};
+use crate::{plugins::audio::{PlaySoundEvent, SoundType}, animation::{Animator, TweeningDirection, Tween, Tweenable}};
 
 use super::{helpers, BoolValue, Toggle};
-
-pub(crate) fn animate_button_scale<B: Component>(
-    mut query: Query<
-        (&Interaction, &mut Animator<Text>),
-        (With<B>, Changed<Interaction>),
-    >,
-) {
-    for (interaction, mut animator) in query.iter_mut() {
-        match interaction {
-            Interaction::Hovered => {
-                animator.start();
-
-                let tweenable = animator.tweenable_mut().as_any_mut().downcast_mut::<Tween<Text>>().unwrap();
-                tweenable.set_progress(1. - tweenable.progress());
-                tweenable.set_direction(TweeningDirection::Forward);
-            }
-            Interaction::None => {
-                let tweenable = animator.tweenable_mut().as_any_mut().downcast_mut::<Tween<Text>>().unwrap();
-                tweenable.set_progress(1. - tweenable.progress());
-                tweenable.set_direction(TweeningDirection::Backward);
-            },
-            _ => {}
-        }
-    }
-}
 
 pub(crate) fn play_sound_on_hover<B: Component>(
     mut query: Query<&Interaction, (With<B>, Changed<Interaction>)>,
@@ -110,4 +85,56 @@ pub(crate) fn set_state<S: States + Clone>(state: S) -> impl FnMut(ResMut<NextSt
 
 pub(crate) fn toggle_resource<T: Toggle + Resource>(mut ui_visibility: ResMut<T>) {
     ui_visibility.toggle()
+}
+
+pub(crate) fn set_resource<R: Resource + Copy>(res: R) -> impl FnMut(Commands) {
+    move |mut commands: Commands| {
+        commands.insert_resource(res);
+    }
+}
+
+pub(crate) fn animate_button_scale<B: Component>(
+    mut query: Query<
+        (&Interaction, &mut Animator<Text>),
+        (With<B>, Changed<Interaction>),
+    >,
+) {
+    for (interaction, mut animator) in query.iter_mut() {
+        match interaction {
+            Interaction::Hovered | Interaction::Pressed => {
+                animator.start();
+
+                let tweenable = animator.tweenable_mut().as_any_mut().downcast_mut::<Tween<Text>>().unwrap();
+                if tweenable.direction() != TweeningDirection::Forward {
+                    tweenable.set_progress(0.);
+                    tweenable.set_direction(TweeningDirection::Forward);
+                }    
+            }
+            Interaction::None => {
+                let tweenable = animator.tweenable_mut().as_any_mut().downcast_mut::<Tween<Text>>().unwrap();
+                if tweenable.direction() != TweeningDirection::Backward {
+                    tweenable.set_progress(0.);
+                    tweenable.set_direction(TweeningDirection::Backward);
+                }
+            }
+        }
+    }
+}
+
+pub(crate) fn animate_button_color<B: Component>(
+    from: Color, to: Color
+) -> impl FnMut(Query<(&Interaction, &mut Text), (With<B>, Changed<Interaction>)>) {
+    move |mut query: Query<(&Interaction, &mut Text), (With<B>, Changed<Interaction>)>| {
+        for (interaction, mut text) in query.iter_mut() {
+            match interaction {
+                Interaction::Hovered => {
+                    text.sections[0].style.color = to;
+                }
+                Interaction::None => {
+                    text.sections[0].style.color = from;
+                },
+                _ => {}
+            }
+        }
+    }
 }

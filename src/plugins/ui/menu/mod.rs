@@ -1,7 +1,6 @@
 mod settings;
 mod celestial_body;
 mod components;
-mod systems;
 pub(super) mod builders;
 mod events;
 
@@ -9,11 +8,10 @@ use std::time::Duration;
 
 use components::*;
 use interpolation::EaseFunction;
-use systems::*;
 
 use bevy::{prelude::{Plugin, App, IntoSystemConfigs, OnEnter, OnExit, Color, Update, KeyCode, PostUpdate, EventWriter, Res, Query, Entity, With, Commands, Name, NodeBundle, BuildChildren, ImageBundle, default, Visibility, TextBundle, Transform, Quat, Vec3, Camera2dBundle, Camera2d, State, ResMut, NextState, EventReader, Component}, input::common_conditions::input_just_pressed, app::AppExit, text::{TextStyle, Text, TextSection}, ui::{Style, PositionType, AlignSelf, Val, UiRect, FlexDirection, UiImage}, core_pipeline::clear_color::ClearColorConfig};
 use crate::{
-    common::{state::{GameState, MenuState, SettingsMenuState}, conditions::on_click, systems::{send_event, despawn_with, set_state}, lens::TransformLens},
+    common::{state::{GameState, MenuState, SettingsMenuState}, conditions::on_click, systems::{send_event, despawn_with, set_state, animate_button_scale, animate_button_color}, lens::TransformLens},
     parallax::{parallax_animation_system, ParallaxSet},
     language::LanguageContent,
     animation::{Animator, RepeatCount, Tween, RepeatStrategy}, 
@@ -23,7 +21,7 @@ use self::{settings::SettingsMenuPlugin, celestial_body::CelestialBodyPlugin, bu
 
 use super::FpsText;
 
-pub(crate) const TEXT_COLOR: Color = Color::rgb(0.58, 0.58, 0.58);
+pub(crate) const MENU_BUTTON_COLOR: Color = Color::rgb(0.58, 0.58, 0.58);
 pub(super) const MENU_BUTTON_FONT_SIZE: f32 = 42.;
 
 #[derive(Component)]
@@ -77,9 +75,9 @@ impl Plugin for MenuPlugin {
         app.add_systems(
             Update,
             (
+                animate_button_scale::<MenuButton>,
+                animate_button_color::<MenuButton>(MENU_BUTTON_COLOR, Color::YELLOW),
                 parallax_animation_system(150.).in_set(ParallaxSet::FollowCamera),
-                animate_button_color,
-                animate_slider_border_color,
             )
             .in_set(MenuSystemSet::Update)
         );
@@ -217,7 +215,7 @@ fn setup_main_menu(
     let text_style = TextStyle {
         font: fonts.andy_bold.clone_weak(),
         font_size: 60.,
-        color: TEXT_COLOR,
+        color: MENU_BUTTON_COLOR,
     };
 
     let container = query_container.single();
@@ -227,19 +225,19 @@ fn setup_main_menu(
             builder,
             text_style.clone(),
             language_content.ui.single_player.clone(),
-            SinglePlayerButton,
+            (MenuButton, SinglePlayerButton),
         );
         menu_button(
             builder, 
             text_style.clone(), 
             language_content.ui.settings.clone(), 
-            SettingsButton,
+            (MenuButton, SettingsButton),
         );
         menu_button(
             builder, 
             text_style, 
             language_content.ui.exit.clone(), 
-            ExitButton,
+            (MenuButton, ExitButton),
         );
     });
 }

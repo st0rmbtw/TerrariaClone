@@ -1,12 +1,12 @@
 use std::time::Duration;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Entity, NodeBundle, Visibility, default, TextBundle, Color, Name, Button, BuildChildren, Res}, ui::{Style, JustifyContent, AlignItems, AlignSelf, UiRect, Val, Interaction, PositionType, FlexDirection, Display}, text::{Text, TextAlignment, TextStyle}};
+use bevy::{prelude::{Commands, Entity, NodeBundle, Visibility, default, TextBundle, Color, Name, Button, BuildChildren, Res, Query, With, Changed}, ui::{Style, JustifyContent, AlignItems, AlignSelf, UiRect, Val, Interaction, PositionType, FlexDirection, Display, BackgroundColor}, text::{Text, TextAlignment, TextStyle}};
 use interpolation::EaseFunction;
 
-use crate::{language::LanguageContent, plugins::{assets::FontAssets, ui::menu::{builders::{menu, menu_button}, TEXT_COLOR}, DespawnOnGameExit}, animation::{Tween, RepeatStrategy, Animator}, common::lens::TextFontSizeLens};
+use crate::{language::LanguageContent, plugins::{assets::{FontAssets, UiAssets}, DespawnOnGameExit, config::{MusicVolume, SoundVolume}, ui::menu::MENU_BUTTON_COLOR}, animation::{Tween, RepeatStrategy, Animator, Tweenable, TweeningDirection}, common::lens::TextFontSizeLens};
 
-use super::components::{InGameSettingsMenuContainer, InGameSettingsButton, InGameSettingsButtonContainer, InGameSettingsMenuTabs, GeneralButton, InterfaceButton, VideoButton, CursorButton, CloseMenuButton, SaveAndExitButton};
+use super::{components::{MenuContainer, SettingsButton, SettingsButtonContainer, TabMenuContainer, TabButton, TabMenu}, menus::{tabs_menu, general_menu}, SelectedTab, TAB_BUTTON_TEXT_SIZE};
 
 pub(crate) fn spawn_ingame_settings_button(
     commands: &mut Commands,
@@ -37,7 +37,7 @@ pub(crate) fn spawn_ingame_settings_button(
             visibility: Visibility::Hidden,
             ..default()
         })
-        .insert(InGameSettingsButtonContainer)
+        .insert(SettingsButtonContainer)
         .with_children(|c| {
             c.spawn(TextBundle {
                 style: Style {
@@ -57,7 +57,7 @@ pub(crate) fn spawn_ingame_settings_button(
             })
             .insert(Name::new("SettingsButton"))
             .insert(Interaction::default())
-            .insert(InGameSettingsButton)
+            .insert(SettingsButton)
             .insert(Button)
             .insert(Animator::new(tween));
         })
@@ -76,32 +76,34 @@ pub(super) fn spawn_settings_menu(
         color: Color::WHITE
     };
 
+    let menu_container_color = BackgroundColor(Color::rgb_u8(54, 53, 131));
+
     let tabs_container = commands.spawn(NodeBundle {
         style: Style {
             width: Val::Percent(100.),
             height: Val::Percent(100.),
             padding: UiRect::vertical(Val::Px(10.))
         },
-        background_color: Color::rgb_u8(54, 53, 131).into()
+        background_color: menu_container_color
     }).id();
 
-    menu(InGameSettingsMenuTabs, &mut commands, tabs_container, 5., |builder| {
-        let text_style = TextStyle {
-            font: font_assets.andy_bold.clone_weak(),
-            font_size: 36.,
-            color: TEXT_COLOR
-        };
+    let tab_content_container = commands.spawn((
+        TabMenuContainer,
+        NodeBundle {
+            style: Style {
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
+                padding: UiRect::vertical(Val::Px(10.))
+            },
+            background_color: menu_container_color
+        }
+    ))
+    .id();
 
-        menu_button(builder, text_style.clone(), language_content.ui.general.clone(), GeneralButton);
-        menu_button(builder, text_style.clone(), language_content.ui.interface.clone(), InterfaceButton);
-        menu_button(builder, text_style.clone(), language_content.ui.video.clone(), VideoButton);
-        menu_button(builder, text_style.clone(), language_content.ui.cursor.clone(), CursorButton);
-        menu_button(builder, text_style.clone(), language_content.ui.close_menu.clone(), CloseMenuButton);
-        menu_button(builder, text_style, language_content.ui.save_and_exit.clone(), SaveAndExitButton);
-    });
+    tabs_menu(&mut commands, &font_assets, &language_content, tabs_container);
 
     commands.spawn((
-        InGameSettingsMenuContainer,
+        MenuContainer,
         DespawnOnGameExit,
         NodeBundle {
             style: Style {
@@ -134,14 +136,77 @@ pub(super) fn spawn_settings_menu(
             }
         })
         .add_child(tabs_container)
-        .with_children(|builder| {
-            builder.spawn(NodeBundle {
-                style: Style {
-                    width: Val::Percent(100.),
-                    height: Val::Percent(100.)
-                },
-                background_color: Color::rgb_u8(54, 53, 131).into()
-            });
-        });
+        .add_child(tab_content_container);
     });
+}
+
+pub(super) fn spawn_general_menu(
+    mut commands: Commands,
+    font_assets: Res<FontAssets>,
+    ui_assets: Res<UiAssets>,
+    language_content: Res<LanguageContent>,
+    music_volume: Res<MusicVolume>,
+    sound_volume: Res<SoundVolume>,
+    query_tab_menu: Query<(), With<TabMenu>>,
+    query_container: Query<Entity, With<TabMenuContainer>>
+) {
+    if !query_tab_menu.is_empty() { return; };
+
+    let Ok(container) = query_container.get_single() else { return; };
+    general_menu(&mut commands, container, &font_assets, &ui_assets, &language_content, &music_volume, &sound_volume)
+}
+
+pub(super) fn update_tab_buttons(
+    selected_tab: Res<SelectedTab>,
+    mut query_tab_buttons: Query<(&mut Text, &Interaction, &SelectedTab), With<TabButton>>
+) {
+    for (mut text, interaction, tab) in &mut query_tab_buttons {
+        let style = &mut text.sections[0].style;
+        if *selected_tab == *tab {
+            style.color = Color::YELLOW;
+            style.font_size = TAB_BUTTON_TEXT_SIZE * 1.2;
+        } else {
+            match interaction {
+                Interaction::Pressed | Interaction::Hovered => {
+                    style.color = Color::WHITE;
+                },
+                Interaction::None => {
+                    style.color = MENU_BUTTON_COLOR;
+                },
+            }
+        }
+    }
+}
+
+pub(super) fn animate_button_scale(
+    selected_tab: Res<SelectedTab>,
+    mut query: Query<
+        (&Interaction, &mut Animator<Text>, Option<&SelectedTab>),
+        (With<TabButton>, Changed<Interaction>),
+    >,
+) {
+    for (interaction, mut animator, opt_tab) in query.iter_mut() {
+        if let Some(tab) = opt_tab {
+            if *selected_tab == *tab { continue; }
+        }
+
+        match interaction {
+            Interaction::Hovered | Interaction::Pressed => {
+                animator.start();
+
+                let tweenable = animator.tweenable_mut().as_any_mut().downcast_mut::<Tween<Text>>().unwrap();
+                if tweenable.direction() != TweeningDirection::Forward {
+                    tweenable.set_progress(0.);
+                    tweenable.set_direction(TweeningDirection::Forward);
+                }    
+            }
+            Interaction::None => {
+                let tweenable = animator.tweenable_mut().as_any_mut().downcast_mut::<Tween<Text>>().unwrap();
+                if tweenable.direction() != TweeningDirection::Backward {
+                    tweenable.set_progress(0.);
+                    tweenable.set_direction(TweeningDirection::Backward);
+                }
+            }
+        }
+    }
 }

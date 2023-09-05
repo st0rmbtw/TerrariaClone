@@ -1,31 +1,44 @@
 use bevy::prelude::Component;
 
 #[derive(Component)]
-pub(super) struct InGameSettingsButtonContainer;
+pub(super) struct SettingsButtonContainer;
 
 #[derive(Component)]
-pub(super) struct InGameSettingsButton;
+pub(super) struct SettingsButton;
 
 #[derive(Component)]
-pub(super) struct InGameSettingsMenuContainer;
+pub(super) struct MenuContainer;
 
 #[derive(Component)]
-pub(super) struct InGameSettingsMenuTabs;
+pub(super) struct MenuTabs;
 
 #[derive(Component)]
-pub(super) struct GeneralButton;
+pub(super) struct TabMenu;
 
 #[derive(Component)]
-pub(super) struct InterfaceButton;
+pub(super) struct TabMenuContainer;
 
 #[derive(Component)]
-pub(super) struct VideoButton;
+pub(super) struct TabButton;
 
-#[derive(Component)]
-pub(super) struct CursorButton;
+pub(super) mod buttons {
+    use bevy::prelude::Component;
 
-#[derive(Component)]
-pub(super) struct CloseMenuButton;
+    #[derive(Component)]
+    pub struct GeneralButton;
 
-#[derive(Component)]
-pub(super) struct SaveAndExitButton;
+    #[derive(Component)]
+    pub struct InterfaceButton;
+
+    #[derive(Component)]
+    pub struct VideoButton;
+
+    #[derive(Component)]
+    pub struct CursorButton;
+
+    #[derive(Component)]
+    pub struct CloseMenuButton;
+
+    #[derive(Component)]
+    pub struct SaveAndExitButton;
+}

@@ -7,7 +7,7 @@ use crate::{
     plugins::{
         assets::FontAssets,
         config::VSync,
-        ui::menu::{MenuContainer, despawn_with, TEXT_COLOR, EnterMenu, builders::{menu, menu_button, control_buttons_layout, control_button}}
+        ui::menu::{MenuContainer, despawn_with, MENU_BUTTON_COLOR, EnterMenu, builders::{menu, menu_button, control_buttons_layout, control_button}, components::MenuButton}
     },
     language::LanguageContent,
     common::{state::{SettingsMenuState, MenuState}, conditions::on_click, systems::send_event},
@@ -62,17 +62,17 @@ fn setup_video_menu(
     let text_style = TextStyle {
         font: fonts.andy_bold.clone_weak(),
         font_size: MENU_BUTTON_FONT_SIZE,
-        color: TEXT_COLOR,
+        color: MENU_BUTTON_COLOR,
     };
 
     let container = query_container.single();
 
     menu(VideoMenu, &mut commands, container, 5., |builder| {
-        menu_button(builder, text_style.clone(), language_content.ui.resolution.clone(), ResolutionButton);
-        menu_button(builder, text_style.clone(), language_content.ui.vsync.clone(), VSyncButton);
+        menu_button(builder, text_style.clone(), language_content.ui.resolution.clone(), (MenuButton, ResolutionButton));
+        menu_button(builder, text_style.clone(), language_content.ui.vsync.clone(), (MenuButton, VSyncButton));
 
         control_buttons_layout(builder, |control_button_builder| {
-            control_button(control_button_builder, text_style, language_content.ui.back.clone(), BackButton);
+            control_button(control_button_builder, text_style, language_content.ui.back.clone(), (MenuButton, BackButton));
         });
     });
 }

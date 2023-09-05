@@ -9,7 +9,7 @@ use crate::{plugins::assets::FontAssets, language::LanguageContent, common::{con
 
 use self::{interface::InterfaceMenuPlugin, video::VideoMenuPlugin, volume::VolumeMenuPlugin, language::LanguageMenuPlugin};
 
-use super::{despawn_with, MenuContainer, TEXT_COLOR, BackButton, MENU_BUTTON_FONT_SIZE, builders::{menu, menu_button, control_buttons_layout, control_button}, events::EnterMenu};
+use super::{despawn_with, MenuContainer, MENU_BUTTON_COLOR, BackButton, MENU_BUTTON_FONT_SIZE, builders::{menu, menu_button, control_buttons_layout, control_button}, events::EnterMenu, components::MenuButton};
 
 pub(super) struct SettingsMenuPlugin;
 impl Plugin for SettingsMenuPlugin {
@@ -69,20 +69,20 @@ fn setup_settings_menu(
     let text_style = TextStyle {
         font: fonts.andy_bold.clone_weak(),
         font_size: MENU_BUTTON_FONT_SIZE,
-        color: TEXT_COLOR,
+        color: MENU_BUTTON_COLOR,
     };
 
     let container = query_container.single();
 
     menu(SettingsMenu, &mut commands, container, 5., |builder| {
-        menu_button(builder, text_style.clone(), language_content.ui.interface.clone(), InterfaceButton);
-        menu_button(builder, text_style.clone(), language_content.ui.video.clone(), VideoButton);
-        menu_button(builder, text_style.clone(), language_content.ui.volume.clone(), VolumeButton);
-        menu_button(builder, text_style.clone(), language_content.ui.cursor.clone(), CursorButton);
-        menu_button(builder, text_style.clone(), language_content.ui.language.clone(), LanguageButton);
+        menu_button(builder, text_style.clone(), language_content.ui.interface.clone(), (MenuButton, InterfaceButton));
+        menu_button(builder, text_style.clone(), language_content.ui.video.clone(), (MenuButton, VideoButton));
+        menu_button(builder, text_style.clone(), language_content.ui.volume.clone(), (MenuButton, VolumeButton));
+        menu_button(builder, text_style.clone(), language_content.ui.cursor.clone(), (MenuButton, CursorButton));
+        menu_button(builder, text_style.clone(), language_content.ui.language.clone(), (MenuButton, LanguageButton));
 
         control_buttons_layout(builder, |control_button_builder| {
-            control_button(control_button_builder, text_style.clone(), language_content.ui.back.clone(), BackButton);
+            control_button(control_button_builder, text_style.clone(), language_content.ui.back.clone(), (MenuButton, BackButton));
         });
     });
 }

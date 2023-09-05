@@ -1,13 +1,11 @@
-use bevy::{prelude::{Plugin, App, Commands, OnEnter, Query, Entity, With, Res, Color, OnExit, Update, IntoSystemConfigs, in_state, Component, Changed, EventWriter}, text::TextStyle};
+use bevy::{prelude::{Plugin, App, Commands, OnEnter, Query, Entity, With, Res, Color, OnExit, NodeBundle, BuildChildren, Component, Bundle}, text::TextStyle, utils::default, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems}};
 
 use crate::{
     common::{state::{MenuState, SettingsMenuState}, systems::despawn_with},
     plugins::{
-        ui::menu::{systems::bind_slider_to_output, components::MenuContainer, MENU_BUTTON_FONT_SIZE, BackButton, TEXT_COLOR, builders::{menu, menu_text, slider_layout, menu_slider, slider_value_text, control_buttons_layout, control_button}},
+        ui::{menu::{components::{MenuContainer, MenuButton}, MENU_BUTTON_FONT_SIZE, BackButton, MENU_BUTTON_COLOR, builders::{menu, menu_text, slider_layout, menu_slider, slider_value_text, control_buttons_layout, control_button, slider_name_text}}, components::{MusicVolumeSliderOutput, SoundVolumeSliderOutput, SoundVolumeSlider, MusicVolumeSlider}},
         assets::{FontAssets, UiAssets},
         config::{MusicVolume, SoundVolume},
-        slider::Slider,
-        audio::{UpdateMusicVolume, UpdateSoundVolume}
     },
     language::LanguageContent
 };
@@ -19,20 +17,10 @@ impl Plugin for VolumeMenuPlugin {
             OnEnter(MenuState::Settings(SettingsMenuState::Volume)),
             setup_volume_menu
         );
+
         app.add_systems(
             OnExit(MenuState::Settings(SettingsMenuState::Volume)),
             despawn_with::<VolumeMenu>
-        );
-
-        app.add_systems(
-            Update,
-            (
-                bind_slider_to_output::<MusicVolumeSlider, MusicVolumeSliderOutput>,
-                bind_slider_to_output::<SoundVolumeSlider, SoundVolumeSliderOutput>,
-                update_music_volume,
-                update_sound_volume,
-            )
-            .run_if(in_state(MenuState::Settings(SettingsMenuState::Volume)))
         );
     }
 }
@@ -40,26 +28,14 @@ impl Plugin for VolumeMenuPlugin {
 #[derive(Component)]
 struct VolumeMenu;
 
-#[derive(Component)]
-struct MusicVolumeSlider;
-
-#[derive(Component)]
-struct SoundVolumeSlider;
-
-#[derive(Component)]
-struct MusicVolumeSliderOutput;
-
-#[derive(Component)]
-struct SoundVolumeSliderOutput;
-
 fn setup_volume_menu(
     mut commands: Commands,
     fonts: Res<FontAssets>,
     ui_assets: Res<UiAssets>,
     language_content: Res<LanguageContent>,
-    query_container: Query<Entity, With<MenuContainer>>,
     music_volume: Res<MusicVolume>,
     sound_volume: Res<SoundVolume>,
+    query_container: Query<Entity, With<MenuContainer>>,
 ) {
     let title_text_style = TextStyle {
         font: fonts.andy_bold.clone_weak(),
@@ -70,7 +46,7 @@ fn setup_volume_menu(
     let button_text_style = TextStyle {
         font: fonts.andy_bold.clone_weak(),
         font_size: MENU_BUTTON_FONT_SIZE,
-        color: TEXT_COLOR,
+        color: MENU_BUTTON_COLOR,
     };
 
     let slider_text_style = TextStyle {
@@ -85,37 +61,46 @@ fn setup_volume_menu(
         menu_text(builder, title_text_style, language_content.ui.volume.clone());
 
         slider_layout(
-            builder, 
+            builder,
+            5.,
             |slider_builder| {
-                menu_slider(slider_builder, &ui_assets, slider_text_style.clone(), language_content.ui.music.clone(), music_volume.slider_value(), Color::WHITE, MusicVolumeSlider);
-                menu_slider(slider_builder, &ui_assets, slider_text_style.clone(), language_content.ui.sound.clone(), sound_volume.slider_value(), Color::WHITE, SoundVolumeSlider);
+                slider_builder.spawn(NodeBundle {
+                    style: Style {
+                        flex_direction: FlexDirection::Row,
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
+                        column_gap: Val::Px(10.),
+                        ..default()
+                    },
+                    ..default()
+                }).with_children(|b| {
+                    menu_slider(b, &ui_assets, music_volume.slider_value(), Color::WHITE, 1., Val::Auto, MusicVolumeSlider);
+                    slider_name_text(b, slider_text_style.clone(), language_content.ui.music.clone());
+                });
+                
+                slider_builder.spawn(NodeBundle {
+                    style: Style {
+                        flex_direction: FlexDirection::Row,
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
+                        column_gap: Val::Px(10.),
+                        ..default()
+                    },
+                    ..default()
+                }).with_children(|b| {
+                    menu_slider(b, &ui_assets, sound_volume.slider_value(), Color::WHITE, 1., Val::Auto, SoundVolumeSlider);
+                    slider_name_text(b, slider_text_style.clone(), language_content.ui.sound.clone());
+                });
             }, 
             |output_builder| {
-                slider_value_text(output_builder, slider_text_style.clone(), music_volume.slider_value(), MusicVolumeSliderOutput);
-                slider_value_text(output_builder, slider_text_style.clone(), sound_volume.slider_value(), SoundVolumeSliderOutput);
+                slider_value_text(output_builder, slider_text_style.clone(), music_volume.slider_value(), 100., MusicVolumeSliderOutput);
+                slider_value_text(output_builder, slider_text_style.clone(), sound_volume.slider_value(), 100., SoundVolumeSliderOutput);
             }
         );
 
         control_buttons_layout(builder, |control_button_builder| {
-            control_button(control_button_builder, button_text_style, language_content.ui.back.clone(), BackButton);
+            control_button(control_button_builder, button_text_style, language_content.ui.back.clone(), (MenuButton, BackButton));
         });
     });
 }
 
-fn update_music_volume(
-    query_slider: Query<&Slider, (With<MusicVolumeSlider>, Changed<Slider>)>,
-    mut update_music_volume: EventWriter<UpdateMusicVolume>
-) {
-    if let Ok(slider) = query_slider.get_single() {
-        update_music_volume.send(UpdateMusicVolume(slider.value() / 100.));
-    }
-}
-
-fn update_sound_volume(
-    query_slider: Query<&Slider, (With<SoundVolumeSlider>, Changed<Slider>)>,
-    mut update_sound_volume: EventWriter<UpdateSoundVolume>
-) {
-    if let Ok(slider) = query_slider.get_single() {
-        update_sound_volume.send(UpdateSoundVolume(slider.value() / 100.));
-    }
-}

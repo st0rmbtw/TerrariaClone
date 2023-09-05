@@ -14,3 +14,6 @@ pub(super) struct Menu;
 
 #[derive(Component)]
 pub(super) struct MenuContainer;
+
+#[derive(Component)]
+pub(super) struct MenuButton;

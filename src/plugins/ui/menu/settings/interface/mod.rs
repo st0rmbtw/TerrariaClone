@@ -4,7 +4,7 @@ use bevy::{prelude::{Commands, Res, With, Query, ResMut, Component, Entity, Plug
 use crate::{
     plugins::{
         assets::FontAssets,
-        ui::menu::{MenuContainer, despawn_with, TEXT_COLOR, builders::{menu, menu_button, control_buttons_layout, control_button}},
+        ui::menu::{MenuContainer, despawn_with, MENU_BUTTON_COLOR, builders::{menu, menu_button, control_buttons_layout, control_button}, components::MenuButton},
         config::ShowTileGrid
     },
     language::LanguageContent,
@@ -52,16 +52,16 @@ fn setup_interface_menu(
     let text_style = TextStyle {
         font: fonts.andy_bold.clone_weak(),
         font_size: MENU_BUTTON_FONT_SIZE,
-        color: TEXT_COLOR,
+        color: MENU_BUTTON_COLOR,
     };
 
     let container = query_container.single();
 
     menu(InterfaceMenu, &mut commands, container, 5., |builder| {
-        menu_button(builder, text_style.clone(), language_content.ui.tile_grid.clone(), ToggleTileGridButton);
+        menu_button(builder, text_style.clone(), language_content.ui.tile_grid.clone(), (MenuButton, ToggleTileGridButton));
 
         control_buttons_layout(builder, |control_button_builder| {
-            control_button(control_button_builder, text_style, language_content.ui.back.clone(), BackButton);
+            control_button(control_button_builder, text_style, language_content.ui.back.clone(), (MenuButton, BackButton));
         });
     });
 }

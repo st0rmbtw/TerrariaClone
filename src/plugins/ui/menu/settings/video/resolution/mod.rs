@@ -8,7 +8,7 @@ use crate::{
         assets::FontAssets, 
         ui::menu::{
             MenuContainer, MENU_BUTTON_FONT_SIZE, despawn_with, 
-            TEXT_COLOR, ApplyButton, BackButton, Back, builders::{menu, menu_button, control_buttons_layout, control_button}
+            MENU_BUTTON_COLOR, ApplyButton, BackButton, Back, builders::{menu, menu_button, control_buttons_layout, control_button}, components::MenuButton
         }, 
         config::{FullScreen, Resolution, RESOLUTIONS}
     }, 
@@ -59,18 +59,18 @@ fn setup_resolution_menu(
     let text_style = TextStyle {
         font: fonts.andy_bold.clone_weak(),
         font_size: MENU_BUTTON_FONT_SIZE,
-        color: TEXT_COLOR,
+        color: MENU_BUTTON_COLOR,
     };
 
     let container = query_container.single();
 
     menu(ResolutionMenu, &mut commands, container, 50., |builder| {
-        menu_button(builder, text_style.clone(), language_content.ui.full_screen_resolution.clone(), FullScreenResolutionButton);
-        menu_button(builder, text_style.clone(), language_content.ui.full_screen.clone(), FullScreenButton);
+        menu_button(builder, text_style.clone(), language_content.ui.full_screen_resolution.clone(), (MenuButton, FullScreenResolutionButton));
+        menu_button(builder, text_style.clone(), language_content.ui.full_screen.clone(), (MenuButton, FullScreenButton));
 
         control_buttons_layout(builder, |control_button_builder| {
-            control_button(control_button_builder, text_style.clone(), language_content.ui.apply.clone(), ApplyButton);
-            control_button(control_button_builder, text_style, language_content.ui.back.clone(), BackButton);
+            control_button(control_button_builder, text_style.clone(), language_content.ui.apply.clone(), (MenuButton, ApplyButton));
+            control_button(control_button_builder, text_style, language_content.ui.back.clone(), (MenuButton, BackButton));
         });
     });
 }
