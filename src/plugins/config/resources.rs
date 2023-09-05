@@ -63,7 +63,7 @@ impl VSync {
 impl FullScreen {
     pub(crate) fn as_window_mode(&self) -> WindowMode {
         match self.0 {
-            true => WindowMode::Fullscreen,
+            true => WindowMode::BorderlessFullscreen,
             false => WindowMode::Windowed
         }
     }

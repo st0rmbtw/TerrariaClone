@@ -99,6 +99,7 @@ pub(super) fn general_menu(
         slider_layout(
             builder,
             0.,
+            AlignItems::Center,
             |first_column| {
                 row(first_column, 5., |builder| {
                     slider_name_text(builder, slider_text_style.clone(), language_content.ui.music.clone());
@@ -109,7 +110,8 @@ pub(super) fn general_menu(
                     slider_name_text(builder, slider_text_style.clone(), language_content.ui.sound.clone());
                     slider_value_text(builder, slider_text_style.clone(), music_volume.get(), 50., SoundVolumeSliderOutput);
                 });
-            }, 
+            },
+            AlignItems::Center,
             |second_column| {
                 menu_slider(second_column, &ui_assets, music_volume.get(), Color::WHITE, 0.8, Val::Px(slider_text_style.font_size), MusicVolumeSlider);
                 menu_slider(second_column, &ui_assets, sound_volume.get(), Color::WHITE, 0.8, Val::Px(slider_text_style.font_size), SoundVolumeSlider);
@@ -123,12 +125,14 @@ pub(super) fn general_menu(
         slider_layout(
             builder,
             0.,
+            AlignItems::Center,
             |first_column| {
                 row(first_column, 5., |builder| {
                     slider_name_text(builder, slider_text_style.clone(), "Zoom");
                     slider_value_text(builder, slider_text_style.clone(), zoom.get(), 55., ZoomSliderOutput);
                 });
-            }, 
+            },
+            AlignItems::Center,
             |second_column| {
                 menu_slider(second_column, &ui_assets, zoom.get(), Color::WHITE, 0.8, Val::Px(slider_text_style.font_size), ZoomSlider);
             }

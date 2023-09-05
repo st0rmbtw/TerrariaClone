@@ -63,8 +63,9 @@ fn setup_volume_menu(
         slider_layout(
             builder,
             5.,
-            |slider_builder| {
-                slider_builder.spawn(NodeBundle {
+            AlignItems::Start,
+            |first_column| {
+                first_column.spawn(NodeBundle {
                     style: Style {
                         flex_direction: FlexDirection::Row,
                         justify_content: JustifyContent::Center,
@@ -78,7 +79,7 @@ fn setup_volume_menu(
                     slider_name_text(b, slider_text_style.clone(), language_content.ui.music.clone());
                 });
                 
-                slider_builder.spawn(NodeBundle {
+                first_column.spawn(NodeBundle {
                     style: Style {
                         flex_direction: FlexDirection::Row,
                         justify_content: JustifyContent::Center,
@@ -92,9 +93,10 @@ fn setup_volume_menu(
                     slider_name_text(b, slider_text_style.clone(), language_content.ui.sound.clone());
                 });
             }, 
-            |output_builder| {
-                slider_value_text(output_builder, slider_text_style.clone(), music_volume.get(), 100., MusicVolumeSliderOutput);
-                slider_value_text(output_builder, slider_text_style.clone(), sound_volume.get(), 100., SoundVolumeSliderOutput);
+            AlignItems::Start,
+            |second_column| {
+                slider_value_text(second_column, slider_text_style.clone(), music_volume.get(), 100., MusicVolumeSliderOutput);
+                slider_value_text(second_column, slider_text_style.clone(), sound_volume.get(), 100., SoundVolumeSliderOutput);
             }
         );
 

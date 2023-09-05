@@ -121,7 +121,9 @@ pub(crate) fn control_button(
 pub(crate) fn slider_layout(
     builder: &mut ChildBuilder,
     gap: f32,
+    first_column_align: AlignItems,
     first_column_builder: impl FnOnce(&mut ChildBuilder),
+    second_column_align: AlignItems,
     second_column_builder: impl FnOnce(&mut ChildBuilder)
 ) {
     builder.spawn((
@@ -143,7 +145,7 @@ pub(crate) fn slider_layout(
             NodeBundle {
                 style: Style {
                     flex_direction: FlexDirection::Column,
-                    align_items: AlignItems::Center,
+                    align_items: first_column_align,
                     justify_content: JustifyContent::Center,
                     height: Val::Percent(100.),
                     ..default()
@@ -157,7 +159,7 @@ pub(crate) fn slider_layout(
             NodeBundle {
                 style: Style {
                     flex_direction: FlexDirection::Column,
-                    align_items: AlignItems::Center,
+                    align_items: second_column_align,
                     justify_content: JustifyContent::Center,
                     ..default()
                 },
