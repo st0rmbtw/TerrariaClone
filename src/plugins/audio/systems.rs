@@ -10,10 +10,11 @@ pub(super) fn handle_play_sound_event(
     sound_assets: Res<SoundAssets>,
     sound_volume: Res<SoundVolume>
 ) {
+    // We don't need to spawn if the sound volume is 0
     if sound_volume.get() < f32::EPSILON {
         return;
     }
-    
+
     for event in event_reader.iter() {
         commands.spawn((
             SoundAudio,
@@ -39,6 +40,7 @@ pub(super) fn handle_play_music_event(
 
         let mut settings = PlaybackSettings::LOOP.with_volume(Volume::Relative(**music_volume));
 
+        // Spawn music audio bundle paused if the music volume is 0
         if music_volume.get() < f32::EPSILON {
             settings.paused = true;
         }
@@ -74,6 +76,8 @@ pub(super) fn handle_update_music_volume_event(
     if let Some(event) = event_reader.iter().last() {
         *music_volume = MusicVolume::new(event.0);
         if let Ok(sink) = query_music.get_single() {
+            // If new volume is greater than 0 unpause the sink
+            // pause otherwise
             if event.0 > f32::EPSILON {
                 sink.play();
                 sink.set_volume(event.0);

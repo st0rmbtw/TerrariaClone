@@ -1,19 +1,8 @@
 use bevy::{ui::{Interaction, Style, Display}, prelude::{Changed, Component, Query, With, EventWriter, Visibility, Resource, Res, DetectChanges, Event, Entity, Commands, DespawnRecursiveExt, States, ResMut, NextState, Color}, text::Text};
 
-use crate::{plugins::audio::{PlaySoundEvent, SoundType}, animation::{Animator, TweeningDirection, Tween, Tweenable}};
+use crate::animation::{Animator, TweeningDirection, Tween, Tweenable};
 
 use super::{helpers, BoolValue, Toggle};
-
-pub(crate) fn play_sound_on_hover<B: Component>(
-    mut query: Query<&Interaction, (With<B>, Changed<Interaction>)>,
-    mut play_sound: EventWriter<PlaySoundEvent>
-) {
-    for interaction in query.iter_mut() {
-        if let Interaction::Hovered = interaction {
-            play_sound.send(PlaySoundEvent(SoundType::MenuTick));
-        }
-    }
-}
 
 pub(crate) fn set_visibility<C: Component, R: BoolValue + Resource>(
     mut query_visibility: Query<&mut Visibility, With<C>>,
@@ -83,13 +72,13 @@ pub(crate) fn set_state<S: States + Clone>(state: S) -> impl FnMut(ResMut<NextSt
     }
 }
 
-pub(crate) fn toggle_resource<T: Toggle + Resource>(mut ui_visibility: ResMut<T>) {
-    ui_visibility.toggle()
+pub(crate) fn toggle_resource<T: Toggle + Resource>(mut res: ResMut<T>) {
+    res.toggle()
 }
 
-pub(crate) fn set_resource<R: Resource + Copy>(res: R) -> impl FnMut(Commands) {
+pub(crate) fn set_resource<R: Resource + Clone>(res: R) -> impl FnMut(Commands) {
     move |mut commands: Commands| {
-        commands.insert_resource(res);
+        commands.insert_resource(res.clone());
     }
 }
 

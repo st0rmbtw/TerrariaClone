@@ -1,14 +1,13 @@
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Res, With, Query, ResMut, Component, Entity, Plugin, App, OnEnter, OnExit, IntoSystemConfigs, Update, in_state}, text::{TextStyle, Text}};
+use bevy::{prelude::{Commands, Res, With, Query, Component, Entity, Plugin, App, OnEnter, OnExit, IntoSystemConfigs, Update, in_state}, text::TextStyle};
 
 use crate::{
     plugins::{
         assets::FontAssets,
-        ui::menu::{MenuContainer, despawn_with, MENU_BUTTON_COLOR, builders::{menu, menu_button, control_buttons_layout, control_button}, components::MenuButton},
-        config::ShowTileGrid
+        ui::{menu::{MenuContainer, despawn_with, MENU_BUTTON_COLOR, builders::{menu, menu_button, control_buttons_layout, control_button}, components::MenuButton}, components::ToggleTileGridButton, systems::update_toggle_tile_grid_button_text}, config::ShowTileGrid,
     },
     language::LanguageContent,
-    common::{state::{SettingsMenuState, MenuState}, conditions::on_click}
+    common::{state::{SettingsMenuState, MenuState}, conditions::on_click, systems::toggle_resource}
 };
 
 use super::{MENU_BUTTON_FONT_SIZE, BackButton};
@@ -20,6 +19,7 @@ impl Plugin for InterfaceMenuPlugin {
             OnEnter(MenuState::Settings(SettingsMenuState::Interface)),
             setup_interface_menu
         );
+        
         app.add_systems(
             OnExit(MenuState::Settings(SettingsMenuState::Interface)),
             despawn_with::<InterfaceMenu>
@@ -29,7 +29,7 @@ impl Plugin for InterfaceMenuPlugin {
             Update,
             (
                 update_toggle_tile_grid_button_text,
-                toggle_tile_grid_clicked.run_if(on_click::<ToggleTileGridButton>),
+                toggle_resource::<ShowTileGrid>.run_if(on_click::<ToggleTileGridButton>),
             )
             .run_if(in_state(MenuState::Settings(SettingsMenuState::Interface)))
         );
@@ -38,9 +38,6 @@ impl Plugin for InterfaceMenuPlugin {
 
 #[derive(Component)]
 struct InterfaceMenu;
-
-#[derive(Component)]
-struct ToggleTileGridButton;
 
 #[autodefault]
 fn setup_interface_menu(
@@ -64,20 +61,4 @@ fn setup_interface_menu(
             control_button(control_button_builder, text_style, language_content.ui.back.clone(), (MenuButton, BackButton));
         });
     });
-}
-
-fn toggle_tile_grid_clicked(mut show_tile_grid: ResMut<ShowTileGrid>) {
-    show_tile_grid.0 = !show_tile_grid.0;
-}
-
-fn update_toggle_tile_grid_button_text(
-    mut query: Query<&mut Text, With<ToggleTileGridButton>>,
-    show_tile_grid: Res<ShowTileGrid>,
-    language_content: Res<LanguageContent>
-) {
-    let mut text = query.single_mut();
-
-    let status = if show_tile_grid.0 { language_content.ui.on.clone() } else { language_content.ui.off.clone() } ;
-
-    text.sections[0].value = format!("{} {}", language_content.ui.tile_grid, status);
 }

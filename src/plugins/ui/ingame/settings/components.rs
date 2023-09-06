@@ -21,6 +21,9 @@ pub(super) struct TabMenuContainer;
 #[derive(Component)]
 pub(super) struct TabButton;
 
+#[derive(Component)]
+pub(super) struct TabMenuButton;
+
 pub(super) mod buttons {
     use bevy::prelude::Component;
 

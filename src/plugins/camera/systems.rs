@@ -72,11 +72,11 @@ pub(super) fn zoom(
     let new_scale = map_range_f32(0., 1., 1.5, 0.25, scale) * CAMERA_ZOOM_STEP * time.delta_seconds();
 
     if input.pressed(KeyCode::Equals) {
-        zoom.set((scale - new_scale).max(0.));
+        zoom.set((scale + new_scale).min(1.));
     }
 
     if input.pressed(KeyCode::Minus) {
-        zoom.set((scale + new_scale).min(1.));
+        zoom.set((scale - new_scale).max(0.));
     }
 }
 

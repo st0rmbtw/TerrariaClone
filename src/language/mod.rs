@@ -48,6 +48,7 @@ pub(crate) struct UI {
     pub(crate) full_screen_resolution: String,
     pub(crate) close_menu: String,
     pub(crate) save_and_exit: String,
+    pub(crate) zoom: String,
 }
 
 #[derive(Deserialize)]

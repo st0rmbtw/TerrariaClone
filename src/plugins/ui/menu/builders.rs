@@ -62,6 +62,7 @@ pub(crate) fn menu_button(
         });
 }
 
+#[inline(always)]
 #[autodefault]
 pub(crate) fn menu_text(builder: &mut ChildBuilder, text_style: TextStyle, text: impl Into<String>) {
     builder.spawn((
@@ -73,6 +74,7 @@ pub(crate) fn menu_text(builder: &mut ChildBuilder, text_style: TextStyle, text:
 }
 
 #[autodefault]
+#[inline(always)]
 pub(crate) fn control_buttons_layout(
     builder: &mut ChildBuilder,
     spawn_builder: impl FnOnce(&mut ChildBuilder)
@@ -89,6 +91,7 @@ pub(crate) fn control_buttons_layout(
     }).with_children(spawn_builder);
 }
 
+#[inline(always)]
 #[autodefault]
 pub(crate) fn control_button(
     builder: &mut ChildBuilder,

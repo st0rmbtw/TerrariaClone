@@ -90,6 +90,7 @@
 		"Sound": "Sound",
 		"Language": "Language",
 		"CloseMenu": "Close menu",
-		"SaveAndExit": "Save & Exit"
+		"SaveAndExit": "Save & Exit",
+		"Zoom": "Zoom"
 	}
 }

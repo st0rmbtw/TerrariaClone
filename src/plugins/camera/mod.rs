@@ -2,15 +2,12 @@ use bevy::{prelude::{Plugin, App, SystemSet, IntoSystemSetConfig, PostUpdate, In
 
 use crate::common::state::GameState;
 
-use self::resources::Zoom;
-
 use super::InGameSystemSet;
 
 pub(crate) mod components;
 pub(crate) mod resources;
 mod systems;
 
-const INITIAL_ZOOM: f32 = 0.67;
 pub(crate) const MIN_CAMERA_ZOOM: f32 = 0.5;
 pub(crate) const MAX_CAMERA_ZOOM: f32 = 1.1;
 const CAMERA_ZOOM_STEP: f32 = 1.;
@@ -30,8 +27,6 @@ pub(crate) enum CameraSet {
 pub(crate) struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(Zoom::new(INITIAL_ZOOM));
-
         app.configure_set(PostUpdate,
             CameraSet::MoveCamera
                 .in_set(InGameSystemSet::PostUpdate)

@@ -20,3 +20,6 @@ pub(super) struct SoundVolumeSliderOutput;
 
 #[derive(Component)]
 pub(super) struct ZoomSliderOutput;
+
+#[derive(Component)]
+pub(super) struct ToggleTileGridButton;

@@ -1,8 +1,8 @@
 use bevy::{prelude::{Entity, Commands, NodeBundle, default, BuildChildren, Color, ChildBuilder}, text::TextStyle, ui::{Style, FlexDirection, JustifyContent, AlignItems, Val}};
 
-use crate::{plugins::{ui::{menu::{builders::{menu, menu_button, menu_text, slider_layout, menu_slider, slider_name_text, slider_value_text, spacer}, MENU_BUTTON_COLOR}, components::{MusicVolumeSlider, SoundVolumeSlider, MusicVolumeSliderOutput, SoundVolumeSliderOutput, ZoomSlider, ZoomSliderOutput}}, assets::{FontAssets, UiAssets}, config::{MusicVolume, SoundVolume}, camera::resources::Zoom}, language::LanguageContent};
+use crate::{plugins::{ui::{menu::{builders::{menu, menu_button, menu_text, slider_layout, menu_slider, slider_name_text, slider_value_text, spacer}, MENU_BUTTON_COLOR}, components::{MusicVolumeSlider, SoundVolumeSlider, MusicVolumeSliderOutput, SoundVolumeSliderOutput, ZoomSlider, ZoomSliderOutput, ToggleTileGridButton}}, assets::{FontAssets, UiAssets}, config::{MusicVolume, SoundVolume}, camera::resources::Zoom}, language::LanguageContent};
 
-use super::{components::{MenuTabs, buttons::*, TabMenu, TabButton}, SelectedTab, TAB_BUTTON_TEXT_SIZE};
+use super::{components::{MenuTabs, buttons::*, TabMenu, TabButton, TabMenuButton}, SelectedTab, TAB_BUTTON_TEXT_SIZE};
 
 #[inline(always)]
 fn row(commands: &mut ChildBuilder, gap: f32, builder: impl FnOnce(&mut ChildBuilder)) {
@@ -94,7 +94,7 @@ pub(super) fn general_menu(
     };
 
     menu(TabMenu, commands, container, 5., |builder| {
-        menu_text(builder, caption_text_style.clone(), "Volume");
+        menu_text(builder, caption_text_style.clone(), language_content.ui.volume.clone());
 
         slider_layout(
             builder,
@@ -120,7 +120,7 @@ pub(super) fn general_menu(
 
         spacer(builder, 15.);
 
-        menu_text(builder, caption_text_style.clone(), "Zoom");
+        menu_text(builder, caption_text_style.clone(), language_content.ui.zoom.clone());
 
         slider_layout(
             builder,
@@ -128,7 +128,7 @@ pub(super) fn general_menu(
             AlignItems::Center,
             |first_column| {
                 row(first_column, 5., |builder| {
-                    slider_name_text(builder, slider_text_style.clone(), "Zoom");
+                    slider_name_text(builder, slider_text_style.clone(), language_content.ui.zoom.clone());
                     slider_value_text(builder, slider_text_style.clone(), zoom.get(), 55., ZoomSliderOutput);
                 });
             },
@@ -138,4 +138,21 @@ pub(super) fn general_menu(
             }
         );
     });
+}
+
+pub(super) fn interface_menu(
+    commands: &mut Commands,
+    container: Entity,
+    font_assets: &FontAssets,
+    language_content: &LanguageContent,
+) {
+    let text_style = TextStyle {
+        font: font_assets.andy_bold.clone_weak(),
+        font_size: 26.,
+        color: MENU_BUTTON_COLOR,
+    };
+
+    menu(TabMenu, commands, container, 5., |builder| {
+        menu_button(builder, text_style, language_content.ui.tile_grid.clone(), (TabMenuButton, ToggleTileGridButton))
+    })
 }

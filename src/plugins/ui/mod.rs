@@ -8,12 +8,12 @@ pub(crate) mod menu;
 pub(crate) use resources::*;
 
 use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Color, TextBundle, Condition, Button, resource_exists_and_equals, not, Component}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, PositionType}, text::{TextAlignment, Text, TextStyle, TextSection}};
-use crate::{common::{state::GameState, systems::{set_visibility, despawn_with, toggle_resource, play_sound_on_hover, animate_button_scale}}, language::LanguageContent};
+use crate::{common::{state::GameState, systems::{set_visibility, despawn_with, toggle_resource, animate_button_scale}}, language::LanguageContent};
 
 use self::{
     components::{MainUiContainer, MusicVolumeSliderOutput, SoundVolumeSliderOutput, MusicVolumeSlider, SoundVolumeSlider},
     ingame::{inventory::{systems::spawn_inventory_ui, InventoryUiPlugin}, settings::{systems::spawn_ingame_settings_button, InGameSettingsUiPlugin}},
-    menu::MenuPlugin,
+    menu::MenuPlugin, systems::play_sound_on_hover,
 };
 
 use crate::plugins::assets::{FontAssets, UiAssets};

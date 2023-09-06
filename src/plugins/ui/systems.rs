@@ -1,10 +1,21 @@
 use bevy::{prelude::{EventWriter, Res, Resource, With, Changed, Query, Component, Color}, text::Text, ui::{Interaction, BackgroundColor}};
 
-use crate::{plugins::{audio::{PlaySoundEvent, SoundType, UpdateMusicVolume, UpdateSoundVolume}, slider::Slider}, common::BoolValue};
+use crate::{plugins::{audio::{PlaySoundEvent, SoundType, UpdateMusicVolume, UpdateSoundVolume}, slider::Slider, config::ShowTileGrid}, common::BoolValue, language::LanguageContent};
 
-use super::components::{SoundVolumeSlider, MusicVolumeSlider};
+use super::components::{SoundVolumeSlider, MusicVolumeSlider, ToggleTileGridButton};
 
-pub(crate) fn play_sound_on_toggle<R: BoolValue + Resource>(
+pub(super) fn play_sound_on_hover<B: Component>(
+    mut query: Query<&Interaction, (With<B>, Changed<Interaction>)>,
+    mut play_sound: EventWriter<PlaySoundEvent>
+) {
+    for interaction in query.iter_mut() {
+        if let Interaction::Hovered = interaction {
+            play_sound.send(PlaySoundEvent(SoundType::MenuTick));
+        }
+    }
+}
+
+pub(super) fn play_sound_on_toggle<R: BoolValue + Resource>(
     res: Res<R>,
     mut play_sound: EventWriter<PlaySoundEvent>
 ) {
@@ -57,5 +68,17 @@ pub(super) fn animate_slider_border_color(
             },
             _ => {}
         }
+    }
+}
+
+pub(super) fn update_toggle_tile_grid_button_text(
+    mut query: Query<&mut Text, With<ToggleTileGridButton>>,
+    show_tile_grid: Res<ShowTileGrid>,
+    language_content: Res<LanguageContent>
+) {
+    if let Ok(mut text) = query.get_single_mut() {
+        let status = if show_tile_grid.0 { language_content.ui.on.clone() } else { language_content.ui.off.clone() } ;
+
+        text.sections[0].value = format!("{} {}", language_content.ui.tile_grid, status);
     }
 }

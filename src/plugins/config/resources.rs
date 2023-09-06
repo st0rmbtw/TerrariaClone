@@ -1,7 +1,7 @@
 use bevy::{prelude::{Resource, Color, Deref, DerefMut}, window::{PresentMode, WindowMode}, audio::VolumeLevel};
 use serde::{Deserialize, Serialize};
 
-use crate::common::BoolValue;
+use crate::common::{BoolValue, Toggle};
 
 #[derive(Resource, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub(crate) struct Resolution {
@@ -29,6 +29,12 @@ pub(crate) struct FullScreen(pub(crate) bool);
 
 #[derive(Resource, PartialEq, Clone, Copy)]
 pub(crate) struct ShowTileGrid(pub(crate) bool);
+
+impl Toggle for ShowTileGrid {
+    fn toggle(&mut self) {
+        self.0 = !self.0;
+    }
+}
 
 impl BoolValue for ShowTileGrid {
     fn value(&self) -> bool {

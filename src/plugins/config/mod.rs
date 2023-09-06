@@ -9,6 +9,8 @@ mod resources;
 
 pub(crate) use resources::*;
 
+use super::camera::resources::Zoom;
+
 const CONFIG_FILENAME: &str = "config.json";
 
 pub(super) const RESOLUTIONS: [Resolution; 16] = [
@@ -39,6 +41,7 @@ pub(crate) struct Config {
     pub(crate) vsync: bool,
     pub(crate) resolution: Resolution,
     pub(crate) cursor_color: CursorColor,
+    pub(crate) zoom: f32,
     pub(crate) sound_volume: f32,
     pub(crate) music_volume: f32
 }
@@ -52,6 +55,7 @@ impl Default for Config {
             vsync: true,
             resolution: Resolution::new(1920., 1080.),
             cursor_color: CursorColor::default(),
+            zoom: 0.67,
             sound_volume: 100.,
             music_volume: 100.
         }
@@ -68,6 +72,7 @@ impl Plugin for ConfigPlugin {
         app.insert_resource(VSync(config.vsync));
         app.insert_resource(MusicVolume::new(config.music_volume));
         app.insert_resource(SoundVolume::new(config.sound_volume));
+        app.insert_resource(Zoom::new(config.zoom));
         app.insert_resource(config.cursor_color);
         app.insert_resource(config.resolution);
 
@@ -88,7 +93,8 @@ fn on_exit(
     resolution: Res<Resolution>,
     cursor_color: Res<CursorColor>,
     music_volume: Res<MusicVolume>,
-    sound_volume: Res<SoundVolume>
+    sound_volume: Res<SoundVolume>,
+    zoom: Res<Zoom>,
 ) {
     save_config(Config {
         full_screen: fullscreen.0,
@@ -97,7 +103,8 @@ fn on_exit(
         resolution: *resolution,
         cursor_color: *cursor_color,
         sound_volume: sound_volume.get(),
-        music_volume: music_volume.get()
+        music_volume: music_volume.get(),
+        zoom: zoom.get()
     });
 }
 
