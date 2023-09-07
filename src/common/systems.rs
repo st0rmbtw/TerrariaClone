@@ -95,14 +95,14 @@ pub(crate) fn animate_button_scale<B: Component>(
 
                 let tweenable = animator.tweenable_mut().as_any_mut().downcast_mut::<Tween<Text>>().unwrap();
                 if tweenable.direction() != TweeningDirection::Forward {
-                    tweenable.set_progress(0.);
+                    tweenable.set_progress(1. - tweenable.progress());
                     tweenable.set_direction(TweeningDirection::Forward);
                 }    
             }
             Interaction::None => {
                 let tweenable = animator.tweenable_mut().as_any_mut().downcast_mut::<Tween<Text>>().unwrap();
                 if tweenable.direction() != TweeningDirection::Backward {
-                    tweenable.set_progress(0.);
+                    tweenable.set_progress(1. - tweenable.progress());
                     tweenable.set_direction(TweeningDirection::Backward);
                 }
             }
