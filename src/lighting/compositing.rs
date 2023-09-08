@@ -128,7 +128,7 @@ pub(super) fn update_light_map(
         ((camera_position + projection.area.max) / TILE_SIZE + 8.).as_uvec2() * SUBDIVISION as u32,
     );
 
-    blur(area, light_map_texture, &world_data);
+    blur(light_map_texture, &world_data, area);
 
     for id in materials.ids() {
         asset_events.send(AssetEvent::Modified { handle: Handle::weak(id) });
