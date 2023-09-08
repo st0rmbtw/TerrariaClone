@@ -44,6 +44,18 @@ pub(crate) fn blur(light_map: &mut Image, world: &WorldData, area: URect) {
     let min_x = area.min.x as usize;
     let max_x = area.max.x as usize;
 
+    // Left to right
+    (min_y..max_y)
+        .into_par_iter()
+        .for_each(|y| {
+            let start = y * width;
+            let end = start + width;
+
+            let r = unsafe { &mut *cell.get() };
+
+            blur_line(r, world, start, end, 1, width);
+        });
+
     // Top to bottom
     (min_x..max_x)
         .into_par_iter()
@@ -54,6 +66,18 @@ pub(crate) fn blur(light_map: &mut Image, world: &WorldData, area: URect) {
             let r = unsafe { &mut *cell.get() };
 
             blur_line(r, world, start, end, width as i32, width);
+        });
+        
+    // Right to left
+    (min_y..max_y)
+        .into_par_iter()
+        .for_each(|y| {
+            let start = y * width + width - 1;
+            let end = y * width;
+
+            let r = unsafe { &mut *cell.get() };
+
+            blur_line(r, world, start, end, -1, width);
         });
     
     // Bottom to top
@@ -67,38 +91,19 @@ pub(crate) fn blur(light_map: &mut Image, world: &WorldData, area: URect) {
 
             blur_line(r, world, start, end, -(width as i32), width);
         });
-    
-    // Left to right
-    (min_y..max_y)
-        .into_par_iter()
-        .for_each(|y| {
-            let start = y * width;
-            let end = start + width;
-
-            let r = unsafe { &mut *cell.get() };
-
-            blur_line(r, world, start, end, 1, width);
-        });
-
-
-    // Right to left
-    (min_y..max_y)
-        .into_par_iter()
-        .for_each(|y| {
-            let start = y * width + width - 1;
-            let end = y * width;
-
-            let r = unsafe { &mut *cell.get() };
-
-            blur_line(r, world, start, end, -1, width);
-        });
 
 }
 
 fn blur_line(light_map: &mut [u8], world: &WorldData, start: usize, end: usize, stride: i32, width: usize) {
     let mut prev_light = light_map[start] as f32 / u8::MAX as f32;
 
-    let mut index = start;
+    let mut index = (start as i32 + stride) as usize;
+    let mut decay = {
+        let x = (start % width) / SUBDIVISION;
+        let y = (start / width) / SUBDIVISION;
+        if world.solid_block_exists((x, y)) { DECAY_THROUGH_SOLID } else { DECAY_THROUGH_AIR }
+    };
+
     loop {
         if stride > 0 && index >= end {
             break;
@@ -108,12 +113,6 @@ fn blur_line(light_map: &mut [u8], world: &WorldData, start: usize, end: usize, 
 
         let cur_light = light_map[index] as f32 / u8::MAX as f32;
 
-        let decay = {
-            let x = (index % width) / SUBDIVISION;
-            let y = (index / width) / SUBDIVISION;
-            if world.solid_block_exists((x, y)) { DECAY_THROUGH_SOLID } else { DECAY_THROUGH_AIR }
-        };
-
         if cur_light < prev_light {
             let new_light = prev_light * decay;
             light_map[index] = (new_light * u8::MAX as f32) as u8;
@@ -122,6 +121,11 @@ fn blur_line(light_map: &mut [u8], world: &WorldData, start: usize, end: usize, 
             prev_light = cur_light;
         }
 
+        decay = {
+            let x = (index % width) / SUBDIVISION;
+            let y = (index / width) / SUBDIVISION;
+            if world.solid_block_exists((x, y)) { DECAY_THROUGH_SOLID } else { DECAY_THROUGH_AIR }
+        };
         index = (index as i32 + stride) as usize;
     }
 }
