@@ -28,14 +28,12 @@ pub(crate) fn generate_light_map(world: &WorldData) -> LightMap {
 
     let area = URect::new(0, 0, light_map_width as u32, light_map_height as u32);
     scan(&mut light_map, world, area);
-    blur(&mut light_map, world, area);
 
     light_map
 }
 
 pub(crate) fn blur(light_map: &mut Image, world: &WorldData, area: URect) {
     let width = light_map.texture_descriptor.size.width as usize;
-    let height = light_map.texture_descriptor.size.height as usize;
 
     let cell = SyncUnsafeCell::new(&mut light_map.data);
 
@@ -44,54 +42,53 @@ pub(crate) fn blur(light_map: &mut Image, world: &WorldData, area: URect) {
     let min_x = area.min.x as usize;
     let max_x = area.max.x as usize;
 
+    // Top to bottom
+    (min_x..max_x)
+        .into_par_iter()
+        .for_each(|x| {
+            let start = min_y * width + x;
+            let end = max_y * width + x;
+
+            let r = unsafe { &mut *cell.get() };
+
+            blur_line(r, world, start, end, width as i32, width);
+        });
+
     // Left to right
     (min_y..max_y)
         .into_par_iter()
         .for_each(|y| {
-            let start = y * width;
-            let end = start + width;
+            let start = y * width + min_x;
+            let end = y * width + max_x;
 
             let r = unsafe { &mut *cell.get() };
 
             blur_line(r, world, start, end, 1, width);
         });
 
-    // Top to bottom
+    // Bottom to top
     (min_x..max_x)
         .into_par_iter()
         .for_each(|x| {
-            let start = x;
-            let end = (height - 1) * width + x;
+            let start = max_y * width + x;
+            let end = min_y * width + x;
 
             let r = unsafe { &mut *cell.get() };
 
-            blur_line(r, world, start, end, width as i32, width);
+            blur_line(r, world, start, end, -(width as i32), width);
         });
         
     // Right to left
     (min_y..max_y)
         .into_par_iter()
         .for_each(|y| {
-            let start = y * width + width - 1;
-            let end = y * width;
+            let start = y * width + max_x;
+            let end = y * width + min_x;
 
             let r = unsafe { &mut *cell.get() };
 
             blur_line(r, world, start, end, -1, width);
         });
-    
-    // Bottom to top
-    (min_x..max_x)
-        .into_par_iter()
-        .for_each(|x| {
-            let start = (height - 1) * width + x;
-            let end = x;
-
-            let r = unsafe { &mut *cell.get() };
-
-            blur_line(r, world, start, end, -(width as i32), width);
-        });
-
 }
 
 fn blur_line(light_map: &mut [u8], world: &WorldData, start: usize, end: usize, stride: i32, width: usize) {
