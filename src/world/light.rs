@@ -1,4 +1,4 @@
-use bevy::{prelude::{IVec2, Image}, math::URect, render::render_resource::{Extent3d, TextureDimension, TextureFormat}, utils::default};
+use bevy::{prelude::Image, math::URect, render::render_resource::{Extent3d, TextureDimension, TextureFormat}, utils::default};
 
 use super::WorldData;
 
@@ -7,25 +7,6 @@ type LightMap = Image;
 pub(crate) const SUBDIVISION: usize = 2;
 const DECAY_THROUGH_SOLID: f32 = 0.56;
 const DECAY_THROUGH_AIR: f32 = 0.91;
-
-#[derive(Clone, Copy)]
-pub(crate) enum PassDirection {
-    LeftToRight,
-    TopToBottom,
-    RightToLeft,
-    BottomToTop
-}
-
-impl PassDirection {
-    pub(crate) const fn to_ivec2(self) -> IVec2 {
-        match self {
-            PassDirection::LeftToRight => IVec2::new(-1, 0),
-            PassDirection::TopToBottom => IVec2::new(0, -1),
-            PassDirection::RightToLeft => IVec2::new(1, 0),
-            PassDirection::BottomToTop => IVec2::new(0, 1),
-        }
-    }
-}
 
 pub(crate) fn generate_light_map(world: &WorldData) -> LightMap {
     println!("Generating light map...");
@@ -54,12 +35,6 @@ fn set_light(x: usize, y: usize, light: f32, light_map: &mut Image) {
     light_map.data[index] = (light * u8::MAX as f32) as u8;
 }
 
-fn get_light(x: usize, y: usize, light_map: &Image) -> f32 {
-    let index = y * light_map.texture_descriptor.size.width as usize + x;
-    let byte = light_map.data[index];
-    byte as f32 / u8::MAX as f32
-}
-
 pub(crate) fn scan(area: URect, light_map: &mut LightMap, world: &WorldData) {
     let min_y = area.min.y as usize;
     let max_y = (area.max.y as usize).min(world.layer.underground * SUBDIVISION);
@@ -82,61 +57,75 @@ pub(crate) fn scan(area: URect, light_map: &mut LightMap, world: &WorldData) {
 }
 
 pub(crate) fn blur(area: URect, light_map: &mut LightMap, world: &WorldData) {
+    let width = light_map.texture_descriptor.size.width as usize;
+
+    let min_x = area.min.x as usize;
+    let max_x = area.max.x as usize;
+    let min_y = area.min.y as usize;
+    let max_y = area.max.y as usize;
+
     // Top to bottom
-    for x in area.min.x..area.max.x {
-        for y in area.min.y..area.max.y {
-            propagate_light(x as usize, y as usize, light_map, world, PassDirection::TopToBottom);
-        }
+    for x in min_x..max_x {
+        let start = min_y * width + x;
+        let end = max_y * width + x;
+        blur_line(&mut light_map.data, world, start, end, width as i32, width);
     }
 
     // Left to right
-    for y in area.min.y..area.max.y {
-        for x in area.min.x..area.max.x {
-            propagate_light(x as usize, y as usize, light_map, world, PassDirection::LeftToRight);
-        }
+    for y in min_y..max_y {
+        let start = y * width + min_x;
+        let end = y * width + max_x;
+        blur_line(&mut light_map.data, world, start, end, 1, width);
     }
 
     // Bottom to top
-    for x in area.min.x..area.max.x {
-        for y in (area.min.y..area.max.y).rev() {
-            propagate_light(x as usize, y as usize, light_map, world, PassDirection::BottomToTop);
-        }
+    for x in min_x..max_x {
+        let start = max_y * width + x;
+        let end = min_y * width + x;
+        blur_line(&mut light_map.data, world, start, end, -(width as i32), width);
     }
 
     // Right to left
-    for y in area.min.y..area.max.y {
-        for x in (area.min.x..area.max.x).rev() {
-            propagate_light(x as usize, y as usize, light_map, world, PassDirection::RightToLeft);
-        }
+    for y in min_y..max_y {
+        let start = y * width + max_x;
+        let end = y * width + min_x;
+
+        blur_line(&mut light_map.data, world, start, end, -1, width);
     }
 
 }
 
-pub(crate) fn propagate_light(x: usize, y: usize, light_map: &mut LightMap, world: &WorldData, direction: PassDirection) { 
-    let offset = direction.to_ivec2();
+pub(crate) fn blur_line(light_map: &mut [u8], world: &WorldData, start: usize, end: usize, stride: i32, width: usize) { 
+    let mut prev_light = light_map[start] as f32 / u8::MAX as f32;
+    let mut decay = {
+        let x = (start % width) / SUBDIVISION;
+        let y = (start / width) / SUBDIVISION;
+        if world.solid_block_exists((x, y)) { DECAY_THROUGH_SOLID } else { DECAY_THROUGH_AIR }
+    };
 
-    if (x as i32 + offset.x) as u32 >= light_map.texture_descriptor.size.width { return; }
-    if (y as i32 + offset.y) as u32 >= light_map.texture_descriptor.size.height { return; }
+    let mut index = (start as i32 + stride) as usize;
+    loop {
+        if stride > 0 && index >= end {
+            break;
+        } else if stride < 0 && index <= end {
+            break;
+        }
 
-    if x as i32 + offset.x < 0 { return; }
-    if y as i32 + offset.y < 0 { return; }
+        let cur_light = light_map[index] as f32 / u8::MAX as f32;
 
-    let neighbor_pos = (
-        (x as i32 + offset.x) as usize,
-        (y as i32 + offset.y) as usize,
-    );
+        if cur_light < prev_light {
+            let new_light = prev_light * decay;
+            light_map[index] = (new_light * u8::MAX as f32) as u8;
+            prev_light = new_light;
+        } else {
+            prev_light = cur_light;
+        }
 
-    let neighbor_world_pos = (
-        neighbor_pos.0 / SUBDIVISION,
-        neighbor_pos.1 / SUBDIVISION
-    );
-
-    let decay = if world.solid_block_exists(neighbor_world_pos) { DECAY_THROUGH_SOLID } else { DECAY_THROUGH_AIR };
-
-    let this_light = get_light(x, y, light_map);
-    let neighbor_light = get_light(neighbor_pos.0, neighbor_pos.1, light_map);
-
-    if this_light < neighbor_light {
-        set_light(x, y, neighbor_light * decay, light_map);
+        decay = {
+            let x = (index % width) / SUBDIVISION;
+            let y = (index / width) / SUBDIVISION;
+            if world.solid_block_exists((x, y)) { DECAY_THROUGH_SOLID } else { DECAY_THROUGH_AIR }
+        };
+        index = (index as i32 + stride) as usize;
     }
 }
