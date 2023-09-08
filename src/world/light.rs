@@ -34,11 +34,12 @@ pub(crate) fn generate_light_map(world: &WorldData) -> LightMap {
 
 pub(crate) fn blur(light_map: &mut Image, world: &WorldData, area: URect) {
     let width = light_map.texture_descriptor.size.width as usize;
+    let height = light_map.texture_descriptor.size.height as usize;
 
     let cell = SyncUnsafeCell::new(&mut light_map.data);
 
     let min_y = area.min.y as usize;
-    let max_y = area.max.y as usize;
+    let max_y = (area.max.y as usize).min(height - 1);
     let min_x = area.min.x as usize;
     let max_x = area.max.x as usize;
 

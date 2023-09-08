@@ -165,11 +165,12 @@ pub(super) fn keep_camera_inside_world_bounds(
         let projection_left = projection.area.min.x;
         let projection_right = projection.area.max.x;
         let projection_top = projection.area.max.y;
+        let projection_bottom = projection.area.min.y;
 
         let x_min = projection_left.abs() - TILE_SIZE / 2.;
         let x_max = (world_data.size.width as f32 * 16.) - projection_right - TILE_SIZE / 2.;
 
-        let y_min = -(world_data.size.height as f32 * 16.) - projection_top - TILE_SIZE / 2.;
+        let y_min = -(world_data.size.height as f32 * 16.) - projection_bottom - TILE_SIZE / 2.;
         let y_max = -projection_top - TILE_SIZE / 2.;
 
         camera_transform.translation.x = camera_transform.translation.x.clamp(x_min, x_max);
