@@ -10,6 +10,9 @@ pub(crate) struct PostProcessingCamera;
 pub(crate) struct BackgroundCamera;
 
 #[derive(Component)]
+pub(crate) struct InGameBackgroundCamera;
+
+#[derive(Component)]
 pub(crate) struct WorldCamera;
 
 #[derive(Component)]

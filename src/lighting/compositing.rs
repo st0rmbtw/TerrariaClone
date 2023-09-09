@@ -6,7 +6,7 @@ use bevy::{
     }, texture::BevyDefault, camera::RenderTarget, view::RenderLayers, mesh::InnerMeshVertexBufferLayout}, reflect::{TypePath, TypeUuid}, sprite::{Material2d, MaterialMesh2dBundle, Material2dKey}, window::{PrimaryWindow, WindowResized}, core_pipeline::fullscreen_vertex_shader::FULLSCREEN_SHADER_HANDLE, utils::Hashed, math::{URect, Vec3Swizzles},
 };
 
-use crate::{plugins::{world::{resources::LightMap, constants::TILE_SIZE}, camera::components::{WorldCamera, MainCamera, BackgroundCamera}, DespawnOnGameExit}, world::{WorldData, light::{SUBDIVISION, blur}}};
+use crate::{plugins::{world::{resources::LightMap, constants::TILE_SIZE}, camera::components::{WorldCamera, MainCamera, BackgroundCamera, InGameBackgroundCamera}, DespawnOnGameExit}, world::{WorldData, light::{SUBDIVISION, blur}}};
 
 
 #[derive(AsBindGroup, TypePath, TypeUuid, Clone, Default)]
@@ -43,13 +43,17 @@ pub(crate) struct PostProcessingMaterial {
     #[texture(0)]
     #[sampler(1)]
     pub(crate) background_texture: Handle<Image>,
-    
+
     #[texture(2)]
     #[sampler(3)]
-    pub(crate) world_texture: Handle<Image>,
-
+    pub(crate) ingame_background_texture: Handle<Image>,
+    
     #[texture(4)]
     #[sampler(5)]
+    pub(crate) world_texture: Handle<Image>,
+
+    #[texture(6)]
+    #[sampler(7)]
     pub(crate) main_texture: Handle<Image>,
 }
 
@@ -146,10 +150,12 @@ pub(super) fn setup_post_processing_camera(
     mut query_main_camera: Query<&mut Camera, With<MainCamera>>,
     mut query_world_camera: Query<&mut Camera, (With<WorldCamera>, Without<MainCamera>)>,
     mut query_background_camera: Query<&mut Camera, (With<BackgroundCamera>, Without<MainCamera>, Without<WorldCamera>)>,
+    mut query_ingame_background_camera: Query<&mut Camera, (With<InGameBackgroundCamera>, Without<BackgroundCamera>, Without<MainCamera>, Without<WorldCamera>)>,
 ) {
     let Ok(mut main_camera) = query_main_camera.get_single_mut() else { return; };
     let Ok(mut world_camera) = query_world_camera.get_single_mut() else { return; };
     let Ok(mut background_camera) = query_background_camera.get_single_mut() else { return; };
+    let Ok(mut ingame_background_camera) = query_ingame_background_camera.get_single_mut() else { return; };
     
     let window = query_window.single();
     
@@ -180,17 +186,27 @@ pub(super) fn setup_post_processing_camera(
         BevyDefault::bevy_default()
     );
 
+    let mut ingame_background_texture = Image::new_fill(
+        size,
+        TextureDimension::D2,
+        &[0, 0, 0, 255],
+        BevyDefault::bevy_default()
+    );
+
     main_texture.texture_descriptor.usage = TextureUsages::COPY_DST | TextureUsages::TEXTURE_BINDING | TextureUsages::RENDER_ATTACHMENT;
     world_texture.texture_descriptor.usage = TextureUsages::COPY_DST | TextureUsages::TEXTURE_BINDING | TextureUsages::RENDER_ATTACHMENT;
     background_texture.texture_descriptor.usage = TextureUsages::COPY_DST | TextureUsages::TEXTURE_BINDING | TextureUsages::RENDER_ATTACHMENT;
+    ingame_background_texture.texture_descriptor.usage = TextureUsages::COPY_DST | TextureUsages::TEXTURE_BINDING | TextureUsages::RENDER_ATTACHMENT;
 
     let main_texture_handle = images.add(main_texture);
     let world_texture_handle = images.add(world_texture);
     let background_texture_handle = images.add(background_texture);
+    let ingame_background_texture_handle = images.add(ingame_background_texture);
 
     main_camera.target = RenderTarget::Image(main_texture_handle.clone());
     world_camera.target = RenderTarget::Image(world_texture_handle.clone());
     background_camera.target = RenderTarget::Image(background_texture_handle.clone());
+    ingame_background_camera.target = RenderTarget::Image(ingame_background_texture_handle.clone());
 
     commands.spawn((
         DespawnOnGameExit,
@@ -204,6 +220,10 @@ pub(super) fn setup_post_processing_camera(
         DespawnOnGameExit,
         FitToWindowSize(background_texture_handle.clone())
     ));
+    commands.spawn((
+        DespawnOnGameExit,
+        FitToWindowSize(ingame_background_texture_handle.clone())
+    ));
 
     let post_processing_layer = RenderLayers::layer(RenderLayers::TOTAL_LAYERS as u8 - 1);
 
@@ -213,6 +233,7 @@ pub(super) fn setup_post_processing_camera(
             mesh: meshes.add(Quad::new(Vec2::new(1., 1.)).into()).into(),
             material: materials.add(PostProcessingMaterial {
                 background_texture: background_texture_handle,
+                ingame_background_texture: ingame_background_texture_handle,
                 main_texture: main_texture_handle,
                 world_texture: world_texture_handle,
             }),

@@ -130,7 +130,7 @@ fn blur_line(light_map: &mut [u8], world: &WorldData, start: usize, end: usize, 
 pub(crate) fn scan(light_map: &mut LightMap, world: &WorldData, area: URect) {
     let width = light_map.texture_descriptor.size.width as usize;
     let min_y = area.min.y as usize;
-    let max_y = (area.max.y as usize).min(world.layer.underground * SUBDIVISION);
+    let max_y = (area.max.y as usize).min((world.layer.underground - 1) * SUBDIVISION);
 
     let min_x = area.min.x as usize;
     let max_x = area.max.x as usize;

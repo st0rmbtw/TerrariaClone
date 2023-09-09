@@ -3,13 +3,14 @@ use crate::{
     common::{state::GameState, systems::despawn_with}, world::WorldData, BACKGROUND_LAYER
 };
 use bevy::{
-    prelude::{default, App, Commands, Plugin, Res, Vec2, Query, Camera, With, OnExit, IntoSystemConfigs, Name, Assets, Image, Camera2dBundle, UiCameraConfig, PostUpdate, Transform, Without, Component, OnEnter},
-    sprite::Anchor, render::view::RenderLayers,
+    prelude::{default, App, Commands, Plugin, Res, Vec2, Query, Camera, With, OnExit, IntoSystemConfigs, Name, Assets, Image, Camera2dBundle, UiCameraConfig, PostUpdate, Transform, Without, Component, OnEnter, Camera2d, Color},
+    sprite::Anchor, render::view::RenderLayers, core_pipeline::clear_color::ClearColorConfig,
 };
 
-use super::{assets::BackgroundAssets, camera::{components::{BackgroundCamera, MoveCamera}, CameraSet}, world::constants::TILE_SIZE, InGameSystemSet, DespawnOnGameExit};
+use super::{assets::BackgroundAssets, camera::{components::{BackgroundCamera, MoveCamera, ZoomableCamera, InGameBackgroundCamera}, CameraSet}, world::constants::TILE_SIZE, InGameSystemSet, DespawnOnGameExit};
 
 pub(crate) const BACKGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(24);
+pub(crate) const INGAME_BACKGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(23);
 
 // region: Plugin
 pub(crate) struct BackgroundPlugin;
@@ -27,6 +28,7 @@ impl Plugin for BackgroundPlugin {
             OnExit(GameState::WorldLoading),
             (
                 despawn_with::<MenuParallaxContainer>,
+                spawn_ingame_background_camera,
                 spawn_sky_background,
                 spawn_ingame_background,
                 spawn_forest_background,
@@ -82,6 +84,30 @@ fn spawn_background_camera(
             camera: Camera {
                 order: -1,
                 ..default()
+            },
+            ..default()
+        },
+    ));
+}
+
+fn spawn_ingame_background_camera(
+    mut commands: Commands
+) {
+    commands.spawn((
+        Name::new("InGameBackgroundCamera"),
+        InGameBackgroundCamera,
+        MoveCamera,
+        ZoomableCamera,
+        INGAME_BACKGROUND_RENDER_LAYER,
+        UiCameraConfig { show_ui: false },
+        DespawnOnGameExit,
+        Camera2dBundle {
+            camera: Camera {
+                order: -1,
+                ..default()
+            },
+            camera_2d: Camera2d {
+                clear_color: ClearColorConfig::Custom(Color::NONE)
             },
             ..default()
         },
@@ -223,7 +249,7 @@ fn spawn_ingame_background(
         Name::new("InGame Parallax Container"),
         InGameParallaxContainer,
         DespawnOnGameExit,
-        ParallaxContainer::new(layers).with_render_layer(BACKGROUND_RENDER_LAYER)
+        ParallaxContainer::new(layers).with_render_layer(INGAME_BACKGROUND_RENDER_LAYER)
     ));
 }
 
