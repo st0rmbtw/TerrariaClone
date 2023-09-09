@@ -1,7 +1,6 @@
 pub(crate) mod block;
 pub(crate) mod tree;
 pub(crate) mod wall;
-pub(crate) mod light;
 pub(crate) mod chunk;
 pub(crate) mod generator;
 pub(crate) mod save_as;

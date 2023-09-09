@@ -3,11 +3,15 @@ use bevy::{
     render::{render_resource::{
         Extent3d, ShaderRef,
         TextureDimension, AsBindGroup, RenderPipelineDescriptor, SpecializedMeshPipelineError, PrimitiveState, TextureUsages, ShaderDefVal,
-    }, texture::BevyDefault, camera::RenderTarget, view::RenderLayers, mesh::InnerMeshVertexBufferLayout}, reflect::{TypePath, TypeUuid}, sprite::{Material2d, MaterialMesh2dBundle, Material2dKey}, window::{PrimaryWindow, WindowResized}, core_pipeline::fullscreen_vertex_shader::FULLSCREEN_SHADER_HANDLE, utils::Hashed, math::{URect, Vec3Swizzles},
+    }, texture::BevyDefault, camera::RenderTarget, view::RenderLayers, mesh::InnerMeshVertexBufferLayout}, reflect::{TypePath, TypeUuid}, sprite::{Material2d, MaterialMesh2dBundle, Material2dKey}, window::{PrimaryWindow, WindowResized}, core_pipeline::fullscreen_vertex_shader::FULLSCREEN_SHADER_HANDLE, utils::Hashed,
 };
 
-use crate::{plugins::{world::{resources::LightMap, constants::TILE_SIZE}, camera::components::{WorldCamera, MainCamera, BackgroundCamera, InGameBackgroundCamera}, DespawnOnGameExit}, world::{WorldData, light::{SUBDIVISION, blur}}};
+use crate::plugins::{camera::components::{WorldCamera, MainCamera, BackgroundCamera, InGameBackgroundCamera}, DespawnOnGameExit};
 
+use super::{SUBDIVISION, pipeline::PipelineTargetsWrapper};
+
+#[derive(Default, Resource, Deref)]
+pub(crate) struct LightMapTexture(pub(crate) Handle<Image>);
 
 #[derive(AsBindGroup, TypePath, TypeUuid, Clone, Default)]
 #[uuid = "9114bbd2-1bb3-4b5a-a710-1235798db745"]
@@ -17,7 +21,10 @@ pub(crate) struct LightMapMaterial {
     pub(crate) light_map_image: Handle<Image>,
 
     #[uniform(2)]
-    pub(crate) chunk_pos: UVec2
+    pub(crate) chunk_pos: UVec2,
+
+    #[uniform(3)]
+    pub(crate) world_size: Vec2
 }
 
 impl Material2d for LightMapMaterial {
@@ -31,8 +38,7 @@ impl Material2d for LightMapMaterial {
         _key: Material2dKey<Self>,
     ) -> Result<(), SpecializedMeshPipelineError> {
         let fragment = descriptor.fragment.as_mut().unwrap();
-        fragment.shader_defs.push(ShaderDefVal::UInt("SUBDIVISION".into(), SUBDIVISION as u32));
-
+        fragment.shader_defs.push(ShaderDefVal::UInt("SUBDIVISION".into(), SUBDIVISION));
         Ok(())
     }
 }
@@ -113,30 +119,17 @@ pub(super) fn update_image_to_window_size(
     }
 }
 
-pub(super) fn update_light_map(
-    world_data: Res<WorldData>,
-    materials: Res<Assets<LightMapMaterial>>,
-    light_map: ResMut<LightMap>,
-    mut images: ResMut<Assets<Image>>,
-    mut asset_events: EventWriter<AssetEvent<LightMapMaterial>>,
-    query_camera: Query<(&GlobalTransform, &OrthographicProjection), With<MainCamera>>
+pub(super) fn spawn_lightmap_texture(
+    mut commands: Commands,
+    gpu_targets_wrapper: Res<PipelineTargetsWrapper>,
 ) {
-    let light_map_texture = images.get_mut(&light_map.0).unwrap();
+    let lightmap_texture = gpu_targets_wrapper
+        .light_map
+        .as_ref()
+        .expect("Targets must be initialized")
+        .clone();
 
-    let Ok((camera_transform, projection)) = query_camera.get_single() else { return };
-
-    let camera_position = camera_transform.translation().xy().abs();
-
-    let area = URect::from_corners(
-        ((camera_position + projection.area.min) / TILE_SIZE - 8.).as_uvec2() * SUBDIVISION as u32,
-        ((camera_position + projection.area.max) / TILE_SIZE + 8.).as_uvec2() * SUBDIVISION as u32,
-    );
-
-    blur(light_map_texture, &world_data, area);
-
-    for id in materials.ids() {
-        asset_events.send(AssetEvent::Modified { handle: Handle::weak(id) });
-    }
+    commands.insert_resource(LightMapTexture(lightmap_texture));
 }
 
 pub(super) fn setup_post_processing_camera(
@@ -156,7 +149,7 @@ pub(super) fn setup_post_processing_camera(
     let Ok(mut world_camera) = query_world_camera.get_single_mut() else { return; };
     let Ok(mut background_camera) = query_background_camera.get_single_mut() else { return; };
     let Ok(mut ingame_background_camera) = query_ingame_background_camera.get_single_mut() else { return; };
-    
+
     let window = query_window.single();
     
     let size = Extent3d {
