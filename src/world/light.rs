@@ -65,6 +65,18 @@ pub(crate) fn blur(light_map: &mut Image, world: &WorldData, area: URect) {
 
             blur_line(r, world, start, end, 1, width);
         });
+
+    // Bottom to top
+    (min_x..max_x)
+        .into_par_iter()
+        .for_each(|x| {
+            let start = max_y * width + x;
+            let end = min_y * width + x;
+
+            let r = unsafe { &mut *cell.get() };
+
+            blur_line(r, world, start, end, -(width as i32), width);
+        });
         
     // Right to left
     (min_y..max_y)
