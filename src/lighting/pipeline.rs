@@ -15,7 +15,7 @@ pub(super) struct PipelineTargetsWrapper {
 
 #[derive(Resource)]
 pub(super) struct PipelineBindGroups {
-    pub(super) lightmap_bind_group: BindGroup,
+    pub(super) scan_bind_group: BindGroup,
     pub(super) left_to_right_bind_group: BindGroup,
     pub(super) top_to_bottom_bind_group: BindGroup,
     pub(super) right_to_left_bind_group: BindGroup,
@@ -23,9 +23,9 @@ pub(super) struct PipelineBindGroups {
 }
 
 #[derive(Resource)]
-pub(super) struct LightPassPipeline {
-    pub(super) lightmap_layout: BindGroupLayout,
-    pub(super) lightmap_pipeline: CachedComputePipelineId,
+pub(super) struct LightMapPipeline {
+    pub(super) scan_layout: BindGroupLayout,
+    pub(super) scan_pipeline: CachedComputePipelineId,
     pub(super) left_to_right_layout: BindGroupLayout,
     pub(super) left_to_right_pipeline: CachedComputePipelineId,
     pub(super) top_to_bottom_layout: BindGroupLayout,
@@ -79,7 +79,7 @@ pub(super) fn setup_pipeline_targets(
 
 pub(super) fn queue_bind_groups(
     mut commands: Commands,
-    pipeline: Res<LightPassPipeline>,
+    pipeline: Res<LightMapPipeline>,
     gpu_images: Res<RenderAssets<Image>>,
     targets_wrapper: Option<Res<PipelineTargetsWrapper>>,
     render_device: Res<RenderDevice>,
@@ -87,7 +87,7 @@ pub(super) fn queue_bind_groups(
 ) {
     let Some(targets_wrapper) = targets_wrapper else { return; };
     let Some(tiles) = targets_wrapper.tiles.as_ref() else { return; };
-    let Some(source) = targets_wrapper.light_map.as_ref() else { return; };
+    let Some(light_map) = targets_wrapper.light_map.as_ref() else { return; };
 
     if let (
         Some(min),
@@ -97,11 +97,11 @@ pub(super) fn queue_bind_groups(
         pipeline_assets.max.binding()
     ) {
         let tiles_image = &gpu_images[tiles];
-        let source_image = &gpu_images[source];
+        let lightmap_image = &gpu_images[light_map];
 
-        let lightmap_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
-            label: "lightmap_bind_group".into(),
-            layout: &pipeline.lightmap_layout,
+        let scan_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
+            label: "scan_bind_group".into(),
+            layout: &pipeline.scan_layout,
             entries: &[
                 BindGroupEntry {
                     binding: 0,
@@ -109,7 +109,7 @@ pub(super) fn queue_bind_groups(
                 },
                 BindGroupEntry {
                     binding: 1,
-                    resource: BindingResource::TextureView(&source_image.texture_view),
+                    resource: BindingResource::TextureView(&lightmap_image.texture_view),
                 },
                 BindGroupEntry {
                     binding: 2,
@@ -128,7 +128,7 @@ pub(super) fn queue_bind_groups(
                 },
                 BindGroupEntry {
                     binding: 1,
-                    resource: BindingResource::TextureView(&source_image.texture_view),
+                    resource: BindingResource::TextureView(&lightmap_image.texture_view),
                 },
                 BindGroupEntry {
                     binding: 2,
@@ -151,7 +151,7 @@ pub(super) fn queue_bind_groups(
                 },
                 BindGroupEntry {
                     binding: 1,
-                    resource: BindingResource::TextureView(&source_image.texture_view),
+                    resource: BindingResource::TextureView(&lightmap_image.texture_view),
                 },
                 BindGroupEntry {
                     binding: 2,
@@ -174,7 +174,7 @@ pub(super) fn queue_bind_groups(
                 },
                 BindGroupEntry {
                     binding: 1,
-                    resource: BindingResource::TextureView(&source_image.texture_view),
+                    resource: BindingResource::TextureView(&lightmap_image.texture_view),
                 },
                 BindGroupEntry {
                     binding: 2,
@@ -197,7 +197,7 @@ pub(super) fn queue_bind_groups(
                 },
                 BindGroupEntry {
                     binding: 1,
-                    resource: BindingResource::TextureView(&source_image.texture_view),
+                    resource: BindingResource::TextureView(&lightmap_image.texture_view),
                 },
                 BindGroupEntry {
                     binding: 2,
@@ -211,7 +211,7 @@ pub(super) fn queue_bind_groups(
         });
 
         commands.insert_resource(PipelineBindGroups {
-            lightmap_bind_group,
+            scan_bind_group,
             left_to_right_bind_group,
             top_to_bottom_bind_group,
             right_to_left_bind_group,
@@ -220,13 +220,13 @@ pub(super) fn queue_bind_groups(
     }
 }
 
-impl FromWorld for LightPassPipeline {
+impl FromWorld for LightMapPipeline {
     fn from_world(world: &mut World) -> Self {
         let render_device = world.resource::<RenderDevice>();
 
-        let lightmap_layout =
+        let scan_layout =
             render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-                label: Some("lightmap_group_layout"),
+                label: Some("scan_group_layout"),
                 entries: &[
                     BindGroupLayoutEntry {
                         binding: 0,
@@ -463,9 +463,9 @@ impl FromWorld for LightPassPipeline {
 
         let pipeline_cache = world.resource_mut::<PipelineCache>();
 
-        let lightmap_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
-            label: Some("lightmap_pipeline".into()),
-            layout: vec![lightmap_layout.clone()],
+        let scan_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
+            label: Some("scan_pipeline".into()),
+            layout: vec![scan_layout.clone()],
             shader: shader_scan,
             shader_defs: vec![ShaderDefVal::UInt("SUBDIVISION".into(), SUBDIVISION)],
             entry_point: "scan".into(),
@@ -508,9 +508,9 @@ impl FromWorld for LightPassPipeline {
             push_constant_ranges: vec![],
         });
 
-        LightPassPipeline {
-            lightmap_layout,
-            lightmap_pipeline,
+        LightMapPipeline {
+            scan_layout,
+            scan_pipeline,
             left_to_right_layout,
             left_to_right_pipeline,
             top_to_bottom_layout,

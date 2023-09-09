@@ -11,7 +11,7 @@ use crate::plugins::InGameSystemSet;
 use crate::world::WorldData;
 
 use self::compositing::{LightMapMaterial, PostProcessingMaterial};
-use self::pipeline::{LightPassPipeline, PipelineBindGroups, PipelineTargetsWrapper};
+use self::pipeline::{LightMapPipeline, PipelineBindGroups, PipelineTargetsWrapper};
 use self::pipeline_assets::{BlurArea, PipelineAssets};
 
 pub(crate) mod compositing;
@@ -78,9 +78,9 @@ impl Plugin for LightingPlugin {
             );
 
         let mut render_graph = render_app.world.resource_mut::<RenderGraph>();
-        render_graph.add_node("light_pass", LightPassNode);
+        render_graph.add_node("light_map", LightMapNode);
         render_graph.add_node_edge(
-            "light_pass",
+            "light_map",
             bevy::render::main_graph::node::CAMERA_DRIVER,
         )
     }
@@ -89,7 +89,7 @@ impl Plugin for LightingPlugin {
         let render_app = app.sub_app_mut(RenderApp);
         render_app
             .init_resource::<PipelineAssets>()
-            .init_resource::<LightPassPipeline>();
+            .init_resource::<LightMapPipeline>();
     }
 }
 
@@ -100,8 +100,8 @@ fn update_world_underground_layer(
     underground_layer.0 = world_data.layer.underground as u32;
 }
 
-struct LightPassNode;
-impl Node for LightPassNode {
+struct LightMapNode;
+impl Node for LightMapNode {
     fn run(
         &self,
         _: &mut RenderGraphContext,
@@ -110,19 +110,19 @@ impl Node for LightPassNode {
     ) -> Result<(), NodeRunError> {
         if let Some(pipeline_bind_groups) = world.get_resource::<PipelineBindGroups>() {
             let pipeline_cache = world.resource::<PipelineCache>();
-            let pipeline = world.resource::<LightPassPipeline>();
+            let pipeline = world.resource::<LightMapPipeline>();
             let blur_area = world.resource::<BlurArea>();
             let underground_layer = world.resource::<WorldUndergroundLayer>();
 
             if blur_area.size().x > 0 && blur_area.size().y > 0 {
                 if let (
-                    Some(lightmap_pipeline),
+                    Some(scan_pipeline),
                     Some(left_to_right_pipeline),
                     Some(top_to_bottom_pipeline),
                     Some(right_to_left_pipeline),
-                    Some(output_pipeline),
+                    Some(bottom_to_top_pipeline),
                 ) = (
-                    pipeline_cache.get_compute_pipeline(pipeline.lightmap_pipeline),
+                    pipeline_cache.get_compute_pipeline(pipeline.scan_pipeline),
                     pipeline_cache.get_compute_pipeline(pipeline.left_to_right_pipeline),
                     pipeline_cache.get_compute_pipeline(pipeline.top_to_bottom_pipeline),
                     pipeline_cache.get_compute_pipeline(pipeline.right_to_left_pipeline),
@@ -137,8 +137,8 @@ impl Node for LightPassNode {
                     let grid_w = blur_area.width() / WORKGROUP;
                     let grid_h = blur_area.height() / WORKGROUP;
 
-                    pass.set_bind_group(0, &pipeline_bind_groups.lightmap_bind_group, &[]);
-                    pass.set_pipeline(&lightmap_pipeline);
+                    pass.set_bind_group(0, &pipeline_bind_groups.scan_bind_group, &[]);
+                    pass.set_pipeline(&scan_pipeline);
                     pass.dispatch_workgroups(grid_w, blur_area.height().min(underground_layer.0) / WORKGROUP, 1);
 
                     pass.set_bind_group(0, &pipeline_bind_groups.left_to_right_bind_group, &[]);
@@ -154,7 +154,7 @@ impl Node for LightPassNode {
                     pass.dispatch_workgroups(1, grid_h, 1);
 
                     pass.set_bind_group(0, &pipeline_bind_groups.bottom_to_top_bind_group, &[]);
-                    pass.set_pipeline(output_pipeline);
+                    pass.set_pipeline(bottom_to_top_pipeline);
                     pass.dispatch_workgroups(grid_w, 1, 1);
                 } else {
                     log::warn!("Failed to get bind groups");
