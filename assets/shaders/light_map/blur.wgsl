@@ -10,6 +10,9 @@ var<uniform> min: vec2<u32>;
 @group(0) @binding(3)
 var<uniform> max: vec2<u32>;
 
+const DECAY_THROUGH_SOLID: f32 = 0.56;
+const DECAY_THROUGH_AIR: f32 = 0.91;
+
 @compute @workgroup_size(1, 8, 1)
 fn left_to_right(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let y = min.y + invocation_id.y;
@@ -20,9 +23,9 @@ fn left_to_right(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     var decay = 0.;
 
     if tile == 1u {
-        decay = 0.56;
+        decay = DECAY_THROUGH_SOLID;
     } else if tile == 0u {
-        decay = 0.91;
+        decay = DECAY_THROUGH_AIR;
     }
 
     for (var x = min.x; x < max.x; x += 1u) {
@@ -38,9 +41,9 @@ fn left_to_right(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
 
         let tile = textureLoad(tiles_texture, vec2(x / u32(#SUBDIVISION), y / u32(#SUBDIVISION))).r;
         if tile == 1u {
-            decay = 0.56;
+            decay = DECAY_THROUGH_SOLID;
         } else if tile == 0u {
-            decay = 0.91;
+            decay = DECAY_THROUGH_AIR;
         }
     }
 }
@@ -55,9 +58,9 @@ fn right_to_left(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     var decay = 0.;
 
     if tile == 1u {
-        decay = 0.56;
+        decay = DECAY_THROUGH_SOLID;
     } else if tile == 0u {
-        decay = 0.91;
+        decay = DECAY_THROUGH_AIR;
     }
 
     for (var x = max.x - 1u; x > min.x; x -= 1u) {
@@ -73,9 +76,9 @@ fn right_to_left(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
 
         let tile = textureLoad(tiles_texture, vec2(x / u32(#SUBDIVISION), y / u32(#SUBDIVISION))).r;
         if tile == 1u {
-            decay = 0.56;
+            decay = DECAY_THROUGH_SOLID;
         } else if tile == 0u {
-            decay = 0.91;
+            decay = DECAY_THROUGH_AIR;
         }
     }
 }
@@ -90,9 +93,9 @@ fn top_to_bottom(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     var decay = 0.;
 
     if tile == 1u {
-        decay = 0.56;
+        decay = DECAY_THROUGH_SOLID;
     } else if tile == 0u {
-        decay = 0.91;
+        decay = DECAY_THROUGH_AIR;
     }
 
     for (var y = min.y; y < max.y; y += 1u) {
@@ -110,7 +113,7 @@ fn top_to_bottom(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
         if tile == 1u {
             decay = 0.56;
         } else if tile == 0u {
-            decay = 0.91;
+            decay = DECAY_THROUGH_AIR;
         }
     }
 }
@@ -127,7 +130,7 @@ fn bottom_to_top(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     if tile == 1u {
         decay = 0.56;
     } else if tile == 0u {
-        decay = 0.91;
+        decay = DECAY_THROUGH_AIR;
     }
 
     for (var y = max.y - 1u; y > min.y; y -= 1u) {
@@ -143,9 +146,9 @@ fn bottom_to_top(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
 
         let tile = textureLoad(tiles_texture, vec2(x / u32(#SUBDIVISION), y / u32(#SUBDIVISION))).r;
         if tile == 1u {
-            decay = 0.56;
+            decay = DECAY_THROUGH_SOLID;
         } else if tile == 0u {
-            decay = 0.91;
+            decay = DECAY_THROUGH_AIR;
         }
     }
 }
