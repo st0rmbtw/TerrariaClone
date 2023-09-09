@@ -1,5 +1,5 @@
 use bevy::{prelude::Image, math::URect, render::render_resource::{Extent3d, TextureDimension, TextureFormat}, utils::{default, syncunsafecell::SyncUnsafeCell}};
-use rayon::prelude::{ParallelIterator, IntoParallelIterator};
+use rayon::prelude::{ParallelIterator, IntoParallelIterator, IntoParallelRefMutIterator, IndexedParallelIterator};
 
 use super::WorldData;
 
@@ -26,8 +26,7 @@ pub(crate) fn generate_light_map(world: &WorldData) -> LightMap {
         TextureFormat::R8Unorm
     );
 
-    let area = URect::new(0, 0, light_map_width as u32, light_map_height as u32);
-    scan(&mut light_map, world, area);
+    scan(&mut light_map, world, URect::new(0, 0, light_map_width as u32, light_map_height as u32));
 
     light_map
 }
@@ -65,18 +64,6 @@ pub(crate) fn blur(light_map: &mut Image, world: &WorldData, area: URect) {
             let r = unsafe { &mut *cell.get() };
 
             blur_line(r, world, start, end, 1, width);
-        });
-
-    // Bottom to top
-    (min_x..max_x)
-        .into_par_iter()
-        .for_each(|x| {
-            let start = max_y * width + x;
-            let end = min_y * width + x;
-
-            let r = unsafe { &mut *cell.get() };
-
-            blur_line(r, world, start, end, -(width as i32), width);
         });
         
     // Right to left
@@ -128,28 +115,28 @@ fn blur_line(light_map: &mut [u8], world: &WorldData, start: usize, end: usize, 
     }
 }
 
-fn set_light(x: usize, y: usize, light: f32, light_map: &mut Image) {
-    let index = y * light_map.texture_descriptor.size.width as usize + x;
-    light_map.data[index] = (light * u8::MAX as f32) as u8;
-}
-
 pub(crate) fn scan(light_map: &mut LightMap, world: &WorldData, area: URect) {
+    let width = light_map.texture_descriptor.size.width as usize;
     let min_y = area.min.y as usize;
     let max_y = (area.max.y as usize).min(world.layer.underground * SUBDIVISION);
 
     let min_x = area.min.x as usize;
     let max_x = area.max.x as usize;
 
-    for y in min_y..max_y {
-        for x in min_x..max_x {
+    let start = min_y * width + min_x;
+    let end = max_y * width + max_x;
+
+    (&mut light_map.data[start..end])
+        .par_iter_mut()
+        .enumerate()
+        .for_each(|(index, light)| {
+            let x = (start + index) % width;
+            let y = (start + index) / width;
             let block_exists = world.solid_block_exists((x / SUBDIVISION, y / SUBDIVISION));
             let wall_exists = world.wall_exists((x / SUBDIVISION, y / SUBDIVISION));
-            
-            if block_exists || wall_exists {
-                set_light(x, y, 0., light_map);
-            } else {
-                set_light(x, y, 1., light_map);
+
+            if !block_exists && !wall_exists {
+                *light = u8::MAX;
             }
-        }
-    }
+        });
 }
