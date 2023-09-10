@@ -4,7 +4,7 @@ use autodefault::autodefault;
 use bevy::{prelude::{Commands, Entity, NodeBundle, Visibility, default, TextBundle, Color, Name, Button, BuildChildren, Res, Query, With, Changed, ResMut, Ref, DetectChanges}, ui::{Style, JustifyContent, AlignItems, AlignSelf, UiRect, Val, Interaction, PositionType, FlexDirection, Display, BackgroundColor}, text::{Text, TextAlignment, TextStyle}};
 use interpolation::EaseFunction;
 
-use crate::{language::LanguageContent, plugins::{assets::{FontAssets, UiAssets}, DespawnOnGameExit, config::{MusicVolume, SoundVolume}, ui::{menu::MENU_BUTTON_COLOR, components::{ZoomSlider, ZoomSliderOutput}}, slider::Slider, camera::resources::Zoom}, animation::{Tween, RepeatStrategy, Animator, Tweenable, TweeningDirection}, common::lens::TextFontSizeLens};
+use crate::{language::LanguageContent, plugins::{assets::{FontAssets, UiAssets}, DespawnOnGameExit, config::{MusicVolume, SoundVolume, ShowTileGrid}, ui::{menu::MENU_BUTTON_COLOR, components::{ZoomSlider, ZoomSliderOutput}}, slider::Slider, camera::resources::Zoom}, animation::{Tween, RepeatStrategy, Animator, Tweenable, TweeningDirection}, common::lens::TextFontSizeLens};
 
 use super::{components::{MenuContainer, SettingsButton, SettingsButtonContainer, TabMenuContainer, TabButton, TabMenu}, menus::{tabs_menu, general_menu, interface_menu}, SelectedTab, TAB_BUTTON_TEXT_SIZE};
 
@@ -46,7 +46,7 @@ pub(crate) fn spawn_ingame_settings_button(
                     ..default()
                 },
                 text: Text::from_section(
-                    language_content.ui.settings.clone(),
+                    &language_content.ui.settings,
                     TextStyle {
                         font: fonts.andy_bold.clone_weak(),
                         font_size: 32.,
@@ -122,7 +122,7 @@ pub(super) fn spawn_settings_menu(
             style: Style {
                 align_self: AlignSelf::Center
             },
-            text: Text::from_section(language_content.ui.settings_menu.clone(), text_style),
+            text: Text::from_section(&language_content.ui.settings_menu, text_style),
         });
 
         builder.spawn(NodeBundle {
@@ -161,13 +161,14 @@ pub(super) fn spawn_interface_menu(
     mut commands: Commands,
     font_assets: Res<FontAssets>,
     language_content: Res<LanguageContent>,
+    show_tile_grid: Res<ShowTileGrid>,
     query_tab_menu: Query<(), With<TabMenu>>,
     query_container: Query<Entity, With<TabMenuContainer>>
 ) {
     if !query_tab_menu.is_empty() { return; };
 
     let Ok(container) = query_container.get_single() else { return; };
-    interface_menu(&mut commands, container, &font_assets, &language_content);
+    interface_menu(&mut commands, container, &font_assets, &language_content, show_tile_grid.0);
 }
 
 pub(super) fn update_tab_buttons(

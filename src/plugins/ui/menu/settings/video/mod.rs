@@ -68,11 +68,11 @@ fn setup_video_menu(
     let container = query_container.single();
 
     menu(VideoMenu, &mut commands, container, 5., |builder| {
-        menu_button(builder, text_style.clone(), language_content.ui.resolution.clone(), (MenuButton, ResolutionButton));
-        menu_button(builder, text_style.clone(), language_content.ui.vsync.clone(), (MenuButton, VSyncButton));
+        menu_button(builder, text_style.clone(), &language_content.ui.resolution, (MenuButton, ResolutionButton));
+        menu_button(builder, text_style.clone(), &language_content.ui.vsync, (MenuButton, VSyncButton));
 
         control_buttons_layout(builder, |control_button_builder| {
-            control_button(control_button_builder, text_style, language_content.ui.back.clone(), (MenuButton, BackButton));
+            control_button(control_button_builder, text_style, &language_content.ui.back, (MenuButton, BackButton));
         });
     });
 }
@@ -91,5 +91,5 @@ fn update_vsync_button_text(
 
     let status = if vsync.0 { &language_content.ui.on } else { &language_content.ui.off };
 
-    text.sections[0].value = format!("{} {}", language_content.ui.vsync, status.clone());
+    text.sections[0].value = format!("{} {}", language_content.ui.vsync, status);
 }

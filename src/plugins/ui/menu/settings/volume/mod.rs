@@ -58,7 +58,7 @@ fn setup_volume_menu(
     let container = query_container.single();
 
     menu(VolumeMenu, &mut commands, container, 5., |builder| {
-        menu_text(builder, title_text_style, language_content.ui.volume.clone());
+        menu_text(builder, title_text_style, &language_content.ui.volume);
 
         slider_layout(
             builder,
@@ -76,7 +76,7 @@ fn setup_volume_menu(
                     ..default()
                 }).with_children(|b| {
                     menu_slider(b, &ui_assets, music_volume.get(), Color::WHITE, 1., Val::Auto, MusicVolumeSlider);
-                    slider_name_text(b, slider_text_style.clone(), language_content.ui.music.clone());
+                    slider_name_text(b, slider_text_style.clone(), &language_content.ui.music);
                 });
                 
                 first_column.spawn(NodeBundle {
@@ -90,7 +90,7 @@ fn setup_volume_menu(
                     ..default()
                 }).with_children(|b| {
                     menu_slider(b, &ui_assets, sound_volume.get(), Color::WHITE, 1., Val::Auto, SoundVolumeSlider);
-                    slider_name_text(b, slider_text_style.clone(), language_content.ui.sound.clone());
+                    slider_name_text(b, slider_text_style.clone(), &language_content.ui.sound);
                 });
             }, 
             AlignItems::Start,
@@ -101,7 +101,7 @@ fn setup_volume_menu(
         );
 
         control_buttons_layout(builder, |control_button_builder| {
-            control_button(control_button_builder, button_text_style, language_content.ui.back.clone(), (MenuButton, BackButton));
+            control_button(control_button_builder, button_text_style, &language_content.ui.back, (MenuButton, BackButton));
         });
     });
 }

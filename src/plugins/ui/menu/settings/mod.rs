@@ -75,14 +75,14 @@ fn setup_settings_menu(
     let container = query_container.single();
 
     menu(SettingsMenu, &mut commands, container, 5., |builder| {
-        menu_button(builder, text_style.clone(), language_content.ui.interface.clone(), (MenuButton, InterfaceButton));
-        menu_button(builder, text_style.clone(), language_content.ui.video.clone(), (MenuButton, VideoButton));
-        menu_button(builder, text_style.clone(), language_content.ui.volume.clone(), (MenuButton, VolumeButton));
-        menu_button(builder, text_style.clone(), language_content.ui.cursor.clone(), (MenuButton, CursorButton));
-        menu_button(builder, text_style.clone(), language_content.ui.language.clone(), (MenuButton, LanguageButton));
+        menu_button(builder, text_style.clone(), &language_content.ui.interface, (MenuButton, InterfaceButton));
+        menu_button(builder, text_style.clone(), &language_content.ui.video, (MenuButton, VideoButton));
+        menu_button(builder, text_style.clone(), &language_content.ui.volume, (MenuButton, VolumeButton));
+        menu_button(builder, text_style.clone(), &language_content.ui.cursor, (MenuButton, CursorButton));
+        menu_button(builder, text_style.clone(), &language_content.ui.language, (MenuButton, LanguageButton));
 
         control_buttons_layout(builder, |control_button_builder| {
-            control_button(control_button_builder, text_style.clone(), language_content.ui.back.clone(), (MenuButton, BackButton));
+            control_button(control_button_builder, text_style.clone(), &language_content.ui.back, (MenuButton, BackButton));
         });
     });
 }

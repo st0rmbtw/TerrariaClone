@@ -36,7 +36,7 @@ pub(crate) fn spawn_inventory_ui(
                             align_self: AlignSelf::Center,
                         },
                         text: Text::from_section(
-                            language_content.ui.items.clone(),
+                            &language_content.ui.items,
                             TextStyle {
                                 font: fonts.andy_bold.clone_weak(),
                                 font_size: 24.,
@@ -312,10 +312,10 @@ pub(super) fn update_hoverable(
 ) {
     for (cell_index, mut hoverable) in &mut hotbar_cells {
         if let Some(item) = inventory.get_item(cell_index.0) {
-            let name = if item.stack > 1 {
+            let name: String = if item.stack > 1 {
                 format!("{} ({})", language_content.item_name(item.item), item.stack)
             } else {
-                language_content.item_name(item.item)
+                language_content.item_name(item.item).clone()
             };
 
             *hoverable = Hoverable::SimpleText(name);
@@ -353,7 +353,8 @@ pub(super) fn update_selected_item_name_text(
         } else {
             current_item.0
                 .map(|item_stack| language_content.item_name(item_stack.item))
-                .unwrap_or(language_content.ui.items.clone())
+                .unwrap_or(&language_content.ui.items)
+                .clone()
         }
     }
 }

@@ -35,36 +35,37 @@ pub(super) fn tabs_menu(
         menu_button(
             builder,
             text_style.clone(),
-            language_content.ui.general.clone(),
+            &language_content.ui.general,
             (TabButton, SelectedTab::General, GeneralButton)
         );
         menu_button(
             builder,
             text_style.clone(),
-            language_content.ui.interface.clone(),
+            &language_content.ui.interface,
             (TabButton, SelectedTab::Interface, InterfaceButton)
         );
         menu_button(
             builder,
             text_style.clone(),
-            language_content.ui.video.clone(),
+            &language_content.ui.video,
             (TabButton, SelectedTab::Video, VideoButton)
         );
         menu_button(
             builder,
             text_style.clone(),
-            language_content.ui.cursor.clone(),
+            &language_content.ui.cursor,
             (TabButton,SelectedTab::Cursor, CursorButton)
         );
         menu_button(
             builder,
             text_style.clone(),
-            language_content.ui.close_menu.clone(),
+            &language_content.ui.close_menu,
             (TabButton, CloseMenuButton)
         );
         menu_button(
             builder,
-            text_style, language_content.ui.save_and_exit.clone(),
+            text_style,
+            &language_content.ui.save_and_exit,
             (TabButton, SaveAndExitButton)
         );
     });
@@ -94,7 +95,7 @@ pub(super) fn general_menu(
     };
 
     menu(TabMenu, commands, container, 5., |builder| {
-        menu_text(builder, caption_text_style.clone(), language_content.ui.volume.clone());
+        menu_text(builder, caption_text_style.clone(), &language_content.ui.volume);
 
         slider_layout(
             builder,
@@ -102,12 +103,12 @@ pub(super) fn general_menu(
             AlignItems::Center,
             |first_column| {
                 row(first_column, 5., |builder| {
-                    slider_name_text(builder, slider_text_style.clone(), language_content.ui.music.clone());
+                    slider_name_text(builder, slider_text_style.clone(), &language_content.ui.music);
                     slider_value_text(builder, slider_text_style.clone(), music_volume.get(), 50., MusicVolumeSliderOutput);
                 });
 
                 row(first_column, 5., |builder| {
-                    slider_name_text(builder, slider_text_style.clone(), language_content.ui.sound.clone());
+                    slider_name_text(builder, slider_text_style.clone(), &language_content.ui.sound);
                     slider_value_text(builder, slider_text_style.clone(), music_volume.get(), 50., SoundVolumeSliderOutput);
                 });
             },
@@ -120,7 +121,7 @@ pub(super) fn general_menu(
 
         spacer(builder, 15.);
 
-        menu_text(builder, caption_text_style.clone(), language_content.ui.zoom.clone());
+        menu_text(builder, caption_text_style.clone(), &language_content.ui.zoom);
 
         slider_layout(
             builder,
@@ -128,7 +129,7 @@ pub(super) fn general_menu(
             AlignItems::Center,
             |first_column| {
                 row(first_column, 5., |builder| {
-                    slider_name_text(builder, slider_text_style.clone(), language_content.ui.zoom.clone());
+                    slider_name_text(builder, slider_text_style.clone(), &language_content.ui.zoom);
                     slider_value_text(builder, slider_text_style.clone(), zoom.get(), 55., ZoomSliderOutput);
                 });
             },
@@ -145,6 +146,7 @@ pub(super) fn interface_menu(
     container: Entity,
     font_assets: &FontAssets,
     language_content: &LanguageContent,
+    show_tile_grid: bool
 ) {
     let text_style = TextStyle {
         font: font_assets.andy_bold.clone_weak(),
@@ -152,7 +154,9 @@ pub(super) fn interface_menu(
         color: MENU_BUTTON_COLOR,
     };
 
+    let status = if show_tile_grid { &language_content.ui.on } else { &language_content.ui.off };
+
     menu(TabMenu, commands, container, 5., |builder| {
-        menu_button(builder, text_style, language_content.ui.tile_grid.clone(), (TabMenuButton, ToggleTileGridButton))
+        menu_button(builder, text_style, format!("{} {}", language_content.ui.tile_grid, status), (TabMenuButton, ToggleTileGridButton))
     })
 }

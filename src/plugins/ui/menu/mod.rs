@@ -225,19 +225,19 @@ fn setup_main_menu(
         menu_button(
             builder,
             text_style.clone(),
-            language_content.ui.single_player.clone(),
+            &language_content.ui.single_player,
             (MenuButton, SinglePlayerButton),
         );
         menu_button(
             builder, 
             text_style.clone(), 
-            language_content.ui.settings.clone(), 
+            &language_content.ui.settings,
             (MenuButton, SettingsButton),
         );
         menu_button(
             builder, 
             text_style, 
-            language_content.ui.exit.clone(), 
+            &language_content.ui.exit,
             (MenuButton, ExitButton),
         );
     });

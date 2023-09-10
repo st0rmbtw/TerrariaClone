@@ -65,12 +65,12 @@ fn setup_resolution_menu(
     let container = query_container.single();
 
     menu(ResolutionMenu, &mut commands, container, 50., |builder| {
-        menu_button(builder, text_style.clone(), language_content.ui.full_screen_resolution.clone(), (MenuButton, FullScreenResolutionButton));
-        menu_button(builder, text_style.clone(), language_content.ui.full_screen.clone(), (MenuButton, FullScreenButton));
+        menu_button(builder, text_style.clone(), &language_content.ui.full_screen_resolution, (MenuButton, FullScreenResolutionButton));
+        menu_button(builder, text_style.clone(), &language_content.ui.full_screen, (MenuButton, FullScreenButton));
 
         control_buttons_layout(builder, |control_button_builder| {
-            control_button(control_button_builder, text_style.clone(), language_content.ui.apply.clone(), (MenuButton, ApplyButton));
-            control_button(control_button_builder, text_style, language_content.ui.back.clone(), (MenuButton, BackButton));
+            control_button(control_button_builder, text_style.clone(), &language_content.ui.apply, (MenuButton, ApplyButton));
+            control_button(control_button_builder, text_style, &language_content.ui.back, (MenuButton, BackButton));
         });
     });
 }
