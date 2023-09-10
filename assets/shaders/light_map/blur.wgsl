@@ -19,7 +19,7 @@ fn get_decay(pos: vec2<u32>) -> f32 {
 
     if tile == 1u {
         decay = DECAY_THROUGH_SOLID;
-    } else if tile == 0u {
+    } else {
         decay = DECAY_THROUGH_AIR;
     }
 
@@ -31,7 +31,7 @@ fn left_to_right(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let y = min.y + invocation_id.y;
 
     var prev_light = 0.;
-    var decay = get_decay(vec2(min.x, y / u32(#SUBDIVISION)));
+    var decay = 0.;
 
     for (var x = min.x; x < max.x; x += 1u) {
         let pos = vec2(x, y);
@@ -54,7 +54,7 @@ fn right_to_left(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let y = min.y + invocation_id.y;
 
     var prev_light = 0.;
-    var decay = get_decay(vec2(max.x - 1u, y / u32(#SUBDIVISION)));
+    var decay = 0.;
 
     for (var x = max.x - 1u; x > min.x; x -= 1u) {
         let pos = vec2(x, y);
@@ -77,7 +77,7 @@ fn top_to_bottom(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let x = min.x + invocation_id.x;
 
     var prev_light = 0.;
-    var decay = get_decay(vec2(x / u32(#SUBDIVISION), min.y));
+    var decay = 0.;
 
     for (var y = min.y; y < max.y; y += 1u) {
         let pos = vec2(x, y);
@@ -100,7 +100,7 @@ fn bottom_to_top(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let x = min.x + invocation_id.x;
 
     var prev_light = 0.;
-    var decay = get_decay(vec2(x / u32(#SUBDIVISION), max.y - 1u));
+    var decay = 0.;
 
     for (var y = max.y - 1u; y > min.y; y -= 1u) {
         let pos = vec2(x, y);

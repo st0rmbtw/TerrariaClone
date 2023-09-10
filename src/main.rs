@@ -19,7 +19,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     println!("The seed of the world is {}", seed);
 
-    game::generate_terraria_world_file(game::WorldSize::Tiny, seed, "LOOL")?;
+    game::generate_terraria_world_file(game::WorldSize::Tiny, seed, &seed.to_string())?;
     
     Ok(())
 }

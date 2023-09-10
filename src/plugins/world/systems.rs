@@ -47,8 +47,9 @@ pub(super) fn spawn_terrain(mut commands: Commands) {
     let current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
 
     let seed = current_time.as_millis() as u32;
+    // let seed = 2127439147;
 
-    println!("The world's seed is {}", seed);
+    println!("The seed of the world is {}", seed);
 
     let world_data = generate_world(seed, WorldSize::Tiny);
 

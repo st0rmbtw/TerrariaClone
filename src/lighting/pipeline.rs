@@ -1,10 +1,10 @@
-use bevy::{prelude::{Handle, Image, ResMut, Assets, default, Commands, Res, World, FromWorld, AssetServer, Resource, UVec2}, render::{render_resource::{BindGroup, TextureFormat, FilterMode, Extent3d, TextureDimension, TextureUsages, AddressMode, SamplerDescriptor, BindGroupLayout, CachedComputePipelineId, BindGroupDescriptor, BindGroupEntry, BindingResource, BindGroupLayoutDescriptor, BindGroupLayoutEntry, ShaderStages, BindingType, StorageTextureAccess, TextureViewDimension, PipelineCache, ComputePipelineDescriptor, BufferBindingType, ShaderType, ShaderDefVal}, texture::ImageSampler, renderer::RenderDevice, render_asset::RenderAssets, extract_resource::ExtractResource}};
+use bevy::{prelude::{Handle, Image, ResMut, Assets, default, Commands, Res, World, FromWorld, AssetServer, Resource, UVec2}, render::{render_resource::{BindGroup, TextureFormat, FilterMode, Extent3d, TextureDimension, TextureUsages, SamplerDescriptor, BindGroupLayout, CachedComputePipelineId, BindGroupDescriptor, BindGroupEntry, BindingResource, BindGroupLayoutDescriptor, BindGroupLayoutEntry, ShaderStages, BindingType, StorageTextureAccess, TextureViewDimension, PipelineCache, ComputePipelineDescriptor, BufferBindingType, ShaderType, ShaderDefVal}, texture::ImageSampler, renderer::RenderDevice, render_asset::RenderAssets, extract_resource::ExtractResource}};
 
 use crate::world::WorldData;
 
 use super::{SUBDIVISION, pipeline_assets::PipelineAssets};
 
-pub(super) const TARGET_FORMAT: TextureFormat = TextureFormat::R8Unorm;
+pub(super) const LIGHTMAP_FORMAT: TextureFormat = TextureFormat::R8Unorm;
 pub(super) const TILES_FORMAT: TextureFormat = TextureFormat::R8Uint;
 
 #[derive(Clone, Resource, ExtractResource, Default)]
@@ -49,15 +49,11 @@ pub(super) fn create_texture_2d(size: (u32, u32), format: TextureFormat) -> Imag
         format,
     );
 
-    image.texture_descriptor.usage =
-        TextureUsages::COPY_DST | TextureUsages::STORAGE_BINDING | TextureUsages::TEXTURE_BINDING;
+    image.texture_descriptor.usage = TextureUsages::COPY_SRC | TextureUsages::TEXTURE_BINDING | TextureUsages::STORAGE_BINDING;
 
     image.sampler_descriptor = ImageSampler::Descriptor(SamplerDescriptor {
         mag_filter: FilterMode::Nearest,
         min_filter: FilterMode::Nearest,
-        address_mode_u: AddressMode::ClampToBorder,
-        address_mode_v: AddressMode::ClampToBorder,
-        address_mode_w: AddressMode::ClampToBorder,
         ..default()
     });
 
@@ -72,7 +68,7 @@ pub(super) fn setup_pipeline_targets(
     let width = world_data.size.width as u32 * SUBDIVISION;
     let height = world_data.size.height as u32 * SUBDIVISION;
 
-    let texture = create_texture_2d((width, height), TARGET_FORMAT);
+    let texture = create_texture_2d((width, height), LIGHTMAP_FORMAT);
 
     targets_wrapper.light_map = Some(images.add(texture));
 }
@@ -243,7 +239,7 @@ impl FromWorld for LightMapPipeline {
                         visibility: ShaderStages::COMPUTE,
                         ty: BindingType::StorageTexture {
                             access: StorageTextureAccess::WriteOnly,
-                            format: TARGET_FORMAT,
+                            format: LIGHTMAP_FORMAT,
                             view_dimension: TextureViewDimension::D2,
                         },
                         count: None,
@@ -281,7 +277,7 @@ impl FromWorld for LightMapPipeline {
                         visibility: ShaderStages::COMPUTE,
                         ty: BindingType::StorageTexture {
                             access: StorageTextureAccess::ReadWrite,
-                            format: TARGET_FORMAT,
+                            format: LIGHTMAP_FORMAT,
                             view_dimension: TextureViewDimension::D2,
                         },
                         count: None,
@@ -328,7 +324,7 @@ impl FromWorld for LightMapPipeline {
                         visibility: ShaderStages::COMPUTE,
                         ty: BindingType::StorageTexture {
                             access: StorageTextureAccess::ReadWrite,
-                            format: TARGET_FORMAT,
+                            format: LIGHTMAP_FORMAT,
                             view_dimension: TextureViewDimension::D2,
                         },
                         count: None,
@@ -376,7 +372,7 @@ impl FromWorld for LightMapPipeline {
                         visibility: ShaderStages::COMPUTE,
                         ty: BindingType::StorageTexture {
                             access: StorageTextureAccess::ReadWrite,
-                            format: TARGET_FORMAT,
+                            format: LIGHTMAP_FORMAT,
                             view_dimension: TextureViewDimension::D2,
                         },
                         count: None,
@@ -424,7 +420,7 @@ impl FromWorld for LightMapPipeline {
                         visibility: ShaderStages::COMPUTE,
                         ty: BindingType::StorageTexture {
                             access: StorageTextureAccess::ReadWrite,
-                            format: TARGET_FORMAT,
+                            format: LIGHTMAP_FORMAT,
                             view_dimension: TextureViewDimension::D2,
                         },
                         count: None,

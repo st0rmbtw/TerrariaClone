@@ -31,9 +31,13 @@ pub(super) fn init_tiles_texture(
         for x in 0..res_world_data.size.width {
             let block_exists = res_world_data.solid_block_exists((x, y));
             let wall_exists = res_world_data.wall_exists((x, y));
+            let index = (y * res_world_data.size.width) + x;
 
-            if !block_exists && !wall_exists {
-                let index = (y * res_world_data.size.width) + x;
+            if block_exists {
+                bytes[index] = 1;
+            } else if wall_exists {
+                bytes[index] = 2;
+            } else {
                 bytes[index] = 0;
             }
         }
@@ -72,8 +76,10 @@ pub(super) fn handle_update_tiles_texture_event(
 
             let index = (event.y * world_data.size.width + event.x) * SUBDIVISION as usize;
 
-            if block_exists || wall_exists {
+            if block_exists {
                 image.data[index] = 1;
+            } else if wall_exists {
+                image.data[index] = 2;
             } else {
                 image.data[index] = 0;
             }

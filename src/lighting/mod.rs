@@ -47,15 +47,6 @@ impl Plugin for LightingPlugin {
         app.add_event::<UpdateTilesTextureEvent>();
 
         app.add_systems(
-            Update,
-            (
-                compositing::update_image_to_window_size,
-                pipeline_assets::handle_update_tiles_texture_event.in_set(InGameSystemSet::Update)
-            )
-        );
-        app.add_systems(PostUpdate, pipeline_assets::update_blur_area.in_set(InGameSystemSet::PostUpdate));
-
-        app.add_systems(
             OnExit(GameState::WorldLoading),
             (
                 update_world_underground_layer,
@@ -65,6 +56,15 @@ impl Plugin for LightingPlugin {
         );
 
         app.add_systems(OnEnter(GameState::InGame), compositing::setup_post_processing_camera);
+
+        app.add_systems(
+            Update,
+            (
+                compositing::update_image_to_window_size,
+                pipeline_assets::handle_update_tiles_texture_event.in_set(InGameSystemSet::Update)
+            )
+        );
+        app.add_systems(PostUpdate, pipeline_assets::update_blur_area.in_set(InGameSystemSet::PostUpdate));
 
         let render_app = app.sub_app_mut(RenderApp);
         render_app
@@ -118,20 +118,20 @@ impl Node for LightMapNode {
                 if let (
                     Some(scan_pipeline),
                     Some(left_to_right_pipeline),
-                    Some(top_to_bottom_pipeline),
                     Some(right_to_left_pipeline),
+                    Some(top_to_bottom_pipeline),
                     Some(bottom_to_top_pipeline),
                 ) = (
                     pipeline_cache.get_compute_pipeline(pipeline.scan_pipeline),
                     pipeline_cache.get_compute_pipeline(pipeline.left_to_right_pipeline),
-                    pipeline_cache.get_compute_pipeline(pipeline.top_to_bottom_pipeline),
                     pipeline_cache.get_compute_pipeline(pipeline.right_to_left_pipeline),
+                    pipeline_cache.get_compute_pipeline(pipeline.top_to_bottom_pipeline),
                     pipeline_cache.get_compute_pipeline(pipeline.bottom_to_top_pipeline),
                 ) {
                     let mut pass = render_context
                         .command_encoder()
                         .begin_compute_pass(&ComputePassDescriptor {
-                            label: Some("light_pass"),
+                            label: Some("light_map"),
                         });
 
                     let grid_w = blur_area.width() / WORKGROUP;
@@ -139,23 +139,42 @@ impl Node for LightMapNode {
 
                     pass.set_bind_group(0, &pipeline_bind_groups.scan_bind_group, &[]);
                     pass.set_pipeline(&scan_pipeline);
-                    pass.dispatch_workgroups(grid_w, blur_area.height().min(underground_layer.0) / WORKGROUP, 1);
-
+                    pass.dispatch_workgroups(grid_w, grid_h, 1);
+                    
                     pass.set_bind_group(0, &pipeline_bind_groups.left_to_right_bind_group, &[]);
                     pass.set_pipeline(left_to_right_pipeline);
+                    pass.dispatch_workgroups(1, grid_h, 1);
+
+                    pass.set_bind_group(0, &pipeline_bind_groups.right_to_left_bind_group, &[]);
+                    pass.set_pipeline(right_to_left_pipeline);
                     pass.dispatch_workgroups(1, grid_h, 1);
 
                     pass.set_bind_group(0, &pipeline_bind_groups.top_to_bottom_bind_group, &[]);
                     pass.set_pipeline(top_to_bottom_pipeline);
                     pass.dispatch_workgroups(grid_w, 1, 1);
 
+                    pass.set_bind_group(0, &pipeline_bind_groups.bottom_to_top_bind_group, &[]);
+                    pass.set_pipeline(bottom_to_top_pipeline);
+                    pass.dispatch_workgroups(grid_w, 1, 1);
+
+
+
+                    pass.set_bind_group(0, &pipeline_bind_groups.left_to_right_bind_group, &[]);
+                    pass.set_pipeline(left_to_right_pipeline);
+                    pass.dispatch_workgroups(1, grid_h, 1);
+
                     pass.set_bind_group(0, &pipeline_bind_groups.right_to_left_bind_group, &[]);
                     pass.set_pipeline(right_to_left_pipeline);
                     pass.dispatch_workgroups(1, grid_h, 1);
 
+                    pass.set_bind_group(0, &pipeline_bind_groups.top_to_bottom_bind_group, &[]);
+                    pass.set_pipeline(top_to_bottom_pipeline);
+                    pass.dispatch_workgroups(grid_w, 1, 1);
+
                     pass.set_bind_group(0, &pipeline_bind_groups.bottom_to_top_bind_group, &[]);
                     pass.set_pipeline(bottom_to_top_pipeline);
                     pass.dispatch_workgroups(grid_w, 1, 1);
+
                 } else {
                     log::warn!("Failed to get bind groups");
                 }

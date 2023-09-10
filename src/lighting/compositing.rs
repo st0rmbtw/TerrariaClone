@@ -2,13 +2,13 @@ use bevy::{
     prelude::{*, shape::Quad},
     render::{render_resource::{
         Extent3d, ShaderRef,
-        TextureDimension, AsBindGroup, RenderPipelineDescriptor, SpecializedMeshPipelineError, PrimitiveState, TextureUsages, ShaderDefVal,
+        TextureDimension, AsBindGroup, RenderPipelineDescriptor, SpecializedMeshPipelineError, TextureUsages,
     }, texture::BevyDefault, camera::RenderTarget, view::RenderLayers, mesh::InnerMeshVertexBufferLayout}, reflect::{TypePath, TypeUuid}, sprite::{Material2d, MaterialMesh2dBundle, Material2dKey}, window::{PrimaryWindow, WindowResized}, core_pipeline::fullscreen_vertex_shader::FULLSCREEN_SHADER_HANDLE, utils::Hashed,
 };
 
 use crate::plugins::{camera::components::{WorldCamera, MainCamera, BackgroundCamera, InGameBackgroundCamera}, DespawnOnGameExit};
 
-use super::{SUBDIVISION, pipeline::PipelineTargetsWrapper};
+use super::pipeline::PipelineTargetsWrapper;
 
 #[derive(Default, Resource, Deref)]
 pub(crate) struct LightMapTexture(pub(crate) Handle<Image>);
@@ -30,16 +30,6 @@ pub(crate) struct LightMapMaterial {
 impl Material2d for LightMapMaterial {
     fn fragment_shader() -> ShaderRef {
         "shaders/tile_material.wgsl".into()
-    }
-
-    fn specialize(
-        descriptor: &mut RenderPipelineDescriptor,
-        _layout: &bevy::render::mesh::MeshVertexBufferLayout,
-        _key: Material2dKey<Self>,
-    ) -> Result<(), SpecializedMeshPipelineError> {
-        let fragment = descriptor.fragment.as_mut().unwrap();
-        fragment.shader_defs.push(ShaderDefVal::UInt("SUBDIVISION".into(), SUBDIVISION));
-        Ok(())
     }
 }
 
@@ -77,7 +67,6 @@ impl Material2d for PostProcessingMaterial {
         _: &Hashed<InnerMeshVertexBufferLayout>,
         _: Material2dKey<Self>,
     ) -> Result<(), SpecializedMeshPipelineError> {
-        descriptor.primitive = PrimitiveState::default();
         descriptor.vertex.entry_point = "fullscreen_vertex_shader".into();
         Ok(())
     }
