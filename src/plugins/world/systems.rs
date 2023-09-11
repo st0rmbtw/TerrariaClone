@@ -20,7 +20,7 @@ use bevy_ecs_tilemap::{
 };
 use rand::{thread_rng, Rng};
 
-use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::components::MainCamera, player::{Player, PlayerRect}, audio::{PlaySoundEvent, SoundType}, DespawnOnGameExit}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect, TextureAtlasPos, math::map_range_i32}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}, lighting::{compositing::{LightMapMaterial, LightMapTexture}, UpdateTilesTextureEvent}, WALL_LAYER, TILES_LAYER, PLAYER_LAYER};
+use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::components::MainCamera, player::{Player, PlayerRect}, audio::{PlaySoundEvent, SoundType}, DespawnOnGameExit}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect, TextureAtlasPos, math::map_range_i32}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}, lighting::{compositing::{LightMapMaterial, LightMapTexture}, UpdateTilesTextureEvent, WorldUndergroundLevel}, WALL_LAYER, TILES_LAYER, PLAYER_LAYER};
 
 use super::{
     utils::{get_chunk_pos, get_camera_fov, get_chunk_tile_pos, get_chunk_range_by_camera_fov}, 
@@ -53,6 +53,7 @@ pub(super) fn spawn_terrain(mut commands: Commands) {
 
     let world_data = generate_world(seed, WorldSize::Tiny);
 
+    commands.insert_resource(WorldUndergroundLevel(world_data.layer.underground as u32));
     commands.insert_resource(world_data);
     commands.insert_resource(NextState(Some(GameState::InGame)));
 }

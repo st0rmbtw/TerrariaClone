@@ -86,11 +86,13 @@ pub(super) fn queue_bind_groups(
     let Some(light_map) = targets_wrapper.light_map.as_ref() else { return; };
 
     if let (
-        Some(min),
-        Some(max)
+        Some(area_min),
+        Some(area_max),
+        Some(underground_level),
     ) = (
-        pipeline_assets.min.binding(),
-        pipeline_assets.max.binding()
+        pipeline_assets.area_min.binding(),
+        pipeline_assets.area_max.binding(),
+        pipeline_assets.world_underground_level.binding(),
     ) {
         let tiles_image = &gpu_images[tiles];
         let lightmap_image = &gpu_images[light_map];
@@ -109,7 +111,11 @@ pub(super) fn queue_bind_groups(
                 },
                 BindGroupEntry {
                     binding: 2,
-                    resource: min.clone()
+                    resource: area_min.clone()
+                },
+                BindGroupEntry {
+                    binding: 3,
+                    resource: underground_level
                 },
             ],
         });
@@ -128,11 +134,11 @@ pub(super) fn queue_bind_groups(
                 },
                 BindGroupEntry {
                     binding: 2,
-                    resource: min.clone()
+                    resource: area_min.clone()
                 },
                 BindGroupEntry {
                     binding: 3,
-                    resource: max.clone()
+                    resource: area_max.clone()
                 },
             ],
         });
@@ -151,11 +157,11 @@ pub(super) fn queue_bind_groups(
                 },
                 BindGroupEntry {
                     binding: 2,
-                    resource: min.clone()
+                    resource: area_min.clone()
                 },
                 BindGroupEntry {
                     binding: 3,
-                    resource: max.clone()
+                    resource: area_max.clone()
                 },
             ],
         });
@@ -174,11 +180,11 @@ pub(super) fn queue_bind_groups(
                 },
                 BindGroupEntry {
                     binding: 2,
-                    resource: min.clone()
+                    resource: area_min.clone()
                 },
                 BindGroupEntry {
                     binding: 3,
-                    resource: max.clone()
+                    resource: area_max.clone()
                 },
             ],
         });
@@ -197,11 +203,11 @@ pub(super) fn queue_bind_groups(
                 },
                 BindGroupEntry {
                     binding: 2,
-                    resource: min
+                    resource: area_min
                 },
                 BindGroupEntry {
                     binding: 3,
-                    resource: max
+                    resource: area_max
                 },
             ],
         });
@@ -251,6 +257,16 @@ impl FromWorld for LightMapPipeline {
                             ty: BufferBindingType::Uniform,
                             has_dynamic_offset: false,
                             min_binding_size: Some(UVec2::min_size())
+                        },
+                        count: None,
+                    },
+                    BindGroupLayoutEntry {
+                        binding: 3,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::Buffer {
+                            ty: BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: Some(u32::min_size())
                         },
                         count: None,
                     },

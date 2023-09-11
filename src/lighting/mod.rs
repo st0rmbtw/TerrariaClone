@@ -1,5 +1,5 @@
 use bevy::log;
-use bevy::prelude::{Plugin, App, Update, IntoSystemConfigs, OnEnter, World, OnExit, PostUpdate, Event, Resource, ResMut, Res};
+use bevy::prelude::{Plugin, App, Update, IntoSystemConfigs, OnEnter, World, OnExit, PostUpdate, Event, Resource};
 use bevy::render::extract_resource::{ExtractResourcePlugin, ExtractResource};
 use bevy::render::render_graph::{RenderGraph, Node, RenderGraphContext, NodeRunError};
 use bevy::render::render_resource::{PipelineCache, ComputePassDescriptor};
@@ -8,7 +8,6 @@ use bevy::render::{RenderApp, Render, RenderSet, ExtractSchedule};
 use bevy::sprite::Material2dPlugin;
 use crate::common::state::GameState;
 use crate::plugins::InGameSystemSet;
-use crate::world::WorldData;
 
 use self::compositing::{LightMapMaterial, PostProcessingMaterial};
 use self::pipeline::{LightMapPipeline, PipelineBindGroups, PipelineTargetsWrapper};
@@ -28,7 +27,7 @@ pub(crate) struct UpdateTilesTextureEvent {
 }
 
 #[derive(Resource, ExtractResource, Clone, Copy, Default)]
-struct WorldUndergroundLayer(u32);
+pub(crate) struct WorldUndergroundLevel(pub(crate) u32);
 
 pub(crate) struct LightingPlugin;
 impl Plugin for LightingPlugin {
@@ -38,18 +37,16 @@ impl Plugin for LightingPlugin {
             Material2dPlugin::<PostProcessingMaterial>::default(),
             ExtractResourcePlugin::<PipelineTargetsWrapper>::default(),
             ExtractResourcePlugin::<BlurArea>::default(),
-            ExtractResourcePlugin::<WorldUndergroundLayer>::default(),
         ));
 
         app.init_resource::<PipelineTargetsWrapper>();
         app.init_resource::<BlurArea>();
-        app.init_resource::<WorldUndergroundLayer>();
+        app.init_resource::<WorldUndergroundLevel>();
         app.add_event::<UpdateTilesTextureEvent>();
 
         app.add_systems(
             OnExit(GameState::WorldLoading),
             (
-                update_world_underground_layer,
                 pipeline_assets::init_tiles_texture,
                 (pipeline::setup_pipeline_targets, compositing::spawn_lightmap_texture).chain(),
             )
@@ -93,13 +90,6 @@ impl Plugin for LightingPlugin {
     }
 }
 
-fn update_world_underground_layer(
-    mut underground_layer: ResMut<WorldUndergroundLayer>,
-    world_data: Res<WorldData>
-) {
-    underground_layer.0 = world_data.layer.underground as u32;
-}
-
 struct LightMapNode;
 impl Node for LightMapNode {
     fn run(
@@ -112,7 +102,6 @@ impl Node for LightMapNode {
             let pipeline_cache = world.resource::<PipelineCache>();
             let pipeline = world.resource::<LightMapPipeline>();
             let blur_area = world.resource::<BlurArea>();
-            let underground_layer = world.resource::<WorldUndergroundLayer>();
 
             if blur_area.size().x > 0 && blur_area.size().y > 0 {
                 if let (

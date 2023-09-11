@@ -2,21 +2,23 @@ use bevy::{prelude::{Image, Res, ResMut, Assets, GlobalTransform, OrthographicPr
 
 use crate::{world::WorldData, plugins::{camera::components::MainCamera, world::constants::TILE_SIZE}};
 
-use super::{pipeline::{PipelineTargetsWrapper, TILES_FORMAT}, SUBDIVISION, UpdateTilesTextureEvent};
+use super::{pipeline::{PipelineTargetsWrapper, TILES_FORMAT}, SUBDIVISION, UpdateTilesTextureEvent, WorldUndergroundLevel};
 
 #[derive(Resource, ExtractResource, Deref, Clone, Default)]
 pub(super) struct BlurArea(pub(super) URect);
 
 #[derive(Resource, Default)]
 pub(super) struct PipelineAssets {
-    pub(super) min: UniformBuffer<UVec2>,
-    pub(super) max: UniformBuffer<UVec2>,
+    pub(super) area_min: UniformBuffer<UVec2>,
+    pub(super) area_max: UniformBuffer<UVec2>,
+    pub(super) world_underground_level: UniformBuffer<u32>,
 }
 
 impl PipelineAssets {
     pub fn write_buffer(&mut self, device: &RenderDevice, queue: &RenderQueue) {
-        self.min.write_buffer(device, queue);
-        self.max.write_buffer(device, queue);
+        self.area_min.write_buffer(device, queue);
+        self.area_max.write_buffer(device, queue);
+        self.world_underground_level.write_buffer(device, queue);
     }
 }
 
@@ -27,7 +29,7 @@ pub(super) fn init_tiles_texture(
 ) {
     let mut bytes = vec![1u8; res_world_data.size.width * res_world_data.size.height];
 
-    for y in 0..res_world_data.layer.underground {
+    for y in 0..res_world_data.size.height {
         for x in 0..res_world_data.size.width {
             let block_exists = res_world_data.solid_block_exists((x, y));
             let wall_exists = res_world_data.wall_exists((x, y));
@@ -111,9 +113,11 @@ pub(super) fn prepare_pipeline_assets(
 }
 
 pub(super) fn extract_pipeline_assets(
+    world_underground_level: Extract<Res<WorldUndergroundLevel>>,
     blur_area: Extract<Res<BlurArea>>,
     mut pipeline_assets: ResMut<PipelineAssets>,
 ) {
-    *pipeline_assets.min.get_mut() = blur_area.min;
-    *pipeline_assets.max.get_mut() = blur_area.max;
+    *pipeline_assets.area_min.get_mut() = blur_area.min;
+    *pipeline_assets.area_max.get_mut() = blur_area.max;
+    *pipeline_assets.world_underground_level.get_mut() = world_underground_level.0;
 }
