@@ -1,4 +1,4 @@
-use bevy::{prelude::{Image, Res, ResMut, Assets, GlobalTransform, OrthographicProjection, With, Query, Resource, Deref, UVec2, EventReader}, render::{render_resource::{Extent3d, TextureDimension, TextureUsages, UniformBuffer}, extract_resource::ExtractResource, renderer::{RenderQueue, RenderDevice}, Extract}, utils::default, math::{URect, Vec3Swizzles}};
+use bevy::{prelude::{Image, Res, ResMut, Assets, GlobalTransform, OrthographicProjection, With, Query, Resource, Deref, UVec2, EventReader, DetectChanges}, render::{render_resource::{Extent3d, TextureDimension, TextureUsages, UniformBuffer}, extract_resource::ExtractResource, renderer::{RenderQueue, RenderDevice}, Extract}, utils::default, math::{URect, Vec3Swizzles}};
 
 use crate::{world::WorldData, plugins::{camera::components::MainCamera, world::{constants::TILE_SIZE, resources::WorldUndergroundLevel}}};
 
@@ -117,7 +117,12 @@ pub(super) fn extract_pipeline_assets(
     blur_area: Extract<Res<BlurArea>>,
     mut pipeline_assets: ResMut<PipelineAssets>,
 ) {
-    *pipeline_assets.area_min.get_mut() = blur_area.min;
-    *pipeline_assets.area_max.get_mut() = blur_area.max;
-    *pipeline_assets.world_underground_level.get_mut() = world_underground_level.0;
+    if blur_area.is_changed() {
+        *pipeline_assets.area_min.get_mut() = blur_area.min;
+        *pipeline_assets.area_max.get_mut() = blur_area.max;
+    }
+    
+    if world_underground_level.is_changed() {
+        *pipeline_assets.world_underground_level.get_mut() = world_underground_level.0;
+    }
 }

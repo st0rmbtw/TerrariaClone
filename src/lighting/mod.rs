@@ -8,6 +8,7 @@ use bevy::render::{RenderApp, Render, RenderSet, ExtractSchedule};
 use bevy::sprite::Material2dPlugin;
 use crate::common::state::GameState;
 use crate::plugins::InGameSystemSet;
+use crate::plugins::world::resources::WorldUndergroundLevel;
 
 use self::compositing::{LightMapMaterial, PostProcessingMaterial};
 use self::pipeline::{LightMapPipeline, PipelineBindGroups, PipelineTargetsWrapper};
@@ -38,6 +39,7 @@ impl Plugin for LightingPlugin {
 
         app.init_resource::<PipelineTargetsWrapper>();
         app.init_resource::<BlurArea>();
+        app.init_resource::<WorldUndergroundLevel>();
         app.add_event::<UpdateTilesTextureEvent>();
 
         app.add_systems(
