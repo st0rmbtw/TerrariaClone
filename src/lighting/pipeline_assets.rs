@@ -1,4 +1,4 @@
-use bevy::{prelude::{Image, Res, ResMut, Assets, GlobalTransform, OrthographicProjection, With, Query, Resource, Deref, UVec2, EventReader, EventWriter, AssetEvent}, render::{render_resource::{Extent3d, TextureDimension, TextureUsages, UniformBuffer}, extract_resource::ExtractResource, renderer::{RenderQueue, RenderDevice}, Extract}, utils::default, math::{URect, Vec3Swizzles}};
+use bevy::{prelude::{Image, Res, ResMut, Assets, GlobalTransform, OrthographicProjection, With, Query, Resource, Deref, UVec2, EventReader}, render::{render_resource::{Extent3d, TextureDimension, TextureUsages, UniformBuffer}, extract_resource::ExtractResource, renderer::{RenderQueue, RenderDevice}, Extract}, utils::default, math::{URect, Vec3Swizzles}};
 
 use crate::{world::WorldData, plugins::{camera::components::MainCamera, world::constants::TILE_SIZE}};
 
@@ -64,7 +64,6 @@ pub(super) fn handle_update_tiles_texture_event(
     world_data: Res<WorldData>,
     mut images: ResMut<Assets<Image>>,
     mut events: EventReader<UpdateTilesTextureEvent>,
-    mut asset_events: EventWriter<AssetEvent<Image>>
 ) {
     if events.is_empty() { return; }
 
@@ -74,7 +73,7 @@ pub(super) fn handle_update_tiles_texture_event(
             let block_exists = world_data.solid_block_exists((event.x, event.y));
             let wall_exists = world_data.wall_exists((event.x, event.y));
 
-            let index = (event.y * world_data.size.width + event.x) * SUBDIVISION as usize;
+            let index = event.y * world_data.size.width + event.x;
 
             if block_exists {
                 image.data[index] = 1;
@@ -84,7 +83,6 @@ pub(super) fn handle_update_tiles_texture_event(
                 image.data[index] = 0;
             }
         }
-        asset_events.send(AssetEvent::Modified { handle: tiles_texture_handle.clone_weak() });
     }
 }
 
