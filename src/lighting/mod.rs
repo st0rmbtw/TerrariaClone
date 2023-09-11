@@ -1,6 +1,6 @@
 use bevy::log;
-use bevy::prelude::{Plugin, App, Update, IntoSystemConfigs, OnEnter, World, OnExit, PostUpdate, Event, Resource};
-use bevy::render::extract_resource::{ExtractResourcePlugin, ExtractResource};
+use bevy::prelude::{Plugin, App, Update, IntoSystemConfigs, OnEnter, World, OnExit, PostUpdate, Event};
+use bevy::render::extract_resource::ExtractResourcePlugin;
 use bevy::render::render_graph::{RenderGraph, Node, RenderGraphContext, NodeRunError};
 use bevy::render::render_resource::{PipelineCache, ComputePassDescriptor};
 use bevy::render::renderer::RenderContext;
@@ -26,9 +26,6 @@ pub(crate) struct UpdateTilesTextureEvent {
     pub(crate) y: usize
 }
 
-#[derive(Resource, ExtractResource, Clone, Copy, Default)]
-pub(crate) struct WorldUndergroundLevel(pub(crate) u32);
-
 pub(crate) struct LightingPlugin;
 impl Plugin for LightingPlugin {
     fn build(&self, app: &mut App) {
@@ -41,7 +38,6 @@ impl Plugin for LightingPlugin {
 
         app.init_resource::<PipelineTargetsWrapper>();
         app.init_resource::<BlurArea>();
-        app.init_resource::<WorldUndergroundLevel>();
         app.add_event::<UpdateTilesTextureEvent>();
 
         app.add_systems(

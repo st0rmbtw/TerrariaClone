@@ -8,6 +8,9 @@ use super::{systems::{spawn_block, spawn_cracks}, utils::{get_chunk_pos, get_chu
 #[derive(Resource, Deref)]
 pub(crate) struct LightMapChunkMesh(pub(crate) Handle<Mesh>);
 
+#[derive(Resource, Clone, Copy, Default)]
+pub(crate) struct WorldUndergroundLevel(pub(crate) u32);
+
 #[derive(Resource, Default)]
 pub(super) struct ChunkManager {
     pub(super) spawned_chunks: HashSet<ChunkPos>

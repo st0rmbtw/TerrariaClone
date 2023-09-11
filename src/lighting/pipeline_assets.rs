@@ -1,8 +1,8 @@
 use bevy::{prelude::{Image, Res, ResMut, Assets, GlobalTransform, OrthographicProjection, With, Query, Resource, Deref, UVec2, EventReader}, render::{render_resource::{Extent3d, TextureDimension, TextureUsages, UniformBuffer}, extract_resource::ExtractResource, renderer::{RenderQueue, RenderDevice}, Extract}, utils::default, math::{URect, Vec3Swizzles}};
 
-use crate::{world::WorldData, plugins::{camera::components::MainCamera, world::constants::TILE_SIZE}};
+use crate::{world::WorldData, plugins::{camera::components::MainCamera, world::{constants::TILE_SIZE, resources::WorldUndergroundLevel}}};
 
-use super::{pipeline::{PipelineTargetsWrapper, TILES_FORMAT}, SUBDIVISION, UpdateTilesTextureEvent, WorldUndergroundLevel};
+use super::{pipeline::{PipelineTargetsWrapper, TILES_FORMAT}, SUBDIVISION, UpdateTilesTextureEvent};
 
 #[derive(Resource, ExtractResource, Deref, Clone, Default)]
 pub(super) struct BlurArea(pub(super) URect);
