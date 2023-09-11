@@ -124,43 +124,45 @@ impl Node for LightMapNode {
                     let grid_w = blur_area.width() / WORKGROUP;
                     let grid_h = blur_area.height() / WORKGROUP;
 
+                    // Scan
                     pass.set_bind_group(0, &pipeline_bind_groups.scan_bind_group, &[]);
                     pass.set_pipeline(&scan_pipeline);
                     pass.dispatch_workgroups(grid_w, grid_h, 1);
                     
-                    pass.set_bind_group(0, &pipeline_bind_groups.left_to_right_bind_group, &[]);
-                    pass.set_pipeline(left_to_right_pipeline);
-                    pass.dispatch_workgroups(1, grid_h, 1);
-
-                    pass.set_bind_group(0, &pipeline_bind_groups.right_to_left_bind_group, &[]);
-                    pass.set_pipeline(right_to_left_pipeline);
-                    pass.dispatch_workgroups(1, grid_h, 1);
-
+                    // First blur pass
                     pass.set_bind_group(0, &pipeline_bind_groups.top_to_bottom_bind_group, &[]);
                     pass.set_pipeline(top_to_bottom_pipeline);
                     pass.dispatch_workgroups(grid_w, 1, 1);
-
-                    pass.set_bind_group(0, &pipeline_bind_groups.bottom_to_top_bind_group, &[]);
-                    pass.set_pipeline(bottom_to_top_pipeline);
-                    pass.dispatch_workgroups(grid_w, 1, 1);
-
-
 
                     pass.set_bind_group(0, &pipeline_bind_groups.left_to_right_bind_group, &[]);
                     pass.set_pipeline(left_to_right_pipeline);
                     pass.dispatch_workgroups(1, grid_h, 1);
 
+                    pass.set_bind_group(0, &pipeline_bind_groups.bottom_to_top_bind_group, &[]);
+                    pass.set_pipeline(bottom_to_top_pipeline);
+                    pass.dispatch_workgroups(grid_w, 1, 1);
+
                     pass.set_bind_group(0, &pipeline_bind_groups.right_to_left_bind_group, &[]);
                     pass.set_pipeline(right_to_left_pipeline);
                     pass.dispatch_workgroups(1, grid_h, 1);
 
+
+                    // Second blur pass
                     pass.set_bind_group(0, &pipeline_bind_groups.top_to_bottom_bind_group, &[]);
                     pass.set_pipeline(top_to_bottom_pipeline);
                     pass.dispatch_workgroups(grid_w, 1, 1);
 
+                    pass.set_bind_group(0, &pipeline_bind_groups.left_to_right_bind_group, &[]);
+                    pass.set_pipeline(left_to_right_pipeline);
+                    pass.dispatch_workgroups(1, grid_h, 1);
+
                     pass.set_bind_group(0, &pipeline_bind_groups.bottom_to_top_bind_group, &[]);
                     pass.set_pipeline(bottom_to_top_pipeline);
                     pass.dispatch_workgroups(grid_w, 1, 1);
+
+                    pass.set_bind_group(0, &pipeline_bind_groups.right_to_left_bind_group, &[]);
+                    pass.set_pipeline(right_to_left_pipeline);
+                    pass.dispatch_workgroups(1, grid_h, 1);
 
                 } else {
                     log::warn!("Failed to get bind groups");
