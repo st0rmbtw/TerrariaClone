@@ -249,7 +249,8 @@ fn handle_back_event(
     mut play_sound: EventWriter<PlaySoundEvent>,
     mut back_events: EventReader<Back>
 ) {
-    if back_events.iter().last().is_some() {
+    if !back_events.is_empty() {
+        back_events.clear();
         next_state.set(state.back());
         play_sound.send(PlaySoundEvent(SoundType::MenuClose));
     }

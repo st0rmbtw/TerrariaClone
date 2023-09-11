@@ -198,7 +198,7 @@ pub(super) fn animate_button_scale(
     mut query: Query<(Ref<Interaction>, &mut Animator<Text>, Option<&SelectedTab>), With<TabButton>>,
 ) {
     for (interaction, mut animator, opt_tab) in query.iter_mut() {
-        if !(interaction.is_changed() || selected_tab.is_changed()) { continue; }
+        if !interaction.is_changed() && !selected_tab.is_changed() { continue; }
         if opt_tab.is_some_and(|tab| *tab == *selected_tab) { continue; }
 
         match *interaction {
@@ -223,7 +223,7 @@ pub(super) fn animate_button_scale(
 }
 
 pub(super) fn bind_zoom_slider_to_output(
-    query_slider: Query<&Slider, With<ZoomSlider>>,
+    query_slider: Query<&Slider, (With<ZoomSlider>, Changed<Slider>)>,
     mut query_output: Query<&mut Text, With<ZoomSliderOutput>>
 ) {
     let Ok(slider) = query_slider.get_single() else { return; };

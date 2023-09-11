@@ -56,25 +56,21 @@ impl<M: Component> Plugin for CursorPositionPlugin<M> {
 
         app.add_systems(PreUpdate, system);
     }
-
-    fn is_unique(&self) -> bool {
-        false
-    }
 }
 
 fn update_cursor_position<CameraMarker: Component>(
-    mut cursor: ResMut<CursorPosition<CameraMarker>>,
+    mut cursor_pos: ResMut<CursorPosition<CameraMarker>>,
     query_window: Query<&Window, With<PrimaryWindow>>,
-    query_main_camera: Query<(&Camera, &GlobalTransform), With<CameraMarker>>,
+    query_camera: Query<(&Camera, &GlobalTransform), With<CameraMarker>>,
 ) {
-    if let Ok((camera, camera_transform)) = query_main_camera.get_single() {
+    if let Ok((camera, camera_transform)) = query_camera.get_single() {
         let window = query_window.single();
 
         let Some(screen_pos) = window.cursor_position() else { return; };
-        cursor.screen = screen_pos;
+        cursor_pos.screen = screen_pos;
 
         if let Some(world_pos) = camera.viewport_to_world_2d(camera_transform, screen_pos) {
-            cursor.world = world_pos;
+            cursor_pos.world = world_pos;
         }
     }
 }

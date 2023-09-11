@@ -11,11 +11,16 @@ pub(crate) enum Language {
 
 impl Language {
     pub(crate) fn file_name(&self) -> String {
-        let suffix = match self {
+        let mut file_name = String::with_capacity(5 + 5);
+
+        let language = match self {
             Language::English => "en_US",
         };
 
-        suffix.to_string() + ".json"
+        file_name.push_str(language);
+        file_name.push_str(".json");
+
+        file_name
     }
 }
 

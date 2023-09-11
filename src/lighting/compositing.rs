@@ -85,7 +85,7 @@ pub(super) fn update_image_to_window_size(
 ) {
     if resize_events.is_empty() { return; }
 
-    for event in resize_events.iter() {
+    if let Some(event) = resize_events.iter().last() {
         if event.width > 0. && event.height > 0. {
             for fit_to_window in fit_to_window_size.iter() {
                 let size = {
