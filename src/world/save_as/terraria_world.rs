@@ -106,7 +106,7 @@ impl WorldData {
         write_f64(self.layer.cavern as f64, world_writer)?;
 
         // Time
-        write_f64(0., world_writer)?;
+        write_f64(25000., world_writer)?;
 
         // Day time
         write_true(world_writer)?;

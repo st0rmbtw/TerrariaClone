@@ -26,7 +26,7 @@ fn get_decay(pos: vec2<u32>) -> f32 {
     return decay;
 }
 
-@compute @workgroup_size(1, 8, 1)
+@compute @workgroup_size(1, 16, 1)
 fn left_to_right(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let y = min.y + invocation_id.y;
 
@@ -49,7 +49,7 @@ fn left_to_right(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     }
 }
 
-@compute @workgroup_size(1, 8, 1)
+@compute @workgroup_size(1, 16, 1)
 fn right_to_left(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let y = min.y + invocation_id.y;
 
@@ -72,7 +72,7 @@ fn right_to_left(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     }
 }
 
-@compute @workgroup_size(8, 1, 1)
+@compute @workgroup_size(16, 1, 1)
 fn top_to_bottom(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let x = min.x + invocation_id.x;
 
@@ -95,7 +95,7 @@ fn top_to_bottom(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     }
 }
 
-@compute @workgroup_size(8, 1, 1)
+@compute @workgroup_size(16, 1, 1)
 fn bottom_to_top(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let x = min.x + invocation_id.x;
 

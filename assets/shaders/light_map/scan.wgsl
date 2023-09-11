@@ -10,7 +10,7 @@ var<uniform> min: vec2<u32>;
 @group(0) @binding(3)
 var<uniform> underground_level: u32;
 
-@compute @workgroup_size(8, 8, 1)
+@compute @workgroup_size(16, 16, 1)
 fn scan(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let pos = min + invocation_id.xy;
 

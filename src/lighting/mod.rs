@@ -19,7 +19,7 @@ pub(super) mod pipeline;
 pub(super) mod pipeline_assets;
 
 pub(crate) const SUBDIVISION: u32 = 2;
-const WORKGROUP: u32 = 8;
+const WORKGROUP: u32 = 16;
 
 #[derive(Event, Clone, Copy)]
 pub(crate) struct UpdateTilesTextureEvent {
@@ -148,6 +148,24 @@ impl Node for LightMapNode {
 
 
                     // Second blur pass
+                    pass.set_bind_group(0, &pipeline_bind_groups.top_to_bottom_bind_group, &[]);
+                    pass.set_pipeline(top_to_bottom_pipeline);
+                    pass.dispatch_workgroups(grid_w, 1, 1);
+
+                    pass.set_bind_group(0, &pipeline_bind_groups.left_to_right_bind_group, &[]);
+                    pass.set_pipeline(left_to_right_pipeline);
+                    pass.dispatch_workgroups(1, grid_h, 1);
+
+                    pass.set_bind_group(0, &pipeline_bind_groups.bottom_to_top_bind_group, &[]);
+                    pass.set_pipeline(bottom_to_top_pipeline);
+                    pass.dispatch_workgroups(grid_w, 1, 1);
+
+                    pass.set_bind_group(0, &pipeline_bind_groups.right_to_left_bind_group, &[]);
+                    pass.set_pipeline(right_to_left_pipeline);
+                    pass.dispatch_workgroups(1, grid_h, 1);
+
+
+                    // Third blur pass
                     pass.set_bind_group(0, &pipeline_bind_groups.top_to_bottom_bind_group, &[]);
                     pass.set_pipeline(top_to_bottom_pipeline);
                     pass.dispatch_workgroups(grid_w, 1, 1);
