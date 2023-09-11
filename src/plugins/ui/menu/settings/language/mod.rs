@@ -53,7 +53,7 @@ fn setup_language_menu(
         menu_text(builder, title_text_style, "To do...");
 
         control_buttons_layout(builder, |control_button_builder| {
-            control_button(control_button_builder, button_text_style, language_content.ui.back.clone(), (MenuButton, BackButton));
+            control_button(control_button_builder, button_text_style, &language_content.ui.back, (MenuButton, BackButton));
         });
     });
 }

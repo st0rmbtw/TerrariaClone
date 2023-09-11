@@ -7,7 +7,7 @@ use bevy::{
     input::common_conditions::input_just_pressed, diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin, Diagnostic},
 };
 
-use crate::common::helpers::toggle_visibility;
+use crate::common::systems::toggle_visibility;
 use super::ui::{UiVisibility, FpsText};
 
 pub(crate) struct FpsPlugin;

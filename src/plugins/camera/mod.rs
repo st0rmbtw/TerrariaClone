@@ -9,7 +9,7 @@ pub(crate) mod resources;
 mod systems;
 
 pub(crate) const MIN_CAMERA_ZOOM: f32 = 0.5;
-pub(crate) const MAX_CAMERA_ZOOM: f32 = 1.1;
+pub(crate) const MAX_CAMERA_ZOOM: f32 = 1.;
 const CAMERA_ZOOM_STEP: f32 = 1.;
 
 #[cfg(feature = "debug")]

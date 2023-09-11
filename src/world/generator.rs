@@ -623,7 +623,7 @@ fn get_surface_block_y(world: &mut WorldData, x: usize) -> usize {
     y
 }
 
-fn get_surface_wall_y(world: &mut WorldData, x: usize) -> usize {
+fn get_surface_wall_y(world: &WorldData, x: usize) -> usize {
     let mut y = world.layer.underground - world.layer.dirt_height - DIRT_HILL_HEIGHT;
 
     while y < world.size.height {
@@ -639,11 +639,12 @@ fn get_surface_wall_y(world: &mut WorldData, x: usize) -> usize {
 
 fn set_spawn_point(world: &mut WorldData) {
     let x = world.size.width / 2;
-    let y = get_surface_block_y(world, x);
+    let y = get_surface_block_y(world, x - 1).min(get_surface_block_y(world, x));
 
     world.spawn_point = TilePos::new(x as u32, y as u32);
 }
 
+#[inline]
 fn any_neighbor_not_exist(world: &WorldData, x: usize, y: usize) -> bool {
     Neighbors::get_square_neighboring_positions(
         &TilePos::new(x as u32, y as u32),

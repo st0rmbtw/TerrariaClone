@@ -11,11 +11,16 @@ pub(crate) enum Language {
 
 impl Language {
     pub(crate) fn file_name(&self) -> String {
-        let suffix = match self {
+        let mut file_name = String::with_capacity(5 + 5);
+
+        let language = match self {
             Language::English => "en_US",
         };
 
-        suffix.to_string() + ".json"
+        file_name.push_str(language);
+        file_name.push_str(".json");
+
+        file_name
     }
 }
 
@@ -74,7 +79,7 @@ pub(crate) struct LanguageContent {
 }
 
 impl LanguageContent {
-    pub(crate) fn item_name(&self, item: Item) -> String {
+    pub(crate) fn item_name(&self, item: Item) -> &String {
         match item {
             Item::Tool(tool) => self.tool_name(tool),
             Item::Block(block) => self.block_name(block),
@@ -82,36 +87,36 @@ impl LanguageContent {
         }
     }
 
-    fn tool_name(&self, tool: Tool) -> String {
+    fn tool_name(&self, tool: Tool) -> &String {
         match tool {
             Tool::Pickaxe(pickaxe) => self.pickaxe_name(pickaxe),
             Tool::Axe(axe) => self.axe_name(axe),
         }
     }
 
-    fn pickaxe_name(&self, pickaxe: Pickaxe) -> String {
+    fn pickaxe_name(&self, pickaxe: Pickaxe) -> &String {
         match pickaxe {
-            Pickaxe::CopperPickaxe => self.items.copper_pickaxe.clone(),
+            Pickaxe::CopperPickaxe => &self.items.copper_pickaxe,
         }
     }
 
-    fn block_name(&self, block_type: BlockType) -> String {
+    fn block_name(&self, block_type: BlockType) -> &String {
         match block_type {
-            BlockType::Dirt => self.items.dirt_block.clone(),
-            BlockType::Stone => self.items.stone_block.clone(),
+            BlockType::Dirt => &self.items.dirt_block,
+            BlockType::Stone => &self.items.stone_block,
             _ => panic!("No such item")
         }
     }
 
-    fn seed_name(&self, seed: Seed) -> String {
+    fn seed_name(&self, seed: Seed) -> &String {
         match seed {
-            Seed::Grass => self.items.grass_seed.clone(),
+            Seed::Grass => &self.items.grass_seed,
         }
     }
 
-    fn axe_name(&self, axe: Axe) -> String {
+    fn axe_name(&self, axe: Axe) -> &String {
         match axe {
-            Axe::CopperAxe => self.items.copper_axe.clone(),
+            Axe::CopperAxe => &self.items.copper_axe,
         }
     }
 }

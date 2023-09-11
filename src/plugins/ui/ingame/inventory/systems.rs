@@ -36,7 +36,7 @@ pub(crate) fn spawn_inventory_ui(
                             align_self: AlignSelf::Center,
                         },
                         text: Text::from_section(
-                            language_content.ui.items.clone(),
+                            &language_content.ui.items,
                             TextStyle {
                                 font: fonts.andy_bold.clone_weak(),
                                 font_size: 24.,
@@ -125,8 +125,7 @@ fn spawn_inventory_cell(
     index: usize,
     fonts: &FontAssets,
 ) {
-    let width = if hotbar_cell { HOTBAR_CELL_SIZE } else { INVENTORY_CELL_SIZE };
-    let height = if hotbar_cell { HOTBAR_CELL_SIZE } else { INVENTORY_CELL_SIZE };
+    let size = if hotbar_cell { HOTBAR_CELL_SIZE } else { INVENTORY_CELL_SIZE };
 
     children
         .spawn((
@@ -137,8 +136,8 @@ fn spawn_inventory_cell(
             ImageBundle {
                 style: Style {
                     margin: UiRect::horizontal(Val::Px(2.)),
-                    width: Val::Px(width),
-                    height: Val::Px(height),
+                    width: Val::Px(size),
+                    height: Val::Px(size),
                     align_self: AlignSelf::Center,
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
@@ -312,10 +311,10 @@ pub(super) fn update_hoverable(
 ) {
     for (cell_index, mut hoverable) in &mut hotbar_cells {
         if let Some(item) = inventory.get_item(cell_index.0) {
-            let name = if item.stack > 1 {
+            let name: String = if item.stack > 1 {
                 format!("{} ({})", language_content.item_name(item.item), item.stack)
             } else {
-                language_content.item_name(item.item)
+                language_content.item_name(item.item).clone()
             };
 
             *hoverable = Hoverable::SimpleText(name);
@@ -345,16 +344,17 @@ pub(super) fn update_selected_item_name_text(
     language_content: Res<LanguageContent>,
     mut query_selected_item_name: Query<&mut Text, With<SelectedItemName>>
 ) {
-    if current_item.is_changed() || visibility.is_changed() {
-        let mut text = query_selected_item_name.single_mut();
+    if !current_item.is_changed() && !visibility.is_changed() { return; } 
 
-        text.sections[0].value = if visibility.value() {
-            language_content.ui.inventory.clone()
-        } else {
-            current_item.0
-                .map(|item_stack| language_content.item_name(item_stack.item))
-                .unwrap_or(language_content.ui.items.clone())
-        }
+    let mut text = query_selected_item_name.single_mut();
+
+    text.sections[0].value = if visibility.value() {
+        language_content.ui.inventory.clone()
+    } else {
+        current_item.0
+            .map(|item_stack| language_content.item_name(item_stack.item))
+            .unwrap_or(&language_content.ui.items)
+            .clone()
     }
 }
 

@@ -47,6 +47,17 @@ pub(crate) fn set_visibility_negated<C: Component, R: BoolValue + Resource>(
     }
 }
 
+pub(crate) fn toggle_visibility<C: Component>(
+    mut query: Query<&mut Visibility, With<C>>
+) {
+    for mut visibility in &mut query {
+        *visibility = match *visibility {
+            Visibility::Inherited | Visibility::Visible => Visibility::Hidden,
+            Visibility::Hidden => Visibility::Inherited,
+        };
+    }
+}
+
 pub(crate) fn send_event<E: Event + Clone>(event: E) -> impl FnMut(EventWriter<E>) {
     move |mut events: EventWriter<E>| {
         events.send(event.clone());

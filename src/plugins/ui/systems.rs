@@ -1,4 +1,4 @@
-use bevy::{prelude::{EventWriter, Res, Resource, With, Changed, Query, Component, Color}, text::Text, ui::{Interaction, BackgroundColor}};
+use bevy::{prelude::{EventWriter, Res, Resource, With, Changed, Query, Component, Color, DetectChanges}, text::Text, ui::{Interaction, BackgroundColor}};
 
 use crate::{plugins::{audio::{PlaySoundEvent, SoundType, UpdateMusicVolume, UpdateSoundVolume}, slider::Slider, config::ShowTileGrid}, common::BoolValue, language::LanguageContent};
 
@@ -46,7 +46,7 @@ pub(super) fn update_sound_volume(
 }
 
 pub(super) fn bind_slider_to_output<S: Component, O: Component>(
-    query_slider: Query<&Slider, With<S>>,
+    query_slider: Query<&Slider, (With<S>, Changed<Slider>)>,
     mut query_output: Query<&mut Text, With<O>>
 ) {
     let Ok(slider) = query_slider.get_single() else { return; };
@@ -77,8 +77,10 @@ pub(super) fn update_toggle_tile_grid_button_text(
     language_content: Res<LanguageContent>
 ) {
     if let Ok(mut text) = query.get_single_mut() {
-        let status = if show_tile_grid.0 { language_content.ui.on.clone() } else { language_content.ui.off.clone() } ;
+        if show_tile_grid.is_changed() {
+            let status = if show_tile_grid.0 { &language_content.ui.on } else { &language_content.ui.off } ;
 
-        text.sections[0].value = format!("{} {}", language_content.ui.tile_grid, status);
+            text.sections[0].value = format!("{} {}", language_content.ui.tile_grid, status);
+        }
     }
 }

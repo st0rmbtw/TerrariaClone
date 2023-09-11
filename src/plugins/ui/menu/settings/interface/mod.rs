@@ -55,10 +55,10 @@ fn setup_interface_menu(
     let container = query_container.single();
 
     menu(InterfaceMenu, &mut commands, container, 5., |builder| {
-        menu_button(builder, text_style.clone(), language_content.ui.tile_grid.clone(), (MenuButton, ToggleTileGridButton));
+        menu_button(builder, text_style.clone(), &language_content.ui.tile_grid, (MenuButton, ToggleTileGridButton));
 
         control_buttons_layout(builder, |control_button_builder| {
-            control_button(control_button_builder, text_style, language_content.ui.back.clone(), (MenuButton, BackButton));
+            control_button(control_button_builder, text_style, &language_content.ui.back, (MenuButton, BackButton));
         });
     });
 }

@@ -37,6 +37,7 @@ impl WorldData {
         // Terraria world version
         write_i32(71, world_writer)?;
         
+        // World name
         write_string(world_name, world_writer)?;
 
         // World Id
@@ -225,7 +226,7 @@ impl WorldData {
         write_i32(0, world_writer)?;
 
         // TreeBG
-        write_u8(0, world_writer)?;
+        write_u8(5, world_writer)?;
         
         // CorruptBG
         write_u8(0, world_writer)?;

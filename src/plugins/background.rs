@@ -268,8 +268,8 @@ fn spawn_forest_background(
                 image: backgrounds.background_55.clone_weak(),
                 z: BACKGROUND_LAYER + 0.3,
                 transition_factor: 1.,
-                scale: 2.,
-                position: (world_data.layer.underground - world_data.layer.dirt_height) as f32 * TILE_SIZE * Vec2::NEG_Y,
+                scale: 2.5,
+                position: (world_data.layer.underground - world_data.layer.dirt_height / 2) as f32 * TILE_SIZE * Vec2::NEG_Y,
                 anchor: Anchor::Center,
                 ..default()
             },
@@ -279,7 +279,7 @@ fn spawn_forest_background(
                 z: BACKGROUND_LAYER + 0.2,
                 transition_factor: 1.,
                 scale: 2.,
-                position: (world_data.layer.underground - world_data.layer.dirt_height) as f32 * TILE_SIZE * Vec2::NEG_Y,
+                position: (world_data.layer.underground - world_data.layer.dirt_height / 2) as f32 * TILE_SIZE * Vec2::NEG_Y,
                 anchor: Anchor::Center,
                 ..default()
             },

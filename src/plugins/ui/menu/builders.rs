@@ -56,7 +56,7 @@ pub(crate) fn menu_button(
                     style: Style {
                         position_type: PositionType::Absolute,
                     },
-                    text: Text::from_section(button_name.into(), text_style.clone()).with_no_wrap(),
+                    text: Text::from_section(button_name, text_style.clone()).with_no_wrap(),
                 }
             ));
         });
@@ -68,7 +68,7 @@ pub(crate) fn menu_text(builder: &mut ChildBuilder, text_style: TextStyle, text:
     builder.spawn((
         Name::new("MenuText"),
         TextBundle {
-            text: Text::from_section(text.into(), text_style.clone()).with_no_wrap(),
+            text: Text::from_section(text, text_style.clone()).with_no_wrap(),
         }
     ));
 }
@@ -96,7 +96,7 @@ pub(crate) fn control_buttons_layout(
 pub(crate) fn control_button(
     builder: &mut ChildBuilder,
     text_style: TextStyle,
-    name: String,
+    name: impl Into<String>,
     bundle: impl Bundle
 ) {
     builder.spawn(NodeBundle {
