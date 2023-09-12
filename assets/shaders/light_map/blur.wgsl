@@ -10,8 +10,12 @@ var<uniform> min: vec2<u32>;
 @group(0) @binding(3)
 var<uniform> max: vec2<u32>;
 
-const DECAY_THROUGH_SOLID: f32 = 0.86;
-const DECAY_THROUGH_AIR: f32 = 0.97;
+@group(0) @binding(4)
+var<uniform> decay_solid: f32;
+
+@group(0) @binding(5)
+var<uniform> decay_air: f32;
+
 const EPSILON: f32 = 0.00185000002384186;
 
 fn get_decay(pos: vec2<u32>) -> f32 {
@@ -29,9 +33,9 @@ fn get_decay(pos: vec2<u32>) -> f32 {
     var decay = 0.;
 
     if tile == 1u {
-        decay = DECAY_THROUGH_SOLID;
+        decay = decay_solid;
     } else {
-        decay = DECAY_THROUGH_AIR;
+        decay = decay_air;
     }
 
     return decay;

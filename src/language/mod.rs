@@ -44,16 +44,22 @@ pub(crate) struct UI {
     pub(crate) back: String,
     pub(crate) apply: String,
     pub(crate) resolution: String,
+    #[serde(rename = "FullScreen")]
     pub(crate) fullscreen: String,
     pub(crate) music: String,
     pub(crate) sound: String,
     pub(crate) language: String,
     #[serde(rename = "VSync")]
     pub(crate) vsync: String,
+    #[serde(rename = "FullScreenResolution")]
     pub(crate) fullscreen_resolution: String,
+    pub(crate) light_smoothness: String,
     pub(crate) close_menu: String,
     pub(crate) save_and_exit: String,
     pub(crate) zoom: String,
+    pub(crate) classic: String,
+    pub(crate) medium: String,
+    pub(crate) high: String,
 }
 
 #[derive(Deserialize)]

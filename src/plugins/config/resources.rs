@@ -1,7 +1,7 @@
 use bevy::{prelude::{Resource, Color, Deref, DerefMut}, window::{PresentMode, WindowMode}, audio::VolumeLevel};
 use serde::{Deserialize, Serialize};
 
-use crate::common::{BoolValue, Toggle};
+use crate::{common::{BoolValue, Toggle}, language::LanguageContent};
 
 #[derive(Resource, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub(crate) struct Resolution {
@@ -92,5 +92,66 @@ impl SoundVolume {
     pub(crate) fn new(value: f32) -> Self {
         debug_assert!((0.0..=1.0).contains(&value));
         Self(VolumeLevel::new(value))
+    }
+}
+
+#[derive(Resource, Clone)]
+pub(crate) struct LightSettings {
+    pub(crate) subdivision: u32,
+    pub(crate) decay_solid: f32,
+    pub(crate) decay_air: f32
+}
+
+#[derive(Resource, Clone, Copy)]
+pub(crate) enum LightSmoothness {
+    Classic,
+    Medium,
+    High
+}
+
+impl LightSmoothness {
+    pub(crate) const fn new(value: u8) -> Self {
+        match value {
+            0 => Self::Classic,
+            1 => Self::Medium,
+            2 => Self::High,
+            _ => panic!("Expected either 0, 1 or 2 value")
+        }
+    }
+
+    pub(crate) const fn to_u8(self) -> u8 {
+        match self {
+            Self::Classic => 0,
+            Self::Medium => 1,
+            Self::High => 2,
+        }
+    }
+
+    pub(crate) const fn settings(&self) -> LightSettings {
+        match self {
+            LightSmoothness::Classic => LightSettings {
+                subdivision: 2,
+                decay_solid: 0.56,
+                decay_air: 0.56
+            },
+            LightSmoothness::Medium => LightSettings {
+                subdivision: 4,
+                decay_solid: 0.78,
+                decay_air: 0.78
+            },
+            LightSmoothness::High => LightSettings {
+                subdivision: 8,
+                decay_solid: 0.86,
+                decay_air: 0.86
+            },
+        }
+    }
+
+    pub(crate) fn name(&self, langage_content: &LanguageContent) -> String {
+        match &self {
+            LightSmoothness::Classic => langage_content.ui.classic.clone(),
+            LightSmoothness::Medium => langage_content.ui.medium.clone(),
+            LightSmoothness::High => langage_content.ui.high.clone(),
+        }
     }
 }

@@ -1,8 +1,8 @@
 use bevy::{prelude::{Image, Res, ResMut, Assets, GlobalTransform, OrthographicProjection, With, Query, Resource, Deref, UVec2, EventReader, DetectChanges}, render::{render_resource::{Extent3d, TextureDimension, TextureUsages, UniformBuffer}, extract_resource::ExtractResource, renderer::{RenderQueue, RenderDevice}, Extract}, utils::default, math::{URect, Vec3Swizzles}};
 
-use crate::{world::WorldData, plugins::{camera::components::MainCamera, world::{constants::TILE_SIZE, resources::WorldUndergroundLevel}}};
+use crate::{world::WorldData, plugins::{camera::components::MainCamera, world::{constants::TILE_SIZE, resources::WorldUndergroundLevel}, config::LightSettings}};
 
-use super::{pipeline::{PipelineTargetsWrapper, TILES_FORMAT}, SUBDIVISION, UpdateTilesTextureEvent};
+use super::{pipeline::{PipelineTargetsWrapper, TILES_FORMAT}, UpdateTilesTextureEvent};
 
 #[derive(Resource, ExtractResource, Deref, Clone, Default)]
 pub(super) struct BlurArea(pub(super) URect);
@@ -12,6 +12,8 @@ pub(super) struct PipelineAssets {
     pub(super) area_min: UniformBuffer<UVec2>,
     pub(super) area_max: UniformBuffer<UVec2>,
     pub(super) world_underground_level: UniformBuffer<u32>,
+    pub(super) decay_solid: UniformBuffer<f32>,
+    pub(super) decay_air: UniformBuffer<f32>,
 }
 
 impl PipelineAssets {
@@ -19,6 +21,8 @@ impl PipelineAssets {
         self.area_min.write_buffer(device, queue);
         self.area_max.write_buffer(device, queue);
         self.world_underground_level.write_buffer(device, queue);
+        self.decay_solid.write_buffer(device, queue);
+        self.decay_air.write_buffer(device, queue);
     }
 }
 
@@ -90,6 +94,7 @@ pub(super) fn handle_update_tiles_texture_event(
 
 pub(super) fn update_blur_area(
     mut blur_area: ResMut<BlurArea>,
+    light_settings: Res<LightSettings>,
     query_camera: Query<(&GlobalTransform, &OrthographicProjection), With<MainCamera>>,
 ) {
     let Ok((camera_transform, projection)) = query_camera.get_single() else { return };
@@ -97,8 +102,8 @@ pub(super) fn update_blur_area(
     let camera_position = camera_transform.translation().xy().abs();
 
     let area = URect::from_corners(
-        ((camera_position + projection.area.min) / TILE_SIZE - 8.).as_uvec2() * SUBDIVISION,
-        ((camera_position + projection.area.max) / TILE_SIZE + 8.).as_uvec2() * SUBDIVISION,
+        ((camera_position + projection.area.min) / TILE_SIZE - 8.).as_uvec2() * light_settings.subdivision,
+        ((camera_position + projection.area.max) / TILE_SIZE + 8.).as_uvec2() * light_settings.subdivision,
     );
 
     blur_area.0 = area;
@@ -115,6 +120,7 @@ pub(super) fn prepare_pipeline_assets(
 pub(super) fn extract_pipeline_assets(
     world_underground_level: Extract<Res<WorldUndergroundLevel>>,
     blur_area: Extract<Res<BlurArea>>,
+    light_settings: Res<LightSettings>,
     mut pipeline_assets: ResMut<PipelineAssets>,
 ) {
     if blur_area.is_changed() {
@@ -125,4 +131,7 @@ pub(super) fn extract_pipeline_assets(
     if world_underground_level.is_changed() {
         *pipeline_assets.world_underground_level.get_mut() = world_underground_level.0;
     }
+
+    *pipeline_assets.decay_solid.get_mut() = light_settings.decay_solid;
+    *pipeline_assets.decay_air.get_mut() = light_settings.decay_air;
 }

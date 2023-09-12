@@ -1,6 +1,6 @@
 use std::{fs::OpenOptions, io::{BufReader, BufWriter}, error::Error};
 
-use bevy::{prelude::{Plugin, App, IntoSystemConfigs, Update, Res, on_event}, app::AppExit, window::{WindowCloseRequested, PrimaryWindow}};
+use bevy::{prelude::{Plugin, App, IntoSystemConfigs, Update, Res, on_event}, app::AppExit, window::{WindowCloseRequested, PrimaryWindow}, render::RenderApp};
 use serde::{Deserialize, Serialize};
 
 use crate::common::systems::despawn_with;
@@ -43,7 +43,8 @@ pub(crate) struct Config {
     pub(crate) cursor_color: CursorColor,
     pub(crate) zoom: f32,
     pub(crate) sound_volume: f32,
-    pub(crate) music_volume: f32
+    pub(crate) music_volume: f32,
+    pub(crate) light_smoothness: u8,
 }
 
 
@@ -56,8 +57,9 @@ impl Default for Config {
             resolution: Resolution::new(1920., 1080.),
             cursor_color: CursorColor::default(),
             zoom: 0.67,
-            sound_volume: 100.,
-            music_volume: 100.
+            sound_volume: 1.,
+            music_volume: 1.,
+            light_smoothness: LightSmoothness::Classic.to_u8()
         }
     }
 }
@@ -67,12 +69,16 @@ impl Plugin for ConfigPlugin {
     fn build(&self, app: &mut App) {
         let config = load_config().unwrap_or_default();
 
+        let light_smoothness = LightSmoothness::new(config.light_smoothness);
+
         app.insert_resource(FullScreen(config.full_screen));
         app.insert_resource(ShowTileGrid(config.show_tile_grid));
         app.insert_resource(VSync(config.vsync));
         app.insert_resource(MusicVolume::new(config.music_volume));
         app.insert_resource(SoundVolume::new(config.sound_volume));
         app.insert_resource(Zoom::new(config.zoom));
+        app.insert_resource(light_smoothness.settings());
+        app.insert_resource(light_smoothness);
         app.insert_resource(config.cursor_color);
         app.insert_resource(config.resolution);
 
@@ -83,6 +89,13 @@ impl Plugin for ConfigPlugin {
                 (on_exit, despawn_with::<PrimaryWindow>).run_if(on_event::<WindowCloseRequested>())
             )
         );
+    }
+
+    fn finish(&self, app: &mut App) {
+        let light_smoothness = *app.world.resource::<LightSmoothness>();
+
+        let render_app = app.get_sub_app_mut(RenderApp).unwrap();
+        render_app.insert_resource(light_smoothness.settings());
     }
 }
 
@@ -95,6 +108,7 @@ fn on_exit(
     music_volume: Res<MusicVolume>,
     sound_volume: Res<SoundVolume>,
     zoom: Res<Zoom>,
+    light_smoothness: Res<LightSmoothness>,
 ) {
     save_config(Config {
         full_screen: fullscreen.0,
@@ -104,7 +118,8 @@ fn on_exit(
         cursor_color: *cursor_color,
         sound_volume: sound_volume.get(),
         music_volume: music_volume.get(),
-        zoom: zoom.get()
+        zoom: zoom.get(),
+        light_smoothness: light_smoothness.to_u8()
     });
 }
 

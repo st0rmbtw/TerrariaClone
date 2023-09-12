@@ -89,7 +89,7 @@ fn setup_resolution_menu(
 
 fn fullscreen_resolution_clicked(
     mut resolution_index: Local<usize>,
-    mut resolution: ResMut<Resolution> 
+    mut resolution: ResMut<Resolution>
 ) {
     let index = RESOLUTIONS.iter().position(|res| *res == *resolution).unwrap_or(*resolution_index);
     *resolution_index = (index + 1) % RESOLUTIONS.len();

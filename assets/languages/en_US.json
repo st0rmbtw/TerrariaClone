@@ -85,12 +85,16 @@
 		"Resolution": "Resolution",
 		"FullScreen": "Fullscreen",
 		"FullScreenResolution": "Fullscreen Resolution",
+		"LightSmoothness": "Light Smoothness",
 		"VSync": "VSync",
 		"Music": "Music",
 		"Sound": "Sound",
 		"Language": "Language",
 		"CloseMenu": "Close menu",
 		"SaveAndExit": "Save & Exit",
-		"Zoom": "Zoom"
+		"Zoom": "Zoom",
+		"Classic": "Classic",
+		"Medium": "Medium",
+		"High": "High"
 	}
 }
