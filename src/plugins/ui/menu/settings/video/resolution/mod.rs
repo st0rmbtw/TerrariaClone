@@ -1,5 +1,5 @@
 use autodefault::autodefault;
-use bevy::{prelude::{Component, Commands, Res, ResMut, Query, With, Local, Entity, Plugin, App, OnEnter, OnExit,IntoSystemConfigs, in_state, Update, EventWriter}, text::{TextStyle, Text}, window::{Window, WindowResolution}};
+use bevy::{prelude::{Component, Commands, Res, ResMut, Query, With, Local, Entity, Plugin, App, OnEnter, OnExit,IntoSystemConfigs, in_state, Update, EventWriter, DetectChanges}, text::{TextStyle, Text}, window::{Window, WindowResolution}};
 
 use crate::{
     language::LanguageContent,
@@ -54,6 +54,8 @@ fn setup_resolution_menu(
     mut commands: Commands,
     fonts: Res<FontAssets>,
     language_content: Res<LanguageContent>,
+    fullscreen: Res<FullScreen>,
+    resolution: Res<Resolution>,
     query_container: Query<Entity, With<MenuContainer>>
 ) {
     let text_style = TextStyle {
@@ -65,8 +67,18 @@ fn setup_resolution_menu(
     let container = query_container.single();
 
     menu(ResolutionMenu, &mut commands, container, 50., |builder| {
-        menu_button(builder, text_style.clone(), &language_content.ui.full_screen_resolution, (MenuButton, FullScreenResolutionButton));
-        menu_button(builder, text_style.clone(), &language_content.ui.full_screen, (MenuButton, FullScreenButton));
+        menu_button(
+            builder,
+            text_style.clone(),
+            resolution_btn_name(&language_content, &resolution),
+            (MenuButton, FullScreenResolutionButton)
+        );
+        menu_button(
+            builder,
+            text_style.clone(),
+            fullscreen_btn_name(&language_content, fullscreen.0),
+            (MenuButton, FullScreenButton)
+        );
 
         control_buttons_layout(builder, |control_button_builder| {
             control_button(control_button_builder, text_style.clone(), &language_content.ui.apply, (MenuButton, ApplyButton));
@@ -106,11 +118,11 @@ fn update_fullscreen_resolution_button_text(
     resolution: Res<Resolution>,
     language_content: Res<LanguageContent>
 ) {
-    let mut text = query.single_mut();
+    if resolution.is_changed() {
+        let mut text = query.single_mut();
 
-    let resolution_str = format!("{}x{}", resolution.width, resolution.height);
-
-    text.sections[0].value = format!("{} {}", language_content.ui.full_screen_resolution, resolution_str);
+        text.sections[0].value = resolution_btn_name(&language_content, &resolution);
+    }
 }
 
 fn update_resolution_button_text(
@@ -118,9 +130,19 @@ fn update_resolution_button_text(
     fullscreen: Res<FullScreen>,
     language_content: Res<LanguageContent>
 ) {
-    let mut text = query.single_mut();
+    if fullscreen.is_changed() {
+        let mut text = query.single_mut();
 
-    let status = if fullscreen.0 { language_content.ui.on.to_string() } else { language_content.ui.off.to_string() };
+        text.sections[0].value = fullscreen_btn_name(&language_content, fullscreen.0);
+    }
+}
 
-    text.sections[0].value = format!("{} {}", language_content.ui.full_screen, status);
+#[inline]
+fn fullscreen_btn_name(language_content: &LanguageContent, fullscreen: bool) -> String {
+    format!("{} {}", language_content.ui.fullscreen, language_content.on_off(fullscreen))
+}
+
+#[inline]
+fn resolution_btn_name(language_content: &LanguageContent, resolution: &Resolution) -> String {
+    format!("{} {}x{}", language_content.ui.fullscreen_resolution, resolution.width, resolution.height)
 }

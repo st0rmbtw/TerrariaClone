@@ -18,7 +18,7 @@ pub(crate) mod compositing;
 pub(super) mod pipeline;
 pub(super) mod pipeline_assets;
 
-pub(crate) const SUBDIVISION: u32 = 2;
+pub(crate) const SUBDIVISION: u32 = 8;
 const WORKGROUP: u32 = 16;
 
 #[derive(Event, Clone, Copy)]

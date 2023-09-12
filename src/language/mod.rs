@@ -44,13 +44,13 @@ pub(crate) struct UI {
     pub(crate) back: String,
     pub(crate) apply: String,
     pub(crate) resolution: String,
-    pub(crate) full_screen: String,
+    pub(crate) fullscreen: String,
     pub(crate) music: String,
     pub(crate) sound: String,
     pub(crate) language: String,
     #[serde(rename = "VSync")]
     pub(crate) vsync: String,
-    pub(crate) full_screen_resolution: String,
+    pub(crate) fullscreen_resolution: String,
     pub(crate) close_menu: String,
     pub(crate) save_and_exit: String,
     pub(crate) zoom: String,
@@ -79,6 +79,10 @@ pub(crate) struct LanguageContent {
 }
 
 impl LanguageContent {
+    pub(crate) fn on_off(&self, value: bool) -> &String {
+        if value { &self.ui.on } else { &self.ui.off }
+    }
+
     pub(crate) fn item_name(&self, item: Item) -> &String {
         match item {
             Item::Tool(tool) => self.tool_name(tool),

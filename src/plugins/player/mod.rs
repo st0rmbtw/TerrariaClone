@@ -9,7 +9,7 @@ use systems::*;
 pub(crate) use components::*;
 pub(crate) use body_sprites::*;
 
-use crate::{common::{state::{GameState, MovementState}, helpers::tile_pos_to_world_coords, systems::{component_equals, despawn_with}}, plugins::player::utils::simple_animation, world::WorldData};
+use crate::{common::{state::{GameState, MovementState}, helpers::tile_pos_to_world_coords, systems::{component_equals, despawn_with, set_resource}}, plugins::player::utils::simple_animation, world::WorldData};
 use std::time::Duration;
 use bevy::{prelude::*, time::{Timer, TimerMode}, math::vec2};
 
@@ -92,6 +92,8 @@ impl Plugin for PlayerPlugin {
             )
             .in_set(InGameSystemSet::FixedUpdate)
         );
+
+        app.add_systems(PostUpdate, set_resource(InputAxis::default()));
 
         #[cfg(feature = "debug")]
         {

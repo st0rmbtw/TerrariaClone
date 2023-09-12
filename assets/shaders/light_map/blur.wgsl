@@ -10,12 +10,22 @@ var<uniform> min: vec2<u32>;
 @group(0) @binding(3)
 var<uniform> max: vec2<u32>;
 
-const DECAY_THROUGH_SOLID: f32 = 0.56;
-const DECAY_THROUGH_AIR: f32 = 0.91;
-const EPSILON: f32 = 0.0185000002384186;
+const DECAY_THROUGH_SOLID: f32 = 0.86;
+const DECAY_THROUGH_AIR: f32 = 0.97;
+const EPSILON: f32 = 0.00185000002384186;
 
 fn get_decay(pos: vec2<u32>) -> f32 {
-    let tile = textureLoad(tiles_texture, pos).r;
+    let tile = textureLoad(tiles_texture, pos / u32(#SUBDIVISION)).r;
+    let n1 = textureLoad(tiles_texture, (pos + vec2(0u, 1u)) / u32(#SUBDIVISION)).r;
+    let n2 = textureLoad(tiles_texture, (pos + vec2(1u, 0u)) / u32(#SUBDIVISION)).r;
+    let n3 = textureLoad(tiles_texture, (pos - vec2(0u, 1u)) / u32(#SUBDIVISION)).r;
+    let n4 = textureLoad(tiles_texture, (pos - vec2(1u, 0u)) / u32(#SUBDIVISION)).r;
+
+    let n_light = n1 * n2 * n3 * n4;
+    if n_light == 0u {
+        return 1.;
+    }
+
     var decay = 0.;
 
     if tile == 1u {
@@ -46,7 +56,7 @@ fn left_to_right(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
             prev_light = this_light;
         }
 
-        decay = get_decay(pos / u32(#SUBDIVISION));
+        decay = get_decay(pos);
     }
 }
 
@@ -69,7 +79,7 @@ fn right_to_left(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
             prev_light = this_light;
         }
 
-        decay = get_decay(pos / u32(#SUBDIVISION));
+        decay = get_decay(pos);
     }
 }
 
@@ -92,7 +102,7 @@ fn top_to_bottom(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
             prev_light = this_light;
         }
 
-        decay = get_decay(pos / u32(#SUBDIVISION));
+        decay = get_decay(pos);
     }
 }
 
@@ -115,6 +125,6 @@ fn bottom_to_top(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
             prev_light = this_light;
         }
 
-        decay = get_decay(pos / u32(#SUBDIVISION));
+        decay = get_decay(pos);
     }
 }

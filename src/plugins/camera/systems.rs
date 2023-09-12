@@ -1,4 +1,3 @@
-use autodefault::autodefault;
 use bevy::{
     prelude::{
         Commands, Camera2dBundle, OrthographicProjection, Transform, Res, KeyCode, Query, 
@@ -14,10 +13,10 @@ use crate::plugins::player::Player;
 
 use super::{CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, components::{MainCamera, WorldCamera, ZoomableCamera, MoveCamera}, resources::Zoom};
 
-#[autodefault]
 pub(super) fn setup_main_camera(
     mut commands: Commands,
-    world_data: Res<WorldData>
+    world_data: Res<WorldData>,
+    zoom: Res<Zoom>
 ) {
     let player_spawn_point = tile_pos_to_world_coords(world_data.spawn_point);
 
@@ -30,17 +29,23 @@ pub(super) fn setup_main_camera(
             MoveCamera,
             UiCameraConfig { show_ui: false },
             Camera2dBundle {
+                projection: OrthographicProjection {
+                    scale: zoom.get(),
+                    ..default()
+                },
                 transform: Transform::from_xyz(player_spawn_point.x, player_spawn_point.y, 500.),
                 camera_2d: Camera2d {
                     clear_color: ClearColorConfig::Custom(Color::NONE)
-                }
+                },
+                ..default()
             }
         ));
 }
 
 pub(super) fn setup_world_camera(
     mut commands: Commands,
-    world_data: Res<WorldData>
+    world_data: Res<WorldData>,
+    zoom: Res<Zoom>
 ) {
     let player_spawn_point = tile_pos_to_world_coords(world_data.spawn_point);
 
@@ -52,6 +57,10 @@ pub(super) fn setup_world_camera(
         MoveCamera,
         UiCameraConfig { show_ui: false },
         Camera2dBundle {
+            projection: OrthographicProjection {
+                scale: zoom.get(),
+                ..default()
+            },
             transform: Transform::from_xyz(player_spawn_point.x, player_spawn_point.y, 500.),
             camera_2d: Camera2d {
                 clear_color: ClearColorConfig::Custom(Color::NONE)

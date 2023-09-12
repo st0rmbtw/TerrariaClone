@@ -237,8 +237,7 @@ pub(super) fn move_player(
 
     let new_position = (transform.translation.xy() + velocity.0).clamp(vec2(min_x, min_y), vec2(max_x, max_y));
 
-    transform.translation.x = new_position.x;
-    transform.translation.y = new_position.y;
+    transform.set_if_neq(transform.with_translation(Vec3::new(new_position.x, new_position.y, transform.translation.z)));
 }
 
 pub(super) fn update_player_rect(

@@ -123,7 +123,7 @@ pub(super) fn spawn_chunks(
     mut tile_materials: ResMut<Assets<LightMapMaterial>>,
     query_camera: Query<
         (&GlobalTransform, &OrthographicProjection),
-        (With<MainCamera>, Changed<Transform>),
+        (With<MainCamera>, Changed<GlobalTransform>),
     >
 ) {
     if let Ok((camera_transform, projection)) = query_camera.get_single() {

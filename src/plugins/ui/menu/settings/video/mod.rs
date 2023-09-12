@@ -1,7 +1,7 @@
 mod resolution;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Res, ResMut, Query, With, Entity, Plugin, OnEnter, OnExit, IntoSystemConfigs, App, in_state, Update, Component}, text::{TextStyle, Text}, window::Window};
+use bevy::{prelude::{Commands, Res, ResMut, Query, With, Entity, Plugin, OnEnter, OnExit, IntoSystemConfigs, App, in_state, Update, Component, DetectChanges}, text::{TextStyle, Text}, window::Window};
 
 use crate::{
     plugins::{
@@ -57,6 +57,7 @@ fn setup_video_menu(
     mut commands: Commands,
     fonts: Res<FontAssets>,
     language_content: Res<LanguageContent>,
+    vsync: Res<VSync>,
     query_container: Query<Entity, With<MenuContainer>>
 ) {
     let text_style = TextStyle {
@@ -68,8 +69,25 @@ fn setup_video_menu(
     let container = query_container.single();
 
     menu(VideoMenu, &mut commands, container, 5., |builder| {
-        menu_button(builder, text_style.clone(), &language_content.ui.resolution, (MenuButton, ResolutionButton));
-        menu_button(builder, text_style.clone(), &language_content.ui.vsync, (MenuButton, VSyncButton));
+        menu_button(
+            builder,
+            text_style.clone(),
+            &language_content.ui.resolution,
+            (MenuButton, ResolutionButton)
+        );
+        menu_button(
+            builder,
+            text_style.clone(),
+            format!("{} {}", language_content.ui.vsync, language_content.on_off(vsync.0)),
+            (MenuButton, VSyncButton)
+        );
+
+        menu_button(
+            builder,
+            text_style.clone(),
+            format!("{} {}", language_content.ui.vsync, language_content.on_off(vsync.0)),
+            (MenuButton, VSyncButton)
+        );
 
         control_buttons_layout(builder, |control_button_builder| {
             control_button(control_button_builder, text_style, &language_content.ui.back, (MenuButton, BackButton));
@@ -87,9 +105,9 @@ fn update_vsync_button_text(
     vsync: Res<VSync>,
     language_content: Res<LanguageContent>
 ) {
-    let mut text = query.single_mut();
+    if vsync.is_changed() {
+        let mut text = query.single_mut();
 
-    let status = if vsync.0 { &language_content.ui.on } else { &language_content.ui.off };
-
-    text.sections[0].value = format!("{} {}", language_content.ui.vsync, status);
+        text.sections[0].value = format!("{} {}", language_content.ui.vsync, language_content.on_off(vsync.0));
+    }
 }
