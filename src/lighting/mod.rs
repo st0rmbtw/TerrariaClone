@@ -126,7 +126,7 @@ impl Node for LightMapNode {
 
                     // Scan
                     pass.set_bind_group(0, &pipeline_bind_groups.scan_bind_group, &[]);
-                    pass.set_pipeline(&scan_pipeline);
+                    pass.set_pipeline(scan_pipeline);
                     pass.dispatch_workgroups(grid_w, grid_h, 1);
                     
                     // First blur pass

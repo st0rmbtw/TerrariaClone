@@ -127,7 +127,6 @@ pub(super) fn spawn_chunks(
     >
 ) {
     if let Ok((camera_transform, projection)) = query_camera.get_single() {
-
         let camera_fov = get_camera_fov(camera_transform.translation().xy(), projection);
         let chunk_range = get_chunk_range_by_camera_fov(camera_fov, world_data.size);
 
@@ -270,7 +269,7 @@ pub(super) fn spawn_chunk(
         }
     }
 
-    let mesh = commands.spawn((
+    let lightmap_quad = commands.spawn((
         MaterialMesh2dBundle {
             mesh: Mesh2dHandle(light_map_mesh.clone_weak()),
             material: light_map_materials.add(LightMapMaterial {
@@ -289,8 +288,6 @@ pub(super) fn spawn_chunk(
         WORLD_RENDER_LAYER
     ))
     .id();
-
-    commands.entity(chunk).add_child(mesh);
 
     commands
         .entity(tilemap_entity)
@@ -430,7 +427,7 @@ pub(super) fn spawn_chunk(
     commands
         .entity(chunk)
         .push_children(
-            &[tilemap_entity, wallmap_entity, treemap_entity, tree_branches_map_entity, tree_tops_map_entity, tile_crack_map_entity]
+            &[lightmap_quad, tilemap_entity, wallmap_entity, treemap_entity, tree_branches_map_entity, tree_tops_map_entity, tile_crack_map_entity]
         );
 }
 
@@ -468,6 +465,7 @@ pub(super) fn handle_dig_block_event(
     mut break_block_events: EventWriter<BreakBlockEvent>,
     mut update_block_events: EventWriter<UpdateBlockEvent>,
     mut update_cracks_events: EventWriter<UpdateCracksEvent>,
+    mut update_neighbors_events: EventWriter<UpdateNeighborsEvent>,
     mut dig_block_events: EventReader<DigBlockEvent>,
     mut play_sound: EventWriter<PlaySoundEvent>
 ) {
@@ -495,9 +493,8 @@ pub(super) fn handle_dig_block_event(
                 update_block_events.send(UpdateBlockEvent {
                     tile_pos,
                     block: *block,
-                    update_neighbors: true
                 });
-
+                update_neighbors_events.send(UpdateNeighborsEvent { tile_pos });
                 update_cracks_events.send(UpdateCracksEvent { tile_pos, index });
             }
         }
@@ -565,7 +562,6 @@ pub(super) fn handle_update_neighbors_event(
                 update_block_events.send(UpdateBlockEvent { 
                     tile_pos: *pos,
                     block: *block,
-                    update_neighbors: false
                 });
             }
         }
@@ -574,12 +570,11 @@ pub(super) fn handle_update_neighbors_event(
 
 pub(super) fn handle_update_block_event(
     mut update_block_events: EventReader<UpdateBlockEvent>,
-    mut update_neighbors_events: EventWriter<UpdateNeighborsEvent>,
     mut query_tile: Query<&mut TileTextureIndex>,
     query_chunk: Query<(&Chunk, &TileStorage)>,
     world_data: Res<WorldData>
 ) {
-    for &UpdateBlockEvent { tile_pos, block, update_neighbors } in update_block_events.iter() {
+    for &UpdateBlockEvent { tile_pos, block } in update_block_events.iter() {
         let neighbors = world_data
             .get_block_neighbors(tile_pos, block.is_solid())
             .map_ref(|b| b.block_type);
@@ -592,16 +587,13 @@ pub(super) fn handle_update_block_event(
                 tile_texture.0 = Block::get_sprite_index(&neighbors, &block);
             }
         }
-
-        if update_neighbors {
-            update_neighbors_events.send(UpdateNeighborsEvent { tile_pos });
-        }
     }
 }
 
 pub(super) fn handle_seed_event(
     mut seed_events: EventReader<SeedEvent>,
     mut update_block_events: EventWriter<UpdateBlockEvent>,
+    mut update_neighbors_events: EventWriter<UpdateNeighborsEvent>,
     mut world_data: ResMut<WorldData>,
     mut play_sound: EventWriter<PlaySoundEvent>
 ) {
@@ -614,8 +606,8 @@ pub(super) fn handle_seed_event(
             update_block_events.send(UpdateBlockEvent { 
                 tile_pos,
                 block: *block,
-                update_neighbors: true
             });
+            update_neighbors_events.send(UpdateNeighborsEvent { tile_pos });
         }
     }
 }

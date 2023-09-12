@@ -90,7 +90,7 @@ pub(super) fn move_camera(
     #[cfg(feature = "debug")]
     debug_config: Res<crate::plugins::debug::DebugConfiguration>
 ) {
-    for camera_transform in &mut query_move_camera {
+    query_move_camera.for_each_mut(|camera_transform| {
         #[cfg(not(feature = "debug"))] {
             if let Ok(player_transform) = query_player.get_single() {
                 follow_player(player_transform, camera_transform);
@@ -106,7 +106,7 @@ pub(super) fn move_camera(
                 }
             }
         }
-    }
+    });
 }
 
 pub(super) fn follow_player(
@@ -161,28 +161,28 @@ pub(super) fn keep_camera_inside_world_bounds(
     world_data: Res<WorldData>,
     mut query_main_camera: Query<(&mut Transform, &OrthographicProjection), With<MoveCamera>>,
 ) {
-    for (mut camera_transform, projection) in &mut query_main_camera {
-        let projection_left = projection.area.min.x;
-        let projection_right = projection.area.max.x;
-        let projection_top = projection.area.max.y;
-        let projection_bottom = projection.area.min.y;
+    query_main_camera.for_each_mut(|(mut camera_transform, projection)| {
+        let proj_left = projection.area.min.x;
+        let proj_right = projection.area.max.x;
+        let proj_top = projection.area.max.y;
+        let proj_bottom = projection.area.min.y;
 
-        let x_min = projection_left.abs() - TILE_SIZE / 2.;
-        let x_max = (world_data.size.width as f32 * 16.) - projection_right - TILE_SIZE / 2.;
+        let x_min = proj_left.abs() - TILE_SIZE / 2.;
+        let x_max = (world_data.size.width as f32 * 16.) - proj_right - TILE_SIZE / 2.;
 
-        let y_min = -(world_data.size.height as f32 * 16.) - projection_bottom - TILE_SIZE / 2.;
-        let y_max = -projection_top - TILE_SIZE / 2.;
+        let y_min = -(world_data.size.height as f32 * 16.) - proj_bottom - TILE_SIZE / 2.;
+        let y_max = -proj_top - TILE_SIZE / 2.;
 
         camera_transform.translation.x = camera_transform.translation.x.clamp(x_min, x_max);
         camera_transform.translation.y = camera_transform.translation.y.clamp(y_min, y_max);
-    }
+    });
 }
 
 pub(super) fn update_camera_scale(
     zoom: Res<Zoom>,
     mut query_camera: Query<&mut OrthographicProjection, With<ZoomableCamera>>
 ) {
-    for mut projection in &mut query_camera {
+    query_camera.for_each_mut(|mut projection| {
         projection.scale = map_range_f32(0., 1., MAX_CAMERA_ZOOM, MIN_CAMERA_ZOOM, zoom.get());
-    }
+    });
 }

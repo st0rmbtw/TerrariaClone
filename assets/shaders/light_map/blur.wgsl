@@ -12,6 +12,7 @@ var<uniform> max: vec2<u32>;
 
 const DECAY_THROUGH_SOLID: f32 = 0.56;
 const DECAY_THROUGH_AIR: f32 = 0.91;
+const EPSILON: f32 = 0.0185000002384186;
 
 fn get_decay(pos: vec2<u32>) -> f32 {
     let tile = textureLoad(tiles_texture, pos).r;
@@ -37,7 +38,7 @@ fn left_to_right(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
         let pos = vec2(x, y);
         let this_light = textureLoad(light_texture, pos).r;
 
-        if this_light < prev_light {
+        if (prev_light - this_light) > EPSILON {
             let new_light = prev_light * decay;
             textureStore(light_texture, pos, vec4(vec3(new_light), 1.));
             prev_light = new_light;
@@ -60,7 +61,7 @@ fn right_to_left(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
         let pos = vec2(x, y);
         let this_light = textureLoad(light_texture, pos).r;
 
-        if this_light < prev_light {
+        if (prev_light - this_light) > EPSILON {
             let new_light = prev_light * decay;
             textureStore(light_texture, pos, vec4(vec3(new_light), 1.));
             prev_light = new_light;
@@ -83,7 +84,7 @@ fn top_to_bottom(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
         let pos = vec2(x, y);
         let this_light = textureLoad(light_texture, pos).r;
 
-        if this_light < prev_light {
+        if (prev_light - this_light) > EPSILON {
             let new_light = prev_light * decay;
             textureStore(light_texture, pos, vec4(vec3(new_light), 1.));
             prev_light = new_light;
@@ -106,7 +107,7 @@ fn bottom_to_top(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
         let pos = vec2(x, y);
         let this_light = textureLoad(light_texture, pos).r;
 
-        if this_light < prev_light {
+        if (prev_light - this_light) > EPSILON {
             let new_light = prev_light * decay;
             textureStore(light_texture, pos, vec4(vec3(new_light), 1.));
             prev_light = new_light;

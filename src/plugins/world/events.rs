@@ -29,7 +29,6 @@ pub(super) struct UpdateNeighborsEvent {
 pub(crate) struct UpdateBlockEvent {
     pub(crate) tile_pos: TilePos,
     pub(crate) block: Block,
-    pub(crate) update_neighbors: bool
 }
 
 #[derive(Event)]

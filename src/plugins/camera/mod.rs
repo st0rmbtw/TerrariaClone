@@ -1,6 +1,8 @@
-use bevy::{prelude::{Plugin, App, SystemSet, IntoSystemSetConfig, PostUpdate, IntoSystemConfigs, OnExit, Update}, transform::TransformSystem};
+use bevy::{prelude::{Plugin, App, SystemSet, IntoSystemSetConfig, PostUpdate, IntoSystemConfigs, OnExit, Update, resource_changed}, transform::TransformSystem};
 
 use crate::common::state::GameState;
+
+use self::resources::Zoom;
 
 use super::InGameSystemSet;
 
@@ -37,7 +39,12 @@ impl Plugin for CameraPlugin {
         );
 
         app.add_systems(Update, systems::zoom.in_set(InGameSystemSet::Update));
-        app.add_systems(PostUpdate, systems::update_camera_scale.in_set(InGameSystemSet::PostUpdate));
+        app.add_systems(
+            PostUpdate,
+            systems::update_camera_scale
+                .in_set(InGameSystemSet::PostUpdate)
+                .run_if(resource_changed::<Zoom>())
+        );
 
         app.add_systems(
             PostUpdate,

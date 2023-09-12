@@ -69,8 +69,7 @@ fn update_cursor_position<CameraMarker: Component>(
         let Some(screen_pos) = window.cursor_position() else { return; };
         cursor_pos.screen = screen_pos;
 
-        if let Some(world_pos) = camera.viewport_to_world_2d(camera_transform, screen_pos) {
-            cursor_pos.world = world_pos;
-        }
+        let Some(world_pos) = camera.viewport_to_world_2d(camera_transform, screen_pos) else { return; };
+        cursor_pos.world = world_pos;
     }
 }
