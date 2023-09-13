@@ -10,7 +10,8 @@ impl Plugin for LanguagePlugin {
             (
                 localize_text::<Without<Localized>>,
                 localize_text::<Changed<LocalizedText>>,
-        ));
+            )
+        );
     }
 }
 

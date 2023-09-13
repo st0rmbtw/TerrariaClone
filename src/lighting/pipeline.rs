@@ -534,3 +534,8 @@ impl FromWorld for LightMapPipeline {
 pub(super) fn init_pipeline(mut commands: Commands) {
     commands.init_resource::<LightMapPipeline>();
 }
+
+pub(super) fn remove_pipeline(mut commands: Commands) {
+    commands.remove_resource::<LightMapPipeline>();
+    commands.remove_resource::<PipelineBindGroups>();
+}

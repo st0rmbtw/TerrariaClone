@@ -116,6 +116,15 @@ pub(super) fn extract_state(
     commands.insert_resource(State::new(*state.get()));
 }
 
+pub(super) fn extract_light_smoothness(
+    mut commands: Commands,
+    light_smoothness: Extract<Res<LightSmoothness>>,
+) {
+    if light_smoothness.is_changed() {
+        commands.insert_resource(light_smoothness.clone());
+    }
+}
+
 pub(super) fn extract_world_underground_level(
     mut commands: Commands,
     underground_level: Extract<Option<Res<WorldUndergroundLevel>>>,

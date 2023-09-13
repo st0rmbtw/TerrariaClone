@@ -1,4 +1,4 @@
-use bevy::prelude::{Plugin, App, Update, IntoSystemConfigs, OnEnter, World, OnExit, PostUpdate, Event, in_state, Handle, Image, Resource, Deref};
+use bevy::prelude::{Plugin, App, Update, IntoSystemConfigs, OnEnter, World, OnExit, PostUpdate, Event, in_state, Handle, Image, Resource, Deref, not};
 use bevy::render::extract_resource::{ExtractResourcePlugin, ExtractResource};
 use bevy::render::render_graph::{RenderGraph, Node, RenderGraphContext, NodeRunError};
 use bevy::render::render_resource::{PipelineCache, ComputePassDescriptor};
@@ -70,7 +70,8 @@ impl Plugin for LightingPlugin {
                     pipeline_assets::extract_state,
                     pipeline_assets::extract_pipeline_assets,
                     pipeline_assets::extract_textures,
-                    pipeline_assets::extract_world_underground_level
+                    pipeline_assets::extract_world_underground_level,
+                    pipeline_assets::extract_light_smoothness
                 )
             )
             .add_systems(
@@ -83,6 +84,9 @@ impl Plugin for LightingPlugin {
                     pipeline::queue_bind_groups
                         .run_if(in_state(GameState::InGame))
                         .in_set(RenderSet::Queue),
+                    pipeline::remove_pipeline
+                        .run_if(not(in_state(GameState::InGame)))
+                        .in_set(RenderSet::Cleanup)
                 ),
             );
 
