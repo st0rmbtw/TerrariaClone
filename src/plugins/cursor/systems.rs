@@ -21,7 +21,7 @@ use crate::{
         world::constants::TILE_SIZE, config::CursorColor, DespawnOnGameExit, player::Player
     }, 
     animation::{Tween, lens::TransformScaleLens, Animator, RepeatStrategy, RepeatCount}, 
-    common::{lens::BackgroundColorLens, components::Velocity},
+    common::{lens::BackgroundColorLens, components::Velocity}, language::LanguageContent,
 };
 
 use crate::plugins::player::{MAX_RUN_SPEED, MAX_FALL_SPEED};
@@ -191,6 +191,7 @@ pub(super) fn update_tile_grid_opacity(
 }
 
 pub(super) fn update_cursor_info(
+    language_content: Res<LanguageContent>,
     query_hoverable: Query<(&Hoverable, &Interaction), Changed<Interaction>>,
     mut query_info: Query<(&mut Text, &mut Visibility), With<CursorInfoMarker>>,
 ) {
@@ -198,7 +199,7 @@ pub(super) fn update_cursor_info(
 
     query_hoverable.for_each(|(hoverable, interaction)| {
         if let (Hoverable::SimpleText(info), Interaction::Hovered) = (hoverable, interaction) {
-            text.sections[0].value = info.clone();
+            text.sections[0].value = info.format(&language_content);
             *visibility = Visibility::Visible;
         } else {
             *visibility = Visibility::Hidden;

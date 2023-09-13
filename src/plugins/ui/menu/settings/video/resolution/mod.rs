@@ -1,8 +1,8 @@
 use autodefault::autodefault;
-use bevy::{prelude::{Component, Commands, Res, ResMut, Query, With, Local, Entity, Plugin, App, OnEnter, OnExit,IntoSystemConfigs, in_state, Update, EventWriter, DetectChanges}, text::{TextStyle, Text}, window::{Window, WindowResolution}};
+use bevy::{prelude::{Component, Commands, Res, ResMut, Query, With, Local, Entity, Plugin, App, OnEnter, OnExit,IntoSystemConfigs, in_state, Update, EventWriter, DetectChanges}, text::TextStyle, window::{Window, WindowResolution}};
 
 use crate::{
-    language::LanguageContent,
+    language::{keys::UIStringKey, LocalizedText, args},
     common::{state::{SettingsMenuState, MenuState}, conditions::on_click},
     plugins::{
         assets::FontAssets, 
@@ -53,7 +53,6 @@ struct FullScreenButton;
 fn setup_resolution_menu(
     mut commands: Commands,
     fonts: Res<FontAssets>,
-    language_content: Res<LanguageContent>,
     fullscreen: Res<FullScreen>,
     resolution: Res<Resolution>,
     query_container: Query<Entity, With<MenuContainer>>
@@ -70,19 +69,19 @@ fn setup_resolution_menu(
         menu_button(
             builder,
             text_style.clone(),
-            resolution_btn_name(&language_content, &resolution),
+            resolution_btn_text(&resolution),
             (MenuButton, FullScreenResolutionButton)
         );
         menu_button(
             builder,
             text_style.clone(),
-            fullscreen_btn_name(&language_content, fullscreen.0),
+            fullscreen_btn_text(fullscreen.0),
             (MenuButton, FullScreenButton)
         );
 
         control_buttons_layout(builder, |control_button_builder| {
-            control_button(control_button_builder, text_style.clone(), &language_content.ui.apply, (MenuButton, ApplyButton));
-            control_button(control_button_builder, text_style, &language_content.ui.back, (MenuButton, BackButton));
+            control_button(control_button_builder, text_style.clone(), UIStringKey::Apply, (MenuButton, ApplyButton));
+            control_button(control_button_builder, text_style, UIStringKey::Back, (MenuButton, BackButton));
         });
     });
 }
@@ -114,35 +113,35 @@ fn apply_clicked(
 }
 
 fn update_fullscreen_resolution_button_text(
-    mut query: Query<&mut Text, With<FullScreenResolutionButton>>,
+    mut query: Query<&mut LocalizedText, With<FullScreenResolutionButton>>,
     resolution: Res<Resolution>,
-    language_content: Res<LanguageContent>
 ) {
     if resolution.is_changed() {
-        let mut text = query.single_mut();
+        let mut localized_text = query.single_mut();
 
-        text.sections[0].value = resolution_btn_name(&language_content, &resolution);
+        *localized_text = resolution_btn_text(&resolution);
     }
 }
 
 fn update_resolution_button_text(
-    mut query: Query<&mut Text, With<FullScreenButton>>,
+    mut query: Query<&mut LocalizedText, With<FullScreenButton>>,
     fullscreen: Res<FullScreen>,
-    language_content: Res<LanguageContent>
 ) {
     if fullscreen.is_changed() {
-        let mut text = query.single_mut();
+        let mut localized_text = query.single_mut();
 
-        text.sections[0].value = fullscreen_btn_name(&language_content, fullscreen.0);
+        *localized_text = fullscreen_btn_text(fullscreen.0);
     }
 }
 
-#[inline]
-fn fullscreen_btn_name(language_content: &LanguageContent, fullscreen: bool) -> String {
-    format!("{} {}", language_content.ui.fullscreen, language_content.on_off(fullscreen))
+#[inline(always)]
+fn fullscreen_btn_text(fullscreen: bool) -> LocalizedText {
+    let status = if fullscreen { UIStringKey::On } else { UIStringKey::Off };
+
+    LocalizedText::new(UIStringKey::Fullscreen, "{} {}", args![status])
 }
 
-#[inline]
-fn resolution_btn_name(language_content: &LanguageContent, resolution: &Resolution) -> String {
-    format!("{} {}x{}", language_content.ui.fullscreen_resolution, resolution.width, resolution.height)
+#[inline(always)]
+fn resolution_btn_text(resolution: &Resolution) -> LocalizedText {
+    LocalizedText::new(UIStringKey::FullscreenResolution, "{} {}x{}", args![resolution.width, resolution.height])
 }

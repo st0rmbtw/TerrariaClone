@@ -5,7 +5,7 @@ mod language;
 
 use bevy::{prelude::{Commands, Res, Plugin, App, OnEnter, OnExit, IntoSystemConfigs, Query, Entity, With, Update, in_state, Component}, text::TextStyle};
 
-use crate::{plugins::assets::FontAssets, language::LanguageContent, common::{conditions::on_click, state::{SettingsMenuState, MenuState}, systems::send_event}};
+use crate::{plugins::assets::FontAssets, language::keys::UIStringKey, common::{conditions::on_click, state::{SettingsMenuState, MenuState}, systems::send_event}};
 
 use self::{interface::InterfaceMenuPlugin, video::VideoMenuPlugin, volume::VolumeMenuPlugin, language::LanguageMenuPlugin};
 
@@ -63,7 +63,6 @@ struct LanguageButton;
 fn setup_settings_menu(
     mut commands: Commands,
     fonts: Res<FontAssets>,
-    language_content: Res<LanguageContent>,
     query_container: Query<Entity, With<MenuContainer>>
 ) {
     let text_style = TextStyle {
@@ -75,14 +74,14 @@ fn setup_settings_menu(
     let container = query_container.single();
 
     menu(SettingsMenu, &mut commands, container, 5., |builder| {
-        menu_button(builder, text_style.clone(), &language_content.ui.interface, (MenuButton, InterfaceButton));
-        menu_button(builder, text_style.clone(), &language_content.ui.video, (MenuButton, VideoButton));
-        menu_button(builder, text_style.clone(), &language_content.ui.volume, (MenuButton, VolumeButton));
-        menu_button(builder, text_style.clone(), &language_content.ui.cursor, (MenuButton, CursorButton));
-        menu_button(builder, text_style.clone(), &language_content.ui.language, (MenuButton, LanguageButton));
+        menu_button(builder, text_style.clone(), UIStringKey::Interface, (MenuButton, InterfaceButton));
+        menu_button(builder, text_style.clone(), UIStringKey::Video, (MenuButton, VideoButton));
+        menu_button(builder, text_style.clone(), UIStringKey::Volume, (MenuButton, VolumeButton));
+        menu_button(builder, text_style.clone(), UIStringKey::Cursor, (MenuButton, CursorButton));
+        menu_button(builder, text_style.clone(), UIStringKey::Language, (MenuButton, LanguageButton));
 
         control_buttons_layout(builder, |control_button_builder| {
-            control_button(control_button_builder, text_style.clone(), &language_content.ui.back, (MenuButton, BackButton));
+            control_button(control_button_builder, text_style.clone(), UIStringKey::Back, (MenuButton, BackButton));
         });
     });
 }

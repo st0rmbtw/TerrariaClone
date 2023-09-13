@@ -8,7 +8,7 @@ pub(crate) mod menu;
 pub(crate) use resources::*;
 
 use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Color, TextBundle, Condition, Button, resource_exists_and_equals, not, Component}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, PositionType}, text::{TextAlignment, Text, TextStyle, TextSection}};
-use crate::{common::{state::GameState, systems::{set_visibility, despawn_with, toggle_resource, animate_button_scale}}, language::LanguageContent};
+use crate::common::{state::GameState, systems::{set_visibility, despawn_with, toggle_resource, animate_button_scale}};
 
 use self::{
     components::{MainUiContainer, MusicVolumeSliderOutput, SoundVolumeSliderOutput, MusicVolumeSlider, SoundVolumeSlider},
@@ -79,7 +79,6 @@ fn spawn_ui_container(
     mut commands: Commands,
     font_assets: Res<FontAssets>,
     ui_assets: Res<UiAssets>,
-    language_content: Res<LanguageContent>
 ) {
     let main_id = commands
         .spawn((
@@ -138,8 +137,8 @@ fn spawn_ui_container(
         ))
         .id();
 
-    let inventory = spawn_inventory_ui(&mut commands, &ui_assets, &font_assets, &language_content);
-    let settings_btn = spawn_ingame_settings_button(&mut commands, &font_assets, &language_content);
+    let inventory = spawn_inventory_ui(&mut commands, &ui_assets, &font_assets);
+    let settings_btn = spawn_ingame_settings_button(&mut commands, &font_assets);
 
     // TODO: Make a health bar in the feature, stub for now
     let health_bar = commands

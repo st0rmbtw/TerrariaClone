@@ -1,6 +1,6 @@
 use bevy::{prelude::{Entity, Commands, NodeBundle, default, BuildChildren, Color, ChildBuilder}, text::TextStyle, ui::{Style, FlexDirection, JustifyContent, AlignItems, Val}};
 
-use crate::{plugins::{ui::{menu::{builders::{menu, menu_button, menu_text, slider_layout, menu_slider, slider_name_text, slider_value_text, spacer}, MENU_BUTTON_COLOR}, components::{MusicVolumeSlider, SoundVolumeSlider, MusicVolumeSliderOutput, SoundVolumeSliderOutput, ZoomSlider, ZoomSliderOutput, ToggleTileGridButton}}, assets::{FontAssets, UiAssets}, config::{MusicVolume, SoundVolume}, camera::resources::Zoom}, language::LanguageContent};
+use crate::{plugins::{ui::{menu::{builders::{menu, menu_button, slider_layout, menu_slider, slider_name_text, slider_value_text, spacer, menu_text_localized}, MENU_BUTTON_COLOR}, components::{MusicVolumeSlider, SoundVolumeSlider, MusicVolumeSliderOutput, SoundVolumeSliderOutput, ZoomSlider, ZoomSliderOutput, ToggleTileGridButton}}, assets::{FontAssets, UiAssets}, config::{MusicVolume, SoundVolume}, camera::resources::Zoom}, language::{keys::UIStringKey, LocalizedText, args}};
 
 use super::{components::{MenuTabs, buttons::*, TabMenu, TabButton, TabMenuButton}, SelectedTab, TAB_BUTTON_TEXT_SIZE};
 
@@ -22,7 +22,6 @@ fn row(commands: &mut ChildBuilder, gap: f32, builder: impl FnOnce(&mut ChildBui
 pub(super) fn tabs_menu(
     commands: &mut Commands,
     font_assets: &FontAssets,
-    language_content: &LanguageContent,
     container: Entity
 ) {
     menu(MenuTabs, commands, container, 5., |builder| {
@@ -35,37 +34,37 @@ pub(super) fn tabs_menu(
         menu_button(
             builder,
             text_style.clone(),
-            &language_content.ui.general,
+            UIStringKey::General,
             (TabButton, SelectedTab::General, GeneralButton)
         );
         menu_button(
             builder,
             text_style.clone(),
-            &language_content.ui.interface,
+            UIStringKey::Interface,
             (TabButton, SelectedTab::Interface, InterfaceButton)
         );
         menu_button(
             builder,
             text_style.clone(),
-            &language_content.ui.video,
+            UIStringKey::Video,
             (TabButton, SelectedTab::Video, VideoButton)
         );
         menu_button(
             builder,
             text_style.clone(),
-            &language_content.ui.cursor,
+            UIStringKey::Cursor,
             (TabButton,SelectedTab::Cursor, CursorButton)
         );
         menu_button(
             builder,
             text_style.clone(),
-            &language_content.ui.close_menu,
+            UIStringKey::CloseMenu,
             (TabButton, CloseMenuButton)
         );
         menu_button(
             builder,
             text_style,
-            &language_content.ui.save_and_exit,
+            UIStringKey::SaveAndExit,
             (TabButton, SaveAndExitButton)
         );
     });
@@ -77,7 +76,6 @@ pub(super) fn general_menu(
     container: Entity,
     font_assets: &FontAssets,
     ui_assets: &UiAssets,
-    language_content: &LanguageContent,
     music_volume: &MusicVolume,
     sound_volume: &SoundVolume,
     zoom: &Zoom
@@ -95,7 +93,7 @@ pub(super) fn general_menu(
     };
 
     menu(TabMenu, commands, container, 5., |builder| {
-        menu_text(builder, caption_text_style.clone(), &language_content.ui.volume);
+        menu_text_localized(builder, caption_text_style.clone(), UIStringKey::Volume);
 
         slider_layout(
             builder,
@@ -103,12 +101,12 @@ pub(super) fn general_menu(
             AlignItems::Center,
             |first_column| {
                 row(first_column, 5., |builder| {
-                    slider_name_text(builder, slider_text_style.clone(), &language_content.ui.music);
+                    slider_name_text(builder, slider_text_style.clone(), UIStringKey::Music);
                     slider_value_text(builder, slider_text_style.clone(), music_volume.get(), 50., MusicVolumeSliderOutput);
                 });
 
                 row(first_column, 5., |builder| {
-                    slider_name_text(builder, slider_text_style.clone(), &language_content.ui.sound);
+                    slider_name_text(builder, slider_text_style.clone(), UIStringKey::Sound);
                     slider_value_text(builder, slider_text_style.clone(), music_volume.get(), 50., SoundVolumeSliderOutput);
                 });
             },
@@ -121,7 +119,7 @@ pub(super) fn general_menu(
 
         spacer(builder, 15.);
 
-        menu_text(builder, caption_text_style.clone(), &language_content.ui.zoom);
+        menu_text_localized(builder, caption_text_style.clone(), UIStringKey::Zoom);
 
         slider_layout(
             builder,
@@ -129,7 +127,7 @@ pub(super) fn general_menu(
             AlignItems::Center,
             |first_column| {
                 row(first_column, 5., |builder| {
-                    slider_name_text(builder, slider_text_style.clone(), &language_content.ui.zoom);
+                    slider_name_text(builder, slider_text_style.clone(), UIStringKey::Zoom);
                     slider_value_text(builder, slider_text_style.clone(), zoom.get(), 55., ZoomSliderOutput);
                 });
             },
@@ -145,7 +143,6 @@ pub(super) fn interface_menu(
     commands: &mut Commands,
     container: Entity,
     font_assets: &FontAssets,
-    language_content: &LanguageContent,
     show_tile_grid: bool
 ) {
     let text_style = TextStyle {
@@ -154,9 +151,14 @@ pub(super) fn interface_menu(
         color: MENU_BUTTON_COLOR,
     };
 
-    let status = if show_tile_grid { &language_content.ui.on } else { &language_content.ui.off };
+    let status = if show_tile_grid { UIStringKey::On } else { UIStringKey::Off };
 
-    menu(TabMenu, commands, container, 5., |builder| {
-        menu_button(builder, text_style, format!("{} {}", language_content.ui.tile_grid, status), (TabMenuButton, ToggleTileGridButton))
+    menu(TabMenu, commands, container, 5., |builder| {    
+        menu_button(
+            builder,
+            text_style,
+            LocalizedText::new(UIStringKey::TileGrid, "{} {}", args![status]),
+            (TabMenuButton, ToggleTileGridButton)
+        );
     })
 }

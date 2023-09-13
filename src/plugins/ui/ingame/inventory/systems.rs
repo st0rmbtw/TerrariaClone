@@ -1,7 +1,7 @@
 use autodefault::autodefault;
 use bevy::{prelude::{Commands, Name, NodeBundle, BuildChildren, TextBundle, Color, Entity, ImageBundle, default, ChildBuilder, Handle, Image, Visibility, With, Res, Query, DetectChanges, Changed, ResMut, DetectChangesMut, Without}, ui::{Style, FlexDirection, UiRect, Val, AlignSelf, AlignItems, JustifyContent, Interaction, BackgroundColor, ZIndex, FocusPolicy, AlignContent, PositionType, UiImage, widget::UiImageSize}, text::{Text, TextStyle, TextAlignment}};
 
-use crate::{plugins::{assets::{UiAssets, FontAssets, ItemAssets}, cursor::components::Hoverable, inventory::{Inventory, SelectedItem}, ui::InventoryUiVisibility}, language::LanguageContent, common::{extensions::EntityCommandsExtensions, BoolValue, helpers}};
+use crate::{plugins::{assets::{UiAssets, FontAssets, ItemAssets}, cursor::components::Hoverable, inventory::{Inventory, SelectedItem}, ui::InventoryUiVisibility}, language::{keys::{LanguageStringKey, UIStringKey, ItemStringKey}, LocalizedText, args}, common::{extensions::EntityCommandsExtensions, BoolValue, helpers}};
 
 use super::{components::*, INVENTORY_ROWS, CELL_COUNT_IN_ROW, HOTBAR_CELL_SIZE, INVENTORY_CELL_SIZE, HOTBAR_CELL_SIZE_SELECTED};
 
@@ -10,7 +10,6 @@ pub(crate) fn spawn_inventory_ui(
     commands: &mut Commands,
     ui_assets: &UiAssets,
     fonts: &FontAssets,
-    language_content: &LanguageContent
 ) -> Entity {
     commands
         .spawn((
@@ -36,7 +35,7 @@ pub(crate) fn spawn_inventory_ui(
                             align_self: AlignSelf::Center,
                         },
                         text: Text::from_section(
-                            &language_content.ui.items,
+                            "",
                             TextStyle {
                                 font: fonts.andy_bold.clone_weak(),
                                 font_size: 24.,
@@ -44,7 +43,8 @@ pub(crate) fn spawn_inventory_ui(
                             },
                         )
                         .with_alignment(TextAlignment::Center),
-                    }
+                    },
+                    LocalizedText::from(UIStringKey::Items),
                 ));
 
             children
@@ -306,15 +306,16 @@ pub(super) fn update_cell_background_image(
 
 pub(super) fn update_hoverable(
     inventory: Res<Inventory>,
-    language_content: Res<LanguageContent>,
     mut hotbar_cells: Query<(&CellIndex, &mut Hoverable), With<HotbarCell>>
 ) {
     for (cell_index, mut hoverable) in &mut hotbar_cells {
         if let Some(item) = inventory.get_item(cell_index.0) {
-            let name: String = if item.stack > 1 {
-                format!("{} ({})", language_content.item_name(item.item), item.stack)
+            let item_key = LanguageStringKey::Items(ItemStringKey::get_by_item(&item.item));
+
+            let name = if item.stack > 1 {
+                LocalizedText::new(item_key, "{} ({})", args![item.stack])
             } else {
-                language_content.item_name(item.item).clone()
+                LocalizedText::from(item_key)
             };
 
             *hoverable = Hoverable::SimpleText(name);
@@ -341,20 +342,20 @@ pub(super) fn update_selected_item_name_alignment(
 pub(super) fn update_selected_item_name_text(
     current_item: Res<SelectedItem>,
     visibility: Res<InventoryUiVisibility>,
-    language_content: Res<LanguageContent>,
-    mut query_selected_item_name: Query<&mut Text, With<SelectedItemName>>
+    mut query_selected_item_name: Query<&mut LocalizedText, With<SelectedItemName>>
 ) {
     if !current_item.is_changed() && !visibility.is_changed() { return; } 
 
-    let mut text = query_selected_item_name.single_mut();
+    let mut localized_text = query_selected_item_name.single_mut();
 
-    text.sections[0].value = if visibility.value() {
-        language_content.ui.inventory.clone()
+    localized_text.key = if visibility.value() {
+        UIStringKey::Inventory.into()
     } else {
-        current_item.0
-            .map(|item_stack| language_content.item_name(item_stack.item))
-            .unwrap_or(&language_content.ui.items)
-            .clone()
+        current_item.0.as_ref()
+            .map(|item_stack| &item_stack.item)
+            .map(ItemStringKey::get_by_item)
+            .map(LanguageStringKey::Items)
+            .unwrap_or(UIStringKey::Items.into())
     }
 }
 

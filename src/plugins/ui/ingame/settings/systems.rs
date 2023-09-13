@@ -4,14 +4,13 @@ use autodefault::autodefault;
 use bevy::{prelude::{Commands, Entity, NodeBundle, Visibility, default, TextBundle, Color, Name, Button, BuildChildren, Res, Query, With, Changed, ResMut, Ref, DetectChanges}, ui::{Style, JustifyContent, AlignItems, AlignSelf, UiRect, Val, Interaction, PositionType, FlexDirection, Display, BackgroundColor}, text::{Text, TextAlignment, TextStyle}};
 use interpolation::EaseFunction;
 
-use crate::{language::LanguageContent, plugins::{assets::{FontAssets, UiAssets}, DespawnOnGameExit, config::{MusicVolume, SoundVolume, ShowTileGrid}, ui::{menu::MENU_BUTTON_COLOR, components::{ZoomSlider, ZoomSliderOutput}}, slider::Slider, camera::resources::Zoom}, animation::{Tween, RepeatStrategy, Animator, Tweenable, TweeningDirection}, common::lens::TextFontSizeLens};
+use crate::{plugins::{assets::{FontAssets, UiAssets}, DespawnOnGameExit, config::{MusicVolume, SoundVolume, ShowTileGrid}, ui::{menu::MENU_BUTTON_COLOR, components::{ZoomSlider, ZoomSliderOutput}}, slider::Slider, camera::resources::Zoom}, animation::{Tween, RepeatStrategy, Animator, Tweenable, TweeningDirection}, common::lens::TextFontSizeLens, language::{keys::UIStringKey, LocalizedText}};
 
 use super::{components::{MenuContainer, SettingsButton, SettingsButtonContainer, TabMenuContainer, TabButton, TabMenu}, menus::{tabs_menu, general_menu, interface_menu}, SelectedTab, TAB_BUTTON_TEXT_SIZE};
 
 pub(crate) fn spawn_ingame_settings_button(
     commands: &mut Commands,
     fonts: &FontAssets,
-    language_content: &LanguageContent
 ) -> Entity {
     let tween = Tween::new(
         EaseFunction::QuadraticInOut,
@@ -39,27 +38,30 @@ pub(crate) fn spawn_ingame_settings_button(
         })
         .insert(SettingsButtonContainer)
         .with_children(|c| {
-            c.spawn(TextBundle {
-                style: Style {
-                    margin: UiRect::all(Val::Auto),
-                    flex_shrink: 0.,
+            c.spawn((
+                TextBundle {
+                    style: Style {
+                        margin: UiRect::all(Val::Auto),
+                        flex_shrink: 0.,
+                        ..default()
+                    },
+                    text: Text::from_section(
+                        "",
+                        TextStyle {
+                            font: fonts.andy_bold.clone_weak(),
+                            font_size: 32.,
+                            color: Color::WHITE,
+                        },
+                    ).with_alignment(TextAlignment::Center),
                     ..default()
                 },
-                text: Text::from_section(
-                    &language_content.ui.settings,
-                    TextStyle {
-                        font: fonts.andy_bold.clone_weak(),
-                        font_size: 32.,
-                        color: Color::WHITE,
-                    },
-                ).with_alignment(TextAlignment::Center),
-                ..default()
-            })
-            .insert(Name::new("SettingsButton"))
-            .insert(Interaction::default())
-            .insert(SettingsButton)
-            .insert(Button)
-            .insert(Animator::new(tween));
+                Name::new("SettingsButton"),
+                Interaction::default(),
+                Animator::new(tween),
+                LocalizedText::from(UIStringKey::Settings),
+                SettingsButton,
+                Button,
+            ));
         })
         .id()
 }
@@ -68,7 +70,6 @@ pub(crate) fn spawn_ingame_settings_button(
 pub(super) fn spawn_settings_menu(
     mut commands: Commands,
     font_assets: Res<FontAssets>,
-    language_content: Res<LanguageContent>
 ) {
     let text_style = TextStyle {
         font: font_assets.andy_bold.clone_weak(),
@@ -100,7 +101,7 @@ pub(super) fn spawn_settings_menu(
     ))
     .id();
 
-    tabs_menu(&mut commands, &font_assets, &language_content, tabs_container);
+    tabs_menu(&mut commands, &font_assets, tabs_container);
 
     commands.spawn((
         MenuContainer,
@@ -118,12 +119,15 @@ pub(super) fn spawn_settings_menu(
             background_color: Color::rgb_u8(22, 10, 62).with_a(0.9).into(),
         }
     )).with_children(|builder| {
-        builder.spawn(TextBundle {
-            style: Style {
-                align_self: AlignSelf::Center
+        builder.spawn((
+            TextBundle {
+                style: Style {
+                    align_self: AlignSelf::Center
+                },
+                text: Text::from_section("", text_style),
             },
-            text: Text::from_section(&language_content.ui.settings_menu, text_style),
-        });
+            LocalizedText::from(UIStringKey::SettingsMenu),
+        ));
 
         builder.spawn(NodeBundle {
             style: Style {
@@ -144,7 +148,6 @@ pub(super) fn spawn_general_menu(
     mut commands: Commands,
     font_assets: Res<FontAssets>,
     ui_assets: Res<UiAssets>,
-    language_content: Res<LanguageContent>,
     music_volume: Res<MusicVolume>,
     sound_volume: Res<SoundVolume>,
     zoom: Res<Zoom>,
@@ -154,13 +157,12 @@ pub(super) fn spawn_general_menu(
     if !query_tab_menu.is_empty() { return; };
 
     let Ok(container) = query_container.get_single() else { return; };
-    general_menu(&mut commands, container, &font_assets, &ui_assets, &language_content, &music_volume, &sound_volume, &zoom);
+    general_menu(&mut commands, container, &font_assets, &ui_assets, &music_volume, &sound_volume, &zoom);
 }
 
 pub(super) fn spawn_interface_menu(
     mut commands: Commands,
     font_assets: Res<FontAssets>,
-    language_content: Res<LanguageContent>,
     show_tile_grid: Res<ShowTileGrid>,
     query_tab_menu: Query<(), With<TabMenu>>,
     query_container: Query<Entity, With<TabMenuContainer>>
@@ -168,7 +170,7 @@ pub(super) fn spawn_interface_menu(
     if !query_tab_menu.is_empty() { return; };
 
     let Ok(container) = query_container.get_single() else { return; };
-    interface_menu(&mut commands, container, &font_assets, &language_content, show_tile_grid.0);
+    interface_menu(&mut commands, container, &font_assets, show_tile_grid.0);
 }
 
 pub(super) fn update_tab_buttons(

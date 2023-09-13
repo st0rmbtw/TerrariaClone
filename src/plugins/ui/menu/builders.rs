@@ -3,7 +3,7 @@ use std::time::Duration;
 use autodefault::autodefault;
 use bevy::{prelude::{Name, NodeBundle, TextBundle, ChildBuilder, Component, default, Color, ImageBundle, BuildChildren, Commands, Entity, Bundle}, ui::{Style, JustifyContent, AlignItems, FocusPolicy, PositionType, Interaction, Val, FlexDirection, UiRect}, text::{Text, TextStyle, TextSection, TextAlignment}};
 
-use crate::{animation::{AnimatorState, Animator, Tween, EaseMethod, RepeatStrategy}, plugins::{slider::{SliderHandleBundle, SliderBundle, Slider}, assets::UiAssets}, common::lens::TextFontSizeLens};
+use crate::{animation::{AnimatorState, Animator, Tween, EaseMethod, RepeatStrategy}, plugins::{slider::{SliderHandleBundle, SliderBundle, Slider}, assets::UiAssets}, common::lens::TextFontSizeLens, language::LocalizedText};
 
 use super::{MENU_BUTTON_FONT_SIZE, components::Menu};
 
@@ -35,7 +35,7 @@ pub(crate) fn menu(marker: impl Component, commands: &mut Commands, container: E
 pub(crate) fn menu_button(
     builder: &mut ChildBuilder,
     text_style: TextStyle,
-    button_name: impl Into<String>,
+    text: impl Into<LocalizedText>,
     bundle: impl Bundle,
 ) {
     builder
@@ -56,8 +56,9 @@ pub(crate) fn menu_button(
                     style: Style {
                         position_type: PositionType::Absolute,
                     },
-                    text: Text::from_section(button_name, text_style.clone()).with_no_wrap(),
-                }
+                    text: Text::from_section("", text_style.clone()).with_no_wrap(),
+                },
+                text.into()
             ));
         });
 }
@@ -69,7 +70,19 @@ pub(crate) fn menu_text(builder: &mut ChildBuilder, text_style: TextStyle, text:
         Name::new("MenuText"),
         TextBundle {
             text: Text::from_section(text, text_style.clone()).with_no_wrap(),
-        }
+        },
+    ));
+}
+
+#[inline(always)]
+#[autodefault]
+pub(crate) fn menu_text_localized(builder: &mut ChildBuilder, text_style: TextStyle, text: impl Into<LocalizedText>) {
+    builder.spawn((
+        Name::new("MenuText"),
+        TextBundle {
+            text: Text::from_section("", text_style.clone()).with_no_wrap(),
+        },
+        text.into()
     ));
 }
 
@@ -85,7 +98,7 @@ pub(crate) fn control_buttons_layout(
             align_items: AlignItems::Center,
             flex_direction: FlexDirection::Column,
             margin: UiRect::vertical(Val::Px(40.)),
-            row_gap: Val::Px(50.)
+            row_gap: Val::Px(25.)
         },
         focus_policy: FocusPolicy::Pass
     }).with_children(spawn_builder);
@@ -96,29 +109,10 @@ pub(crate) fn control_buttons_layout(
 pub(crate) fn control_button(
     builder: &mut ChildBuilder,
     text_style: TextStyle,
-    name: impl Into<String>,
+    text: impl Into<LocalizedText>,
     bundle: impl Bundle
 ) {
-    builder.spawn(NodeBundle {
-        style: Style {
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center,
-        },
-        focus_policy: FocusPolicy::Pass
-    })
-    .with_children(|b| {
-        b.spawn((
-            Interaction::default(),
-            Animator::new(text_tween(MENU_BUTTON_FONT_SIZE)).with_state(AnimatorState::Paused),
-            bundle,
-            TextBundle {
-                style: Style {
-                    position_type: PositionType::Absolute,
-                },
-                text: Text::from_section(name, TextStyle { font_size: MENU_BUTTON_FONT_SIZE, ..text_style }),
-            }
-        ));
-    });
+    menu_button(builder, TextStyle { font_size: MENU_BUTTON_FONT_SIZE, ..text_style }, text, bundle);
 }
 
 pub(crate) fn slider_layout(
@@ -239,16 +233,17 @@ pub(crate) fn menu_slider(
 }
 
 #[inline(always)]
-pub(crate) fn slider_name_text(builder: &mut ChildBuilder, text_style: TextStyle, name: impl Into<String>) {
+pub(crate) fn slider_name_text(builder: &mut ChildBuilder, text_style: TextStyle, text: impl Into<LocalizedText>) {
     builder.spawn((
         Name::new("SliderNameText"),
         TextBundle {
             text: Text::from_sections([
-                TextSection::new(name, text_style.clone()),
+                TextSection::new("", text_style.clone()),
                 TextSection::new(":", text_style)
             ]).with_no_wrap(),
             ..default()
-        }
+        },
+        text.into()
     ));
 }
 

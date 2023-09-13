@@ -1,7 +1,7 @@
 mod resolution;
 
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Res, ResMut, Query, With, Entity, Plugin, OnEnter, OnExit, IntoSystemConfigs, App, in_state, Update, Component, DetectChanges, Local}, text::{TextStyle, Text}, window::Window};
+use bevy::{prelude::{Commands, Res, ResMut, Query, With, Entity, Plugin, OnEnter, OnExit, IntoSystemConfigs, App, in_state, Update, Component, DetectChanges, Local}, text::TextStyle, window::Window};
 
 use crate::{
     plugins::{
@@ -9,7 +9,7 @@ use crate::{
         config::{VSync, LightSmoothness},
         ui::menu::{MenuContainer, despawn_with, MENU_BUTTON_COLOR, EnterMenu, builders::{menu, menu_button, control_buttons_layout, control_button}, components::MenuButton}
     },
-    language::LanguageContent,
+    language::{keys::UIStringKey, LocalizedText, args},
     common::{state::{SettingsMenuState, MenuState}, conditions::on_click, systems::send_event},
 
 };
@@ -61,7 +61,6 @@ pub(super) struct LightSmoothnessButton;
 fn setup_video_menu(
     mut commands: Commands,
     fonts: Res<FontAssets>,
-    language_content: Res<LanguageContent>,
     vsync: Res<VSync>,
     light_smoothness: Res<LightSmoothness>,
     query_container: Query<Entity, With<MenuContainer>>
@@ -78,25 +77,25 @@ fn setup_video_menu(
         menu_button(
             builder,
             text_style.clone(),
-            &language_content.ui.resolution,
+            UIStringKey::Resolution,
             (MenuButton, ResolutionButton)
         );
         menu_button(
             builder,
             text_style.clone(),
-            vsync_btn_name(&language_content, vsync.0),
+            vsync_btn_text(vsync.0),
             (MenuButton, VSyncButton)
         );
 
         menu_button(
             builder,
             text_style.clone(),
-            light_smoothness_btn_name(&language_content, *light_smoothness),
+            light_smoothness_btn_text(*light_smoothness),
             (MenuButton, LightSmoothnessButton)
         );
 
         control_buttons_layout(builder, |control_button_builder| {
-            control_button(control_button_builder, text_style, &language_content.ui.back, (MenuButton, BackButton));
+            control_button(control_button_builder, text_style, UIStringKey::Back, (MenuButton, BackButton));
         });
     });
 }
@@ -116,32 +115,31 @@ fn light_smoothness_clicked(
 
 fn update_vsync_button_text(
     vsync: Res<VSync>,
-    language_content: Res<LanguageContent>,
-    mut query: Query<&mut Text, With<VSyncButton>>,
+    mut query: Query<&mut LocalizedText, With<VSyncButton>>,
 ) {
     if vsync.is_changed() {
-        let mut text = query.single_mut();
-        text.sections[0].value = vsync_btn_name(&language_content, vsync.0);
+        let mut localized_text = query.single_mut();
+        *localized_text = vsync_btn_text(vsync.0);
     }
 }
 
 fn update_light_smoothness_button_text(
     light_smoothness: Res<LightSmoothness>,
-    language_content: Res<LanguageContent>,
-    mut query: Query<&mut Text, With<LightSmoothnessButton>>,
+    mut query: Query<&mut LocalizedText, With<LightSmoothnessButton>>,
 ) {
     if light_smoothness.is_changed() {
-        let mut text = query.single_mut();
-        text.sections[0].value = light_smoothness_btn_name(&language_content, *light_smoothness);
+        let mut localized_text = query.single_mut();
+        *localized_text = light_smoothness_btn_text(*light_smoothness);
     }
 }
 
-#[inline]
-fn vsync_btn_name(language_content: &LanguageContent, vsync: bool) -> String {
-    format!("{} {}", language_content.ui.vsync, language_content.on_off(vsync))
+#[inline(always)]
+fn vsync_btn_text(vsync: bool) -> LocalizedText {
+    let status = if vsync { UIStringKey::On } else { UIStringKey::Off };
+    LocalizedText::new(UIStringKey::Vsync, "{} {}", args![status])
 }
 
-#[inline]
-fn light_smoothness_btn_name(language_content: &LanguageContent, light_smoothness: LightSmoothness) -> String {
-    format!("{} {}", language_content.ui.light_smoothness, light_smoothness.name(language_content))
+#[inline(always)]
+fn light_smoothness_btn_text(light_smoothness: LightSmoothness) -> LocalizedText {
+    LocalizedText::new(UIStringKey::LightSmoothness, "{} {}", args![light_smoothness.name()])
 }

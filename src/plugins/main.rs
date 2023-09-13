@@ -4,7 +4,7 @@ use bevy::{prelude::{Plugin, App, OnExit, PreUpdate, Update, PostUpdate, FixedUp
 use bevy_ecs_tilemap::prelude::TilemapRenderSettings;
 use bevy_hanabi::HanabiPlugin;
 
-use crate::{common::{systems::despawn_with, state::{GameState, MenuState}}, lighting::LightingPlugin, parallax::ParallaxPlugin, animation::TweeningPlugin};
+use crate::{common::{systems::despawn_with, state::{GameState, MenuState}}, lighting::LightingPlugin, parallax::ParallaxPlugin, animation::TweeningPlugin, language::plugin::LanguagePlugin};
 
 use super::{InGameSystemSet, MenuSystemSet, DespawnOnGameExit, audio::AudioPlugin, cursor::CursorPlugin, camera::CameraPlugin, background::BackgroundPlugin, ui::UiPlugin, world::WorldPlugin, inventory::PlayerInventoryPlugin, fps::FpsPlugin, player::PlayerPlugin, slider::SliderPlugin, assets::AssetsPlugin};
 
@@ -20,6 +20,7 @@ impl Plugin for MainPlugin {
         ));
 
         app.add_plugins((
+            LanguagePlugin,
             LightingPlugin,
             AudioPlugin,
             CursorPlugin,
@@ -29,7 +30,7 @@ impl Plugin for MainPlugin {
             WorldPlugin,
             PlayerInventoryPlugin,
             FpsPlugin,
-            PlayerPlugin
+            PlayerPlugin,
         ));
 
         #[cfg(feature = "debug")] {

@@ -5,8 +5,7 @@ use crate::{
     plugins::{
         ui::menu::{builders::{menu, menu_text, control_buttons_layout, control_button}, components::{MenuContainer, MenuButton}, MENU_BUTTON_FONT_SIZE, MENU_BUTTON_COLOR, BackButton},
         assets::FontAssets
-    },
-    language::LanguageContent
+    }, language::keys::UIStringKey,
 };
 
 pub(super) struct LanguageMenuPlugin;
@@ -30,7 +29,6 @@ struct LanguageMenu;
 fn setup_language_menu(
     mut commands: Commands,
     fonts: Res<FontAssets>,
-    language_content: Res<LanguageContent>,
     query_container: Query<Entity, With<MenuContainer>>,
 ) {
     let container = query_container.single();
@@ -53,7 +51,7 @@ fn setup_language_menu(
         menu_text(builder, title_text_style, "To do...");
 
         control_buttons_layout(builder, |control_button_builder| {
-            control_button(control_button_builder, button_text_style, &language_content.ui.back, (MenuButton, BackButton));
+            control_button(control_button_builder, button_text_style, UIStringKey::Back, (MenuButton, BackButton));
         });
     });
 }

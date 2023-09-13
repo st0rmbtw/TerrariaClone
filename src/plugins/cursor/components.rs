@@ -1,5 +1,7 @@
 use bevy::prelude::Component;
 
+use crate::language::LocalizedText;
+
 #[derive(Component)]
 pub(super) struct CursorInfoMarker;
 
@@ -18,5 +20,5 @@ pub(super) struct CursorForeground;
 #[derive(Component)]
 pub(crate) enum Hoverable {
     None,
-    SimpleText(String)
+    SimpleText(LocalizedText)
 }

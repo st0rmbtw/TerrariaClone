@@ -1,6 +1,6 @@
 use bevy::{prelude::{EventWriter, Res, Resource, With, Changed, Query, Component, Color, DetectChanges}, text::Text, ui::{Interaction, BackgroundColor}};
 
-use crate::{plugins::{audio::{PlaySoundEvent, SoundType, UpdateMusicVolume, UpdateSoundVolume}, slider::Slider, config::ShowTileGrid}, common::BoolValue, language::LanguageContent};
+use crate::{plugins::{audio::{PlaySoundEvent, SoundType, UpdateMusicVolume, UpdateSoundVolume}, slider::Slider, config::ShowTileGrid}, common::BoolValue, language::{LocalizedText, keys::UIStringKey, args}};
 
 use super::components::{SoundVolumeSlider, MusicVolumeSlider, ToggleTileGridButton};
 
@@ -72,15 +72,13 @@ pub(super) fn animate_slider_border_color(
 }
 
 pub(super) fn update_toggle_tile_grid_button_text(
-    mut query: Query<&mut Text, With<ToggleTileGridButton>>,
+    mut query: Query<&mut LocalizedText, With<ToggleTileGridButton>>,
     show_tile_grid: Res<ShowTileGrid>,
-    language_content: Res<LanguageContent>
 ) {
-    if let Ok(mut text) = query.get_single_mut() {
+    if let Ok(mut localized_text) = query.get_single_mut() {
         if show_tile_grid.is_changed() {
-            let status = if show_tile_grid.0 { &language_content.ui.on } else { &language_content.ui.off } ;
-
-            text.sections[0].value = format!("{} {}", language_content.ui.tile_grid, status);
+            let status = if show_tile_grid.0 { UIStringKey::On } else { UIStringKey::Off };
+            *localized_text = LocalizedText::new(UIStringKey::TileGrid, "{} {}", args![status]);
         }
     }
 }

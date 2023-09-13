@@ -6,8 +6,7 @@ use crate::{
         assets::FontAssets,
         ui::{menu::{MenuContainer, despawn_with, MENU_BUTTON_COLOR, builders::{menu, menu_button, control_buttons_layout, control_button}, components::MenuButton}, components::ToggleTileGridButton, systems::update_toggle_tile_grid_button_text}, config::ShowTileGrid,
     },
-    language::LanguageContent,
-    common::{state::{SettingsMenuState, MenuState}, conditions::on_click, systems::toggle_resource}
+    common::{state::{SettingsMenuState, MenuState}, conditions::on_click, systems::toggle_resource}, language::keys::UIStringKey
 };
 
 use super::{MENU_BUTTON_FONT_SIZE, BackButton};
@@ -43,7 +42,6 @@ struct InterfaceMenu;
 fn setup_interface_menu(
     mut commands: Commands,
     fonts: Res<FontAssets>,
-    language_content: Res<LanguageContent>,
     query_container: Query<Entity, With<MenuContainer>>
 ) {
     let text_style = TextStyle {
@@ -55,10 +53,10 @@ fn setup_interface_menu(
     let container = query_container.single();
 
     menu(InterfaceMenu, &mut commands, container, 5., |builder| {
-        menu_button(builder, text_style.clone(), &language_content.ui.tile_grid, (MenuButton, ToggleTileGridButton));
+        menu_button(builder, text_style.clone(), UIStringKey::TileGrid, (MenuButton, ToggleTileGridButton));
 
         control_buttons_layout(builder, |control_button_builder| {
-            control_button(control_button_builder, text_style, &language_content.ui.back, (MenuButton, BackButton));
+            control_button(control_button_builder, text_style, UIStringKey::Back, (MenuButton, BackButton));
         });
     });
 }

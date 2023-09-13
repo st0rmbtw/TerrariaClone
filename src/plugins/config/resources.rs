@@ -1,7 +1,7 @@
 use bevy::{prelude::{Resource, Color, Deref, DerefMut}, window::{PresentMode, WindowMode}, audio::VolumeLevel};
 use serde::{Deserialize, Serialize};
 
-use crate::{common::{BoolValue, Toggle}, language::LanguageContent};
+use crate::{common::{BoolValue, Toggle}, language::keys::UIStringKey};
 
 #[derive(Resource, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub(crate) struct Resolution {
@@ -147,11 +147,11 @@ impl LightSmoothness {
         }
     }
 
-    pub(crate) fn name(&self, langage_content: &LanguageContent) -> String {
+    pub(crate) fn name(&self) -> UIStringKey {
         match &self {
-            LightSmoothness::Classic => langage_content.ui.classic.clone(),
-            LightSmoothness::Medium => langage_content.ui.medium.clone(),
-            LightSmoothness::High => langage_content.ui.high.clone(),
+            LightSmoothness::Classic => UIStringKey::Classic,
+            LightSmoothness::Medium => UIStringKey::Medium,
+            LightSmoothness::High => UIStringKey::High,
         }
     }
 }

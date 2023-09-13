@@ -13,9 +13,8 @@ use bevy::{prelude::{Plugin, App, IntoSystemConfigs, OnEnter, OnExit, Color, Upd
 use crate::{
     common::{state::{GameState, MenuState, SettingsMenuState}, conditions::on_click, systems::{send_event, despawn_with, set_state, animate_button_scale, animate_button_color}, lens::TransformLens},
     parallax::{parallax_animation_system, ParallaxSet},
-    language::LanguageContent,
     animation::{Animator, RepeatCount, Tween, RepeatStrategy}, 
-    plugins::{assets::{FontAssets, UiAssets}, camera::components::MainCamera, audio::{PlaySoundEvent, SoundType}, MenuSystemSet}
+    plugins::{assets::{FontAssets, UiAssets}, camera::components::MainCamera, audio::{PlaySoundEvent, SoundType}, MenuSystemSet}, language::keys::UIStringKey
 };
 use self::{settings::SettingsMenuPlugin, celestial_body::CelestialBodyPlugin, builders::{menu, menu_button}, events::{Back, EnterMenu}};
 
@@ -210,7 +209,6 @@ fn spawn_menu_container(
 fn setup_main_menu(
     mut commands: Commands, 
     fonts: Res<FontAssets>,
-    language_content: Res<LanguageContent>,
     query_container: Query<Entity, With<MenuContainer>>
 ) {
     let text_style = TextStyle {
@@ -225,19 +223,19 @@ fn setup_main_menu(
         menu_button(
             builder,
             text_style.clone(),
-            &language_content.ui.single_player,
+            UIStringKey::SinglePlayer,
             (MenuButton, SinglePlayerButton),
         );
         menu_button(
             builder, 
-            text_style.clone(), 
-            &language_content.ui.settings,
+            text_style.clone(),
+            UIStringKey::Settings,
             (MenuButton, SettingsButton),
         );
         menu_button(
             builder, 
-            text_style, 
-            &language_content.ui.exit,
+            text_style,
+            UIStringKey::Exit,
             (MenuButton, ExitButton),
         );
     });
