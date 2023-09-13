@@ -95,14 +95,7 @@ impl SoundVolume {
     }
 }
 
-#[derive(Resource, Clone)]
-pub(crate) struct LightSettings {
-    pub(crate) subdivision: u32,
-    pub(crate) decay_solid: f32,
-    pub(crate) decay_air: f32
-}
-
-#[derive(Resource, Clone, Copy)]
+#[derive(Resource, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum LightSmoothness {
     Classic,
     Medium,
@@ -127,23 +120,11 @@ impl LightSmoothness {
         }
     }
 
-    pub(crate) const fn settings(&self) -> LightSettings {
+    pub(crate) fn subdivision(&self) -> u32 {
         match self {
-            LightSmoothness::Classic => LightSettings {
-                subdivision: 2,
-                decay_solid: 0.56,
-                decay_air: 0.56
-            },
-            LightSmoothness::Medium => LightSettings {
-                subdivision: 4,
-                decay_solid: 0.78,
-                decay_air: 0.78
-            },
-            LightSmoothness::High => LightSettings {
-                subdivision: 8,
-                decay_solid: 0.86,
-                decay_air: 0.86
-            },
+            LightSmoothness::Classic => 2,
+            LightSmoothness::Medium => 4,
+            LightSmoothness::High => 8,
         }
     }
 

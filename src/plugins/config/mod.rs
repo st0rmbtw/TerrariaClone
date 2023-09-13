@@ -69,16 +69,13 @@ impl Plugin for ConfigPlugin {
     fn build(&self, app: &mut App) {
         let config = load_config().unwrap_or_default();
 
-        let light_smoothness = LightSmoothness::new(config.light_smoothness);
-
         app.insert_resource(FullScreen(config.full_screen));
         app.insert_resource(ShowTileGrid(config.show_tile_grid));
         app.insert_resource(VSync(config.vsync));
         app.insert_resource(MusicVolume::new(config.music_volume));
         app.insert_resource(SoundVolume::new(config.sound_volume));
         app.insert_resource(Zoom::new(config.zoom));
-        app.insert_resource(light_smoothness.settings());
-        app.insert_resource(light_smoothness);
+        app.insert_resource(LightSmoothness::new(config.light_smoothness));
         app.insert_resource(config.cursor_color);
         app.insert_resource(config.resolution);
 
@@ -95,7 +92,7 @@ impl Plugin for ConfigPlugin {
         let light_smoothness = *app.world.resource::<LightSmoothness>();
 
         let render_app = app.get_sub_app_mut(RenderApp).unwrap();
-        render_app.insert_resource(light_smoothness.settings());
+        render_app.insert_resource(light_smoothness);
     }
 }
 

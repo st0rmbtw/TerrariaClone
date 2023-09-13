@@ -83,7 +83,8 @@ pub(crate) fn set_state<S: States + Clone>(state: S) -> impl FnMut(ResMut<NextSt
     }
 }
 
-pub(crate) fn toggle_resource<T: Toggle + Resource>(mut res: ResMut<T>) {
+pub(crate) fn toggle_resource<T: Toggle + Resource>(res: Option<ResMut<T>>) {
+    let Some(mut res) = res else { return; };
     res.toggle()
 }
 

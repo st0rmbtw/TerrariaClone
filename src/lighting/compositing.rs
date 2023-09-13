@@ -8,11 +8,6 @@ use bevy::{
 
 use crate::plugins::{camera::components::{WorldCamera, MainCamera, BackgroundCamera, InGameBackgroundCamera}, DespawnOnGameExit};
 
-use super::pipeline::PipelineTargetsWrapper;
-
-#[derive(Default, Resource, Deref)]
-pub(crate) struct LightMapTexture(pub(crate) Handle<Image>);
-
 #[derive(AsBindGroup, TypePath, TypeUuid, Clone, Default)]
 #[uuid = "9114bbd2-1bb3-4b5a-a710-1235798db745"]
 pub(crate) struct LightMapMaterial {
@@ -106,19 +101,6 @@ pub(super) fn update_image_to_window_size(
     for id in materials.ids() {
         asset_events.send(AssetEvent::Modified { handle: Handle::weak(id) });
     }
-}
-
-pub(super) fn spawn_lightmap_texture(
-    mut commands: Commands,
-    gpu_targets_wrapper: Res<PipelineTargetsWrapper>,
-) {
-    let lightmap_texture = gpu_targets_wrapper
-        .light_map
-        .as_ref()
-        .expect("Targets must be initialized")
-        .clone();
-
-    commands.insert_resource(LightMapTexture(lightmap_texture));
 }
 
 pub(super) fn setup_post_processing_camera(

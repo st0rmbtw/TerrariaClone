@@ -1,7 +1,7 @@
 pub(in crate::plugins::ui) mod systems;
 mod components;
 
-use bevy::prelude::{Plugin, App, resource_changed, IntoSystemConfigs, resource_exists_and_changed, resource_added, Update, Condition};
+use bevy::prelude::{Plugin, App, IntoSystemConfigs, resource_exists_and_changed, resource_added, Update, Condition};
 
 use crate::{common::systems::{set_visibility, set_visibility_negated}, plugins::{inventory::Inventory, InGameSystemSet, ui::SettingsMenuVisibility}};
 
@@ -23,7 +23,7 @@ impl Plugin for InventoryUiPlugin {
             (
                 set_visibility::<components::InventoryUi, InventoryUiVisibility>,
                 set_visibility_negated::<components::InventoryUiContainer, SettingsMenuVisibility>,
-                systems::trigger_inventory_changed.run_if(resource_changed::<InventoryUiVisibility>()),
+                systems::trigger_inventory_changed.run_if(resource_exists_and_changed::<InventoryUiVisibility>()),
                 systems::update_selected_item_name_alignment,
                 systems::update_selected_item_name_text,
                 (

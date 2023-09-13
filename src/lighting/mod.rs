@@ -1,6 +1,5 @@
-use bevy::log;
-use bevy::prelude::{Plugin, App, Update, IntoSystemConfigs, OnEnter, World, OnExit, PostUpdate, Event};
-use bevy::render::extract_resource::ExtractResourcePlugin;
+use bevy::prelude::{Plugin, App, Update, IntoSystemConfigs, OnEnter, World, OnExit, PostUpdate, Event, in_state, Handle, Image, Resource, Deref};
+use bevy::render::extract_resource::{ExtractResourcePlugin, ExtractResource};
 use bevy::render::render_graph::{RenderGraph, Node, RenderGraphContext, NodeRunError};
 use bevy::render::render_resource::{PipelineCache, ComputePassDescriptor};
 use bevy::render::renderer::RenderContext;
@@ -8,10 +7,9 @@ use bevy::render::{RenderApp, Render, RenderSet, ExtractSchedule};
 use bevy::sprite::Material2dPlugin;
 use crate::common::state::GameState;
 use crate::plugins::InGameSystemSet;
-use crate::plugins::world::resources::WorldUndergroundLevel;
 
 use self::compositing::{LightMapMaterial, PostProcessingMaterial};
-use self::pipeline::{LightMapPipeline, PipelineBindGroups, PipelineTargetsWrapper};
+use self::pipeline::{LightMapPipeline, PipelineBindGroups};
 use self::pipeline_assets::{BlurArea, PipelineAssets};
 
 pub(crate) mod compositing;
@@ -26,26 +24,29 @@ pub(crate) struct UpdateTilesTextureEvent {
     pub(crate) y: usize
 }
 
+#[derive(Resource, ExtractResource, Clone)]
+struct TileTexture(Handle<Image>);
+
+#[derive(Resource, ExtractResource, Clone, Deref)]
+pub(crate) struct LightMapTexture(Handle<Image>);
+
 pub(crate) struct LightingPlugin;
 impl Plugin for LightingPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
             Material2dPlugin::<LightMapMaterial>::default(),
             Material2dPlugin::<PostProcessingMaterial>::default(),
-            ExtractResourcePlugin::<PipelineTargetsWrapper>::default(),
             ExtractResourcePlugin::<BlurArea>::default(),
         ));
 
-        app.init_resource::<PipelineTargetsWrapper>();
         app.init_resource::<BlurArea>();
-        app.init_resource::<WorldUndergroundLevel>();
         app.add_event::<UpdateTilesTextureEvent>();
 
         app.add_systems(
             OnExit(GameState::WorldLoading),
             (
                 pipeline_assets::init_tiles_texture,
-                (pipeline::setup_pipeline_targets, compositing::spawn_lightmap_texture).chain(),
+                pipeline::init_light_map_texture,
             )
         );
 
@@ -61,13 +62,27 @@ impl Plugin for LightingPlugin {
         app.add_systems(PostUpdate, pipeline_assets::update_blur_area.in_set(InGameSystemSet::PostUpdate));
 
         let render_app = app.sub_app_mut(RenderApp);
+
         render_app
-            .add_systems(ExtractSchedule, pipeline_assets::extract_pipeline_assets)
+            .add_systems(
+                ExtractSchedule,
+                (
+                    pipeline_assets::extract_state,
+                    pipeline_assets::extract_pipeline_assets,
+                    pipeline_assets::extract_textures,
+                    pipeline_assets::extract_world_underground_level
+                )
+            )
             .add_systems(
                 Render,
                 (
+                    pipeline::init_pipeline
+                        .in_set(RenderSet::Prepare)
+                        .run_if(in_state(GameState::InGame)),
                     pipeline_assets::prepare_pipeline_assets.in_set(RenderSet::Prepare),
-                    pipeline::queue_bind_groups.in_set(RenderSet::Queue),
+                    pipeline::queue_bind_groups
+                        .run_if(in_state(GameState::InGame))
+                        .in_set(RenderSet::Queue),
                 ),
             );
 
@@ -81,9 +96,7 @@ impl Plugin for LightingPlugin {
 
     fn finish(&self, app: &mut App) {
         let render_app = app.sub_app_mut(RenderApp);
-        render_app
-            .init_resource::<PipelineAssets>()
-            .init_resource::<LightMapPipeline>();
+        render_app.init_resource::<PipelineAssets>();
     }
 }
 
@@ -180,9 +193,6 @@ impl Node for LightMapNode {
                     pass.set_bind_group(0, &pipeline_bind_groups.right_to_left_bind_group, &[]);
                     pass.set_pipeline(right_to_left_pipeline);
                     pass.dispatch_workgroups(1, grid_h, 1);
-
-                } else {
-                    log::warn!("Failed to get bind groups");
                 }
             }
         }

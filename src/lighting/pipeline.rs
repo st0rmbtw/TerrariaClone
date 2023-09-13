@@ -1,17 +1,11 @@
-use bevy::{prelude::{Handle, Image, ResMut, Assets, default, Commands, Res, World, FromWorld, AssetServer, Resource, UVec2}, render::{render_resource::{BindGroup, TextureFormat, FilterMode, Extent3d, TextureDimension, TextureUsages, SamplerDescriptor, BindGroupLayout, CachedComputePipelineId, BindGroupDescriptor, BindGroupEntry, BindingResource, BindGroupLayoutDescriptor, BindGroupLayoutEntry, ShaderStages, BindingType, StorageTextureAccess, TextureViewDimension, PipelineCache, ComputePipelineDescriptor, BufferBindingType, ShaderType, ShaderDefVal}, texture::ImageSampler, renderer::RenderDevice, render_asset::RenderAssets, extract_resource::ExtractResource}};
+use bevy::{prelude::{Image, ResMut, Assets, default, Commands, Res, World, FromWorld, AssetServer, Resource, UVec2}, render::{render_resource::{BindGroup, TextureFormat, FilterMode, Extent3d, TextureDimension, TextureUsages, SamplerDescriptor, BindGroupLayout, CachedComputePipelineId, BindGroupDescriptor, BindGroupEntry, BindingResource, BindGroupLayoutDescriptor, BindGroupLayoutEntry, ShaderStages, BindingType, StorageTextureAccess, TextureViewDimension, PipelineCache, ComputePipelineDescriptor, BufferBindingType, ShaderType, ShaderDefVal}, texture::ImageSampler, renderer::RenderDevice, render_asset::RenderAssets}};
 
-use crate::{world::WorldData, plugins::config::LightSettings};
+use crate::{world::WorldData, plugins::{config::LightSmoothness, world::resources::WorldUndergroundLevel}};
 
-use super::pipeline_assets::PipelineAssets;
+use super::{pipeline_assets::PipelineAssets, LightMapTexture, TileTexture};
 
 pub(super) const LIGHTMAP_FORMAT: TextureFormat = TextureFormat::R8Unorm;
 pub(super) const TILES_FORMAT: TextureFormat = TextureFormat::R8Uint;
-
-#[derive(Clone, Resource, ExtractResource, Default)]
-pub(super) struct PipelineTargetsWrapper {
-    pub(super) tiles: Option<Handle<Image>>,
-    pub(super) light_map: Option<Handle<Image>>,
-}
 
 #[derive(Resource)]
 pub(super) struct PipelineBindGroups {
@@ -60,47 +54,38 @@ pub(super) fn create_texture_2d(size: (u32, u32), format: TextureFormat) -> Imag
     image
 }
 
-pub(super) fn setup_pipeline_targets(
+pub(super) fn init_light_map_texture(
+    mut commands: Commands,
     world_data: Res<WorldData>,
-    light_settings: Res<LightSettings>,
+    light_smoothness: Res<LightSmoothness>,
     mut images: ResMut<Assets<Image>>,
-    mut targets_wrapper: ResMut<PipelineTargetsWrapper>,
 ) {
-    let width = world_data.size.width as u32 * light_settings.subdivision;
-    let height = world_data.size.height as u32 * light_settings.subdivision;
+    let width = world_data.size.width as u32 * light_smoothness.subdivision();
+    let height = world_data.size.height as u32 * light_smoothness.subdivision();
 
     let texture = create_texture_2d((width, height), LIGHTMAP_FORMAT);
 
-    targets_wrapper.light_map = Some(images.add(texture));
+    commands.insert_resource(LightMapTexture(images.add(texture)));
 }
 
 pub(super) fn queue_bind_groups(
     mut commands: Commands,
     pipeline: Res<LightMapPipeline>,
     gpu_images: Res<RenderAssets<Image>>,
-    targets_wrapper: Option<Res<PipelineTargetsWrapper>>,
     render_device: Res<RenderDevice>,
-    pipeline_assets: Res<PipelineAssets>
+    pipeline_assets: Res<PipelineAssets>,
+    tile_texture: Res<TileTexture>,
+    lightmap_texture: Res<LightMapTexture>,
 ) {
-    let Some(targets_wrapper) = targets_wrapper else { return; };
-    let Some(tiles) = targets_wrapper.tiles.as_ref() else { return; };
-    let Some(light_map) = targets_wrapper.light_map.as_ref() else { return; };
-
     if let (
         Some(area_min),
         Some(area_max),
-        Some(underground_level),
-        Some(decay_solid),
-        Some(decay_air),
     ) = (
         pipeline_assets.area_min.binding(),
         pipeline_assets.area_max.binding(),
-        pipeline_assets.world_underground_level.binding(),
-        pipeline_assets.decay_solid.binding(),
-        pipeline_assets.decay_air.binding(),
     ) {
-        let tiles_image = &gpu_images[tiles];
-        let lightmap_image = &gpu_images[light_map];
+        let tiles_image = &gpu_images[&tile_texture.0];
+        let lightmap_image = &gpu_images[&lightmap_texture.0];
 
         let scan_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
             label: "scan_bind_group".into(),
@@ -117,10 +102,6 @@ pub(super) fn queue_bind_groups(
                 BindGroupEntry {
                     binding: 2,
                     resource: area_min.clone()
-                },
-                BindGroupEntry {
-                    binding: 3,
-                    resource: underground_level
                 },
             ],
         });
@@ -145,14 +126,6 @@ pub(super) fn queue_bind_groups(
                     binding: 3,
                     resource: area_max.clone()
                 },
-                BindGroupEntry {
-                    binding: 4,
-                    resource: decay_solid.clone(),
-                },
-                BindGroupEntry {
-                    binding: 5,
-                    resource: decay_air.clone()
-                },
             ],
         });
 
@@ -175,14 +148,6 @@ pub(super) fn queue_bind_groups(
                 BindGroupEntry {
                     binding: 3,
                     resource: area_max.clone()
-                },
-                BindGroupEntry {
-                    binding: 4,
-                    resource: decay_solid.clone(),
-                },
-                BindGroupEntry {
-                    binding: 5,
-                    resource: decay_air.clone()
                 },
             ],
         });
@@ -207,14 +172,6 @@ pub(super) fn queue_bind_groups(
                     binding: 3,
                     resource: area_max.clone()
                 },
-                BindGroupEntry {
-                    binding: 4,
-                    resource: decay_solid.clone(),
-                },
-                BindGroupEntry {
-                    binding: 5,
-                    resource: decay_air.clone()
-                },
             ],
         });
 
@@ -238,14 +195,6 @@ pub(super) fn queue_bind_groups(
                     binding: 3,
                     resource: area_max
                 },
-                BindGroupEntry {
-                    binding: 4,
-                    resource: decay_solid,
-                },
-                BindGroupEntry {
-                    binding: 5,
-                    resource: decay_air
-                },
             ],
         });
 
@@ -262,7 +211,11 @@ pub(super) fn queue_bind_groups(
 impl FromWorld for LightMapPipeline {
     fn from_world(world: &mut World) -> Self {
         let render_device = world.resource::<RenderDevice>();
-        let light_settings = world.resource::<LightSettings>().clone();
+        let light_smoothness = world.resource::<LightSmoothness>();
+        let underground_level = world.resource::<WorldUndergroundLevel>().0;
+        
+        let subdivision = light_smoothness.subdivision();
+        let light_smoothness = light_smoothness.to_u8() as u32;
 
         let scan_layout =
             render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
@@ -295,16 +248,6 @@ impl FromWorld for LightMapPipeline {
                             ty: BufferBindingType::Uniform,
                             has_dynamic_offset: false,
                             min_binding_size: Some(UVec2::min_size())
-                        },
-                        count: None,
-                    },
-                    BindGroupLayoutEntry {
-                        binding: 3,
-                        visibility: ShaderStages::COMPUTE,
-                        ty: BindingType::Buffer {
-                            ty: BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: Some(u32::min_size())
                         },
                         count: None,
                     },
@@ -356,26 +299,6 @@ impl FromWorld for LightMapPipeline {
                         },
                         count: None,
                     },
-                    BindGroupLayoutEntry {
-                        binding: 4,
-                        visibility: ShaderStages::COMPUTE,
-                        ty: BindingType::Buffer {
-                            ty: BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: Some(f32::min_size())
-                        },
-                        count: None,
-                    },
-                    BindGroupLayoutEntry {
-                        binding: 5,
-                        visibility: ShaderStages::COMPUTE,
-                        ty: BindingType::Buffer {
-                            ty: BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: Some(f32::min_size())
-                        },
-                        count: None,
-                    },
                 ],
             });
 
@@ -420,26 +343,6 @@ impl FromWorld for LightMapPipeline {
                             ty: BufferBindingType::Uniform,
                             has_dynamic_offset: false,
                             min_binding_size: Some(UVec2::min_size())
-                        },
-                        count: None,
-                    },
-                    BindGroupLayoutEntry {
-                        binding: 4,
-                        visibility: ShaderStages::COMPUTE,
-                        ty: BindingType::Buffer {
-                            ty: BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: Some(f32::min_size())
-                        },
-                        count: None,
-                    },
-                    BindGroupLayoutEntry {
-                        binding: 5,
-                        visibility: ShaderStages::COMPUTE,
-                        ty: BindingType::Buffer {
-                            ty: BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: Some(f32::min_size())
                         },
                         count: None,
                     },
@@ -491,26 +394,6 @@ impl FromWorld for LightMapPipeline {
                         },
                         count: None,
                     },
-                    BindGroupLayoutEntry {
-                        binding: 4,
-                        visibility: ShaderStages::COMPUTE,
-                        ty: BindingType::Buffer {
-                            ty: BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: Some(f32::min_size())
-                        },
-                        count: None,
-                    },
-                    BindGroupLayoutEntry {
-                        binding: 5,
-                        visibility: ShaderStages::COMPUTE,
-                        ty: BindingType::Buffer {
-                            ty: BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: Some(f32::min_size())
-                        },
-                        count: None,
-                    },
                 ],
             });
 
@@ -559,26 +442,6 @@ impl FromWorld for LightMapPipeline {
                         },
                         count: None,
                     },
-                    BindGroupLayoutEntry {
-                        binding: 4,
-                        visibility: ShaderStages::COMPUTE,
-                        ty: BindingType::Buffer {
-                            ty: BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: Some(f32::min_size())
-                        },
-                        count: None,
-                    },
-                    BindGroupLayoutEntry {
-                        binding: 5,
-                        visibility: ShaderStages::COMPUTE,
-                        ty: BindingType::Buffer {
-                            ty: BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: Some(f32::min_size())
-                        },
-                        count: None,
-                    },
                 ],
             });
 
@@ -597,7 +460,10 @@ impl FromWorld for LightMapPipeline {
             label: Some("scan_pipeline".into()),
             layout: vec![scan_layout.clone()],
             shader: shader_scan,
-            shader_defs: vec![ShaderDefVal::UInt("SUBDIVISION".into(), light_settings.subdivision)],
+            shader_defs: vec![
+                ShaderDefVal::UInt("WORLD_UNDERGROUND_LEVEL".into(), underground_level),
+                ShaderDefVal::UInt("SUBDIVISION".into(), subdivision),
+            ],
             entry_point: "scan".into(),
             push_constant_ranges: vec![],
         });
@@ -606,7 +472,10 @@ impl FromWorld for LightMapPipeline {
             label: Some("left_to_right_pipeline".into()),
             layout: vec![left_to_right_layout.clone()],
             shader: shader_blur.clone(),
-            shader_defs: vec![ShaderDefVal::UInt("SUBDIVISION".into(), light_settings.subdivision)],
+            shader_defs: vec![
+                ShaderDefVal::UInt("LIGHT_SMOOTHNESS".into(), light_smoothness),
+                ShaderDefVal::UInt("SUBDIVISION".into(), subdivision),
+            ],
             entry_point: "left_to_right".into(),
             push_constant_ranges: vec![],
         });
@@ -615,7 +484,10 @@ impl FromWorld for LightMapPipeline {
             label: Some("top_to_bottom_pipeline".into()),
             layout: vec![top_to_bottom_layout.clone()],
             shader: shader_blur.clone(),
-            shader_defs: vec![ShaderDefVal::UInt("SUBDIVISION".into(), light_settings.subdivision)],
+            shader_defs: vec![
+                ShaderDefVal::UInt("LIGHT_SMOOTHNESS".into(), light_smoothness),
+                ShaderDefVal::UInt("SUBDIVISION".into(), subdivision),
+            ],
             entry_point: "top_to_bottom".into(),
             push_constant_ranges: vec![],
         });
@@ -624,7 +496,10 @@ impl FromWorld for LightMapPipeline {
             label: Some("right_to_left_pipeline".into()),
             layout: vec![right_to_left_layout.clone()],
             shader: shader_blur.clone(),
-            shader_defs: vec![ShaderDefVal::UInt("SUBDIVISION".into(), light_settings.subdivision)],
+            shader_defs: vec![
+                ShaderDefVal::UInt("LIGHT_SMOOTHNESS".into(), light_smoothness),
+                ShaderDefVal::UInt("SUBDIVISION".into(), subdivision),
+            ],
             entry_point: "right_to_left".into(),
             push_constant_ranges: vec![],
         });
@@ -633,7 +508,10 @@ impl FromWorld for LightMapPipeline {
             label: Some("bottom_to_top_pipeline".into()),
             layout: vec![bottom_to_top_layout.clone()],
             shader: shader_blur,
-            shader_defs: vec![ShaderDefVal::UInt("SUBDIVISION".into(), light_settings.subdivision)],
+            shader_defs: vec![
+                ShaderDefVal::UInt("LIGHT_SMOOTHNESS".into(), light_smoothness),
+                ShaderDefVal::UInt("SUBDIVISION".into(), subdivision),
+            ],
             entry_point: "bottom_to_top".into(),
             push_constant_ranges: vec![],
         });
@@ -651,4 +529,8 @@ impl FromWorld for LightMapPipeline {
             bottom_to_top_pipeline,
         }
     }
+}
+
+pub(super) fn init_pipeline(mut commands: Commands) {
+    commands.init_resource::<LightMapPipeline>();
 }

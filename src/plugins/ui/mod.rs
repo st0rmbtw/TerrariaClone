@@ -7,7 +7,7 @@ pub(crate) mod menu;
 
 pub(crate) use resources::*;
 
-use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Color, TextBundle, Condition, Button, resource_exists_and_equals, not, Component}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, PositionType}, text::{TextAlignment, Text, TextStyle, TextSection}};
+use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Color, TextBundle, Condition, Button, resource_exists_and_equals, not, Component, OnEnter}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, PositionType}, text::{TextAlignment, Text, TextStyle, TextSection}};
 use crate::common::{state::GameState, systems::{set_visibility, despawn_with, toggle_resource, animate_button_scale}};
 
 use self::{
@@ -28,8 +28,10 @@ impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((InventoryUiPlugin, InGameSettingsUiPlugin, MenuPlugin));
 
-        app.init_resource::<InventoryUiVisibility>();
         app.init_resource::<UiVisibility>();
+
+        app.add_systems(OnEnter(GameState::InGame), setup);
+        app.add_systems(OnExit(GameState::InGame), cleanup);
 
         app.add_systems(OnExit(GameState::WorldLoading), spawn_ui_container);
         app.add_systems(OnExit(GameState::WorldLoading), spawn_fps_text);
@@ -73,6 +75,14 @@ impl Plugin for UiPlugin {
             )
         );
     }
+}
+
+fn setup(mut commands: Commands) {
+    commands.init_resource::<InventoryUiVisibility>();
+}
+
+fn cleanup(mut commands: Commands) {
+    commands.remove_resource::<InventoryUiVisibility>();
 }
 
 fn spawn_ui_container(
