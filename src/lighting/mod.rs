@@ -77,19 +77,18 @@ impl Plugin for LightingPlugin {
             .add_systems(
                 Render,
                 (
-                    pipeline::init_pipeline
-                        .in_set(RenderSet::Prepare)
-                        .run_if(resource_changed::<State<GameState>>().and_then(
-                                in_state(GameState::InGame))
-                        ),
-                    pipeline_assets::prepare_pipeline_assets.in_set(RenderSet::Prepare),
+                    (
+                        pipeline::init_pipeline
+                            .run_if(resource_changed::<State<GameState>>().and_then(in_state(GameState::InGame))),
+                        pipeline_assets::prepare_pipeline_assets,
+                    ).in_set(RenderSet::Prepare),
+
                     pipeline::queue_bind_groups
                         .run_if(in_state(GameState::InGame))
                         .in_set(RenderSet::Queue),
+
                     pipeline::remove_pipeline
-                        .run_if(resource_changed::<State<GameState>>().and_then(
-                                not(in_state(GameState::InGame)))
-                        )
+                        .run_if(resource_changed::<State<GameState>>().and_then(not(in_state(GameState::InGame))))
                         .in_set(RenderSet::Cleanup)
                 ),
             );
