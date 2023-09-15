@@ -15,6 +15,8 @@ use self::pipeline_assets::{BlurArea, PipelineAssets};
 pub(crate) mod compositing;
 pub(super) mod pipeline;
 pub(super) mod pipeline_assets;
+pub(super) mod types;
+pub(super) mod gpu_types;
 
 const WORKGROUP: u32 = 16;
 
@@ -50,13 +52,14 @@ impl Plugin for LightingPlugin {
             )
         );
 
-        app.add_systems(OnEnter(GameState::InGame), compositing::setup_post_processing_camera);
+        app.add_systems(OnEnter(GameState::InGame), (compositing::setup_post_processing_camera, compositing::spawn_mouse_light));
 
         app.add_systems(
             Update,
             (
                 compositing::update_image_to_window_size,
-                pipeline_assets::handle_update_tiles_texture_event.in_set(InGameSystemSet::Update)
+                pipeline_assets::handle_update_tiles_texture_event.in_set(InGameSystemSet::Update),
+                compositing::update_mouse_light
             )
         );
         app.add_systems(PostUpdate, pipeline_assets::update_blur_area.in_set(InGameSystemSet::PostUpdate));
@@ -67,11 +70,13 @@ impl Plugin for LightingPlugin {
             .add_systems(
                 ExtractSchedule,
                 (
-                    pipeline_assets::extract_state,
-                    pipeline_assets::extract_pipeline_assets,
                     pipeline_assets::extract_textures,
                     pipeline_assets::extract_world_underground_level,
-                    pipeline_assets::extract_light_smoothness
+                    pipeline_assets::extract_state,
+                    (
+                        pipeline_assets::extract_light_smoothness,
+                        pipeline_assets::extract_pipeline_assets,
+                    ).chain()
                 )
             )
             .add_systems(
@@ -123,12 +128,14 @@ impl Node for LightMapNode {
             if blur_area.width() > 0 && blur_area.height() > 0 {
                 if let (
                     Some(scan_pipeline),
+                    Some(place_light_pipeline),
                     Some(left_to_right_pipeline),
                     Some(right_to_left_pipeline),
                     Some(top_to_bottom_pipeline),
                     Some(bottom_to_top_pipeline),
                 ) = (
                     pipeline_cache.get_compute_pipeline(pipeline.scan_pipeline),
+                    pipeline_cache.get_compute_pipeline(pipeline.light_sources_pipeline),
                     pipeline_cache.get_compute_pipeline(pipeline.left_to_right_pipeline),
                     pipeline_cache.get_compute_pipeline(pipeline.right_to_left_pipeline),
                     pipeline_cache.get_compute_pipeline(pipeline.top_to_bottom_pipeline),
@@ -147,6 +154,11 @@ impl Node for LightMapNode {
                     pass.set_bind_group(0, &pipeline_bind_groups.scan_bind_group, &[]);
                     pass.set_pipeline(scan_pipeline);
                     pass.dispatch_workgroups(grid_w, grid_h, 1);
+
+                    // Place light
+                    pass.set_bind_group(0, &pipeline_bind_groups.light_sources_bind_group, &[]);
+                    pass.set_pipeline(place_light_pipeline);
+                    pass.dispatch_workgroups(1, 1, 1);
                     
                     // First blur pass
                     pass.set_bind_group(0, &pipeline_bind_groups.top_to_bottom_bind_group, &[]);

@@ -2,7 +2,7 @@ use bevy::{prelude::{Image, ResMut, Assets, default, Commands, Res, World, FromW
 
 use crate::{world::WorldData, plugins::{config::LightSmoothness, world::resources::WorldUndergroundLevel}};
 
-use super::{pipeline_assets::PipelineAssets, LightMapTexture, TileTexture};
+use super::{pipeline_assets::PipelineAssets, LightMapTexture, TileTexture, gpu_types::GpuLightSourceBuffer};
 
 pub(super) const LIGHTMAP_FORMAT: TextureFormat = TextureFormat::R8Unorm;
 pub(super) const TILES_FORMAT: TextureFormat = TextureFormat::R8Uint;
@@ -10,6 +10,7 @@ pub(super) const TILES_FORMAT: TextureFormat = TextureFormat::R8Uint;
 #[derive(Resource)]
 pub(super) struct PipelineBindGroups {
     pub(super) scan_bind_group: BindGroup,
+    pub(super) light_sources_bind_group: BindGroup,
     pub(super) left_to_right_bind_group: BindGroup,
     pub(super) top_to_bottom_bind_group: BindGroup,
     pub(super) right_to_left_bind_group: BindGroup,
@@ -20,12 +21,19 @@ pub(super) struct PipelineBindGroups {
 pub(super) struct LightMapPipeline {
     pub(super) scan_layout: BindGroupLayout,
     pub(super) scan_pipeline: CachedComputePipelineId,
+
+    pub(super) light_sources_layout: BindGroupLayout,
+    pub(super) light_sources_pipeline: CachedComputePipelineId,
+
     pub(super) left_to_right_layout: BindGroupLayout,
     pub(super) left_to_right_pipeline: CachedComputePipelineId,
+
     pub(super) top_to_bottom_layout: BindGroupLayout,
     pub(super) top_to_bottom_pipeline: CachedComputePipelineId,
+
     pub(super) right_to_left_layout: BindGroupLayout,
     pub(super) right_to_left_pipeline: CachedComputePipelineId,
+
     pub(super) bottom_to_top_layout: BindGroupLayout,
     pub(super) bottom_to_top_pipeline: CachedComputePipelineId,
 }
@@ -80,9 +88,11 @@ pub(super) fn queue_bind_groups(
     if let (
         Some(area_min),
         Some(area_max),
+        Some(light_sources),
     ) = (
         pipeline_assets.area_min.binding(),
         pipeline_assets.area_max.binding(),
+        pipeline_assets.light_sources.binding(),
     ) {
         let tiles_image = &gpu_images[&tile_texture.0];
         let lightmap_image = &gpu_images[&lightmap_texture.0];
@@ -102,6 +112,21 @@ pub(super) fn queue_bind_groups(
                 BindGroupEntry {
                     binding: 2,
                     resource: area_min.clone()
+                },
+            ],
+        });
+
+        let light_sources_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
+            label: "light_sources_bind_group".into(),
+            layout: &pipeline.light_sources_layout,
+            entries: &[
+                BindGroupEntry {
+                    binding: 0,
+                    resource: BindingResource::TextureView(&lightmap_image.texture_view),
+                },
+                BindGroupEntry {
+                    binding: 1,
+                    resource: light_sources,
                 },
             ],
         });
@@ -200,6 +225,7 @@ pub(super) fn queue_bind_groups(
 
         commands.insert_resource(PipelineBindGroups {
             scan_bind_group,
+            light_sources_bind_group,
             left_to_right_bind_group,
             top_to_bottom_bind_group,
             right_to_left_bind_group,
@@ -248,6 +274,33 @@ impl FromWorld for LightMapPipeline {
                             ty: BufferBindingType::Uniform,
                             has_dynamic_offset: false,
                             min_binding_size: Some(UVec2::min_size())
+                        },
+                        count: None,
+                    },
+                ],
+            });
+
+        let light_sources_layout =
+            render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+                label: Some("light_sources_group_layout"),
+                entries: &[
+                    BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::StorageTexture {
+                            access: StorageTextureAccess::WriteOnly,
+                            format: LIGHTMAP_FORMAT,
+                            view_dimension: TextureViewDimension::D2,
+                        },
+                        count: None,
+                    },
+                    BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::Buffer {
+                            ty: BufferBindingType::Storage { read_only: true },
+                            has_dynamic_offset: false,
+                            min_binding_size: Some(GpuLightSourceBuffer::min_size())
                         },
                         count: None,
                     },
@@ -446,10 +499,15 @@ impl FromWorld for LightMapPipeline {
             });
 
 
-        let (shader_scan, shader_blur) = {
+        let (
+            shader_scan,
+            shader_light_sources,
+            shader_blur
+        ) = {
             let assets_server = world.resource::<AssetServer>();
             (
                 assets_server.load("shaders/light_map/scan.wgsl"),
+                assets_server.load("shaders/light_map/light_sources.wgsl"),
                 assets_server.load("shaders/light_map/blur.wgsl"),
             )
         };
@@ -465,6 +523,15 @@ impl FromWorld for LightMapPipeline {
                 ShaderDefVal::UInt("SUBDIVISION".into(), subdivision),
             ],
             entry_point: "scan".into(),
+            push_constant_ranges: vec![],
+        });
+
+        let light_sources_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
+            label: Some("light_sources_pipeline".into()),
+            layout: vec![light_sources_layout.clone()],
+            shader: shader_light_sources,
+            shader_defs: vec![],
+            entry_point: "light_sources".into(),
             push_constant_ranges: vec![],
         });
 
@@ -519,12 +586,19 @@ impl FromWorld for LightMapPipeline {
         LightMapPipeline {
             scan_layout,
             scan_pipeline,
+
+            light_sources_layout,
+            light_sources_pipeline,
+
             left_to_right_layout,
             left_to_right_pipeline,
+
             top_to_bottom_layout,
             top_to_bottom_pipeline,
+
             right_to_left_layout,
             right_to_left_pipeline,
+
             bottom_to_top_layout,
             bottom_to_top_pipeline,
         }

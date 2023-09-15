@@ -6,7 +6,9 @@ use bevy::{
     }, texture::BevyDefault, camera::RenderTarget, view::RenderLayers, mesh::InnerMeshVertexBufferLayout}, reflect::{TypePath, TypeUuid}, sprite::{Material2d, MaterialMesh2dBundle, Material2dKey}, window::{PrimaryWindow, WindowResized}, core_pipeline::fullscreen_vertex_shader::FULLSCREEN_SHADER_HANDLE, utils::Hashed,
 };
 
-use crate::plugins::{camera::components::{WorldCamera, MainCamera, BackgroundCamera, InGameBackgroundCamera}, DespawnOnGameExit};
+use crate::plugins::{camera::components::{WorldCamera, MainCamera, BackgroundCamera, InGameBackgroundCamera}, DespawnOnGameExit, cursor::position::CursorPosition};
+
+use super::types::LightSource;
 
 #[derive(AsBindGroup, TypePath, TypeUuid, Clone, Default)]
 #[uuid = "9114bbd2-1bb3-4b5a-a710-1235798db745"]
@@ -219,4 +221,29 @@ pub(super) fn setup_post_processing_camera(
         },
         post_processing_layer
     ));
+}
+
+#[derive(Component)]
+pub(super) struct MouseLight;
+
+pub(super) fn spawn_mouse_light(
+    mut commands: Commands
+) {
+    commands.spawn((
+        SpatialBundle::default(),
+        LightSource {
+            size: UVec2::splat(2)
+        },
+        MouseLight
+    ));
+}
+
+pub(super) fn update_mouse_light(
+    cursor_pos: Res<CursorPosition<MainCamera>>,
+    mut query_mouse_light: Query<&mut Transform, With<MouseLight>>
+) {
+    let Ok(mut light_transform) = query_mouse_light.get_single_mut() else { return; };
+
+    light_transform.translation.x = cursor_pos.world.x;
+    light_transform.translation.y = cursor_pos.world.y;
 }

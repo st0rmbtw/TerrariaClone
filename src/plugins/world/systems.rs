@@ -54,6 +54,7 @@ pub(super) fn spawn_terrain(mut commands: Commands) {
     let world_data = generate_world(seed, WorldSize::Tiny);
 
     commands.insert_resource(WorldUndergroundLevel(world_data.layer.underground as u32));
+    commands.insert_resource(super::WorldSize(UVec2::new(world_data.size.width as u32, world_data.size.height as u32)));
     commands.insert_resource(world_data);
     commands.insert_resource(NextState(Some(GameState::InGame)));
 }

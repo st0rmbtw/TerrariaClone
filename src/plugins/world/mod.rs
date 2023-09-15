@@ -5,7 +5,7 @@ mod systems;
 mod utils;
 
 use crate::common::state::GameState;
-use bevy::{prelude::{Plugin, App, OnEnter, IntoSystemConfigs, Update, Rect, OnExit}, math::URect, render::view::RenderLayers};
+use bevy::{prelude::{Plugin, App, OnEnter, IntoSystemConfigs, Update, Rect, OnExit, Resource, UVec2, Deref}, math::URect, render::view::RenderLayers};
 use bevy_ecs_tilemap::TilemapPlugin;
 
 use super::InGameSystemSet;
@@ -14,6 +14,9 @@ pub(crate) const WORLD_RENDER_LAYER: RenderLayers = RenderLayers::layer(26);
 
 pub(super) type CameraFov = Rect;
 pub(super) type ChunkRange = URect;
+
+#[derive(Resource, Deref)]
+pub(crate) struct WorldSize(UVec2);
 
 pub(crate) struct WorldPlugin;
 impl Plugin for WorldPlugin {
