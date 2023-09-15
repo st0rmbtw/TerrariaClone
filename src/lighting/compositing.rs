@@ -230,10 +230,11 @@ pub(super) fn spawn_mouse_light(
     mut commands: Commands
 ) {
     commands.spawn((
+        DespawnOnGameExit,
         SpatialBundle::default(),
         LightSource {
             size: UVec2::splat(2)
-        },
+        }, 
         MouseLight
     ));
 }
