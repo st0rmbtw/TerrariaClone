@@ -120,7 +120,7 @@ impl Node for LightMapNode {
             let pipeline = world.resource::<LightMapPipeline>();
             let blur_area = world.resource::<BlurArea>();
 
-            if blur_area.size().x > 0 && blur_area.size().y > 0 {
+            if blur_area.width() > 0 && blur_area.height() > 0 {
                 if let (
                     Some(scan_pipeline),
                     Some(left_to_right_pipeline),

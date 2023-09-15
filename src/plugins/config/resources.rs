@@ -99,16 +99,22 @@ impl SoundVolume {
 pub(crate) enum LightSmoothness {
     Classic,
     Medium,
-    High
+    High,
+    Ultra
 }
 
 impl LightSmoothness {
+    pub(crate) const fn length() -> u8 {
+        4
+    }
+
     pub(crate) const fn new(value: u8) -> Self {
         match value {
             0 => Self::Classic,
             1 => Self::Medium,
             2 => Self::High,
-            _ => panic!("Expected either 0, 1 or 2 value")
+            3 => Self::Ultra,
+            _ => panic!("Expected either 0, 1, 2 or 3 value")
         }
     }
 
@@ -117,22 +123,25 @@ impl LightSmoothness {
             Self::Classic => 0,
             Self::Medium => 1,
             Self::High => 2,
+            Self::Ultra => 3,
         }
     }
 
     pub(crate) fn subdivision(&self) -> u32 {
         match self {
-            LightSmoothness::Classic => 2,
-            LightSmoothness::Medium => 4,
-            LightSmoothness::High => 8,
+            Self::Classic => 2,
+            Self::Medium => 4,
+            Self::High => 8,
+            Self::Ultra => 16,
         }
     }
 
     pub(crate) fn name(&self) -> UIStringKey {
         match &self {
-            LightSmoothness::Classic => UIStringKey::Classic,
-            LightSmoothness::Medium => UIStringKey::Medium,
-            LightSmoothness::High => UIStringKey::High,
+            Self::Classic => UIStringKey::Classic,
+            Self::Medium => UIStringKey::Medium,
+            Self::High => UIStringKey::High,
+            Self::Ultra => UIStringKey::Ultra,
         }
     }
 }

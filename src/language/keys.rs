@@ -73,6 +73,7 @@ pub(crate) enum UIStringKey {
     Classic,
     Medium,
     High,
+    Ultra,
 }
 
 impl From<UIStringKey> for LanguageStringKey {

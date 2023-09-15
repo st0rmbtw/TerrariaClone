@@ -16,7 +16,10 @@ var<uniform> decay_solid: f32;
 @group(0) @binding(5)
 var<uniform> decay_air: f32;
 
-#if LIGHT_SMOOTHNESS == 2
+#if LIGHT_SMOOTHNESS == 3
+const DECAY_THROUGH_SOLID: f32 = 0.93;
+const DECAY_THROUGH_AIR: f32 = 0.98;
+#else if LIGHT_SMOOTHNESS == 2
 const DECAY_THROUGH_SOLID: f32 = 0.86;
 const DECAY_THROUGH_AIR: f32 = 0.975;
 #else if LIGHT_SMOOTHNESS == 1

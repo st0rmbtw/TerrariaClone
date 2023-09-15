@@ -123,8 +123,11 @@ pub(super) fn follow_player(
     mut camera_transform: Mut<Transform>,
 ) {
     let player_pos = player_transform.translation.truncate();
-    camera_transform.translation.x = player_pos.x;
-    camera_transform.translation.y = player_pos.y;
+    let new_x = camera_transform.translation.x + (player_pos.x - camera_transform.translation.x) * 0.5;
+    let new_y = camera_transform.translation.y + (player_pos.y - camera_transform.translation.y) * 0.5;
+
+    camera_transform.translation.x = new_x;
+    camera_transform.translation.y = new_y;
 }
 
 #[cfg(feature = "debug")]

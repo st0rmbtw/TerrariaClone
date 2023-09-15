@@ -109,7 +109,7 @@ fn light_smoothness_clicked(
     mut index: Local<u8>,
     mut light_smoothness: ResMut<LightSmoothness>
 ) {
-    *index = (light_smoothness.to_u8() + 1) % 3;
+    *index = (light_smoothness.to_u8() + 1) % LightSmoothness::length();
     *light_smoothness = LightSmoothness::new(*index);
 }
 
