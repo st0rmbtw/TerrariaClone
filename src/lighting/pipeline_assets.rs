@@ -22,6 +22,9 @@ impl PipelineAssets {
     }
 }
 
+#[derive(Resource, Clone, Copy, Deref)]
+pub(super) struct LightSourceCount(pub(super) u32);
+
 pub(super) fn init_tiles_texture(
     mut commands: Commands,
     res_world_data: Res<WorldData>,
@@ -139,6 +142,7 @@ pub(super) fn extract_world_underground_level(
 }
 
 pub(super) fn extract_pipeline_assets(
+    mut commands: Commands,
     blur_area: Extract<Res<BlurArea>>,
     world_size: Extract<Option<Res<WorldSize>>>,
     light_smoothness: Res<LightSmoothness>,
@@ -167,6 +171,8 @@ pub(super) fn extract_pipeline_assets(
             });
             light_sources.count += 1;
         }
+
+        commands.insert_resource(LightSourceCount(light_sources.count));
     }
 }
 

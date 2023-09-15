@@ -2,7 +2,7 @@
 var tiles_texture: texture_storage_2d<r8uint, read>;
 
 @group(0) @binding(1)
-var light_texture: texture_storage_2d<r8unorm, read_write>;
+var light_texture: texture_storage_2d<rgba8unorm, read_write>;
 
 @group(0) @binding(2)
 var<uniform> min: vec2<u32>;
@@ -59,22 +59,87 @@ fn get_decay(pos: vec2<u32>) -> f32 {
 fn left_to_right(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let y = min.y + invocation_id.y;
 
-    var prev_light = 0.;
+    var prev_light = vec4(0.);
     var decay = 0.;
+
+    var flag1 = false;
+    var flag2 = false;
+    var flag3 = false;
+    var flag4 = false;
 
     for (var x = min.x; x < max.x; x += 1u) {
         let pos = vec2(x, y);
-        let this_light = textureLoad(light_texture, pos).r;
+        var this_light = textureLoad(light_texture, pos);
+        let is_block = textureLoad(tiles_texture, pos / u32(#SUBDIVISION)).r != 0u;
 
-        if (prev_light - this_light) > EPSILON {
-            let new_light = prev_light * decay;
-            textureStore(light_texture, pos, vec4(vec3(new_light), 1.));
-            prev_light = new_light;
-        } else {
+        if !is_block {
+            decay = get_decay(pos);
             prev_light = this_light;
+            continue;
         }
 
-        decay = get_decay(pos);
+        if (prev_light.x < this_light.x) {
+            prev_light.x = this_light.x;
+            flag1 = false;
+        } else if (!flag1) {
+            if (prev_light.x < EPSILON) {
+                flag1 = true;
+            } else {
+                this_light.x = prev_light.x;
+            }
+        }
+
+        if (prev_light.y < this_light.y) {
+            prev_light.y = this_light.y;
+            flag2 = false;
+        } else if (!flag2) {
+            if (prev_light.y < EPSILON) {
+                flag2 = true;
+            } else {
+                this_light.y = prev_light.y;
+            }
+        }
+
+        if (prev_light.z < this_light.z) {
+            prev_light.z = this_light.z;
+            flag3 = false;
+        } else if (!flag3) {
+            if (prev_light.z < EPSILON) {
+                flag3 = true;
+            } else {
+                this_light.z = prev_light.z;
+            }
+        }
+
+        if (prev_light.a < this_light.a) {
+            prev_light.a = this_light.a;
+            flag4 = false;
+        } else if (!flag4) {
+            if (prev_light.a < EPSILON) {
+                flag4 = true;
+            } else {
+                this_light.a = prev_light.a;
+            }
+        }
+
+        if !flag1 {
+            prev_light.x *= decay;
+        }
+
+        if !flag2 {
+            prev_light.y *= decay;
+        }
+
+        if !flag3 {
+            prev_light.z *= decay;
+        }
+
+        if !flag4 {
+            prev_light.w *= decay;
+        }
+
+       textureStore(light_texture, pos, this_light);
+       decay = get_decay(pos);
     }
 }
 
@@ -82,22 +147,89 @@ fn left_to_right(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
 fn right_to_left(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let y = min.y + invocation_id.y;
 
-    var prev_light = 0.;
+    var prev_light = vec4(0.);
     var decay = 0.;
+
+    var flag1 = false;
+    var flag2 = false;
+    var flag3 = false;
+    var flag4 = false;
+
+    var is_prev_block = false;
 
     for (var x = max.x - 1u; x > min.x; x -= 1u) {
         let pos = vec2(x, y);
-        let this_light = textureLoad(light_texture, pos).r;
+        var this_light = textureLoad(light_texture, pos);
+        let is_block = textureLoad(tiles_texture, pos / u32(#SUBDIVISION)).r != 0u;
 
-        if (prev_light - this_light) > EPSILON {
-            let new_light = prev_light * decay;
-            textureStore(light_texture, pos, vec4(vec3(new_light), 1.));
-            prev_light = new_light;
-        } else {
+        if !is_block {
+            decay = get_decay(pos);
             prev_light = this_light;
+            continue;
         }
 
-        decay = get_decay(pos);
+        if (prev_light.x < this_light.x) {
+            prev_light.x = this_light.x;
+            flag1 = false;
+        } else if (!flag1) {
+            if (prev_light.x < EPSILON) {
+                flag1 = true;
+            } else {
+                this_light.x = prev_light.x;
+            }
+        }
+
+        if (prev_light.y < this_light.y) {
+            prev_light.y = this_light.y;
+            flag2 = false;
+        } else if (!flag2) {
+            if (prev_light.y < EPSILON) {
+                flag2 = true;
+            } else {
+                this_light.y = prev_light.y;
+            }
+        }
+
+        if (prev_light.z < this_light.z) {
+            prev_light.z = this_light.z;
+            flag3 = false;
+        } else if (!flag3) {
+            if (prev_light.z < EPSILON) {
+                flag3 = true;
+            } else {
+                this_light.z = prev_light.z;
+            }
+        }
+
+        if (prev_light.a < this_light.a) {
+            prev_light.a = this_light.a;
+            flag4 = false;
+        } else if (!flag4) {
+            if (prev_light.a < EPSILON) {
+                flag4 = true;
+            } else {
+                this_light.a = prev_light.a;
+            }
+        }
+
+        if !flag1 {
+            prev_light.x *= decay;
+        }
+
+        if !flag2 {
+            prev_light.y *= decay;
+        }
+
+        if !flag3 {
+            prev_light.z *= decay;
+        }
+
+        if !flag4 {
+            prev_light.w *= decay;
+        }
+
+       textureStore(light_texture, pos, this_light);
+       decay = get_decay(pos);
     }
 }
 
@@ -105,22 +237,87 @@ fn right_to_left(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
 fn top_to_bottom(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let x = min.x + invocation_id.x;
 
-    var prev_light = 0.;
+    var prev_light = vec4(vec3(0.), 1.);
     var decay = 0.;
+
+    var flag1 = false;
+    var flag2 = false;
+    var flag3 = false;
+    var flag4 = false;
 
     for (var y = min.y; y < max.y; y += 1u) {
         let pos = vec2(x, y);
-        let this_light = textureLoad(light_texture, pos).r;
+        var this_light = textureLoad(light_texture, pos);
+        let is_block = textureLoad(tiles_texture, pos / u32(#SUBDIVISION)).r != 0u;
 
-        if (prev_light - this_light) > EPSILON {
-            let new_light = prev_light * decay;
-            textureStore(light_texture, pos, vec4(vec3(new_light), 1.));
-            prev_light = new_light;
-        } else {
+        if !is_block {
+            decay = get_decay(pos);
             prev_light = this_light;
+            continue;
         }
 
-        decay = get_decay(pos);
+        if (prev_light.x < this_light.x) {
+            prev_light.x = this_light.x;
+            flag1 = false;
+        } else if (!flag1) {
+            if (prev_light.x < EPSILON) {
+                flag1 = true;
+            } else {
+                this_light.x = prev_light.x;
+            }
+        }
+
+        if (prev_light.y < this_light.y) {
+            prev_light.y = this_light.y;
+            flag2 = false;
+        } else if (!flag2) {
+            if (prev_light.y < EPSILON) {
+                flag2 = true;
+            } else {
+                this_light.y = prev_light.y;
+            }
+        }
+
+        if (prev_light.z < this_light.z) {
+            prev_light.z = this_light.z;
+            flag3 = false;
+        } else if (!flag3) {
+            if (prev_light.z < EPSILON) {
+                flag3 = true;
+            } else {
+                this_light.z = prev_light.z;
+            }
+        }
+
+        if (prev_light.a < this_light.a) {
+            prev_light.a = this_light.a;
+            flag4 = false;
+        } else if (!flag4) {
+            if (prev_light.a < EPSILON) {
+                flag4 = true;
+            } else {
+                this_light.a = prev_light.a;
+            }
+        }
+
+        if !flag1 {
+            prev_light.x *= decay;
+        }
+
+        if !flag2 {
+            prev_light.y *= decay;
+        }
+
+        if !flag3 {
+            prev_light.z *= decay;
+        }
+
+        if !flag4 {
+            prev_light.w *= decay;
+        }
+
+       textureStore(light_texture, pos, this_light);
+       decay = get_decay(pos);
     }
 }
 
@@ -128,21 +325,86 @@ fn top_to_bottom(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
 fn bottom_to_top(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let x = min.x + invocation_id.x;
 
-    var prev_light = 0.;
+    var prev_light = vec4(0.);
     var decay = 0.;
+
+    var flag1 = false;
+    var flag2 = false;
+    var flag3 = false;
+    var flag4 = false;
 
     for (var y = max.y - 1u; y > min.y; y -= 1u) {
         let pos = vec2(x, y);
-        let this_light = textureLoad(light_texture, pos).r;
+        var this_light = textureLoad(light_texture, pos);
+        let is_block = textureLoad(tiles_texture, pos / u32(#SUBDIVISION)).r != 0u;
 
-        if (prev_light - this_light) > EPSILON {
-            let new_light = prev_light * decay;
-            textureStore(light_texture, pos, vec4(vec3(new_light), 1.));
-            prev_light = new_light;
-        } else {
+        if !is_block {
+            decay = get_decay(pos);
             prev_light = this_light;
+            continue;
         }
 
-        decay = get_decay(pos);
+        if (prev_light.x < this_light.x) {
+            prev_light.x = this_light.x;
+            flag1 = false;
+        } else if (!flag1) {
+            if (prev_light.x < EPSILON) {
+                flag1 = true;
+            } else {
+                this_light.x = prev_light.x;
+            }
+        }
+
+        if (prev_light.y < this_light.y) {
+            prev_light.y = this_light.y;
+            flag2 = false;
+        } else if (!flag2) {
+            if (prev_light.y < EPSILON) {
+                flag2 = true;
+            } else {
+                this_light.y = prev_light.y;
+            }
+        }
+
+        if (prev_light.z < this_light.z) {
+            prev_light.z = this_light.z;
+            flag3 = false;
+        } else if (!flag3) {
+            if (prev_light.z < EPSILON) {
+                flag3 = true;
+            } else {
+                this_light.z = prev_light.z;
+            }
+        }
+
+        if (prev_light.a < this_light.a) {
+            prev_light.a = this_light.a;
+            flag4 = false;
+        } else if (!flag4) {
+            if (prev_light.a < EPSILON) {
+                flag4 = true;
+            } else {
+                this_light.a = prev_light.a;
+            }
+        }
+
+        if !flag1 {
+            prev_light.x *= decay;
+        }
+
+        if !flag2 {
+            prev_light.y *= decay;
+        }
+
+        if !flag3 {
+            prev_light.z *= decay;
+        }
+
+        if !flag4 {
+            prev_light.w *= decay;
+        }
+
+       textureStore(light_texture, pos, this_light);
+       decay = get_decay(pos);
     }
 }

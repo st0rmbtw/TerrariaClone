@@ -21,7 +21,7 @@ fn fragment(in: MeshVertexOutput) -> @location(0) vec4<f32> {
 
     let texture_pos = tile_map_pos / world_size;
 
-    let light = textureSample(light_map_texture, light_map_texture_sampler, texture_pos).r;
+    let light = textureSample(light_map_texture, light_map_texture_sampler, texture_pos);
 
-    return vec4(vec3(0.), 1. - light);
+    return vec4(vec3(light.rgb), 1. - light.a);
 }

@@ -10,7 +10,7 @@ use crate::plugins::InGameSystemSet;
 
 use self::compositing::{LightMapMaterial, PostProcessingMaterial};
 use self::pipeline::{LightMapPipeline, PipelineBindGroups};
-use self::pipeline_assets::{BlurArea, PipelineAssets};
+use self::pipeline_assets::{BlurArea, PipelineAssets, LightSourceCount};
 
 pub(crate) mod compositing;
 pub(super) mod pipeline;
@@ -124,6 +124,7 @@ impl Node for LightMapNode {
             let pipeline_cache = world.resource::<PipelineCache>();
             let pipeline = world.resource::<LightMapPipeline>();
             let blur_area = world.resource::<BlurArea>();
+            let light_source_count = *world.resource::<LightSourceCount>();
 
             if blur_area.width() > 0 && blur_area.height() > 0 {
                 if let (
@@ -158,7 +159,7 @@ impl Node for LightMapNode {
                     // Place light
                     pass.set_bind_group(0, &pipeline_bind_groups.light_sources_bind_group, &[]);
                     pass.set_pipeline(place_light_pipeline);
-                    pass.dispatch_workgroups(1, 1, 1);
+                    pass.dispatch_workgroups(*light_source_count, 1, 1);
                     
                     // First blur pass
                     pass.set_bind_group(0, &pipeline_bind_groups.top_to_bottom_bind_group, &[]);

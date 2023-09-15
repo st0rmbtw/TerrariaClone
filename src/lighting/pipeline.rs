@@ -4,7 +4,7 @@ use crate::{world::WorldData, plugins::{config::LightSmoothness, world::resource
 
 use super::{pipeline_assets::PipelineAssets, LightMapTexture, TileTexture, gpu_types::GpuLightSourceBuffer};
 
-pub(super) const LIGHTMAP_FORMAT: TextureFormat = TextureFormat::R8Unorm;
+pub(super) const LIGHTMAP_FORMAT: TextureFormat = TextureFormat::Rgba8Unorm;
 pub(super) const TILES_FORMAT: TextureFormat = TextureFormat::R8Uint;
 
 #[derive(Resource)]
@@ -47,7 +47,7 @@ pub(super) fn create_texture_2d(size: (u32, u32), format: TextureFormat) -> Imag
             ..Default::default()
         },
         TextureDimension::D2,
-        &[0],
+        &[0, 0, 0, 255],
         format,
     );
 
