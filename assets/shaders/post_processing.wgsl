@@ -31,23 +31,23 @@ var<uniform> camera_params: CameraParams;
 struct CameraParams {
     screen_size: vec2<f32>,
     screen_size_inv: vec2<f32>,
-    view_proj: mat4x4<f32>,
     inverse_view_proj: mat4x4<f32>,
-    scale: f32
 }
 
 fn screen_to_world(
     screen_pos: vec2<f32>,
     screen_size: vec2<f32>,
     inverse_view_proj: mat4x4<f32>,
-    screen_size_inv:   vec2<f32>) -> vec2<f32> {
+    screen_size_inv: vec2<f32>
+) -> vec2<f32> {
     return (inverse_view_proj * vec4<f32>(screen_to_ndc(screen_pos, screen_size, screen_size_inv), 0.0, 1.0)).xy;   
 }
 
 fn screen_to_ndc(
-    screen_pos:     vec2<f32>,
-    screen_size:     vec2<f32>,
-    screen_size_inv: vec2<f32>) -> vec2<f32> {
+    screen_pos: vec2<f32>,
+    screen_size: vec2<f32>,
+    screen_size_inv: vec2<f32>
+) -> vec2<f32> {
     let screen_pose_f32 = vec2<f32>(screen_pos.x, screen_size.y - screen_pos.y);
     return (screen_pose_f32 * screen_size_inv) * 2.0 - 1.0;
 }

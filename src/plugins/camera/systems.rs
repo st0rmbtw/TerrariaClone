@@ -2,7 +2,7 @@ use bevy::{
     prelude::{
         Commands, Camera2dBundle, OrthographicProjection, Transform, Res, KeyCode, Query, 
         With, Input,
-        Without, Camera2d, Name, Mut, Color, UiCameraConfig, default, ResMut,
+        Without, Camera2d, Name, Mut, Color, UiCameraConfig, default, ResMut, Camera,
     }, 
     time::Time, core_pipeline::{clear_color::ClearColorConfig, tonemapping::Tonemapping}
 };
@@ -33,6 +33,10 @@ pub(super) fn setup_main_camera(
                     scale: zoom.get(),
                     ..default()
                 },
+                camera: Camera {
+                    msaa_writeback: false,
+                    ..default()
+                },
                 transform: Transform::from_xyz(player_spawn_point.x, player_spawn_point.y, 500.),
                 camera_2d: Camera2d {
                     clear_color: ClearColorConfig::Custom(Color::NONE)
@@ -60,6 +64,10 @@ pub(super) fn setup_world_camera(
         Camera2dBundle {
             projection: OrthographicProjection {
                 scale: zoom.get(),
+                ..default()
+            },
+            camera: Camera {
+                msaa_writeback: false,
                 ..default()
             },
             transform: Transform::from_xyz(player_spawn_point.x, player_spawn_point.y, 500.),

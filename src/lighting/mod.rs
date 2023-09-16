@@ -5,6 +5,7 @@ use bevy::render::render_resource::{PipelineCache, ComputePassDescriptor};
 use bevy::render::renderer::RenderContext;
 use bevy::render::{RenderApp, Render, RenderSet, ExtractSchedule};
 use bevy::sprite::Material2dPlugin;
+use bevy::transform::TransformSystem;
 use crate::common::state::GameState;
 use crate::plugins::InGameSystemSet;
 
@@ -51,18 +52,31 @@ impl Plugin for LightingPlugin {
             )
         );
 
-        app.add_systems(OnEnter(GameState::InGame), (compositing::setup_post_processing_camera, compositing::spawn_mouse_light));
+        app.add_systems(
+            OnEnter(GameState::InGame),
+            (
+                compositing::setup_post_processing_camera,
+                compositing::spawn_mouse_light
+            )
+        );
 
         app.add_systems(
             Update,
             (
                 compositing::update_image_to_window_size,
                 pipeline_assets::handle_update_tiles_texture_event,
-                compositing::update_post_processing_material,
                 compositing::update_mouse_light
             ).in_set(InGameSystemSet::Update)
         );
-        app.add_systems(PostUpdate, pipeline_assets::update_blur_area.in_set(InGameSystemSet::PostUpdate));
+
+        app.add_systems(
+            PostUpdate,
+            (
+                pipeline_assets::update_blur_area,
+                compositing::update_post_processing_material.after(TransformSystem::TransformPropagate),
+            )
+            .in_set(InGameSystemSet::PostUpdate)
+        );
 
         let render_app = app.sub_app_mut(RenderApp);
 

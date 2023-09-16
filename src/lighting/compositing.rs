@@ -1,10 +1,11 @@
 use bevy::{
-    prelude::{*, shape::Quad},
+    prelude::{*, shape::Plane},
     render::{render_resource::{
         Extent3d, ShaderRef,
         TextureDimension, AsBindGroup, RenderPipelineDescriptor, SpecializedMeshPipelineError, TextureUsages,
     }, texture::BevyDefault, camera::RenderTarget, view::RenderLayers, mesh::InnerMeshVertexBufferLayout}, reflect::{TypePath, TypeUuid}, sprite::{Material2d, MaterialMesh2dBundle, Material2dKey}, window::{PrimaryWindow, WindowResized}, core_pipeline::{fullscreen_vertex_shader::FULLSCREEN_SHADER_HANDLE, tonemapping::Tonemapping}, utils::Hashed,
 };
+use rand::{thread_rng, Rng};
 
 use crate::plugins::{camera::components::{WorldCamera, MainCamera, BackgroundCamera, InGameBackgroundCamera}, DespawnOnGameExit, cursor::position::CursorPosition, config::Resolution};
 
@@ -96,23 +97,19 @@ pub(super) fn update_post_processing_material(
     resolution: Res<Resolution>,
     mut materials: ResMut<Assets<PostProcessingMaterial>>,
     query_material: Query<&Handle<PostProcessingMaterial>>,
-    query_world_camera: Query<(&Camera, &Transform, &OrthographicProjection), With<WorldCamera>>,
+    query_world_camera: Query<(&Camera, &Transform), With<WorldCamera>>,
 ) {
-    if let Ok((camera, transform, proj)) = query_world_camera.get_single() {
+    if let Ok((camera, transform)) = query_world_camera.get_single() {
         let material_handle = query_material.single();
         let material = materials.get_mut(material_handle).unwrap();
         let camera_params = &mut material.camera_params;
 
-        let projection = camera.projection_matrix();
-        let inverse_projection = projection.inverse();
+        let inverse_projection = camera.projection_matrix().inverse();
         let view = transform.compute_matrix();
-        let inverse_view = view.inverse();
 
-        camera_params.view_proj = projection * inverse_view;
         camera_params.inverse_view_proj = view * inverse_projection;
         camera_params.screen_size = Vec2::new(resolution.width, resolution.height);
         camera_params.screen_size_inv = 1. / camera_params.screen_size;
-        camera_params.scale = proj.scale;
     }
 }
 
@@ -209,7 +206,7 @@ pub(super) fn setup_post_processing_camera(
     commands.spawn((
         DespawnOnGameExit,
         MaterialMesh2dBundle {
-            mesh: meshes.add(Quad::new(Vec2::new(1., 1.)).into()).into(),
+            mesh: meshes.add(Plane::default().into()).into(),
             material: materials.add(PostProcessingMaterial {
                 background_texture: background_texture_handle,
                 ingame_background_texture: ingame_background_texture_handle,
@@ -229,6 +226,7 @@ pub(super) fn setup_post_processing_camera(
         Camera2dBundle {
             camera: Camera {
                 order: 100,
+                msaa_writeback: false,
                 ..default()
             },
             transform: Transform::from_xyz(0., 0., 500.),
@@ -249,18 +247,26 @@ pub(super) fn spawn_mouse_light(
         DespawnOnGameExit,
         SpatialBundle::default(),
         LightSource {
-            size: UVec2::splat(2)
+            size: UVec2::splat(2),
+            color: Vec4::from(Color::RED).truncate()
         }, 
         MouseLight
     ));
 }
 
 pub(super) fn update_mouse_light(
+    input: Res<Input<MouseButton>>,
     cursor_pos: Res<CursorPosition<MainCamera>>,
-    mut query_mouse_light: Query<&mut Transform, With<MouseLight>>
+    mut query_mouse_light: Query<(&mut Transform, &mut LightSource), With<MouseLight>>
 ) {
-    let Ok(mut light_transform) = query_mouse_light.get_single_mut() else { return; };
+    let Ok((mut light_transform, mut light_source)) = query_mouse_light.get_single_mut() else { return; };
+
+    let mut rng = thread_rng();
 
     light_transform.translation.x = cursor_pos.world.x;
     light_transform.translation.y = cursor_pos.world.y;
+
+    if input.just_pressed(MouseButton::Right) {
+        light_source.color = Vec4::from(Color::rgb(rng.gen(), rng.gen(), rng.gen())).truncate();
+    }
 }

@@ -194,7 +194,7 @@ impl LocalizedText {
             (Some(format), Some(args)) => {
                 let localized_args = args
                     .iter()
-                    .map(|key| key.localize(&language_content));
+                    .map(|key| key.localize(language_content));
 
                 let mut args = Vec::with_capacity(localized_args.len() + 1);
                 args.push(key_str);

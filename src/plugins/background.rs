@@ -83,6 +83,7 @@ fn spawn_background_camera(
         Camera2dBundle {
             camera: Camera {
                 order: -1,
+                msaa_writeback: false,
                 ..default()
             },
             tonemapping: Tonemapping::None,

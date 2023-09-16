@@ -70,9 +70,9 @@ fn left_to_right(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     for (var x = min.x; x < max.x; x += 1u) {
         let pos = vec2(x, y);
         var this_light = textureLoad(light_texture, pos);
-        let is_block = textureLoad(tiles_texture, pos / u32(#SUBDIVISION)).r != 0u;
+        let is_not_air = textureLoad(tiles_texture, pos / u32(#SUBDIVISION)).r != 0u;
 
-        if !is_block {
+        if !is_not_air {
             decay = get_decay(pos);
             prev_light = this_light;
             continue;
@@ -145,9 +145,9 @@ fn right_to_left(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     for (var x = max.x - 1u; x > min.x; x -= 1u) {
         let pos = vec2(x, y);
         var this_light = textureLoad(light_texture, pos);
-        let is_block = textureLoad(tiles_texture, pos / u32(#SUBDIVISION)).r != 0u;
+        let is_not_air = textureLoad(tiles_texture, pos / u32(#SUBDIVISION)).r != 0u;
 
-        if !is_block {
+        if !is_not_air {
             decay = get_decay(pos);
             prev_light = this_light;
             continue;
@@ -218,9 +218,9 @@ fn top_to_bottom(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     for (var y = min.y; y < max.y; y += 1u) {
         let pos = vec2(x, y);
         var this_light = textureLoad(light_texture, pos);
-        let is_block = textureLoad(tiles_texture, pos / u32(#SUBDIVISION)).r != 0u;
+        let is_not_air = textureLoad(tiles_texture, pos / u32(#SUBDIVISION)).r != 0u;
 
-        if !is_block {
+        if !is_not_air {
             decay = get_decay(pos);
             prev_light = this_light;
             continue;
@@ -291,9 +291,9 @@ fn bottom_to_top(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     for (var y = max.y - 1u; y > min.y; y -= 1u) {
         let pos = vec2(x, y);
         var this_light = textureLoad(light_texture, pos);
-        let is_block = textureLoad(tiles_texture, pos / u32(#SUBDIVISION)).r != 0u;
+        let is_not_air = textureLoad(tiles_texture, pos / u32(#SUBDIVISION)).r != 0u;
 
-        if !is_block {
+        if !is_not_air {
             decay = get_decay(pos);
             prev_light = this_light;
             continue;

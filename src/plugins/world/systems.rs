@@ -37,7 +37,7 @@ pub(super) fn setup(mut commands: Commands) {
 }
 
 pub(super) fn spawn_terrain(mut commands: Commands) {
-    let current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+    let _current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
 
     // let seed = current_time.as_millis() as u32;
     let seed = 2225406523;

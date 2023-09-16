@@ -2,7 +2,7 @@ use bevy::{prelude::{Image, Res, ResMut, Assets, GlobalTransform, OrthographicPr
 
 use crate::{world::WorldData, plugins::{camera::components::MainCamera, world::{constants::TILE_SIZE, resources::WorldUndergroundLevel, WorldSize}, config::LightSmoothness}, common::state::GameState};
 
-use super::{pipeline::TILES_FORMAT, UpdateTilesTextureEvent, TileTexture, LightMapTexture, types::LightSource, gpu_types::{GpuLightSource, GpuLightSourceBuffer, GpuCameraParams}};
+use super::{pipeline::TILES_FORMAT, UpdateTilesTextureEvent, TileTexture, LightMapTexture, types::LightSource, gpu_types::{GpuLightSource, GpuLightSourceBuffer}};
 
 #[derive(Resource, ExtractResource, Deref, Clone, Default)]
 pub(super) struct BlurArea(pub(super) URect);
@@ -11,7 +11,6 @@ pub(super) struct BlurArea(pub(super) URect);
 pub(super) struct PipelineAssets {
     pub(super) area_min: UniformBuffer<UVec2>,
     pub(super) area_max: UniformBuffer<UVec2>,
-    pub(super) camera_params: UniformBuffer<GpuCameraParams>,
     pub(super) light_sources: StorageBuffer<GpuLightSourceBuffer>,
 }
 
@@ -20,7 +19,6 @@ impl PipelineAssets {
         self.area_min.write_buffer(device, queue);
         self.area_max.write_buffer(device, queue);
         self.light_sources.write_buffer(device, queue);
-        self.camera_params.write_buffer(device, queue);
     }
 }
 
@@ -128,7 +126,7 @@ pub(super) fn extract_light_smoothness(
     light_smoothness: Extract<Res<LightSmoothness>>,
 ) {
     if light_smoothness.is_changed() {
-        commands.insert_resource(light_smoothness.clone());
+        commands.insert_resource(**light_smoothness);
     }
 }
 
@@ -139,7 +137,7 @@ pub(super) fn extract_world_underground_level(
     let Some(underground_level) = underground_level.as_ref() else { return; };
 
     if underground_level.is_changed() {
-        commands.insert_resource((**underground_level).clone());
+        commands.insert_resource(**underground_level);
     }
 }
 
@@ -170,7 +168,8 @@ pub(super) fn extract_pipeline_assets(
 
             light_sources.data.push(GpuLightSource {
                 pos: light_pos,
-                size: light_source.size
+                size: light_source.size,
+                color: light_source.color
             });
             light_sources.count += 1;
         }
