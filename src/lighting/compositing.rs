@@ -3,51 +3,38 @@ use bevy::{
     render::{render_resource::{
         Extent3d, ShaderRef,
         TextureDimension, AsBindGroup, RenderPipelineDescriptor, SpecializedMeshPipelineError, TextureUsages,
-    }, texture::BevyDefault, camera::RenderTarget, view::RenderLayers, mesh::InnerMeshVertexBufferLayout}, reflect::{TypePath, TypeUuid}, sprite::{Material2d, MaterialMesh2dBundle, Material2dKey}, window::{PrimaryWindow, WindowResized}, core_pipeline::fullscreen_vertex_shader::FULLSCREEN_SHADER_HANDLE, utils::Hashed,
+    }, texture::BevyDefault, camera::RenderTarget, view::RenderLayers, mesh::InnerMeshVertexBufferLayout}, reflect::{TypePath, TypeUuid}, sprite::{Material2d, MaterialMesh2dBundle, Material2dKey}, window::{PrimaryWindow, WindowResized}, core_pipeline::{fullscreen_vertex_shader::FULLSCREEN_SHADER_HANDLE, tonemapping::Tonemapping}, utils::Hashed,
 };
 
-use crate::plugins::{camera::components::{WorldCamera, MainCamera, BackgroundCamera, InGameBackgroundCamera}, DespawnOnGameExit, cursor::position::CursorPosition};
+use crate::plugins::{camera::components::{WorldCamera, MainCamera, BackgroundCamera, InGameBackgroundCamera}, DespawnOnGameExit, cursor::position::CursorPosition, config::Resolution};
 
-use super::types::LightSource;
-
-#[derive(AsBindGroup, TypePath, TypeUuid, Clone, Default)]
-#[uuid = "9114bbd2-1bb3-4b5a-a710-1235798db745"]
-pub(crate) struct LightMapMaterial {
-    #[texture(0)]
-    #[sampler(1)]
-    pub(crate) light_map_image: Handle<Image>,
-
-    #[uniform(2)]
-    pub(crate) chunk_pos: UVec2,
-
-    #[uniform(3)]
-    pub(crate) world_size: Vec2
-}
-
-impl Material2d for LightMapMaterial {
-    fn fragment_shader() -> ShaderRef {
-        "shaders/tile_material.wgsl".into()
-    }
-}
+use super::{types::LightSource, gpu_types::GpuCameraParams, LightMapTexture};
 
 #[derive(AsBindGroup, TypePath, TypeUuid, Clone, Default)]
 #[uuid = "d2536358-2824-45c5-9e53-90170edbc9b2"]
-pub(crate) struct PostProcessingMaterial {
+pub(super) struct PostProcessingMaterial {
     #[texture(0)]
     #[sampler(1)]
-    pub(crate) background_texture: Handle<Image>,
+    pub(super) background_texture: Handle<Image>,
 
     #[texture(2)]
     #[sampler(3)]
-    pub(crate) ingame_background_texture: Handle<Image>,
+    pub(super) ingame_background_texture: Handle<Image>,
     
     #[texture(4)]
     #[sampler(5)]
-    pub(crate) world_texture: Handle<Image>,
+    pub(super) world_texture: Handle<Image>,
 
     #[texture(6)]
     #[sampler(7)]
-    pub(crate) main_texture: Handle<Image>,
+    pub(super) main_texture: Handle<Image>,
+    
+    #[texture(8)]
+    #[sampler(9)]
+    pub(super) lightmap_texture: Handle<Image>,
+
+    #[uniform(10)]
+    pub(super) camera_params: GpuCameraParams
 }
 
 impl Material2d for PostProcessingMaterial {
@@ -105,8 +92,34 @@ pub(super) fn update_image_to_window_size(
     }
 }
 
+pub(super) fn update_post_processing_material(
+    resolution: Res<Resolution>,
+    mut materials: ResMut<Assets<PostProcessingMaterial>>,
+    query_material: Query<&Handle<PostProcessingMaterial>>,
+    query_world_camera: Query<(&Camera, &Transform, &OrthographicProjection), With<WorldCamera>>,
+) {
+    if let Ok((camera, transform, proj)) = query_world_camera.get_single() {
+        let material_handle = query_material.single();
+        let material = materials.get_mut(material_handle).unwrap();
+        let camera_params = &mut material.camera_params;
+
+        let projection = camera.projection_matrix();
+        let inverse_projection = projection.inverse();
+        let view = transform.compute_matrix();
+        let inverse_view = view.inverse();
+
+        camera_params.view_proj = projection * inverse_view;
+        camera_params.inverse_view_proj = view * inverse_projection;
+        camera_params.screen_size = Vec2::new(resolution.width, resolution.height);
+        camera_params.screen_size_inv = 1. / camera_params.screen_size;
+        camera_params.scale = proj.scale;
+    }
+}
+
 pub(super) fn setup_post_processing_camera(
     mut commands: Commands,
+
+    lightmap_texture: Res<LightMapTexture>,
 
     mut materials: ResMut<Assets<PostProcessingMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -202,6 +215,8 @@ pub(super) fn setup_post_processing_camera(
                 ingame_background_texture: ingame_background_texture_handle,
                 main_texture: main_texture_handle,
                 world_texture: world_texture_handle,
+                lightmap_texture: lightmap_texture.clone_weak(),
+                camera_params: default()
             }),
             transform: Transform::from_xyz(0., 0., 1.5),
             ..default()
@@ -217,6 +232,7 @@ pub(super) fn setup_post_processing_camera(
                 ..default()
             },
             transform: Transform::from_xyz(0., 0., 500.),
+            tonemapping: Tonemapping::None,
             ..default()
         },
         post_processing_layer

@@ -1,8 +1,8 @@
-use bevy::{prelude::{Image, Res, ResMut, Assets, GlobalTransform, OrthographicProjection, With, Query, Resource, Deref, UVec2, EventReader, DetectChanges, State, Commands, Transform}, render::{render_resource::{Extent3d, TextureDimension, TextureUsages, UniformBuffer, StorageBuffer}, extract_resource::ExtractResource, renderer::{RenderQueue, RenderDevice}, Extract}, utils::default, math::{URect, Vec3Swizzles}};
+use bevy::{prelude::{Image, Res, ResMut, Assets, GlobalTransform, OrthographicProjection, With, Query, Deref, UVec2, EventReader, DetectChanges, State, Commands, Transform, Resource}, render::{render_resource::{Extent3d, TextureDimension, TextureUsages, UniformBuffer, StorageBuffer}, renderer::{RenderQueue, RenderDevice}, Extract, extract_resource::ExtractResource}, utils::default, math::{URect, Vec3Swizzles}};
 
 use crate::{world::WorldData, plugins::{camera::components::MainCamera, world::{constants::TILE_SIZE, resources::WorldUndergroundLevel, WorldSize}, config::LightSmoothness}, common::state::GameState};
 
-use super::{pipeline::TILES_FORMAT, UpdateTilesTextureEvent, TileTexture, LightMapTexture, types::LightSource, gpu_types::{GpuLightSource, GpuLightSourceBuffer}};
+use super::{pipeline::TILES_FORMAT, UpdateTilesTextureEvent, TileTexture, LightMapTexture, types::LightSource, gpu_types::{GpuLightSource, GpuLightSourceBuffer, GpuCameraParams}};
 
 #[derive(Resource, ExtractResource, Deref, Clone, Default)]
 pub(super) struct BlurArea(pub(super) URect);
@@ -11,6 +11,7 @@ pub(super) struct BlurArea(pub(super) URect);
 pub(super) struct PipelineAssets {
     pub(super) area_min: UniformBuffer<UVec2>,
     pub(super) area_max: UniformBuffer<UVec2>,
+    pub(super) camera_params: UniformBuffer<GpuCameraParams>,
     pub(super) light_sources: StorageBuffer<GpuLightSourceBuffer>,
 }
 
@@ -19,6 +20,7 @@ impl PipelineAssets {
         self.area_min.write_buffer(device, queue);
         self.area_max.write_buffer(device, queue);
         self.light_sources.write_buffer(device, queue);
+        self.camera_params.write_buffer(device, queue);
     }
 }
 
@@ -143,16 +145,17 @@ pub(super) fn extract_world_underground_level(
 
 pub(super) fn extract_pipeline_assets(
     mut commands: Commands,
+
     blur_area: Extract<Res<BlurArea>>,
     world_size: Extract<Option<Res<WorldSize>>>,
     light_smoothness: Res<LightSmoothness>,
+    
     mut pipeline_assets: ResMut<PipelineAssets>,
+
     query_light_source: Extract<Query<(&Transform, &LightSource)>>,
 ) {
-    if blur_area.is_changed() {
-        *pipeline_assets.area_min.get_mut() = blur_area.min;
-        *pipeline_assets.area_max.get_mut() = blur_area.max;
-    }
+    pipeline_assets.area_min.set(blur_area.min);
+    pipeline_assets.area_max.set(blur_area.max);
 
     if let Some(world_size) = world_size.as_ref() {
         let light_sources = pipeline_assets.light_sources.get_mut();

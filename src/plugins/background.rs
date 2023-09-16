@@ -4,7 +4,7 @@ use crate::{
 };
 use bevy::{
     prelude::{default, App, Commands, Plugin, Res, Vec2, Query, Camera, With, OnExit, IntoSystemConfigs, Name, Assets, Image, Camera2dBundle, UiCameraConfig, PostUpdate, Transform, Without, Component, OnEnter, Camera2d, Color},
-    sprite::Anchor, render::view::RenderLayers, core_pipeline::clear_color::ClearColorConfig,
+    sprite::Anchor, render::view::RenderLayers, core_pipeline::{clear_color::ClearColorConfig, tonemapping::Tonemapping},
 };
 
 use super::{assets::BackgroundAssets, camera::{components::{BackgroundCamera, MoveCamera, ZoomableCamera, InGameBackgroundCamera}, CameraSet}, world::constants::TILE_SIZE, InGameSystemSet, DespawnOnGameExit};
@@ -85,6 +85,7 @@ fn spawn_background_camera(
                 order: -1,
                 ..default()
             },
+            tonemapping: Tonemapping::None,
             ..default()
         },
     ));

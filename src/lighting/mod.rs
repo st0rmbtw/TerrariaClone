@@ -8,7 +8,7 @@ use bevy::sprite::Material2dPlugin;
 use crate::common::state::GameState;
 use crate::plugins::InGameSystemSet;
 
-use self::compositing::{LightMapMaterial, PostProcessingMaterial};
+use self::compositing::PostProcessingMaterial;
 use self::pipeline::{LightMapPipeline, PipelineBindGroups};
 use self::pipeline_assets::{BlurArea, PipelineAssets, LightSourceCount};
 
@@ -36,7 +36,6 @@ pub(crate) struct LightingPlugin;
 impl Plugin for LightingPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
-            Material2dPlugin::<LightMapMaterial>::default(),
             Material2dPlugin::<PostProcessingMaterial>::default(),
             ExtractResourcePlugin::<BlurArea>::default(),
         ));
@@ -58,9 +57,10 @@ impl Plugin for LightingPlugin {
             Update,
             (
                 compositing::update_image_to_window_size,
-                pipeline_assets::handle_update_tiles_texture_event.in_set(InGameSystemSet::Update),
+                pipeline_assets::handle_update_tiles_texture_event,
+                compositing::update_post_processing_material,
                 compositing::update_mouse_light
-            )
+            ).in_set(InGameSystemSet::Update)
         );
         app.add_systems(PostUpdate, pipeline_assets::update_blur_area.in_set(InGameSystemSet::PostUpdate));
 

@@ -18,7 +18,7 @@ var<uniform> decay_air: f32;
 
 #if LIGHT_SMOOTHNESS == 3
 const DECAY_THROUGH_SOLID: f32 = 0.93;
-const DECAY_THROUGH_AIR: f32 = 0.98;
+const DECAY_THROUGH_AIR: f32 = 0.985;
 #else if LIGHT_SMOOTHNESS == 2
 const DECAY_THROUGH_SOLID: f32 = 0.86;
 const DECAY_THROUGH_AIR: f32 = 0.975;
@@ -111,17 +111,6 @@ fn left_to_right(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
             }
         }
 
-        if (prev_light.a < this_light.a) {
-            prev_light.a = this_light.a;
-            flag4 = false;
-        } else if (!flag4) {
-            if (prev_light.a < EPSILON) {
-                flag4 = true;
-            } else {
-                this_light.a = prev_light.a;
-            }
-        }
-
         if !flag1 {
             prev_light.x *= decay;
         }
@@ -132,10 +121,6 @@ fn left_to_right(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
 
         if !flag3 {
             prev_light.z *= decay;
-        }
-
-        if !flag4 {
-            prev_light.w *= decay;
         }
 
        textureStore(light_texture, pos, this_light);
@@ -201,17 +186,6 @@ fn right_to_left(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
             }
         }
 
-        if (prev_light.a < this_light.a) {
-            prev_light.a = this_light.a;
-            flag4 = false;
-        } else if (!flag4) {
-            if (prev_light.a < EPSILON) {
-                flag4 = true;
-            } else {
-                this_light.a = prev_light.a;
-            }
-        }
-
         if !flag1 {
             prev_light.x *= decay;
         }
@@ -224,10 +198,6 @@ fn right_to_left(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
             prev_light.z *= decay;
         }
 
-        if !flag4 {
-            prev_light.w *= decay;
-        }
-
        textureStore(light_texture, pos, this_light);
        decay = get_decay(pos);
     }
@@ -237,7 +207,7 @@ fn right_to_left(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
 fn top_to_bottom(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let x = min.x + invocation_id.x;
 
-    var prev_light = vec4(vec3(0.), 1.);
+    var prev_light = vec4(0.);
     var decay = 0.;
 
     var flag1 = false;
@@ -289,17 +259,6 @@ fn top_to_bottom(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
             }
         }
 
-        if (prev_light.a < this_light.a) {
-            prev_light.a = this_light.a;
-            flag4 = false;
-        } else if (!flag4) {
-            if (prev_light.a < EPSILON) {
-                flag4 = true;
-            } else {
-                this_light.a = prev_light.a;
-            }
-        }
-
         if !flag1 {
             prev_light.x *= decay;
         }
@@ -310,10 +269,6 @@ fn top_to_bottom(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
 
         if !flag3 {
             prev_light.z *= decay;
-        }
-
-        if !flag4 {
-            prev_light.w *= decay;
         }
 
        textureStore(light_texture, pos, this_light);
@@ -377,17 +332,6 @@ fn bottom_to_top(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
             }
         }
 
-        if (prev_light.a < this_light.a) {
-            prev_light.a = this_light.a;
-            flag4 = false;
-        } else if (!flag4) {
-            if (prev_light.a < EPSILON) {
-                flag4 = true;
-            } else {
-                this_light.a = prev_light.a;
-            }
-        }
-
         if !flag1 {
             prev_light.x *= decay;
         }
@@ -398,10 +342,6 @@ fn bottom_to_top(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
 
         if !flag3 {
             prev_light.z *= decay;
-        }
-
-        if !flag4 {
-            prev_light.w *= decay;
         }
 
        textureStore(light_texture, pos, this_light);

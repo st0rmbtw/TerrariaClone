@@ -21,5 +21,5 @@ fn scan(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
         }
     }
     
-    textureStore(light_texture, pos, vec4(vec3(0.), light));
+    textureStore(light_texture, pos, vec4(vec3(light), 1.));
 }
