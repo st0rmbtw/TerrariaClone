@@ -247,7 +247,7 @@ pub(super) fn spawn_mouse_light(
         DespawnOnGameExit,
         SpatialBundle::default(),
         LightSource {
-            size: UVec2::splat(2),
+            size: UVec2::splat(1),
             color: Vec4::from(Color::RED).truncate()
         }, 
         MouseLight

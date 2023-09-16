@@ -9,7 +9,6 @@ pub(super) struct GpuLightSource {
 
 #[derive(Default, Clone, ShaderType)]
 pub(super) struct GpuLightSourceBuffer {
-    pub count: u32,
     #[size(runtime)]
     pub data: Vec<GpuLightSource>,
 }

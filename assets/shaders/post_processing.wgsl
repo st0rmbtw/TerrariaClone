@@ -65,14 +65,14 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
         camera_params.screen_size_inv,
     );
 
-    let uv = abs(world_pos) / (vec2(1749., 898.) * 16.);
+    let uv = (abs(world_pos) + vec2(8., 8.)) / (vec2(1750., 900.) * 16.);
 
     let light = textureSample(lightmap_texture, lightmap_texture_sampler, uv);
 
     let main_sample: vec4<f32> = textureSample(main_texture, main_texture_sampler, in.uv);
     var world_sample: vec4<f32> = textureSample(world_texture, world_texture_sampler, in.uv) * light;
     let background_sample: vec4<f32> = textureSample(background_texture, background_texture_sampler, in.uv);
-    let ingame_background_sample: vec4<f32> = textureSample(ingame_background_texture, ingame_background_texture_sampler, in.uv);
+    let ingame_background_sample: vec4<f32> = textureSample(ingame_background_texture, ingame_background_texture_sampler, in.uv) * light;
 
     let color = layer(main_sample, layer(world_sample, layer(ingame_background_sample, background_sample)));
 

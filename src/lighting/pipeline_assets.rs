@@ -40,7 +40,7 @@ pub(super) fn init_tiles_texture(
 
             if block_exists {
                 bytes[index] = 1;
-            } else if wall_exists {
+            } else if wall_exists || y >= res_world_data.layer.underground {
                 bytes[index] = 2;
             } else {
                 bytes[index] = 0;
@@ -99,8 +99,8 @@ pub(super) fn update_blur_area(
     let camera_position = camera_transform.translation().xy().abs();
 
     let area = URect::from_corners(
-        ((camera_position + projection.area.min) / TILE_SIZE - 8.).as_uvec2() * light_smoothness.subdivision(),
-        ((camera_position + projection.area.max) / TILE_SIZE + 8.).as_uvec2() * light_smoothness.subdivision(),
+        ((camera_position + projection.area.min) / TILE_SIZE - 16.).as_uvec2() * light_smoothness.subdivision(),
+        ((camera_position + projection.area.max) / TILE_SIZE + 16.).as_uvec2() * light_smoothness.subdivision(),
     );
 
     blur_area.0 = area;
@@ -157,7 +157,8 @@ pub(super) fn extract_pipeline_assets(
 
     if let Some(world_size) = world_size.as_ref() {
         let light_sources = pipeline_assets.light_sources.get_mut();
-        light_sources.count = 0;
+        let mut count = 0;
+
         light_sources.data.clear();
 
         let world_size = world_size.as_vec2();
@@ -171,10 +172,11 @@ pub(super) fn extract_pipeline_assets(
                 size: light_source.size,
                 color: light_source.color
             });
-            light_sources.count += 1;
+            
+            count += 1;
         }
 
-        commands.insert_resource(LightSourceCount(light_sources.count));
+        commands.insert_resource(LightSourceCount(count));
     }
 }
 
