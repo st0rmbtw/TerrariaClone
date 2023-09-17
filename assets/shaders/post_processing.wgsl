@@ -65,14 +65,14 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
         camera_params.screen_size_inv,
     );
 
-    let uv = (abs(world_pos) + vec2(8., 8.)) / (vec2(1750., 900.) * 16.);
+    let light_uv = (abs(world_pos) + vec2(8., 8.)) / (vec2(1750., 900.) * 16.);
 
-    let light = textureSample(lightmap_texture, lightmap_texture_sampler, uv);
+    let light = textureSampleLevel(lightmap_texture, lightmap_texture_sampler, light_uv, 0.0);
 
-    let main_sample: vec4<f32> = textureSample(main_texture, main_texture_sampler, in.uv);
-    var world_sample: vec4<f32> = textureSample(world_texture, world_texture_sampler, in.uv) * light;
-    let background_sample: vec4<f32> = textureSample(background_texture, background_texture_sampler, in.uv);
-    let ingame_background_sample: vec4<f32> = textureSample(ingame_background_texture, ingame_background_texture_sampler, in.uv) * light;
+    let main_sample: vec4<f32> = textureSampleLevel(main_texture, main_texture_sampler, in.uv, 0.0);
+    var world_sample: vec4<f32> = textureSampleLevel(world_texture, world_texture_sampler, in.uv, 0.0) * light;
+    let background_sample: vec4<f32> = textureSampleLevel(background_texture, background_texture_sampler, in.uv, 0.0);
+    let ingame_background_sample: vec4<f32> = textureSampleLevel(ingame_background_texture, ingame_background_texture_sampler, in.uv, 0.0) * light;
 
     let color = layer(main_sample, layer(world_sample, layer(ingame_background_sample, background_sample)));
 

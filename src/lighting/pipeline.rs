@@ -38,30 +38,6 @@ pub(super) struct LightMapPipeline {
     pub(super) bottom_to_top_pipeline: CachedComputePipelineId,
 }
 
-
-pub(super) fn create_texture_2d(size: (u32, u32), format: TextureFormat) -> Image {
-    let mut image = Image::new_fill(
-        Extent3d {
-            width: size.0,
-            height: size.1,
-            ..Default::default()
-        },
-        TextureDimension::D2,
-        &[0, 0, 0, 255],
-        format,
-    );
-
-    image.texture_descriptor.usage = TextureUsages::COPY_SRC | TextureUsages::TEXTURE_BINDING | TextureUsages::STORAGE_BINDING;
-
-    image.sampler_descriptor = ImageSampler::Descriptor(SamplerDescriptor {
-        mag_filter: FilterMode::Nearest,
-        min_filter: FilterMode::Nearest,
-        ..default()
-    });
-
-    image
-}
-
 pub(super) fn init_light_map_texture(
     mut commands: Commands,
     world_data: Res<WorldData>,
@@ -71,7 +47,24 @@ pub(super) fn init_light_map_texture(
     let width = world_data.size.width as u32 * light_smoothness.subdivision();
     let height = world_data.size.height as u32 * light_smoothness.subdivision();
 
-    let texture = create_texture_2d((width, height), LIGHTMAP_FORMAT);
+    let mut texture = Image::new_fill(
+        Extent3d {
+            width,
+            height,
+            ..Default::default()
+        },
+        TextureDimension::D2,
+        &[0, 0, 0, 255],
+        LIGHTMAP_FORMAT,
+    );
+
+    texture.texture_descriptor.usage = TextureUsages::COPY_SRC | TextureUsages::TEXTURE_BINDING | TextureUsages::STORAGE_BINDING;
+
+    texture.sampler_descriptor = ImageSampler::Descriptor(SamplerDescriptor {
+        mag_filter: FilterMode::Nearest,
+        min_filter: FilterMode::Nearest,
+        ..default()
+    });
 
     commands.insert_resource(LightMapTexture(images.add(texture)));
 }

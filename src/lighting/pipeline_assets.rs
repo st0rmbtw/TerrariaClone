@@ -27,20 +27,20 @@ pub(super) struct LightSourceCount(pub(super) u32);
 
 pub(super) fn init_tiles_texture(
     mut commands: Commands,
-    res_world_data: Res<WorldData>,
+    world_data: Res<WorldData>,
     mut images: ResMut<Assets<Image>>,
 ) {
-    let mut bytes = vec![1u8; res_world_data.size.width * res_world_data.size.height];
+    let mut bytes = vec![1u8; world_data.size.width * world_data.size.height];
 
-    for y in 0..res_world_data.size.height {
-        for x in 0..res_world_data.size.width {
-            let block_exists = res_world_data.solid_block_exists((x, y));
-            let wall_exists = res_world_data.wall_exists((x, y));
-            let index = (y * res_world_data.size.width) + x;
+    for y in 0..world_data.size.height {
+        for x in 0..world_data.size.width {
+            let block_exists = world_data.solid_block_exists((x, y));
+            let wall_exists = world_data.wall_exists((x, y));
+            let index = (y * world_data.size.width) + x;
 
             if block_exists {
                 bytes[index] = 1;
-            } else if wall_exists || y >= res_world_data.layer.underground {
+            } else if wall_exists || y >= world_data.layer.underground {
                 bytes[index] = 2;
             } else {
                 bytes[index] = 0;
@@ -50,8 +50,8 @@ pub(super) fn init_tiles_texture(
 
     let mut image = Image::new_fill(
         Extent3d {
-            width: res_world_data.size.width as u32,
-            height: res_world_data.size.height as u32,
+            width: world_data.size.width as u32,
+            height: world_data.size.height as u32,
             ..default()
         },
         TextureDimension::D2,
@@ -81,7 +81,7 @@ pub(super) fn handle_update_tiles_texture_event(
 
         if block_exists {
             image.data[index] = 1;
-        } else if wall_exists {
+        } else if wall_exists || event.y >= world_data.layer.underground {
             image.data[index] = 2;
         } else {
             image.data[index] = 0;
@@ -109,9 +109,9 @@ pub(super) fn update_blur_area(
 pub(super) fn prepare_pipeline_assets(
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
-    mut gi_compute_assets: ResMut<PipelineAssets>,
+    mut pipeline_assets: ResMut<PipelineAssets>,
 ) {
-    gi_compute_assets.write_buffer(&render_device, &render_queue);
+    pipeline_assets.write_buffer(&render_device, &render_queue);
 }
 
 pub(super) fn extract_state(
@@ -155,29 +155,29 @@ pub(super) fn extract_pipeline_assets(
     pipeline_assets.area_min.set(blur_area.min);
     pipeline_assets.area_max.set(blur_area.max);
 
-    if let Some(world_size) = world_size.as_ref() {
-        let light_sources = pipeline_assets.light_sources.get_mut();
-        let mut count = 0;
+    let Some(world_size) = world_size.as_ref() else { return; };
+    
+    let light_sources = pipeline_assets.light_sources.get_mut();
+    let mut count = 0;
 
-        light_sources.data.clear();
+    light_sources.data.clear();
 
-        let world_size = world_size.as_vec2();
+    let world_size = world_size.as_vec2();
 
-        for (transform, light_source) in &query_light_source {
-            let uv = transform.translation.xy().abs() / (world_size * TILE_SIZE);
-            let light_pos = (uv * world_size * light_smoothness.subdivision() as f32).as_uvec2();
+    for (transform, light_source) in &query_light_source {
+        let uv = transform.translation.xy().abs() / (world_size * TILE_SIZE);
+        let light_pos = (uv * world_size * light_smoothness.subdivision() as f32).as_uvec2();
 
-            light_sources.data.push(GpuLightSource {
-                pos: light_pos,
-                size: light_source.size,
-                color: light_source.color
-            });
-            
-            count += 1;
-        }
-
-        commands.insert_resource(LightSourceCount(count));
+        light_sources.data.push(GpuLightSource {
+            pos: light_pos,
+            size: light_source.size,
+            color: light_source.color
+        });
+        
+        count += 1;
     }
+
+    commands.insert_resource(LightSourceCount(count));
 }
 
 pub(super) fn extract_textures(
