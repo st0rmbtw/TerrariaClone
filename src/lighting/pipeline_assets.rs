@@ -1,4 +1,5 @@
 use bevy::{prelude::{Image, Res, ResMut, Assets, GlobalTransform, OrthographicProjection, With, Query, Deref, UVec2, EventReader, DetectChanges, State, Commands, Transform, Resource}, render::{render_resource::{Extent3d, TextureDimension, TextureUsages, UniformBuffer, StorageBuffer}, renderer::{RenderQueue, RenderDevice}, Extract, extract_resource::ExtractResource}, utils::default, math::{URect, Vec3Swizzles}};
+use rand::{thread_rng, Rng};
 
 use crate::{world::WorldData, plugins::{camera::components::MainCamera, world::{constants::TILE_SIZE, resources::WorldUndergroundLevel, WorldSize}, config::LightSmoothness}, common::state::GameState};
 
@@ -156,7 +157,8 @@ pub(super) fn extract_pipeline_assets(
     pipeline_assets.area_max.set(blur_area.max);
 
     let Some(world_size) = world_size.as_ref() else { return; };
-    
+
+    let mut rng = thread_rng();
     let light_sources = pipeline_assets.light_sources.get_mut();
     let mut count = 0;
 
@@ -168,10 +170,12 @@ pub(super) fn extract_pipeline_assets(
         let uv = transform.translation.xy().abs() / (world_size * TILE_SIZE);
         let light_pos = (uv * world_size * light_smoothness.subdivision() as f32).as_uvec2();
 
+        let intensity = light_source.intensity + rng.gen_range(-1f32..1f32) * light_source.jitter_intensity;
+
         light_sources.data.push(GpuLightSource {
             pos: light_pos,
             size: light_source.size,
-            color: light_source.color
+            color: light_source.color * intensity,
         });
         
         count += 1;

@@ -248,7 +248,9 @@ pub(super) fn spawn_mouse_light(
         SpatialBundle::default(),
         LightSource {
             size: UVec2::splat(1),
-            color: Vec4::from(Color::RED).truncate()
+            color: Vec4::from(Color::RED).truncate(),
+            intensity: 1.,
+            jitter_intensity: 0.2,
         }, 
         MouseLight
     ));
