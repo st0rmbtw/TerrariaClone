@@ -1,18 +1,20 @@
 use bevy::{render::{render_resource::{BindGroupLayout, CachedRenderPipelineId, PipelineCache, RenderPipelineDescriptor, PrimitiveState, MultisampleState, FragmentState, ColorTargetState, ColorWrites, BindGroupLayoutDescriptor, BindGroupLayoutEntry, ShaderStages, BindingType, BufferBindingType, ShaderType, TextureSampleType, TextureViewDimension, SamplerBindingType, BindGroupDescriptor, BindGroupEntry, BindingResource, BindGroup}, render_asset::RenderAssets, renderer::RenderDevice, texture::BevyDefault}, prelude::{Commands, Image, Res, Resource, FromWorld, World, AssetServer}, core_pipeline::fullscreen_vertex_shader::fullscreen_shader_vertex_state};
 
-use super::{pipeline_assets::PostProcessPipelineAssets, LightMapTexture, gpu_types::GpuCameraParams, BackgroundTexture, InGameBackgroundTexture, WorldTexture, MainTexture};
+use crate::lighting::{BackgroundTexture, InGameBackgroundTexture, WorldTexture, MainTexture, LightMapTexture, gpu_types::GpuCameraParams};
+
+use super::assets::PostProcessPipelineAssets;
 
 #[derive(Resource)]
-pub(super) struct PostProcessPipeline {
-    pub(super) layout: BindGroupLayout,
-    pub(super) pipeline: CachedRenderPipelineId
+pub(crate) struct PostProcessPipeline {
+    pub(crate) layout: BindGroupLayout,
+    pub(crate) pipeline: CachedRenderPipelineId
 }
 
 #[derive(Resource)]
-pub(super) struct PostProcessPipelineBindGroups(pub(super) BindGroup);
+pub(crate) struct PostProcessPipelineBindGroups(pub(crate) BindGroup);
 
 
-pub(super) fn queue_postprocess_bind_groups(
+pub(crate) fn queue_postprocess_bind_groups(
     mut commands: Commands,
     pipeline: Res<PostProcessPipeline>,
     gpu_images: Res<RenderAssets<Image>>,
