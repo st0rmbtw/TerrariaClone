@@ -1,20 +1,22 @@
-use bevy::prelude::{Plugin, App, Update, IntoSystemConfigs, OnEnter, World, OnExit, PostUpdate, Event, in_state, Handle, Image, Resource, Deref, not, resource_changed, State, Condition};
+use bevy::core_pipeline::core_2d;
+use bevy::prelude::{Plugin, App, Update, IntoSystemConfigs, OnEnter, World, OnExit, PostUpdate, Event, in_state, Handle, Image, Resource, Deref, not, Condition, Commands, state_changed, Component};
+use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
 use bevy::render::extract_resource::{ExtractResourcePlugin, ExtractResource};
-use bevy::render::render_graph::{RenderGraph, Node, RenderGraphContext, NodeRunError};
-use bevy::render::render_resource::{PipelineCache, ComputePassDescriptor};
+use bevy::render::render_graph::{RenderGraph, Node, RenderGraphContext, NodeRunError, ViewNode, RenderGraphApp, ViewNodeRunner};
+use bevy::render::render_resource::{PipelineCache, ComputePassDescriptor, RenderPassDescriptor, RenderPassColorAttachment, Operations};
 use bevy::render::renderer::RenderContext;
+use bevy::render::view::ViewTarget;
 use bevy::render::{RenderApp, Render, RenderSet, ExtractSchedule};
-use bevy::sprite::Material2dPlugin;
-use bevy::transform::TransformSystem;
 use crate::common::state::GameState;
 use crate::plugins::InGameSystemSet;
 
-use self::compositing::PostProcessingMaterial;
-use self::pipeline::{LightMapPipeline, PipelineBindGroups};
-use self::pipeline_assets::{BlurArea, PipelineAssets, LightSourceCount};
+use self::lightmap_pipeline::{LightMapPipeline, LightMapPipelineBindGroups};
+use self::pipeline_assets::{BlurArea, LightMapPipelineAssets, LightSourceCount, PostProcessPipelineAssets};
+use self::postprocess_pipeline::{PostProcessPipeline, PostProcessPipelineBindGroups};
 
 pub(crate) mod compositing;
-pub(super) mod pipeline;
+pub(super) mod lightmap_pipeline;
+pub(super) mod postprocess_pipeline;
 pub(super) mod pipeline_assets;
 pub(super) mod types;
 pub(super) mod gpu_types;
@@ -28,17 +30,32 @@ pub(crate) struct UpdateTilesTextureEvent {
 }
 
 #[derive(Resource, ExtractResource, Clone)]
+struct BackgroundTexture(Handle<Image>);
+
+#[derive(Resource, ExtractResource, Clone)]
+struct InGameBackgroundTexture(Handle<Image>);
+
+#[derive(Resource, ExtractResource, Clone)]
+struct WorldTexture(Handle<Image>);
+
+#[derive(Resource, ExtractResource, Clone)]
+struct MainTexture(Handle<Image>);
+
+#[derive(Resource, ExtractResource, Clone)]
 struct TileTexture(Handle<Image>);
 
 #[derive(Resource, ExtractResource, Clone, Deref)]
-pub(crate) struct LightMapTexture(Handle<Image>);
+struct LightMapTexture(Handle<Image>);
+
+#[derive(Component, ExtractComponent, Clone)]
+struct PostProcessCamera;
 
 pub(crate) struct LightingPlugin;
 impl Plugin for LightingPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
-            Material2dPlugin::<PostProcessingMaterial>::default(),
             ExtractResourcePlugin::<BlurArea>::default(),
+            ExtractComponentPlugin::<PostProcessCamera>::default()
         ));
 
         app.init_resource::<BlurArea>();
@@ -48,7 +65,7 @@ impl Plugin for LightingPlugin {
             OnExit(GameState::WorldLoading),
             (
                 pipeline_assets::init_tiles_texture,
-                pipeline::init_light_map_texture,
+                lightmap_pipeline::init_light_map_texture,
             )
         );
 
@@ -73,7 +90,6 @@ impl Plugin for LightingPlugin {
             PostUpdate,
             (
                 pipeline_assets::update_blur_area,
-                compositing::update_post_processing_material.after(TransformSystem::TransformPropagate),
             )
             .in_set(InGameSystemSet::PostUpdate)
         );
@@ -89,25 +105,30 @@ impl Plugin for LightingPlugin {
                     pipeline_assets::extract_state,
                     (
                         pipeline_assets::extract_light_smoothness,
-                        pipeline_assets::extract_pipeline_assets,
-                    ).chain()
+                        pipeline_assets::extract_lightmap_pipeline_assets,
+                    ).chain(),
+                    pipeline_assets::extract_postprocess_pipeline_assets
                 )
             )
             .add_systems(
                 Render,
                 (
                     (
-                        pipeline::init_pipeline
-                            .run_if(resource_changed::<State<GameState>>().and_then(in_state(GameState::InGame))),
-                        pipeline_assets::prepare_pipeline_assets,
+                        init_pipeline
+                            .run_if(state_changed::<GameState>().and_then(in_state(GameState::InGame))),
+                        pipeline_assets::prepare_lightmap_pipeline_assets,
+                        pipeline_assets::prepare_postprocess_pipeline_assets,
                     ).in_set(RenderSet::Prepare),
 
-                    pipeline::queue_bind_groups
-                        .run_if(in_state(GameState::InGame))
-                        .in_set(RenderSet::Queue),
+                    (
+                        lightmap_pipeline::queue_lightmap_bind_groups,
+                        postprocess_pipeline::queue_postprocess_bind_groups
+                    )
+                    .run_if(in_state(GameState::InGame))
+                    .in_set(RenderSet::Queue),
 
-                    pipeline::remove_pipeline
-                        .run_if(resource_changed::<State<GameState>>().and_then(not(in_state(GameState::InGame))))
+                    remove_pipeline
+                        .run_if(state_changed::<GameState>().and_then(not(in_state(GameState::InGame))))
                         .in_set(RenderSet::Cleanup)
                 ),
             );
@@ -117,24 +138,51 @@ impl Plugin for LightingPlugin {
         render_graph.add_node_edge(
             "light_map",
             bevy::render::main_graph::node::CAMERA_DRIVER,
-        )
+        );
+
+        render_app.add_render_graph_node::<ViewNodeRunner<PostProcessNode>>(
+            core_2d::graph::NAME,
+            PostProcessNode::NAME,
+        );
+        render_app.add_render_graph_edges(
+            core_2d::graph::NAME,
+            &[
+                core_2d::graph::node::FXAA,
+                PostProcessNode::NAME,
+                core_2d::graph::node::END_MAIN_PASS_POST_PROCESSING,
+            ],
+        );
     }
 
     fn finish(&self, app: &mut App) {
         let render_app = app.sub_app_mut(RenderApp);
-        render_app.init_resource::<PipelineAssets>();
+        render_app.init_resource::<LightMapPipelineAssets>();
+        render_app.init_resource::<PostProcessPipelineAssets>();
     }
+}
+
+fn init_pipeline(mut commands: Commands) {
+    commands.init_resource::<LightMapPipeline>();
+    commands.init_resource::<PostProcessPipeline>();
+}
+
+fn remove_pipeline(mut commands: Commands) {
+    commands.remove_resource::<LightMapPipeline>();
+    commands.remove_resource::<LightMapPipelineBindGroups>();
+
+    commands.remove_resource::<PostProcessPipeline>();
+    commands.remove_resource::<PostProcessPipelineBindGroups>();
 }
 
 struct LightMapNode;
 impl Node for LightMapNode {
     fn run(
         &self,
-        _: &mut RenderGraphContext,
+        _graph: &mut RenderGraphContext,
         render_context: &mut RenderContext,
         world: &World,
     ) -> Result<(), NodeRunError> {
-        if let Some(pipeline_bind_groups) = world.get_resource::<PipelineBindGroups>() {
+        if let Some(pipeline_bind_groups) = world.get_resource::<LightMapPipelineBindGroups>() {
             let pipeline_cache = world.resource::<PipelineCache>();
             let pipeline = world.resource::<LightMapPipeline>();
             let blur_area = world.resource::<BlurArea>();
@@ -230,6 +278,55 @@ impl Node for LightMapNode {
                 }
             }
         }
+        Ok(())
+    }
+}
+
+#[derive(Default)]
+struct PostProcessNode;
+impl PostProcessNode {
+    const NAME: &str = "post_process";
+}
+
+impl ViewNode for PostProcessNode {
+    type ViewQuery = (
+        &'static ViewTarget,
+        &'static PostProcessCamera
+    );
+
+    fn run(
+        &self,
+        _graph: &mut RenderGraphContext,
+        render_context: &mut RenderContext,
+        view_query: bevy::ecs::query::QueryItem<Self::ViewQuery>,
+        world: &World,
+    ) -> Result<(), NodeRunError> {
+        if let Some(bind_groups) = world.get_resource::<PostProcessPipelineBindGroups>() {
+            let (view_target, _) = view_query;
+
+            let post_process_pipeline = world.resource::<PostProcessPipeline>();
+
+            let pipeline_cache = world.resource::<PipelineCache>();
+
+            let Some(pipeline) = pipeline_cache.get_render_pipeline(post_process_pipeline.pipeline) else {
+                return Ok(());
+            };
+
+            let mut render_pass = render_context.begin_tracked_render_pass(RenderPassDescriptor {
+                label: Some("post_process_pass"),
+                color_attachments: &[Some(RenderPassColorAttachment {
+                    view: view_target.main_texture_view(),
+                    resolve_target: None,
+                    ops: Operations::default(),
+                })],
+                depth_stencil_attachment: None,
+            });
+
+            render_pass.set_render_pipeline(pipeline);
+            render_pass.set_bind_group(0, &bind_groups.0, &[]);
+            render_pass.draw(0..3, 0..1);
+        }
+
         Ok(())
     }
 }

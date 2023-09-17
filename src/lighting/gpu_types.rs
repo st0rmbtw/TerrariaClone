@@ -1,4 +1,4 @@
-use bevy::{prelude::{UVec2, Vec2, Mat4, Vec3}, render::render_resource::ShaderType};
+use bevy::{prelude::{UVec2, Vec2, Mat4, Vec3, Component}, render::{render_resource::ShaderType, extract_component::ExtractComponent}};
 
 #[derive(Default, Clone, ShaderType)]
 pub(super) struct GpuLightSource {
@@ -13,7 +13,7 @@ pub(super) struct GpuLightSourceBuffer {
     pub data: Vec<GpuLightSource>,
 }
 
-#[derive(Default, Clone, ShaderType)]
+#[derive(Default, Clone, ShaderType, Component, ExtractComponent)]
 pub(super) struct GpuCameraParams {
     pub(super) screen_size: Vec2,
     pub(super) screen_size_inv: Vec2,

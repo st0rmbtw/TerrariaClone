@@ -2,13 +2,13 @@ use bevy::{prelude::{Image, ResMut, Assets, default, Commands, Res, World, FromW
 
 use crate::{world::WorldData, plugins::{config::LightSmoothness, world::resources::WorldUndergroundLevel}};
 
-use super::{pipeline_assets::PipelineAssets, LightMapTexture, TileTexture, gpu_types::GpuLightSourceBuffer};
+use super::{pipeline_assets::LightMapPipelineAssets, LightMapTexture, TileTexture, gpu_types::GpuLightSourceBuffer};
 
 pub(super) const LIGHTMAP_FORMAT: TextureFormat = TextureFormat::Rgba8Unorm;
 pub(super) const TILES_FORMAT: TextureFormat = TextureFormat::R8Uint;
 
 #[derive(Resource)]
-pub(super) struct PipelineBindGroups {
+pub(super) struct LightMapPipelineBindGroups {
     pub(super) scan_bind_group: BindGroup,
     pub(super) light_sources_bind_group: BindGroup,
     pub(super) left_to_right_bind_group: BindGroup,
@@ -69,12 +69,12 @@ pub(super) fn init_light_map_texture(
     commands.insert_resource(LightMapTexture(images.add(texture)));
 }
 
-pub(super) fn queue_bind_groups(
+pub(super) fn queue_lightmap_bind_groups(
     mut commands: Commands,
     pipeline: Res<LightMapPipeline>,
     gpu_images: Res<RenderAssets<Image>>,
     render_device: Res<RenderDevice>,
-    pipeline_assets: Res<PipelineAssets>,
+    pipeline_assets: Res<LightMapPipelineAssets>,
     tile_texture: Res<TileTexture>,
     lightmap_texture: Res<LightMapTexture>,
 ) {
@@ -216,7 +216,7 @@ pub(super) fn queue_bind_groups(
             ],
         });
 
-        commands.insert_resource(PipelineBindGroups {
+        commands.insert_resource(LightMapPipelineBindGroups {
             scan_bind_group,
             light_sources_bind_group,
             left_to_right_bind_group,
@@ -596,13 +596,4 @@ impl FromWorld for LightMapPipeline {
             bottom_to_top_pipeline,
         }
     }
-}
-
-pub(super) fn init_pipeline(mut commands: Commands) {
-    commands.init_resource::<LightMapPipeline>();
-}
-
-pub(super) fn remove_pipeline(mut commands: Commands) {
-    commands.remove_resource::<LightMapPipeline>();
-    commands.remove_resource::<PipelineBindGroups>();
 }

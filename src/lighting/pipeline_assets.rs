@@ -1,25 +1,36 @@
-use bevy::{prelude::{Image, Res, ResMut, Assets, GlobalTransform, OrthographicProjection, With, Query, Deref, UVec2, EventReader, DetectChanges, State, Commands, Transform, Resource}, render::{render_resource::{Extent3d, TextureDimension, TextureUsages, UniformBuffer, StorageBuffer}, renderer::{RenderQueue, RenderDevice}, Extract, extract_resource::ExtractResource}, utils::default, math::{URect, Vec3Swizzles}};
+use bevy::{prelude::{Image, Res, ResMut, Assets, GlobalTransform, OrthographicProjection, With, Query, Deref, UVec2, EventReader, DetectChanges, State, Commands, Transform, Resource, Camera, Vec2}, render::{render_resource::{Extent3d, TextureDimension, TextureUsages, UniformBuffer, StorageBuffer}, renderer::{RenderQueue, RenderDevice}, Extract, extract_resource::ExtractResource}, utils::default, math::{URect, Vec3Swizzles}};
 use rand::{thread_rng, Rng};
 
-use crate::{world::WorldData, plugins::{camera::components::MainCamera, world::{constants::TILE_SIZE, resources::WorldUndergroundLevel, WorldSize}, config::LightSmoothness}, common::state::GameState};
+use crate::{world::WorldData, plugins::{camera::components::{MainCamera, WorldCamera}, world::{constants::TILE_SIZE, resources::WorldUndergroundLevel, WorldSize}, config::{LightSmoothness, Resolution}}, common::state::GameState};
 
-use super::{pipeline::TILES_FORMAT, UpdateTilesTextureEvent, TileTexture, LightMapTexture, types::LightSource, gpu_types::{GpuLightSource, GpuLightSourceBuffer}};
+use super::{lightmap_pipeline::TILES_FORMAT, UpdateTilesTextureEvent, TileTexture, LightMapTexture, types::LightSource, gpu_types::{GpuLightSource, GpuLightSourceBuffer, GpuCameraParams}, WorldTexture, MainTexture, BackgroundTexture, InGameBackgroundTexture};
 
 #[derive(Resource, ExtractResource, Deref, Clone, Default)]
 pub(super) struct BlurArea(pub(super) URect);
 
 #[derive(Resource, Default)]
-pub(super) struct PipelineAssets {
+pub(super) struct LightMapPipelineAssets {
     pub(super) area_min: UniformBuffer<UVec2>,
     pub(super) area_max: UniformBuffer<UVec2>,
     pub(super) light_sources: StorageBuffer<GpuLightSourceBuffer>,
 }
 
-impl PipelineAssets {
+impl LightMapPipelineAssets {
     pub fn write_buffer(&mut self, device: &RenderDevice, queue: &RenderQueue) {
         self.area_min.write_buffer(device, queue);
         self.area_max.write_buffer(device, queue);
         self.light_sources.write_buffer(device, queue);
+    }
+}
+
+#[derive(Resource, Default)]
+pub(super) struct PostProcessPipelineAssets {
+    pub(super) camera_params: UniformBuffer<GpuCameraParams>,
+}
+
+impl PostProcessPipelineAssets {
+    pub fn write_buffer(&mut self, device: &RenderDevice, queue: &RenderQueue) {
+        self.camera_params.write_buffer(device, queue);
     }
 }
 
@@ -107,10 +118,18 @@ pub(super) fn update_blur_area(
     blur_area.0 = area;
 }
 
-pub(super) fn prepare_pipeline_assets(
+pub(super) fn prepare_lightmap_pipeline_assets(
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
-    mut pipeline_assets: ResMut<PipelineAssets>,
+    mut pipeline_assets: ResMut<LightMapPipelineAssets>,
+) {
+    pipeline_assets.write_buffer(&render_device, &render_queue);
+}
+
+pub(super) fn prepare_postprocess_pipeline_assets(
+    render_device: Res<RenderDevice>,
+    render_queue: Res<RenderQueue>,
+    mut pipeline_assets: ResMut<PostProcessPipelineAssets>,
 ) {
     pipeline_assets.write_buffer(&render_device, &render_queue);
 }
@@ -142,14 +161,14 @@ pub(super) fn extract_world_underground_level(
     }
 }
 
-pub(super) fn extract_pipeline_assets(
+pub(super) fn extract_lightmap_pipeline_assets(
     mut commands: Commands,
 
     blur_area: Extract<Res<BlurArea>>,
     world_size: Extract<Option<Res<WorldSize>>>,
     light_smoothness: Res<LightSmoothness>,
     
-    mut pipeline_assets: ResMut<PipelineAssets>,
+    mut pipeline_assets: ResMut<LightMapPipelineAssets>,
 
     query_light_source: Extract<Query<(&Transform, &LightSource)>>,
 ) {
@@ -184,19 +203,59 @@ pub(super) fn extract_pipeline_assets(
     commands.insert_resource(LightSourceCount(count));
 }
 
+pub(super) fn extract_postprocess_pipeline_assets(
+    query_camera: Extract<Query<(&Camera, &Transform), With<WorldCamera>>>,
+    resolution: Extract<Res<Resolution>>,
+    mut pipeline_assets: ResMut<PostProcessPipelineAssets>,
+) {
+    if let Ok((camera, transform)) = query_camera.get_single() {
+        let camera_params = pipeline_assets.camera_params.get_mut();
+        let inverse_projection = camera.projection_matrix().inverse();
+        let view = transform.compute_matrix();
+
+        camera_params.inverse_view_proj = view * inverse_projection;
+        camera_params.screen_size = Vec2::new(resolution.width, resolution.height);
+        camera_params.screen_size_inv = 1. / camera_params.screen_size;
+    }
+}
+
 pub(super) fn extract_textures(
     mut commands: Commands,
+    background_texture: Extract<Option<Res<BackgroundTexture>>>,
+    ingame_background_texture: Extract<Option<Res<InGameBackgroundTexture>>>,
+    world_texture: Extract<Option<Res<WorldTexture>>>,
+    main_texture: Extract<Option<Res<MainTexture>>>,
     tile_texture: Extract<Option<Res<TileTexture>>>,
     lightmap_texture: Extract<Option<Res<LightMapTexture>>>,
 ) {
+    let Some(background_texture) = background_texture.as_ref() else { return; };
+    let Some(ingame_background_texture) = ingame_background_texture.as_ref() else { return; };
+    let Some(world_texture) = world_texture.as_ref() else { return; };
+    let Some(main_texture) = main_texture.as_ref() else { return; };
     let Some(tile_texture) = tile_texture.as_ref() else { return; };
     let Some(lightmap_texture) = lightmap_texture.as_ref() else { return; };
 
-    if tile_texture.is_changed() {
-        commands.insert_resource((**tile_texture).clone());
-    }   
+    if background_texture.is_changed() {
+        commands.insert_resource((**background_texture).clone());
+    }
+
+    if ingame_background_texture.is_changed() {
+        commands.insert_resource((**ingame_background_texture).clone());
+    }
+
+    if world_texture.is_changed() {
+        commands.insert_resource((**world_texture).clone());
+    }
+
+    if main_texture.is_changed() {
+        commands.insert_resource((**main_texture).clone());
+    }
 
     if lightmap_texture.is_changed() {
         commands.insert_resource((**lightmap_texture).clone());
+    }
+
+    if tile_texture.is_changed() {
+        commands.insert_resource((**tile_texture).clone());
     }
 }

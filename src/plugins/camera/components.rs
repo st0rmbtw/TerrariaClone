@@ -4,9 +4,6 @@ use bevy::prelude::Component;
 pub(crate) struct MainCamera;
 
 #[derive(Component)]
-pub(crate) struct PostProcessingCamera;
-
-#[derive(Component)]
 pub(crate) struct BackgroundCamera;
 
 #[derive(Component)]

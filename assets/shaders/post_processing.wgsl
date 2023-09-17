@@ -1,31 +1,31 @@
 #import bevy_core_pipeline::fullscreen_vertex_shader FullscreenVertexOutput
 
-@group(1) @binding(0)
+@group(0) @binding(0)
 var background_texture: texture_2d<f32>;
-@group(1) @binding(1)
+@group(0) @binding(1)
 var background_texture_sampler: sampler;
 
-@group(1) @binding(2)
+@group(0) @binding(2)
 var ingame_background_texture: texture_2d<f32>;
-@group(1) @binding(3)
+@group(0) @binding(3)
 var ingame_background_texture_sampler: sampler;
 
-@group(1) @binding(4)
+@group(0) @binding(4)
 var world_texture: texture_2d<f32>;
-@group(1) @binding(5)
+@group(0) @binding(5)
 var world_texture_sampler: sampler;
 
-@group(1) @binding(6)
+@group(0) @binding(6)
 var main_texture: texture_2d<f32>;
-@group(1) @binding(7)
+@group(0) @binding(7)
 var main_texture_sampler: sampler;
 
-@group(1) @binding(8)
+@group(0) @binding(8)
 var lightmap_texture: texture_2d<f32>;
-@group(1) @binding(9)
+@group(0) @binding(9)
 var lightmap_texture_sampler: sampler;
 
-@group(1) @binding(10)
+@group(0) @binding(10)
 var<uniform> camera_params: CameraParams;
 
 struct CameraParams {

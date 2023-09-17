@@ -1,71 +1,23 @@
 use bevy::{
-    prelude::{*, shape::Plane},
+    prelude::{*},
     render::{render_resource::{
-        Extent3d, ShaderRef,
-        TextureDimension, AsBindGroup, RenderPipelineDescriptor, SpecializedMeshPipelineError, TextureUsages,
-    }, texture::BevyDefault, camera::RenderTarget, view::RenderLayers, mesh::InnerMeshVertexBufferLayout}, reflect::{TypePath, TypeUuid}, sprite::{Material2d, MaterialMesh2dBundle, Material2dKey}, window::{PrimaryWindow, WindowResized}, core_pipeline::{fullscreen_vertex_shader::FULLSCREEN_SHADER_HANDLE, tonemapping::Tonemapping}, utils::Hashed,
+        Extent3d,
+        TextureDimension, TextureUsages,
+    }, texture::BevyDefault, camera::RenderTarget, view::RenderLayers}, window::{PrimaryWindow, WindowResized}, core_pipeline::tonemapping::Tonemapping,
 };
 use rand::{thread_rng, Rng};
 
-use crate::plugins::{camera::components::{WorldCamera, MainCamera, BackgroundCamera, InGameBackgroundCamera}, DespawnOnGameExit, cursor::position::CursorPosition, config::Resolution};
+use crate::plugins::{camera::components::{WorldCamera, MainCamera, BackgroundCamera, InGameBackgroundCamera}, DespawnOnGameExit, cursor::position::CursorPosition};
 
-use super::{types::LightSource, gpu_types::GpuCameraParams, LightMapTexture};
-
-#[derive(AsBindGroup, TypePath, TypeUuid, Clone, Default)]
-#[uuid = "d2536358-2824-45c5-9e53-90170edbc9b2"]
-pub(super) struct PostProcessingMaterial {
-    #[texture(0)]
-    #[sampler(1)]
-    pub(super) background_texture: Handle<Image>,
-
-    #[texture(2)]
-    #[sampler(3)]
-    pub(super) ingame_background_texture: Handle<Image>,
-    
-    #[texture(4)]
-    #[sampler(5)]
-    pub(super) world_texture: Handle<Image>,
-
-    #[texture(6)]
-    #[sampler(7)]
-    pub(super) main_texture: Handle<Image>,
-    
-    #[texture(8)]
-    #[sampler(9)]
-    pub(super) lightmap_texture: Handle<Image>,
-
-    #[uniform(10)]
-    pub(super) camera_params: GpuCameraParams
-}
-
-impl Material2d for PostProcessingMaterial {
-    fn fragment_shader() -> ShaderRef {
-        "shaders/post_processing.wgsl".into()
-    }
-
-    fn vertex_shader() -> ShaderRef {
-        FULLSCREEN_SHADER_HANDLE.typed().into()
-    }
-
-    fn specialize(
-        descriptor: &mut RenderPipelineDescriptor,
-        _: &Hashed<InnerMeshVertexBufferLayout>,
-        _: Material2dKey<Self>,
-    ) -> Result<(), SpecializedMeshPipelineError> {
-        descriptor.vertex.entry_point = "fullscreen_vertex_shader".into();
-        Ok(())
-    }
-}
+use super::{types::LightSource, MainTexture, WorldTexture, BackgroundTexture, InGameBackgroundTexture, PostProcessCamera};
 
 #[derive(Component, Deref)]
 pub(crate) struct FitToWindowSize(Handle<Image>);
 
 /// Update image size to fit window
 pub(super) fn update_image_to_window_size(
-    materials: Res<Assets<PostProcessingMaterial>>,
     mut images: ResMut<Assets<Image>>,
     mut resize_events: EventReader<WindowResized>,
-    mut asset_events: EventWriter<AssetEvent<PostProcessingMaterial>>,
     fit_to_window_size: Query<&FitToWindowSize>,
 ) {
     if resize_events.is_empty() { return; }
@@ -87,39 +39,10 @@ pub(super) fn update_image_to_window_size(
             }
         }
     }
-
-    for id in materials.ids() {
-        asset_events.send(AssetEvent::Modified { handle: Handle::weak(id) });
-    }
-}
-
-pub(super) fn update_post_processing_material(
-    resolution: Res<Resolution>,
-    mut materials: ResMut<Assets<PostProcessingMaterial>>,
-    query_material: Query<&Handle<PostProcessingMaterial>>,
-    query_world_camera: Query<(&Camera, &Transform), With<WorldCamera>>,
-) {
-    if let Ok((camera, transform)) = query_world_camera.get_single() {
-        let material_handle = query_material.single();
-        let material = materials.get_mut(material_handle).unwrap();
-        let camera_params = &mut material.camera_params;
-
-        let inverse_projection = camera.projection_matrix().inverse();
-        let view = transform.compute_matrix();
-
-        camera_params.inverse_view_proj = view * inverse_projection;
-        camera_params.screen_size = Vec2::new(resolution.width, resolution.height);
-        camera_params.screen_size_inv = 1. / camera_params.screen_size;
-    }
 }
 
 pub(super) fn setup_post_processing_camera(
     mut commands: Commands,
-
-    lightmap_texture: Res<LightMapTexture>,
-
-    mut materials: ResMut<Assets<PostProcessingMaterial>>,
-    mut meshes: ResMut<Assets<Mesh>>,
     mut images: ResMut<Assets<Image>>,
 
     query_window: Query<&Window, With<PrimaryWindow>>,
@@ -188,41 +111,30 @@ pub(super) fn setup_post_processing_camera(
         DespawnOnGameExit,
         FitToWindowSize(main_texture_handle.clone())
     ));
+
     commands.spawn((
         DespawnOnGameExit,
         FitToWindowSize(world_texture_handle.clone())
     ));
+
     commands.spawn((
         DespawnOnGameExit,
         FitToWindowSize(background_texture_handle.clone())
     ));
+
     commands.spawn((
         DespawnOnGameExit,
         FitToWindowSize(ingame_background_texture_handle.clone())
     ));
 
-    let post_processing_layer = RenderLayers::layer(RenderLayers::TOTAL_LAYERS as u8 - 1);
+    commands.insert_resource(MainTexture(main_texture_handle));
+    commands.insert_resource(WorldTexture(world_texture_handle));
+    commands.insert_resource(BackgroundTexture(background_texture_handle));
+    commands.insert_resource(InGameBackgroundTexture(ingame_background_texture_handle));
 
     commands.spawn((
         DespawnOnGameExit,
-        MaterialMesh2dBundle {
-            mesh: meshes.add(Plane::default().into()).into(),
-            material: materials.add(PostProcessingMaterial {
-                background_texture: background_texture_handle,
-                ingame_background_texture: ingame_background_texture_handle,
-                main_texture: main_texture_handle,
-                world_texture: world_texture_handle,
-                lightmap_texture: lightmap_texture.clone_weak(),
-                camera_params: default()
-            }),
-            transform: Transform::from_xyz(0., 0., 1.5),
-            ..default()
-        },
-        post_processing_layer
-    ));
-
-    commands.spawn((
-        DespawnOnGameExit,
+        PostProcessCamera,
         Camera2dBundle {
             camera: Camera {
                 order: 100,
@@ -233,7 +145,7 @@ pub(super) fn setup_post_processing_camera(
             tonemapping: Tonemapping::None,
             ..default()
         },
-        post_processing_layer
+        RenderLayers::none()
     ));
 }
 
