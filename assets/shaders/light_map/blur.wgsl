@@ -82,9 +82,8 @@ fn blur(
     pos: vec2<u32>,
     prev_light_ptr: ptr<function, vec3<f32>>,
 ) {
-    var this_light = textureLoad(light_texture, pos);
-
     var prev_light = *prev_light_ptr;
+    var this_light = textureLoad(light_texture, pos);
 
     if (prev_light.x < this_light.x) {
         prev_light.x = this_light.x;
@@ -104,8 +103,7 @@ fn blur(
         this_light.z = prev_light.z;
     }
 
-    prev_light *= get_decay(pos);
-
     textureStore(light_texture, pos, this_light);
-    *prev_light_ptr = prev_light;
+
+    *prev_light_ptr = prev_light * get_decay(pos);
 }
