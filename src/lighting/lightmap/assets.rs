@@ -1,7 +1,7 @@
 use bevy::{prelude::{Image, Res, ResMut, Assets, GlobalTransform, OrthographicProjection, With, Query, Deref, UVec2, EventReader, Commands, Transform, Resource}, render::{render_resource::{Extent3d, TextureDimension, TextureUsages, UniformBuffer, StorageBuffer, FilterMode, SamplerDescriptor}, renderer::{RenderQueue, RenderDevice}, Extract, extract_resource::ExtractResource, texture::ImageSampler}, utils::default, math::{URect, Vec3Swizzles}};
 use rand::{thread_rng, Rng};
 
-use crate::{world::WorldData, plugins::{camera::components::MainCamera, world::{constants::TILE_SIZE, WorldSize}, config::LightSmoothness}, lighting::{LightMapTexture, LIGHTMAP_FORMAT, gpu_types::{GpuLightSourceBuffer, GpuLightSource}, TILES_FORMAT, TileTexture, UpdateTilesTextureEvent, types::LightSource}};
+use crate::{world::WorldData, plugins::{camera::components::WorldCamera, world::{constants::TILE_SIZE, WorldSize}, config::LightSmoothness}, lighting::{LightMapTexture, LIGHTMAP_FORMAT, gpu_types::{GpuLightSourceBuffer, GpuLightSource}, TILES_FORMAT, TileTexture, UpdateTilesTextureEvent, types::LightSource}};
 
 #[derive(Resource, ExtractResource, Deref, Clone, Copy, Default)]
 pub(crate) struct BlurArea(pub(crate) URect);
@@ -122,7 +122,7 @@ pub(crate) fn handle_update_tiles_texture_event(
 pub(crate) fn update_blur_area(
     mut blur_area: ResMut<BlurArea>,
     light_smoothness: Res<LightSmoothness>,
-    query_camera: Query<(&GlobalTransform, &OrthographicProjection), With<MainCamera>>,
+    query_camera: Query<(&GlobalTransform, &OrthographicProjection), With<WorldCamera>>,
 ) {
     let Ok((camera_transform, projection)) = query_camera.get_single() else { return };
 

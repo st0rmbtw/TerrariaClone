@@ -25,12 +25,10 @@ pub(super) fn update_image_to_window_size(
     if let Some(event) = resize_events.iter().last() {
         if event.width > 0. && event.height > 0. {
             for fit_to_window in fit_to_window_size.iter() {
-                let size = {
-                    Extent3d {
-                        width: event.width as u32,
-                        height: event.height as u32,
-                        ..Default::default()
-                    }
+                let size = Extent3d {
+                    width: event.width as u32,
+                    height: event.height as u32,
+                    ..Default::default()
                 };
                 let image = images.get_mut(fit_to_window).expect(
                     "FitToWindowSize is referring to an Image, but this Image could not be found",

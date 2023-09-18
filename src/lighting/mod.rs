@@ -5,6 +5,7 @@ use bevy::render::extract_resource::ExtractResource;
 use bevy::render::render_graph::{RenderGraph, RenderGraphApp, ViewNodeRunner};
 use bevy::render::render_resource::TextureFormat;
 use bevy::render::{RenderApp, Render, RenderSet, ExtractSchedule};
+use bevy::transform::TransformSystem;
 use crate::common::state::GameState;
 use crate::plugins::InGameSystemSet;
 
@@ -91,6 +92,7 @@ impl Plugin for LightingPlugin {
             PostUpdate,
             lightmap::assets::update_blur_area
                 .in_set(InGameSystemSet::PostUpdate)
+                .after(TransformSystem::TransformPropagate)
         );
 
         let render_app = app.sub_app_mut(RenderApp);
