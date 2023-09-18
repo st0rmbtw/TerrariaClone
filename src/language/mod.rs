@@ -148,30 +148,30 @@ pub(crate) fn load_language(language: Language) -> Result<LanguageContent, Box<d
 }
 
 pub(crate) trait Localize: Sync + Send {
-    fn localize(&self, language_content: &LanguageContent) -> String;
+    fn localize(&self, language_content: &LanguageContent) -> Box<str>;
 }
 
 impl<T: Into<LanguageStringKey> + Send + Sync + Clone> Localize for T {
-    fn localize(&self, language_content: &LanguageContent) -> String {
-        language_content.get_by_key(self.clone().into()).to_owned()
+    fn localize(&self, language_content: &LanguageContent) -> Box<str> {
+        Box::from(language_content.get_by_key(self.clone().into()))
     }
 }
 
 impl Localize for &str {
-    fn localize(&self, _: &LanguageContent) -> String {
-        self.to_string()
+    fn localize(&self, _: &LanguageContent) -> Box<str> {
+        Box::from(*self)
     }
 }
 
 impl Localize for f32 {
-    fn localize(&self, _: &LanguageContent) -> String {
-        self.to_string()
+    fn localize(&self, _: &LanguageContent) -> Box<str> {
+        Box::from(self.to_string())
     }
 }
 
 impl Localize for u16 {
-    fn localize(&self, _: &LanguageContent) -> String {
-        self.to_string()
+    fn localize(&self, _: &LanguageContent) -> Box<str> {
+        Box::from(self.to_string())
     }
 }
 
@@ -188,7 +188,7 @@ impl LocalizedText {
     }
 
     pub(super) fn format(&self, language_content: &LanguageContent) -> String {
-        let key_str = language_content.get_by_key(self.key).to_owned();
+        let key_str = Box::from(language_content.get_by_key(self.key));
 
         match (&self.format, &self.args) {
             (Some(format), Some(args)) => {
@@ -198,14 +198,11 @@ impl LocalizedText {
 
                 let mut args = Vec::with_capacity(localized_args.len() + 1);
                 args.push(key_str);
-
-                for arg in localized_args {
-                    args.push(arg);
-                }
+                args.extend(localized_args);
 
                 format.format(&args)
             },
-            _ => key_str
+            _ => key_str.to_string()
         }
     }
 }
