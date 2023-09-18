@@ -1,4 +1,4 @@
-use bevy::{prelude::{Commands, State, Res, DetectChanges}, render::Extract};
+use bevy::{prelude::{Commands, State, Res, DetectChanges, ResMut}, render::Extract};
 
 use crate::{common::state::GameState, plugins::{config::LightSmoothness, world::resources::WorldUndergroundLevel}};
 
@@ -12,20 +12,20 @@ pub(super) fn extract_state(
 }
 
 pub(super) fn extract_light_smoothness(
-    mut commands: Commands,
-    light_smoothness: Extract<Res<LightSmoothness>>,
+    mut light_smoothness: ResMut<LightSmoothness>,
+    extracted_light_smoothness: Extract<Res<LightSmoothness>>,
 ) {
-    if light_smoothness.is_changed() {
-        commands.insert_resource(**light_smoothness);
+    if extracted_light_smoothness.is_changed() {
+        *light_smoothness = **extracted_light_smoothness;
     }
 }
 
 pub(super) fn extract_blur_area(
-    mut commands: Commands,
-    blur_area: Extract<Res<BlurArea>>,
+    mut blur_area: ResMut<BlurArea>,
+    extracted_blur_area: Extract<Res<BlurArea>>,
 ) {
-    if blur_area.is_changed() {
-        commands.insert_resource(**blur_area);
+    if extracted_blur_area.is_changed() {
+        *blur_area = **extracted_blur_area;
     }
 }
 

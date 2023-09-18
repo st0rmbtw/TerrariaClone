@@ -1,15 +1,15 @@
-use bevy::{prelude::{EventWriter, Res, Resource, With, Changed, Query, Component, Color, DetectChanges}, text::Text, ui::{Interaction, BackgroundColor}};
+use bevy::{prelude::{EventWriter, Res, Resource, With, Changed, Query, Component, Color, DetectChanges, DetectChangesMut}, text::Text, ui::{Interaction, BackgroundColor}};
 
 use crate::{plugins::{audio::{PlaySoundEvent, SoundType, UpdateMusicVolume, UpdateSoundVolume}, slider::Slider, config::ShowTileGrid}, common::BoolValue, language::{LocalizedText, keys::UIStringKey, args}};
 
-use super::components::{SoundVolumeSlider, MusicVolumeSlider, ToggleTileGridButton};
+use super::components::{SoundVolumeSlider, MusicVolumeSlider, ToggleTileGridButton, PreviousInteraction};
 
 pub(super) fn play_sound_on_hover<B: Component>(
-    mut query: Query<&Interaction, (With<B>, Changed<Interaction>)>,
+    mut query: Query<(&PreviousInteraction, &Interaction), (With<B>, Changed<Interaction>)>,
     mut play_sound: EventWriter<PlaySoundEvent>
 ) {
-    for interaction in query.iter_mut() {
-        if let Interaction::Hovered = interaction {
+    for (previous_interaction, interaction) in &mut query {
+        if **previous_interaction != Interaction::Pressed && *interaction == Interaction::Hovered {
             play_sound.send(PlaySoundEvent(SoundType::MenuTick));
         }
     }
@@ -80,5 +80,13 @@ pub(super) fn update_toggle_tile_grid_button_text(
             let status = if show_tile_grid.0 { UIStringKey::On } else { UIStringKey::Off };
             *localized_text = LocalizedText::new(UIStringKey::TileGrid, "{} {}", args![status]);
         }
+    }
+}
+
+pub(super) fn update_previous_interaction(
+    mut query: Query<(&mut PreviousInteraction, &Interaction), Changed<Interaction>>
+) {
+    for (mut previous_interaction, interaction) in &mut query {
+        previous_interaction.set_if_neq(PreviousInteraction(*interaction));
     }
 }

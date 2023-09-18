@@ -1,72 +1,75 @@
 use bevy::{prelude::{Component, Query, Children, With, App, Plugin, Update, IntoSystemConfigs, Bundle, Transform, GlobalTransform, Visibility, ComputedVisibility}, ui::{RelativeCursorPosition, Node, Interaction, Val, Style, BackgroundColor, UiImage, FocusPolicy}};
 
+use super::ui::components::PreviousInteraction;
+
 /// A UI node that is a slider
 #[derive(Bundle, Clone, Debug, Default)]
-pub struct SliderBundle {
+pub(crate) struct SliderBundle {
     /// Describes the size of the node
-    pub node: Node,
+    pub(crate) node: Node,
     /// Slider specific values
-    pub slider: Slider,
+    pub(crate) slider: Slider,
     /// Describes the cursor position relative to the slider node
-    pub relative_cursor: RelativeCursorPosition,
+    pub(crate) relative_cursor: RelativeCursorPosition,
     /// Describes whether and how the slider has been interacted with by the input
-    pub interaction: Interaction,
+    pub(crate) interaction: Interaction,
+    pub(crate) previous_interaction: PreviousInteraction,
     /// Describes the style including flexbox settings
-    pub style: Style,
+    pub(crate) style: Style,
     /// The background color, which serves as a "fill" for this node
     ///
     /// When combined with `UiImage`, tints the provided image.
-    pub background_color: BackgroundColor,
+    pub(crate) background_color: BackgroundColor,
     /// The image of the node
-    pub image: UiImage,
+    pub(crate) image: UiImage,
     /// The transform of the node
     ///
     /// This field is automatically managed by the UI layout system.
     /// To alter the position of the `NodeBundle`, use the properties of the [`Style`] component.
-    pub transform: Transform,
+    pub(crate) transform: Transform,
     /// The global transform of the node
     ///
     /// This field is automatically managed by the UI layout system.
     /// To alter the position of the `NodeBundle`, use the properties of the [`Style`] component.
-    pub global_transform: GlobalTransform,
+    pub(crate) global_transform: GlobalTransform,
     /// Describes the visibility properties of the node
-    pub visibility: Visibility,
+    pub(crate) visibility: Visibility,
     /// Algorithmically-computed indication of whether an entity is visible and should be extracted for rendering
-    pub computed_visibility: ComputedVisibility,
+    pub(crate) computed_visibility: ComputedVisibility,
 }
 
 /// A UI node that is a slider
 #[derive(Bundle, Clone, Debug)]
-pub struct SliderHandleBundle {
+pub(crate) struct SliderHandleBundle {
     /// Describes the size of the node
-    pub node: Node,
+    pub(crate) node: Node,
     /// Marker component that signals this node is a slider handle
-    pub slider_handle: SliderHandle,
+    pub(crate) slider_handle: SliderHandle,
     /// Describes the style including flexbox settings
     /// The Slider parent is responsible for managing the position field, all user-made changes will be overwritten.
-    pub style: Style,
+    pub(crate) style: Style,
     /// Whether this node should block interaction with lower nodes
-    pub focus_policy: FocusPolicy,
+    pub(crate) focus_policy: FocusPolicy,
     /// The background color, which serves as a "fill" for this node
     ///
     /// When combined with `UiImage`, tints the provided image.
-    pub background_color: BackgroundColor,
+    pub(crate) background_color: BackgroundColor,
     /// The image of the node
-    pub image: UiImage,
+    pub(crate) image: UiImage,
     /// The transform of the node
     ///
     /// This field is automatically managed by the UI layout system.
     /// To alter the position of the `NodeBundle`, use the properties of the [`Style`] component.
-    pub transform: Transform,
+    pub(crate) transform: Transform,
     /// The global transform of the node
     ///
     /// This field is automatically managed by the UI layout system.
     /// To alter the position of the `NodeBundle`, use the properties of the [`Style`] component.
-    pub global_transform: GlobalTransform,
+    pub(crate) global_transform: GlobalTransform,
     /// Describes the visibility properties of the node
-    pub visibility: Visibility,
+    pub(crate) visibility: Visibility,
     /// Algorithmically-computed indication of whether an entity is visible and should be extracted for rendering
-    pub computed_visibility: ComputedVisibility,
+    pub(crate) computed_visibility: ComputedVisibility,
 }
 
 impl Default for SliderHandleBundle {
@@ -88,7 +91,7 @@ impl Default for SliderHandleBundle {
 
 /// A component describing the slider-specific values
 #[derive(Component, Debug, Clone, Copy)]
-pub struct Slider {
+pub(crate) struct Slider {
     min: f32,
     max: f32,
     step: f32,
@@ -110,7 +113,7 @@ impl Default for Slider {
 impl Slider {
     /// Creates a new `Slider` with `min` and `max` values
     /// `Min` and `max` don't affect the physical size of the slider, they're only used for calculating the value of the slider
-    pub fn new(min: f32, max: f32) -> Self {
+    pub(crate) fn new(min: f32, max: f32) -> Self {
         Self {
             min,
             max,
@@ -120,7 +123,7 @@ impl Slider {
     }
 
     /// Consumes self, returning a new [`Slider`] with a given value or an error if the value is out of the slider range
-    pub fn with_value(self, value: f32) -> Result<Self, SliderValueError> {
+    pub(crate) fn with_value(self, value: f32) -> Result<Self, SliderValueError> {
         if !(self.min..=self.max).contains(&value) {
             return Err(SliderValueError::ValueOutOfSliderRange);
         }
@@ -129,13 +132,13 @@ impl Slider {
     }
 
     /// Consumes self, returning a new [`Slider`] with a given step
-    pub fn with_step(self, step: f32) -> Self {
+    pub(crate) fn with_step(self, step: f32) -> Self {
         Self { step, ..self }
     }
 
     /// Sets the slider value, returning the slider new value or an error if the given value is out of the slider range
     /// It rounds up the slider value to match the value of `step`
-    pub fn set_value(&mut self, value: f32) -> Result<f32, SliderValueError> {
+    pub(crate) fn set_value(&mut self, value: f32) -> Result<f32, SliderValueError> {
         // Round the value up to self.step
         let value = if self.step != 0. {
             ((value - self.min) / self.step).round() * self.step + self.min
@@ -152,38 +155,38 @@ impl Slider {
     }
 
     /// Retrieves the slider value
-    pub fn value(&self) -> f32 {
+    pub(crate) fn value(&self) -> f32 {
         self.value
     }
 
     /// Retrieves the minimum slider value
-    pub fn min(&self) -> f32 {
+    pub(crate) fn min(&self) -> f32 {
         self.min
     }
 
     /// Retrieves the maximum slider value
-    pub fn max(&self) -> f32 {
+    pub(crate) fn max(&self) -> f32 {
         self.max
     }
 
     /// Retrieves the slider step
-    pub fn step(&self) -> f32 {
+    pub(crate) fn step(&self) -> f32 {
         self.step
     }
 }
 
 /// Error connected to setting the value of a slider
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
-pub enum SliderValueError {
+pub(crate) enum SliderValueError {
     ValueOutOfSliderRange,
 }
 
 /// Marker struct for slider handles
 #[derive(Component, Debug, Default, Clone, Copy)]
-pub struct SliderHandle;
+pub(crate) struct SliderHandle;
 
 /// System for updating slider value based on the user input
-pub fn update_slider_value(
+pub(crate) fn update_slider_value(
     mut slider_query: Query<(
         &mut Slider,
         &Interaction,
@@ -229,7 +232,7 @@ pub fn update_slider_value(
 }
 
 /// System for updating the slider handle position based on the parent slider value
-pub fn update_slider_handle(
+pub(crate) fn update_slider_handle(
     slider_query: Query<(&Slider, &Node, &Children)>,
     mut slider_handles_query: Query<(&Node, &mut Style), With<SliderHandle>>,
 ) {
@@ -250,7 +253,7 @@ pub fn update_slider_handle(
 
 /// A plugin for adding sliders
 #[derive(Default)]
-pub struct SliderPlugin;
+pub(crate) struct SliderPlugin;
 
 impl Plugin for SliderPlugin {
     fn build(&self, app: &mut App) {

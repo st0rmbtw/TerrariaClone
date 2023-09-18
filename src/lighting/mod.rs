@@ -1,5 +1,5 @@
 use bevy::core_pipeline::core_2d;
-use bevy::prelude::{Plugin, App, Update, IntoSystemConfigs, OnEnter, OnExit, PostUpdate, Event, in_state, Handle, Image, Resource, Deref, not, Condition, Commands, state_changed, Component, apply_deferred};
+use bevy::prelude::{Plugin, App, Update, IntoSystemConfigs, OnEnter, OnExit, PostUpdate, Event, in_state, Handle, Image, Resource, Deref, not, Condition, Commands, state_changed, Component};
 use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
 use bevy::render::extract_resource::ExtractResource;
 use bevy::render::render_graph::{RenderGraph, RenderGraphApp, ViewNodeRunner};
@@ -107,7 +107,6 @@ impl Plugin for LightingPlugin {
                     (
                         extract::extract_light_smoothness,
                         extract::extract_blur_area,
-                        apply_deferred,
                         lightmap::assets::extract_lightmap_pipeline_assets,
                     ).chain(),
                     postprocess::assets::extract_postprocess_pipeline_assets
@@ -159,6 +158,7 @@ impl Plugin for LightingPlugin {
 
     fn finish(&self, app: &mut App) {
         let render_app = app.sub_app_mut(RenderApp);
+        render_app.init_resource::<BlurArea>();
         render_app.init_resource::<LightMapPipelineAssets>();
         render_app.init_resource::<PostProcessPipelineAssets>();
     }

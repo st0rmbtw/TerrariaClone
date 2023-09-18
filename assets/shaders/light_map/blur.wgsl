@@ -85,25 +85,32 @@ fn blur(
     var prev_light = *prev_light_ptr;
     var this_light = textureLoad(light_texture, pos);
 
+    var this_light_changed = false;
+
     if (prev_light.x < this_light.x) {
         prev_light.x = this_light.x;
     } else {
         this_light.x = prev_light.x;
+        this_light_changed = true;
     }
 
     if (prev_light.y < this_light.y) {
         prev_light.y = this_light.y;
     } else {
         this_light.y = prev_light.y;
+        this_light_changed = true;
     }
 
     if (prev_light.z < this_light.z) {
         prev_light.z = this_light.z;
     } else {
         this_light.z = prev_light.z;
+        this_light_changed = true;
     }
 
-    textureStore(light_texture, pos, this_light);
+    if this_light_changed {
+        textureStore(light_texture, pos, this_light);
+    }
 
     *prev_light_ptr = prev_light * get_decay(pos);
 }

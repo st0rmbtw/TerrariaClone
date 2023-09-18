@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use bevy::{
-    prelude::{Plugin, resource_exists_and_equals, Condition, Res, KeyCode, Query, With, Update, IntoSystemConfigs},
+    prelude::{Plugin, resource_exists_and_equals, Condition, Res, KeyCode, Query, With, Update, IntoSystemConfigs, App},
     text::Text,
     time::common_conditions::on_timer,
     input::common_conditions::input_just_pressed, diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin, Diagnostic},
@@ -12,7 +12,7 @@ use super::ui::{UiVisibility, FpsText};
 
 pub(crate) struct FpsPlugin;
 impl Plugin for FpsPlugin {
-    fn build(&self, app: &mut bevy::prelude::App) {
+    fn build(&self, app: &mut App) {
         app.add_plugins(FrameTimeDiagnosticsPlugin);
 
         app.add_systems(
@@ -33,7 +33,7 @@ fn update_fps_text(
 ) {
     let Ok(mut text) = query_fps_text.get_single_mut() else { return; };
 
-    if let Some(fps) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS).and_then(Diagnostic::average) {
-        text.sections[0].value = format!("{:.0}", fps);
-    }
+    let Some(fps) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS).and_then(Diagnostic::average) else { return; };
+
+    text.sections[0].value = format!("{:.0}", fps);
 }

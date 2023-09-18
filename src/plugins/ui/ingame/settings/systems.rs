@@ -4,7 +4,7 @@ use autodefault::autodefault;
 use bevy::{prelude::{Commands, Entity, NodeBundle, Visibility, default, TextBundle, Color, Name, Button, BuildChildren, Res, Query, With, Changed, ResMut, Ref, DetectChanges}, ui::{Style, JustifyContent, AlignItems, AlignSelf, UiRect, Val, Interaction, PositionType, FlexDirection, Display, BackgroundColor}, text::{Text, TextAlignment, TextStyle}};
 use interpolation::EaseFunction;
 
-use crate::{plugins::{assets::{FontAssets, UiAssets}, DespawnOnGameExit, config::{MusicVolume, SoundVolume, ShowTileGrid}, ui::{menu::MENU_BUTTON_COLOR, components::{ZoomSlider, ZoomSliderOutput}}, slider::Slider, camera::resources::Zoom}, animation::{Tween, RepeatStrategy, Animator, Tweenable, TweeningDirection}, common::lens::TextFontSizeLens, language::{keys::UIStringKey, LocalizedText}};
+use crate::{plugins::{assets::{FontAssets, UiAssets}, DespawnOnGameExit, config::{MusicVolume, SoundVolume, ShowTileGrid}, ui::{menu::MENU_BUTTON_COLOR, components::{ZoomSlider, ZoomSliderOutput, PreviousInteraction}}, slider::Slider, camera::resources::Zoom}, animation::{Tween, RepeatStrategy, Animator, Tweenable, TweeningDirection}, common::lens::TextFontSizeLens, language::{keys::UIStringKey, LocalizedText}};
 
 use super::{components::{MenuContainer, SettingsButton, SettingsButtonContainer, TabMenuContainer, TabButton, TabMenu}, menus::{tabs_menu, general_menu, interface_menu}, SelectedTab, TAB_BUTTON_TEXT_SIZE};
 
@@ -57,6 +57,7 @@ pub(crate) fn spawn_ingame_settings_button(
                 },
                 Name::new("SettingsButton"),
                 Interaction::default(),
+                PreviousInteraction::default(),
                 Animator::new(tween),
                 LocalizedText::from(UIStringKey::Settings),
                 SettingsButton,

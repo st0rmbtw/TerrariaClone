@@ -51,7 +51,7 @@ impl Node for LightMapNode {
                     pass.set_pipeline(scan_pipeline);
                     pass.dispatch_workgroups(grid_w, grid_h, 1);
 
-                    // Place light
+                    // Light sources
                     pass.set_bind_group(0, &pipeline_bind_groups.light_sources_bind_group, &[]);
                     pass.set_pipeline(place_light_pipeline);
                     pass.dispatch_workgroups(*light_source_count, 1, 1);

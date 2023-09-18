@@ -1,6 +1,6 @@
 use bevy::{ui::{Interaction, Style, Display}, prelude::{Changed, Component, Query, With, EventWriter, Visibility, Resource, Res, DetectChanges, Event, Entity, Commands, DespawnRecursiveExt, States, ResMut, NextState, Color}, text::Text};
 
-use crate::animation::{Animator, TweeningDirection, Tween, Tweenable};
+use crate::{animation::{Animator, TweeningDirection, Tween, Tweenable}, plugins::audio::{SoundType, PlaySoundEvent}};
 
 use super::{helpers, BoolValue, Toggle};
 
@@ -137,5 +137,11 @@ pub(crate) fn animate_button_color<B: Component>(
                 _ => {}
             }
         }
+    }
+}
+
+pub(crate) fn play_sound(sound: SoundType) -> impl FnMut(EventWriter<PlaySoundEvent>) {
+    move |mut play_sound: EventWriter<PlaySoundEvent>| {
+        play_sound.send(PlaySoundEvent(sound));
     }
 }
