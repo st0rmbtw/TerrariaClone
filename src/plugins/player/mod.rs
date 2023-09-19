@@ -85,13 +85,15 @@ impl Plugin for PlayerPlugin {
                 (
                     gravity,
                     detect_collisions,
-                    move_player,
+                    update_player_position,
                     update_player_rect,
                 )
                 .chain()
             )
             .in_set(InGameSystemSet::FixedUpdate)
         );
+
+        app.add_systems(Update, move_player.in_set(InGameSystemSet::Update));
 
         app.add_systems(PostUpdate, set_resource(InputAxis::default()));
 

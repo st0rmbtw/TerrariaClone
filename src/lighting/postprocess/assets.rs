@@ -1,6 +1,6 @@
-use bevy::{prelude::{Resource, ResMut, Res, Query, Camera, Transform, With, Vec2}, render::{renderer::{RenderDevice, RenderQueue}, render_resource::UniformBuffer, Extract}};
+use bevy::{prelude::{ResMut, Res, Query, Camera, With, GlobalTransform, Resource}, render::{renderer::{RenderDevice, RenderQueue}, render_resource::UniformBuffer, Extract}};
 
-use crate::{lighting::gpu_types::GpuCameraParams, plugins::{camera::components::WorldCamera, config::Resolution}};
+use crate::{lighting::gpu_types::GpuCameraParams, plugins::camera::components::WorldCamera};
 
 #[derive(Resource, Default)]
 pub(crate) struct PostProcessPipelineAssets {
@@ -22,8 +22,7 @@ pub(crate) fn prepare_postprocess_pipeline_assets(
 }
 
 pub(crate) fn extract_postprocess_pipeline_assets(
-    query_camera: Extract<Query<(&Camera, &Transform), With<WorldCamera>>>,
-    resolution: Extract<Res<Resolution>>,
+    query_camera: Extract<Query<(&Camera, &GlobalTransform), With<WorldCamera>>>,
     mut pipeline_assets: ResMut<PostProcessPipelineAssets>,
 ) {
     if let Ok((camera, transform)) = query_camera.get_single() {
@@ -32,7 +31,7 @@ pub(crate) fn extract_postprocess_pipeline_assets(
         let view = transform.compute_matrix();
 
         camera_params.inverse_view_proj = view * inverse_projection;
-        camera_params.screen_size = Vec2::new(resolution.width, resolution.height);
+        camera_params.screen_size = camera.logical_viewport_size().unwrap();
         camera_params.screen_size_inv = 1. / camera_params.screen_size;
     }
 }

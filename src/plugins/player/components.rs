@@ -1,4 +1,4 @@
-use bevy::{prelude::{Name, SpatialBundle, Transform, Deref, DerefMut, Component, Bundle}, utils::default};
+use bevy::{prelude::{Name, SpatialBundle, Transform, Deref, DerefMut, Component, Bundle, Vec2}, utils::default};
 
 use crate::{common::{state::MovementState, rect::FRect, components::Velocity}, PLAYER_LAYER};
 
@@ -84,6 +84,9 @@ pub(super) struct MovementAnimationBundle {
 #[derive(Component, Deref, DerefMut, Default)]
 pub(crate) struct PlayerRect(pub(crate) FRect);
 
+#[derive(Component, Deref, DerefMut, Default)]
+pub(crate) struct PlayerPosition(pub(crate) Vec2);
+
 #[derive(Bundle)]
 pub(super) struct PlayerBundle {
     pub(super) player: Player,
@@ -92,6 +95,7 @@ pub(super) struct PlayerBundle {
     pub(super) face_direction: FaceDirection,
     pub(super) player_rect: PlayerRect,
     pub(super) velocity: Velocity,
+    pub(super) player_position: PlayerPosition,
     pub(super) spatial: SpatialBundle
 }
 
@@ -99,6 +103,7 @@ impl PlayerBundle {
     pub(crate) fn new(x: f32, y: f32) -> Self {
         Self {
             spatial: SpatialBundle::from_transform(Transform::from_xyz(x, y, PLAYER_LAYER)),
+            player_position: PlayerPosition(Vec2::new(x, y)),
             player_rect: PlayerRect(FRect::new_center(x, y, PLAYER_WIDTH, PLAYER_HEIGHT)),
             ..default()
         }
@@ -114,7 +119,8 @@ impl Default for PlayerBundle {
             face_direction: Default::default(),
             spatial: Default::default(),
             player_rect: Default::default(),
-            velocity: Default::default()
+            velocity: Default::default(),
+            player_position: Default::default()
         }
     }
 }

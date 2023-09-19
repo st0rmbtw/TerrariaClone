@@ -2,7 +2,7 @@
 
 use std::cmp::max;
 
-use bevy::{prelude::*, window::{PrimaryWindow, WindowResized}, render::view::RenderLayers};
+use bevy::{prelude::*, window::{PrimaryWindow, WindowResized}, render::view::RenderLayers, transform::TransformSystem};
 
 mod layer;
 
@@ -23,10 +23,10 @@ impl Plugin for ParallaxPlugin {
             Update,
             (
                 parallax_container_added,
-                update_layer_textures_system.after(ParallaxSet::FollowCamera),
+                update_full_screen_sprites.run_if(not(in_state(GameState::InGame)))
             )
         );
-        app.add_systems(Update, update_full_screen_sprites.run_if(not(in_state(GameState::InGame))));
+        app.add_systems(PostUpdate, update_layer_textures_system.after(TransformSystem::TransformPropagate));
     }
 }
 
@@ -170,9 +170,9 @@ pub(crate) fn parallax_animation_system(
 fn update_layer_textures_system(
     mut query_texture: Query<
         (
+            &LayerTextureComponent,
             &GlobalTransform,
             &mut Transform,
-            &LayerTextureComponent,
         ),
         Without<ParallaxCameraComponent>,
     >,
@@ -180,27 +180,33 @@ fn update_layer_textures_system(
     query_camera: Query<&GlobalTransform, With<ParallaxCameraComponent>>,
     query_window: Query<&Window, With<PrimaryWindow>>
 ) {
-    let window = query_window.single();
+    let Ok(window) = query_window.get_single() else { return; };
     let window_width = window.width();
 
     let Ok(camera_transform) = query_camera.get_single() else { return; };
 
+    let camera_position = camera_transform.translation();
+
     query_layer.for_each(|(layer, children)| {
-        for &child in children.iter() {
-            let (texture_gtransform, mut texture_transform, layer_texture) = 
-                query_texture.get_mut(child).unwrap();
+        for &child in children {
+            let (
+                layer_texture,
+                texture_global_transform,
+                mut texture_transform
+            ) = query_texture.get_mut(child).unwrap();
             
-            let texture_gtransform = texture_gtransform.compute_transform();
+            let texture_translation = texture_global_transform.translation();
+            let texture_scale = texture_transform.scale;
 
             // Move right-most texture to left side of layer when camera is approaching left-most end
-            if camera_transform.translation().x - texture_gtransform.translation.x
-                + ((layer_texture.width * texture_gtransform.scale.x) / 2.0) 
+            if camera_position.x - texture_translation.x
+                + ((layer_texture.width * texture_scale.x) / 2.0) 
                 < -(window_width * layer.transition_factor)
             {
                 texture_transform.translation.x -= layer_texture.width * layer.texture_count;
             // Move left-most texture to right side of layer when camera is approaching right-most end
-            } else if camera_transform.translation().x - texture_gtransform.translation.x
-                - ((layer_texture.width * texture_gtransform.scale.x) / 2.0)
+            } else if camera_position.x - texture_translation.x
+                - ((layer_texture.width * texture_scale.x) / 2.0)
                 > window_width * layer.transition_factor
             {
                 texture_transform.translation.x += layer_texture.width * layer.texture_count;

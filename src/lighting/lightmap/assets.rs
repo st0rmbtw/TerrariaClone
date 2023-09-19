@@ -1,4 +1,4 @@
-use bevy::{prelude::{Image, Res, ResMut, Assets, GlobalTransform, OrthographicProjection, With, Query, Deref, UVec2, EventReader, Commands, Transform, Resource}, render::{render_resource::{Extent3d, TextureDimension, TextureUsages, UniformBuffer, StorageBuffer, FilterMode, SamplerDescriptor}, renderer::{RenderQueue, RenderDevice}, Extract, extract_resource::ExtractResource, texture::ImageSampler}, utils::default, math::{URect, Vec3Swizzles}};
+use bevy::{prelude::{Image, Res, ResMut, Assets, GlobalTransform, OrthographicProjection, With, Query, Deref, UVec2, EventReader, Commands, Transform, Resource, ComputedVisibility}, render::{render_resource::{Extent3d, TextureDimension, TextureUsages, UniformBuffer, StorageBuffer, FilterMode, SamplerDescriptor}, renderer::{RenderQueue, RenderDevice}, Extract, extract_resource::ExtractResource, texture::ImageSampler}, utils::default, math::{URect, Vec3Swizzles}};
 use rand::{thread_rng, Rng};
 
 use crate::{world::WorldData, plugins::{camera::components::WorldCamera, world::{constants::TILE_SIZE, WorldSize}, config::LightSmoothness}, lighting::{LightMapTexture, LIGHTMAP_FORMAT, gpu_types::{GpuLightSourceBuffer, GpuLightSource}, TILES_FORMAT, TileTexture, UpdateTilesTextureEvent, types::LightSource}};
@@ -153,7 +153,7 @@ pub(crate) fn extract_lightmap_pipeline_assets(
     
     mut pipeline_assets: ResMut<LightMapPipelineAssets>,
 
-    query_light_source: Extract<Query<(&Transform, &LightSource)>>,
+    query_light_source: Extract<Query<(&Transform, &LightSource, &ComputedVisibility)>>,
 ) {
     pipeline_assets.area_min.set(blur_area.min);
     pipeline_assets.area_max.set(blur_area.max);
@@ -168,7 +168,9 @@ pub(crate) fn extract_lightmap_pipeline_assets(
 
     let world_size = world_size.as_vec2();
 
-    for (transform, light_source) in &query_light_source {
+    for (transform, light_source, visibility) in &query_light_source {
+        if !visibility.is_visible() { continue; }
+
         let uv = transform.translation.xy().abs() / (world_size * TILE_SIZE);
         let light_pos = (uv * world_size * light_smoothness.subdivision() as f32).ceil().as_uvec2();
 
