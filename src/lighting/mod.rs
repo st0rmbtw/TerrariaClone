@@ -1,24 +1,28 @@
-use bevy::prelude::{Plugin, App, Update, IntoSystemConfigs, OnEnter, World, OnExit, PostUpdate, Event, in_state, Handle, Image, Resource, Deref, not, resource_changed, State, Condition};
-use bevy::render::extract_resource::{ExtractResourcePlugin, ExtractResource};
-use bevy::render::render_graph::{RenderGraph, Node, RenderGraphContext, NodeRunError};
-use bevy::render::render_resource::{PipelineCache, ComputePassDescriptor};
-use bevy::render::renderer::RenderContext;
+use bevy::core_pipeline::core_2d;
+use bevy::prelude::{Plugin, App, Update, IntoSystemConfigs, OnEnter, OnExit, PostUpdate, Event, in_state, Handle, Image, Resource, Deref, not, Condition, Commands, state_changed, Component};
+use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
+use bevy::render::extract_resource::ExtractResource;
+use bevy::render::render_graph::{RenderGraph, RenderGraphApp, ViewNodeRunner};
+use bevy::render::render_resource::TextureFormat;
 use bevy::render::{RenderApp, Render, RenderSet, ExtractSchedule};
-use bevy::sprite::Material2dPlugin;
+use bevy::transform::TransformSystem;
 use crate::common::state::GameState;
 use crate::plugins::InGameSystemSet;
 
-use self::compositing::{LightMapMaterial, PostProcessingMaterial};
-use self::pipeline::{LightMapPipeline, PipelineBindGroups};
-use self::pipeline_assets::{BlurArea, PipelineAssets};
+use self::lightmap::LightMapNode;
+use self::lightmap::assets::{BlurArea, LightMapPipelineAssets};
+use self::lightmap::pipeline::{LightMapPipeline, LightMapPipelineBindGroups};
+use self::postprocess::PostProcessNode;
+use self::postprocess::assets::PostProcessPipelineAssets;
+use self::postprocess::pipeline::{PostProcessPipeline, PostProcessPipelineBindGroups};
 
 pub(crate) mod compositing;
-pub(super) mod pipeline;
-pub(super) mod pipeline_assets;
+pub(crate) mod extract;
 pub(super) mod types;
 pub(super) mod gpu_types;
+pub(super) mod lightmap;
+pub(super) mod postprocess;
 
-const WORKGROUP: u32 = 16;
 
 #[derive(Event, Clone, Copy)]
 pub(crate) struct UpdateTilesTextureEvent {
@@ -27,19 +31,34 @@ pub(crate) struct UpdateTilesTextureEvent {
 }
 
 #[derive(Resource, ExtractResource, Clone)]
-struct TileTexture(Handle<Image>);
+pub(crate) struct BackgroundTexture(Handle<Image>);
+
+#[derive(Resource, ExtractResource, Clone)]
+pub(crate) struct InGameBackgroundTexture(Handle<Image>);
+
+#[derive(Resource, ExtractResource, Clone)]
+pub(crate) struct WorldTexture(Handle<Image>);
+
+#[derive(Resource, ExtractResource, Clone)]
+pub(crate) struct MainTexture(Handle<Image>);
+
+#[derive(Resource, ExtractResource, Clone)]
+pub(crate) struct TileTexture(Handle<Image>);
 
 #[derive(Resource, ExtractResource, Clone, Deref)]
 pub(crate) struct LightMapTexture(Handle<Image>);
 
+#[derive(Component, ExtractComponent, Clone)]
+struct PostProcessCamera;
+
+const WORKGROUP: u32 = 16;
+const LIGHTMAP_FORMAT: TextureFormat = TextureFormat::Rgba8Unorm;
+const TILES_FORMAT: TextureFormat = TextureFormat::R8Uint;
+
 pub(crate) struct LightingPlugin;
 impl Plugin for LightingPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((
-            Material2dPlugin::<LightMapMaterial>::default(),
-            Material2dPlugin::<PostProcessingMaterial>::default(),
-            ExtractResourcePlugin::<BlurArea>::default(),
-        ));
+        app.add_plugins(ExtractComponentPlugin::<PostProcessCamera>::default());
 
         app.init_resource::<BlurArea>();
         app.add_event::<UpdateTilesTextureEvent>();
@@ -47,22 +66,34 @@ impl Plugin for LightingPlugin {
         app.add_systems(
             OnExit(GameState::WorldLoading),
             (
-                pipeline_assets::init_tiles_texture,
-                pipeline::init_light_map_texture,
+                lightmap::assets::init_tiles_texture,
+                lightmap::assets::init_light_map_texture
             )
         );
 
-        app.add_systems(OnEnter(GameState::InGame), (compositing::setup_post_processing_camera, compositing::spawn_mouse_light));
+        app.add_systems(
+            OnEnter(GameState::InGame),
+            (
+                compositing::setup_post_processing_camera,
+                compositing::spawn_mouse_light
+            )
+        );
 
         app.add_systems(
             Update,
             (
+                lightmap::assets::handle_update_tiles_texture_event,
                 compositing::update_image_to_window_size,
-                pipeline_assets::handle_update_tiles_texture_event.in_set(InGameSystemSet::Update),
                 compositing::update_mouse_light
-            )
+            ).in_set(InGameSystemSet::Update)
         );
-        app.add_systems(PostUpdate, pipeline_assets::update_blur_area.in_set(InGameSystemSet::PostUpdate));
+
+        app.add_systems(
+            PostUpdate,
+            lightmap::assets::update_blur_area
+                .in_set(InGameSystemSet::PostUpdate)
+                .after(TransformSystem::TransformPropagate)
+        );
 
         let render_app = app.sub_app_mut(RenderApp);
 
@@ -70,30 +101,36 @@ impl Plugin for LightingPlugin {
             .add_systems(
                 ExtractSchedule,
                 (
-                    pipeline_assets::extract_textures,
-                    pipeline_assets::extract_world_underground_level,
-                    pipeline_assets::extract_state,
+                    extract::extract_textures,
+                    extract::extract_world_underground_level,
+                    extract::extract_state,
                     (
-                        pipeline_assets::extract_light_smoothness,
-                        pipeline_assets::extract_pipeline_assets,
-                    ).chain()
+                        extract::extract_light_smoothness,
+                        extract::extract_blur_area,
+                        lightmap::assets::extract_lightmap_pipeline_assets,
+                    ).chain(),
+                    postprocess::assets::extract_postprocess_pipeline_assets
                 )
             )
             .add_systems(
                 Render,
                 (
                     (
-                        pipeline::init_pipeline
-                            .run_if(resource_changed::<State<GameState>>().and_then(in_state(GameState::InGame))),
-                        pipeline_assets::prepare_pipeline_assets,
+                        init_pipeline
+                            .run_if(state_changed::<GameState>().and_then(in_state(GameState::InGame))),
+                        lightmap::assets::prepare_lightmap_pipeline_assets,
+                        postprocess::assets::prepare_postprocess_pipeline_assets,
                     ).in_set(RenderSet::Prepare),
 
-                    pipeline::queue_bind_groups
-                        .run_if(in_state(GameState::InGame))
-                        .in_set(RenderSet::Queue),
+                    (
+                        lightmap::pipeline::queue_lightmap_bind_groups,
+                        postprocess::pipeline::queue_postprocess_bind_groups
+                    )
+                    .run_if(in_state(GameState::InGame))
+                    .in_set(RenderSet::Queue),
 
-                    pipeline::remove_pipeline
-                        .run_if(resource_changed::<State<GameState>>().and_then(not(in_state(GameState::InGame))))
+                    remove_pipeline
+                        .run_if(state_changed::<GameState>().and_then(not(in_state(GameState::InGame))))
                         .in_set(RenderSet::Cleanup)
                 ),
             );
@@ -103,118 +140,39 @@ impl Plugin for LightingPlugin {
         render_graph.add_node_edge(
             "light_map",
             bevy::render::main_graph::node::CAMERA_DRIVER,
-        )
+        );
+
+        render_app.add_render_graph_node::<ViewNodeRunner<PostProcessNode>>(
+            core_2d::graph::NAME,
+            PostProcessNode::NAME,
+        );
+        render_app.add_render_graph_edges(
+            core_2d::graph::NAME,
+            &[
+                core_2d::graph::node::MAIN_PASS,
+                PostProcessNode::NAME,
+                core_2d::graph::node::END_MAIN_PASS_POST_PROCESSING,
+            ],
+        );
     }
 
     fn finish(&self, app: &mut App) {
         let render_app = app.sub_app_mut(RenderApp);
-        render_app.init_resource::<PipelineAssets>();
+        render_app.init_resource::<BlurArea>();
+        render_app.init_resource::<LightMapPipelineAssets>();
+        render_app.init_resource::<PostProcessPipelineAssets>();
     }
 }
 
-struct LightMapNode;
-impl Node for LightMapNode {
-    fn run(
-        &self,
-        _: &mut RenderGraphContext,
-        render_context: &mut RenderContext,
-        world: &World,
-    ) -> Result<(), NodeRunError> {
-        if let Some(pipeline_bind_groups) = world.get_resource::<PipelineBindGroups>() {
-            let pipeline_cache = world.resource::<PipelineCache>();
-            let pipeline = world.resource::<LightMapPipeline>();
-            let blur_area = world.resource::<BlurArea>();
+fn init_pipeline(mut commands: Commands) {
+    commands.init_resource::<LightMapPipeline>();
+    commands.init_resource::<PostProcessPipeline>();
+}
 
-            if blur_area.width() > 0 && blur_area.height() > 0 {
-                if let (
-                    Some(scan_pipeline),
-                    Some(place_light_pipeline),
-                    Some(left_to_right_pipeline),
-                    Some(right_to_left_pipeline),
-                    Some(top_to_bottom_pipeline),
-                    Some(bottom_to_top_pipeline),
-                ) = (
-                    pipeline_cache.get_compute_pipeline(pipeline.scan_pipeline),
-                    pipeline_cache.get_compute_pipeline(pipeline.light_sources_pipeline),
-                    pipeline_cache.get_compute_pipeline(pipeline.left_to_right_pipeline),
-                    pipeline_cache.get_compute_pipeline(pipeline.right_to_left_pipeline),
-                    pipeline_cache.get_compute_pipeline(pipeline.top_to_bottom_pipeline),
-                    pipeline_cache.get_compute_pipeline(pipeline.bottom_to_top_pipeline),
-                ) {
-                    let mut pass = render_context
-                        .command_encoder()
-                        .begin_compute_pass(&ComputePassDescriptor {
-                            label: Some("light_map"),
-                        });
+fn remove_pipeline(mut commands: Commands) {
+    commands.remove_resource::<LightMapPipeline>();
+    commands.remove_resource::<LightMapPipelineBindGroups>();
 
-                    let grid_w = blur_area.width() / WORKGROUP;
-                    let grid_h = blur_area.height() / WORKGROUP;
-
-                    // Scan
-                    pass.set_bind_group(0, &pipeline_bind_groups.scan_bind_group, &[]);
-                    pass.set_pipeline(scan_pipeline);
-                    pass.dispatch_workgroups(grid_w, grid_h, 1);
-
-                    // Place light
-                    pass.set_bind_group(0, &pipeline_bind_groups.light_sources_bind_group, &[]);
-                    pass.set_pipeline(place_light_pipeline);
-                    pass.dispatch_workgroups(1, 1, 1);
-                    
-                    // First blur pass
-                    pass.set_bind_group(0, &pipeline_bind_groups.top_to_bottom_bind_group, &[]);
-                    pass.set_pipeline(top_to_bottom_pipeline);
-                    pass.dispatch_workgroups(grid_w, 1, 1);
-
-                    pass.set_bind_group(0, &pipeline_bind_groups.left_to_right_bind_group, &[]);
-                    pass.set_pipeline(left_to_right_pipeline);
-                    pass.dispatch_workgroups(1, grid_h, 1);
-
-                    pass.set_bind_group(0, &pipeline_bind_groups.bottom_to_top_bind_group, &[]);
-                    pass.set_pipeline(bottom_to_top_pipeline);
-                    pass.dispatch_workgroups(grid_w, 1, 1);
-
-                    pass.set_bind_group(0, &pipeline_bind_groups.right_to_left_bind_group, &[]);
-                    pass.set_pipeline(right_to_left_pipeline);
-                    pass.dispatch_workgroups(1, grid_h, 1);
-
-
-                    // Second blur pass
-                    pass.set_bind_group(0, &pipeline_bind_groups.top_to_bottom_bind_group, &[]);
-                    pass.set_pipeline(top_to_bottom_pipeline);
-                    pass.dispatch_workgroups(grid_w, 1, 1);
-
-                    pass.set_bind_group(0, &pipeline_bind_groups.left_to_right_bind_group, &[]);
-                    pass.set_pipeline(left_to_right_pipeline);
-                    pass.dispatch_workgroups(1, grid_h, 1);
-
-                    pass.set_bind_group(0, &pipeline_bind_groups.bottom_to_top_bind_group, &[]);
-                    pass.set_pipeline(bottom_to_top_pipeline);
-                    pass.dispatch_workgroups(grid_w, 1, 1);
-
-                    pass.set_bind_group(0, &pipeline_bind_groups.right_to_left_bind_group, &[]);
-                    pass.set_pipeline(right_to_left_pipeline);
-                    pass.dispatch_workgroups(1, grid_h, 1);
-
-
-                    // Third blur pass
-                    pass.set_bind_group(0, &pipeline_bind_groups.top_to_bottom_bind_group, &[]);
-                    pass.set_pipeline(top_to_bottom_pipeline);
-                    pass.dispatch_workgroups(grid_w, 1, 1);
-
-                    pass.set_bind_group(0, &pipeline_bind_groups.left_to_right_bind_group, &[]);
-                    pass.set_pipeline(left_to_right_pipeline);
-                    pass.dispatch_workgroups(1, grid_h, 1);
-
-                    pass.set_bind_group(0, &pipeline_bind_groups.bottom_to_top_bind_group, &[]);
-                    pass.set_pipeline(bottom_to_top_pipeline);
-                    pass.dispatch_workgroups(grid_w, 1, 1);
-
-                    pass.set_bind_group(0, &pipeline_bind_groups.right_to_left_bind_group, &[]);
-                    pass.set_pipeline(right_to_left_pipeline);
-                    pass.dispatch_workgroups(1, grid_h, 1);
-                }
-            }
-        }
-        Ok(())
-    }
+    commands.remove_resource::<PostProcessPipeline>();
+    commands.remove_resource::<PostProcessPipelineBindGroups>();
 }

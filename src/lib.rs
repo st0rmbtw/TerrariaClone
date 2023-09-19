@@ -6,8 +6,8 @@ use std::{error::Error, time::Duration};
 
 use bevy::{
     DefaultPlugins,
-    log::{Level, LogPlugin},
-    prelude::{default, App, AssetPlugin, ClearColor, Color, FixedTime, ImagePlugin, Msaa, PluginGroup},
+    log::LogPlugin,
+    prelude::{default, App, AssetPlugin, ClearColor, Color, FixedTime, ImagePlugin, PluginGroup},
     window::{Cursor, MonitorSelection, Window, WindowPlugin, WindowPosition, WindowResolution},
     asset::ChangeWatcher
 };
@@ -47,7 +47,6 @@ pub fn create_app() -> Result<App, Box<dyn Error>> {
     let fullscreen = *app.world.resource::<FullScreen>();
 
     app
-        .insert_resource(Msaa::Off)
         .add_plugins(DefaultPlugins
             .set(WindowPlugin {
                 primary_window: Some(Window { 

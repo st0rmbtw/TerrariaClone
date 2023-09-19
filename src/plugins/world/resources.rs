@@ -1,12 +1,9 @@
-use bevy::{utils::HashSet, prelude::{Resource, Query, Entity, UVec2, Commands, DespawnRecursiveExt, BuildChildren, Deref, Handle, Mesh}};
+use bevy::{utils::HashSet, prelude::{Resource, Query, Entity, UVec2, Commands, DespawnRecursiveExt, BuildChildren}};
 use bevy_ecs_tilemap::tiles::{TilePos, TileStorage, TileTextureIndex};
 
 use crate::world::{chunk::{ChunkPos, Chunk, ChunkType}, block::{BlockType, Block}};
 
 use super::{systems::{spawn_block, spawn_cracks}, utils::{get_chunk_pos, get_chunk_tile_pos}};
-
-#[derive(Resource, Deref)]
-pub(crate) struct LightMapChunkMesh(pub(crate) Handle<Mesh>);
 
 #[derive(Resource, Clone, Copy, Default)]
 pub(crate) struct WorldUndergroundLevel(pub(crate) u32);

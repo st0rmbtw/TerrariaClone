@@ -1,4 +1,4 @@
-use bevy::{prelude::*, math::Vec3Swizzles, sprite::Anchor};
+use bevy::{prelude::*, sprite::Anchor};
 
 use crate::{
     plugins::{
@@ -86,18 +86,18 @@ pub(super) fn detect_collisions(
     world_data: Res<WorldData>,
     mut collisions: ResMut<Collisions>,
     mut player_data: ResMut<PlayerData>,
-    mut query_player: Query<(&mut Transform, &mut Velocity, &FaceDirection, &PlayerRect), With<Player>>,
+    mut query_player: Query<(&mut PlayerPosition, &mut Velocity, &FaceDirection, &PlayerRect), With<Player>>,
     #[cfg(feature = "debug")]
     mut gizmos: Gizmos,
     #[cfg(feature = "debug")]
     debug_config: Res<DebugConfiguration>,
 ) {
     let Ok((
-        mut transform, mut velocity, face_direction, PlayerRect(player_rect)
+        mut player_pos, mut velocity, face_direction, PlayerRect(player_rect)
     )) = query_player.get_single_mut() else { return; };
 
-    let position = transform.translation.xy();
-    let next_position = transform.translation.xy() + velocity.0;
+    let position = player_pos.0;
+    let next_position = player_pos.0 + velocity.0;
 
     let next_player_rect = FRect::new_center(next_position.x, next_position.y, PLAYER_WIDTH, PLAYER_HEIGHT);
 
@@ -156,7 +156,7 @@ pub(super) fn detect_collisions(
 
                             // If the player's left side is more to the left than the tile's right side then move the player right.
                             if next_player_rect.left <= tile_rect.right {
-                                transform.translation.x = tile_rect.right + player_rect.width / 2.;
+                                player_pos.x = tile_rect.right + player_rect.width / 2.;
                             }
 
                             #[cfg(feature = "debug")]
@@ -169,7 +169,7 @@ pub(super) fn detect_collisions(
 
                             // If the player's right side is more to the right than the tile's left side then move the player left.
                             if next_player_rect.right >= tile_rect.left {
-                                transform.translation.x = tile_rect.left - player_rect.width / 2.;
+                                player_pos.x = tile_rect.left - player_rect.width / 2.;
                             }
 
                             #[cfg(feature = "debug")]
@@ -199,7 +199,7 @@ pub(super) fn detect_collisions(
                                 
                                 // If the player's bottom side is lower than the tile's top side then move the player up
                                 if player_rect.bottom() >= tile_rect.top() {
-                                    transform.translation.y = tile_rect.top() + player_rect.height / 2.;
+                                    player_pos.y = tile_rect.top() + player_rect.height / 2.;
                                     velocity.y = 0.;
                                 }
 
@@ -223,11 +223,11 @@ pub(super) fn detect_collisions(
 }
 
 #[allow(non_upper_case_globals)]
-pub(super) fn move_player(
+pub(super) fn update_player_position(
     world_data: Res<WorldData>,
-    mut query_player: Query<(&mut Transform, &Velocity), With<Player>>,
+    mut query_player: Query<(&mut PlayerPosition, &Velocity), With<Player>>,
 ) {
-    let Ok((mut transform, velocity)) = query_player.get_single_mut() else { return; };
+    let Ok((mut player_position, velocity)) = query_player.get_single_mut() else { return; };
 
     const min_x: f32 = PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
     let min_y: f32 = -(world_data.size.height as f32) * TILE_SIZE + PLAYER_HALF_HEIGHT;
@@ -235,19 +235,26 @@ pub(super) fn move_player(
     let max_x = world_data.size.width as f32 * TILE_SIZE - PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
     const max_y: f32 = -PLAYER_HALF_HEIGHT;
 
-    let new_position = (transform.translation.xy() + velocity.0).clamp(vec2(min_x, min_y), vec2(max_x, max_y));
+    let new_position = (player_position.0 + velocity.0).clamp(vec2(min_x, min_y), vec2(max_x, max_y));
 
-    transform.set_if_neq(transform.with_translation(Vec3::new(new_position.x, new_position.y, transform.translation.z)));
+    player_position.0 = new_position;
+}
+
+#[allow(non_upper_case_globals)]
+pub(super) fn move_player(
+    mut query_player: Query<(&mut Transform, &PlayerPosition), With<Player>>,
+) {
+    let Ok((mut transform, player_position)) = query_player.get_single_mut() else { return; };
+
+    transform.set_if_neq(transform.with_translation(Vec3::new(player_position.x, player_position.y, transform.translation.z)));
 }
 
 pub(super) fn update_player_rect(
-    mut query_player: Query<(&Transform, &mut PlayerRect), With<Player>>,
+    mut query_player: Query<(&PlayerPosition, &mut PlayerRect), With<Player>>,
 ) {
-    let Ok((transform, mut player_rect)) = query_player.get_single_mut() else { return; };
+    let Ok((player_position, mut player_rect)) = query_player.get_single_mut() else { return; };
 
-    let Vec2 { x, y } = transform.translation.xy();
-
-    *player_rect = PlayerRect(FRect::new_center(x, y, PLAYER_WIDTH, PLAYER_HEIGHT));
+    *player_rect = PlayerRect(FRect::new_center(player_position.x, player_position.y, PLAYER_WIDTH, PLAYER_HEIGHT));
 }
 
 pub(super) fn update_movement_state(
@@ -392,11 +399,11 @@ use crate::plugins::{cursor::position::CursorPosition, camera::components::MainC
 #[cfg(feature = "debug")]
 pub(super) fn teleport_player(
     cursor_position: Res<CursorPosition<MainCamera>>,
-    mut query_player: Query<(&mut Transform, &mut Velocity), With<Player>>,
+    mut query_player: Query<(&mut PlayerPosition, &mut Velocity), With<Player>>,
 ) {
-    if let Ok((mut transform, mut velocity)) = query_player.get_single_mut() {
-        transform.translation.x = cursor_position.world.x;
-        transform.translation.y = cursor_position.world.y;
+    if let Ok((mut player_position, mut velocity)) = query_player.get_single_mut() {
+        player_position.x = cursor_position.world.x;
+        player_position.y = cursor_position.world.y;
         velocity.0 = Vec2::ZERO;
     }
 }

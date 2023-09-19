@@ -3,7 +3,7 @@ use std::time::Duration;
 use autodefault::autodefault;
 use bevy::{prelude::{Name, NodeBundle, TextBundle, ChildBuilder, Component, default, Color, ImageBundle, BuildChildren, Commands, Entity, Bundle}, ui::{Style, JustifyContent, AlignItems, FocusPolicy, PositionType, Interaction, Val, FlexDirection, UiRect}, text::{Text, TextStyle, TextSection, TextAlignment}};
 
-use crate::{animation::{AnimatorState, Animator, Tween, EaseMethod, RepeatStrategy}, plugins::{slider::{SliderHandleBundle, SliderBundle, Slider}, assets::UiAssets}, common::lens::TextFontSizeLens, language::LocalizedText};
+use crate::{animation::{AnimatorState, Animator, Tween, EaseMethod, RepeatStrategy}, plugins::{slider::{SliderHandleBundle, SliderBundle, Slider}, assets::UiAssets, ui::components::PreviousInteraction}, common::lens::TextFontSizeLens, language::LocalizedText};
 
 use super::{MENU_BUTTON_FONT_SIZE, components::Menu};
 
@@ -50,6 +50,7 @@ pub(crate) fn menu_button(
         .with_children(|b| {
             b.spawn((
                 Interaction::default(),
+                PreviousInteraction::default(),
                 Animator::new(text_tween(text_style.font_size)).with_state(AnimatorState::Paused),
                 bundle,
                 TextBundle {

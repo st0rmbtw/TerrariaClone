@@ -4,7 +4,7 @@ use crate::{
 };
 use bevy::{
     prelude::{default, App, Commands, Plugin, Res, Vec2, Query, Camera, With, OnExit, IntoSystemConfigs, Name, Assets, Image, Camera2dBundle, UiCameraConfig, PostUpdate, Transform, Without, Component, OnEnter, Camera2d, Color},
-    sprite::Anchor, render::view::RenderLayers, core_pipeline::clear_color::ClearColorConfig,
+    sprite::Anchor, render::view::RenderLayers, core_pipeline::{clear_color::ClearColorConfig, tonemapping::Tonemapping},
 };
 
 use super::{assets::BackgroundAssets, camera::{components::{BackgroundCamera, MoveCamera, ZoomableCamera, InGameBackgroundCamera}, CameraSet}, world::constants::TILE_SIZE, InGameSystemSet, DespawnOnGameExit};
@@ -83,8 +83,10 @@ fn spawn_background_camera(
         Camera2dBundle {
             camera: Camera {
                 order: -1,
+                msaa_writeback: false,
                 ..default()
             },
+            tonemapping: Tonemapping::None,
             ..default()
         },
     ));
@@ -136,7 +138,6 @@ fn setup_main_menu_background(
                 speed: LayerSpeed::Horizontal(0.9),
                 image: backgrounds.background_7.clone_weak(),
                 z: BACKGROUND_LAYER + 0.2,
-                transition_factor: 1.,
                 position: Vec2::NEG_Y * pos,
                 scale: 1.5,
                 ..default()
@@ -145,7 +146,6 @@ fn setup_main_menu_background(
                 speed: LayerSpeed::Horizontal(0.8),
                 image: backgrounds.background_90.clone_weak(),
                 z: BACKGROUND_LAYER + 0.3,
-                transition_factor: 1.,
                 position: Vec2::NEG_Y * pos - 200.,
                 scale: 1.5,
                 ..default()
@@ -154,7 +154,6 @@ fn setup_main_menu_background(
                 speed: LayerSpeed::Horizontal(0.7),
                 image: backgrounds.background_91.clone_weak(),
                 z: BACKGROUND_LAYER + 0.4,
-                transition_factor: 1.,
                 position: Vec2::NEG_Y * pos - 300.,
                 scale: 1.5,
                 ..default()
@@ -163,7 +162,6 @@ fn setup_main_menu_background(
                 speed: LayerSpeed::Horizontal(0.6),
                 image: backgrounds.background_92.clone_weak(),
                 z: BACKGROUND_LAYER + 0.5,
-                transition_factor: 1.,
                 position: Vec2::NEG_Y * pos - 400.,
                 scale: 1.5,
                 ..default()
@@ -221,7 +219,6 @@ fn spawn_ingame_background(
     let layer_options = LayerData {
         speed: LayerSpeed::Horizontal(0.8),
         z: BACKGROUND_LAYER + 0.4,
-        transition_factor: 1.2,
         scale: 1.,
         ..default()
     };
@@ -267,7 +264,6 @@ fn spawn_forest_background(
                 speed: LayerSpeed::Bidirectional(0.8, 0.6),
                 image: backgrounds.background_55.clone_weak(),
                 z: BACKGROUND_LAYER + 0.3,
-                transition_factor: 1.,
                 scale: 2.5,
                 position: (world_data.layer.underground - world_data.layer.dirt_height / 2) as f32 * TILE_SIZE * Vec2::NEG_Y,
                 anchor: Anchor::Center,
@@ -277,7 +273,6 @@ fn spawn_forest_background(
                 speed: LayerSpeed::Bidirectional(0.4, 0.5),
                 image: backgrounds.background_114.clone_weak(),
                 z: BACKGROUND_LAYER + 0.2,
-                transition_factor: 1.,
                 scale: 2.,
                 position: (world_data.layer.underground - world_data.layer.dirt_height / 2) as f32 * TILE_SIZE * Vec2::NEG_Y,
                 anchor: Anchor::Center,
@@ -287,7 +282,6 @@ fn spawn_forest_background(
                 speed: LayerSpeed::Bidirectional(0.2, 0.4),
                 image: backgrounds.background_93.clone_weak(),
                 z: BACKGROUND_LAYER + 0.1,
-                transition_factor: 1.,
                 scale: 2.,
                 position: (world_data.layer.underground - world_data.layer.dirt_height) as f32 * TILE_SIZE * Vec2::NEG_Y,
                 anchor: Anchor::Center,

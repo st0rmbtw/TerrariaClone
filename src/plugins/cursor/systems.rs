@@ -153,7 +153,6 @@ pub(super) fn update_cursor_position(
     cursor_pos: Res<CursorPosition<MainCamera>>,
     mut query_cursor: Query<&mut Style, With<CursorContainer>>,
 ) {
-
     if let Ok(mut style) = query_cursor.get_single_mut() {
         style.left = Val::Px(cursor_pos.screen.x);
         style.top = Val::Px(cursor_pos.screen.y);

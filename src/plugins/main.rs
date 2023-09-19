@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use bevy::{prelude::{Plugin, App, OnExit, PreUpdate, Update, PostUpdate, FixedUpdate, in_state, GizmoConfig, default, IntoSystemSetConfig, UVec2}, winit::{WinitSettings, UpdateMode}};
+use bevy::{prelude::{Plugin, App, OnExit, PreUpdate, Update, PostUpdate, FixedUpdate, in_state, GizmoConfig, default, IntoSystemSetConfig, UVec2, Msaa}, winit::{WinitSettings, UpdateMode}};
 use bevy_ecs_tilemap::prelude::TilemapRenderSettings;
 use bevy_hanabi::HanabiPlugin;
 
@@ -59,6 +59,8 @@ impl Plugin for MainPlugin {
             },
             ..default()
         });
+
+        app.insert_resource(Msaa::Off);
 
         app.configure_set(PreUpdate, InGameSystemSet::PreUpdate.run_if(in_state(GameState::InGame)));
         app.configure_set(Update, InGameSystemSet::Update.run_if(in_state(GameState::InGame)));

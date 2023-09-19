@@ -4,9 +4,9 @@ use bevy::{
     prelude::{
         EventReader, ResMut, Query, Commands, EventWriter, Entity, BuildChildren, Transform, 
         default, SpatialBundle, DespawnRecursiveExt, OrthographicProjection, Changed, 
-        GlobalTransform, With, Res, UVec2, NextState, Vec2, Name, Assets, Mesh, shape::Quad
+        GlobalTransform, With, Res, UVec2, NextState, Vec2, Name,
     }, 
-    math::Vec3Swizzles, sprite::{MaterialMesh2dBundle, Mesh2dHandle}, render::view::NoFrustumCulling
+    math::Vec3Swizzles
 };
 use bevy_ecs_tilemap::{
     tiles::{
@@ -20,34 +20,27 @@ use bevy_ecs_tilemap::{
 };
 use rand::{thread_rng, Rng};
 
-use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::components::MainCamera, player::{Player, PlayerRect}, audio::{PlaySoundEvent, SoundType}, DespawnOnGameExit}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect, TextureAtlasPos, math::map_range_i32}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}, lighting::{compositing::LightMapMaterial, UpdateTilesTextureEvent, LightMapTexture}, WALL_LAYER, TILES_LAYER, PLAYER_LAYER};
+use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::components::MainCamera, player::{Player, PlayerRect}, audio::{PlaySoundEvent, SoundType}, DespawnOnGameExit}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect, TextureAtlasPos, math::map_range_i32}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}, lighting::UpdateTilesTextureEvent, WALL_LAYER, TILES_LAYER};
 
 use super::{
     utils::{get_chunk_pos, get_camera_fov, get_chunk_tile_pos, get_chunk_range_by_camera_fov}, 
     events::{UpdateNeighborsEvent, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent, UpdateBlockEvent, SeedEvent, UpdateCracksEvent},
-    resources::{ChunkManager, LightMapChunkMesh, WorldUndergroundLevel}, 
+    resources::{ChunkManager, WorldUndergroundLevel}, 
     constants::{CHUNK_SIZE_U, WALL_SIZE, CHUNKMAP_SIZE, TREE_SIZE, TREE_BRANCHES_SIZE, TREE_TOPS_SIZE, CHUNK_SIZE, TILE_SIZE}, WORLD_RENDER_LAYER
 };
 
 #[cfg(feature = "debug")]
 use crate::plugins::debug::DebugConfiguration;
 
-pub(super) fn setup(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>
-) {
+pub(super) fn setup(mut commands: Commands) {
     commands.init_resource::<ChunkManager>();
-
-    let handle = meshes.add(Quad::new(Vec2::splat(CHUNK_SIZE * TILE_SIZE)).into());
-
-    commands.insert_resource(LightMapChunkMesh(handle));
 }
 
 pub(super) fn spawn_terrain(mut commands: Commands) {
-    let current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+    let _current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
 
-    let seed = current_time.as_millis() as u32;
-    // let seed = 2225406523;
+    // let seed = current_time.as_millis() as u32;
+    let seed = 2225406523;
 
     println!("The seed of the world is {}", seed);
 
@@ -118,10 +111,7 @@ pub(super) fn spawn_chunks(
     block_assets: Res<BlockAssets>,
     wall_assets: Res<WallAssets>,
     world_data: Res<WorldData>,
-    light_map: Res<LightMapTexture>,
-    light_map_mesh: Res<LightMapChunkMesh>,
     mut chunk_manager: ResMut<ChunkManager>,
-    mut tile_materials: ResMut<Assets<LightMapMaterial>>,
     query_camera: Query<
         (&GlobalTransform, &OrthographicProjection),
         (With<MainCamera>, Changed<GlobalTransform>),
@@ -135,7 +125,7 @@ pub(super) fn spawn_chunks(
             for x in chunk_range.min.x..=chunk_range.max.x {
                 let chunk_pos = UVec2::new(x, y);
                 if chunk_manager.spawned_chunks.insert(chunk_pos) {
-                    spawn_chunk(&mut commands, &block_assets, &wall_assets, &world_data, &mut tile_materials, &light_map, &light_map_mesh, chunk_pos);
+                    spawn_chunk(&mut commands, &block_assets, &wall_assets, &world_data, chunk_pos);
                 }
             }
         }
@@ -170,9 +160,6 @@ pub(super) fn spawn_chunk(
     block_assets: &BlockAssets,
     wall_assets: &WallAssets,
     world_data: &WorldData,
-    light_map_materials: &mut Assets<LightMapMaterial>,
-    light_map_texture: &LightMapTexture,
-    light_map_mesh: &LightMapChunkMesh,
     chunk_pos: ChunkPos,
 ) { 
     let chunk = commands.spawn((
@@ -269,26 +256,6 @@ pub(super) fn spawn_chunk(
             }
         }
     }
-
-    let lightmap_quad = commands.spawn((
-        MaterialMesh2dBundle {
-            mesh: Mesh2dHandle(light_map_mesh.clone_weak()),
-            material: light_map_materials.add(LightMapMaterial {
-                light_map_image: light_map_texture.clone_weak(),
-                chunk_pos,
-                world_size: Vec2::new(world_data.size.width as f32, world_data.size.height as f32)
-            }),
-            transform: Transform::from_xyz(
-                CHUNK_SIZE / 2. * TILE_SIZE - TILE_SIZE / 2.,
-                CHUNK_SIZE / 2. * TILE_SIZE - TILE_SIZE / 2.,
-                PLAYER_LAYER + 1.
-            ),
-            ..default()
-        },
-        NoFrustumCulling,
-        WORLD_RENDER_LAYER
-    ))
-    .id();
 
     commands
         .entity(tilemap_entity)
@@ -428,7 +395,7 @@ pub(super) fn spawn_chunk(
     commands
         .entity(chunk)
         .push_children(
-            &[lightmap_quad, tilemap_entity, wallmap_entity, treemap_entity, tree_branches_map_entity, tree_tops_map_entity, tile_crack_map_entity]
+            &[tilemap_entity, wallmap_entity, treemap_entity, tree_branches_map_entity, tree_tops_map_entity, tile_crack_map_entity]
         );
 }
 

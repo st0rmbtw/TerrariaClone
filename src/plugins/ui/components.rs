@@ -1,4 +1,4 @@
-use bevy::prelude::Component;
+use bevy::{prelude::{Component, Deref, DerefMut}, ui::Interaction};
 
 #[derive(Component)]
 pub(super) struct MainUiContainer;
@@ -23,3 +23,6 @@ pub(super) struct ZoomSliderOutput;
 
 #[derive(Component)]
 pub(super) struct ToggleTileGridButton;
+
+#[derive(Component, Default, Deref, DerefMut, Copy, Clone, Eq, PartialEq, Debug)]
+pub(crate) struct PreviousInteraction(pub(crate) Interaction);

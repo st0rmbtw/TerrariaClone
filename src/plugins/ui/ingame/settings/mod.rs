@@ -2,9 +2,9 @@ pub(crate) mod systems;
 mod components;
 mod menus;
 
-use bevy::{prelude::{Plugin, App, Update, IntoSystemConfigs, OnEnter, KeyCode, Condition, Commands, OnExit, resource_exists_and_equals, not, Component, Resource, apply_deferred, Color}, input::common_conditions::input_just_pressed};
+use bevy::{prelude::{Plugin, App, Update, IntoSystemConfigs, OnEnter, KeyCode, Condition, Commands, OnExit, resource_exists_and_equals, not, Component, Resource, apply_deferred, Color, resource_exists_and_changed}, input::common_conditions::input_just_pressed};
 
-use crate::{common::{systems::{set_visibility, set_state, set_display, despawn_with, set_resource, animate_button_color, toggle_resource}, state::GameState, conditions::on_click}, plugins::{InGameSystemSet, ui::{InventoryUiVisibility, SettingsMenuVisibility, systems::{play_sound_on_toggle, update_toggle_tile_grid_button_text, play_sound_on_hover}, menu::MENU_BUTTON_COLOR, components::ToggleTileGridButton}, config::ShowTileGrid}};
+use crate::{common::{systems::{set_visibility, set_state, set_display, despawn_with, set_resource, animate_button_color, toggle_resource, play_sound}, state::GameState, conditions::on_click}, plugins::{InGameSystemSet, ui::{InventoryUiVisibility, SettingsMenuVisibility, systems::{play_sound_on_toggle, update_toggle_tile_grid_button_text, play_sound_on_hover}, menu::MENU_BUTTON_COLOR, components::ToggleTileGridButton}, config::ShowTileGrid, audio::SoundType}};
 
 use self::{components::{SettingsButton, buttons::SaveAndExitButton, buttons::{CloseMenuButton, GeneralButton, InterfaceButton}, TabMenu, TabButton, TabMenuButton}, systems::{spawn_general_menu, update_tab_buttons, bind_zoom_slider_to_output, update_zoom}};
 
@@ -28,21 +28,25 @@ impl Plugin for InGameSettingsUiPlugin {
         app.add_systems(
             Update,
             (
+                play_sound(SoundType::MenuOpen).run_if(resource_exists_and_changed::<SelectedTab>()),
                 systems::animate_button_scale,
                 set_visibility::<components::SettingsButtonContainer, InventoryUiVisibility>,
                 set_display::<components::MenuContainer, SettingsMenuVisibility>,
 
                 (
                     spawn_general_menu,
-                    toggle_resource::<SettingsMenuVisibility>
+                    (
+                        toggle_resource::<SettingsMenuVisibility>,
+                        play_sound_on_toggle::<SettingsMenuVisibility>
+                    )
+                    .chain()
                 )
-                .chain()
                 .run_if(on_click::<SettingsButton>),
 
                 (
                     (
                         set_resource(SettingsMenuVisibility(false)),
-                        play_sound_on_toggle::<SettingsMenuVisibility>
+                        play_sound(SoundType::MenuClose),
                     )
                     .run_if(input_just_pressed(KeyCode::Escape)),
 
@@ -64,20 +68,24 @@ impl Plugin for InGameSettingsUiPlugin {
             (
                 (
                     set_resource(SelectedTab::General),
-                    despawn_with::<TabMenu>,
-                    apply_deferred,
-                    systems::spawn_general_menu
+                    (
+                        despawn_with::<TabMenu>,
+                        apply_deferred,
+                        systems::spawn_general_menu
+                    )
+                    .chain()
                 )
-                .chain()
                 .run_if(not(resource_exists_and_equals(SelectedTab::General)).and_then(on_click::<GeneralButton>)),
 
                 (
                     set_resource(SelectedTab::Interface),
-                    despawn_with::<TabMenu>,
-                    apply_deferred,
-                    systems::spawn_interface_menu
+                    (
+                        despawn_with::<TabMenu>,
+                        apply_deferred,
+                        systems::spawn_interface_menu
+                    )
+                    .chain()
                 )
-                .chain()
                 .run_if(not(resource_exists_and_equals(SelectedTab::Interface)).and_then(on_click::<InterfaceButton>)),
 
                 (

@@ -1,14 +1,21 @@
-use bevy::{prelude::UVec2, render::render_resource::ShaderType};
+use bevy::{prelude::{UVec2, Vec2, Mat4, Vec3, Component}, render::{render_resource::ShaderType, extract_component::ExtractComponent}};
 
 #[derive(Default, Clone, ShaderType)]
-pub(super) struct GpuLightSource {
-    pub(super) pos: UVec2,
-    pub(super) size: UVec2,
+pub(crate) struct GpuLightSource {
+    pub(crate) pos: UVec2,
+    pub(crate) size: UVec2,
+    pub(crate) color: Vec3,
 }
 
 #[derive(Default, Clone, ShaderType)]
-pub(super) struct GpuLightSourceBuffer {
-    pub count: u32,
+pub(crate) struct GpuLightSourceBuffer {
     #[size(runtime)]
-    pub data: Vec<GpuLightSource>,
+    pub(crate) data: Vec<GpuLightSource>,
+}
+
+#[derive(Default, Clone, ShaderType, Component, ExtractComponent)]
+pub(crate) struct GpuCameraParams {
+    pub(crate) screen_size: Vec2,
+    pub(crate) screen_size_inv: Vec2,
+    pub(crate) inverse_view_proj: Mat4,
 }

@@ -2,7 +2,7 @@
 var tiles_texture: texture_storage_2d<r8uint, read>;
 
 @group(0) @binding(1)
-var light_texture: texture_storage_2d<r8unorm, write>;
+var light_texture: texture_storage_2d<rgba8unorm, write>;
 
 @group(0) @binding(2)
 var<uniform> min: vec2<u32>;

@@ -2,9 +2,9 @@ use bevy::{
     prelude::{
         Commands, Camera2dBundle, OrthographicProjection, Transform, Res, KeyCode, Query, 
         With, Input,
-        Without, Camera2d, Name, Mut, Color, UiCameraConfig, default, ResMut,
+        Without, Camera2d, Name, Mut, Color, UiCameraConfig, default, ResMut, Camera,
     }, 
-    time::Time, core_pipeline::clear_color::ClearColorConfig
+    time::Time, core_pipeline::{clear_color::ClearColorConfig, tonemapping::Tonemapping}
 };
 
 use crate::{plugins::{world::{constants::TILE_SIZE, WORLD_RENDER_LAYER}, DespawnOnGameExit}, common::{helpers::tile_pos_to_world_coords, math::map_range_f32}, world::WorldData};
@@ -33,10 +33,15 @@ pub(super) fn setup_main_camera(
                     scale: zoom.get(),
                     ..default()
                 },
+                camera: Camera {
+                    msaa_writeback: false,
+                    ..default()
+                },
                 transform: Transform::from_xyz(player_spawn_point.x, player_spawn_point.y, 500.),
                 camera_2d: Camera2d {
                     clear_color: ClearColorConfig::Custom(Color::NONE)
                 },
+                tonemapping: Tonemapping::None,
                 ..default()
             }
         ));
@@ -61,10 +66,15 @@ pub(super) fn setup_world_camera(
                 scale: zoom.get(),
                 ..default()
             },
+            camera: Camera {
+                msaa_writeback: false,
+                ..default()
+            },
             transform: Transform::from_xyz(player_spawn_point.x, player_spawn_point.y, 500.),
             camera_2d: Camera2d {
                 clear_color: ClearColorConfig::Custom(Color::NONE)
             },
+            tonemapping: Tonemapping::None,
             ..default()
         },
         WORLD_RENDER_LAYER

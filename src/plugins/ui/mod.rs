@@ -1,24 +1,22 @@
-mod components;
 mod resources;
 mod systems;
-
+pub(crate) mod components;
 pub(crate) mod ingame;
 pub(crate) mod menu;
-
 pub(crate) use resources::*;
 
-use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Color, TextBundle, Condition, Button, resource_exists_and_equals, not, Component, OnEnter}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, PositionType}, text::{TextAlignment, Text, TextStyle, TextSection}};
-use crate::common::{state::GameState, systems::{set_visibility, despawn_with, toggle_resource, animate_button_scale}};
+use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Color, TextBundle, Condition, Button, resource_exists_and_equals, not, Component, OnEnter, PostUpdate}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, PositionType}, text::{TextAlignment, Text, TextStyle, TextSection}};
+use crate::common::{state::GameState, systems::{set_visibility, despawn_with, toggle_resource, animate_button_scale, play_sound}, conditions::on_click};
 
 use self::{
     components::{MainUiContainer, MusicVolumeSliderOutput, SoundVolumeSliderOutput, MusicVolumeSlider, SoundVolumeSlider},
     ingame::{inventory::{systems::spawn_inventory_ui, InventoryUiPlugin}, settings::{systems::spawn_ingame_settings_button, InGameSettingsUiPlugin}},
-    menu::MenuPlugin, systems::play_sound_on_hover,
+    menu::MenuPlugin, systems::{play_sound_on_hover, update_previous_interaction},
 };
 
 use crate::plugins::assets::{FontAssets, UiAssets};
 
-use super::{InGameSystemSet, DespawnOnGameExit, slider::Slider};
+use super::{InGameSystemSet, DespawnOnGameExit, slider::Slider, audio::SoundType};
 
 #[derive(Component)]
 pub(crate) struct FpsText;
@@ -41,6 +39,7 @@ impl Plugin for UiPlugin {
             Update,
             (
                 play_sound_on_hover::<Button>,
+                play_sound(SoundType::MenuTick).run_if(on_click::<Button>),
                 play_sound_on_hover::<Slider>,
             )
         );
@@ -74,6 +73,8 @@ impl Plugin for UiPlugin {
                 systems::update_sound_volume,
             )
         );
+
+        app.add_systems(PostUpdate, update_previous_interaction);
     }
 }
 

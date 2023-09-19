@@ -89,7 +89,6 @@ impl Plugin for MenuPlugin {
                     set_state(MenuState::None),
                     set_state(GameState::WorldLoading),
                 )
-                .chain()
                 .run_if(on_click::<SinglePlayerButton>),
 
                 send_event(EnterMenu(MenuState::Settings(SettingsMenuState::Main))).run_if(on_click::<SettingsButton>),

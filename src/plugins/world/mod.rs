@@ -31,7 +31,7 @@ impl Plugin for WorldPlugin {
         app.add_event::<events::UpdateCracksEvent>();
         app.add_event::<events::SeedEvent>();
 
-        app.add_systems(OnEnter(GameState::WorldLoading), (systems::setup, systems::spawn_terrain).chain());
+        app.add_systems(OnEnter(GameState::WorldLoading), (systems::setup, systems::spawn_terrain));
         app.add_systems(OnExit(GameState::InGame), systems::cleanup);
 
         app.add_systems(

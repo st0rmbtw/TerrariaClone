@@ -1,87 +1,46 @@
-use bevy::{prelude::{Image, ResMut, Assets, default, Commands, Res, World, FromWorld, AssetServer, Resource, UVec2}, render::{render_resource::{BindGroup, TextureFormat, FilterMode, Extent3d, TextureDimension, TextureUsages, SamplerDescriptor, BindGroupLayout, CachedComputePipelineId, BindGroupDescriptor, BindGroupEntry, BindingResource, BindGroupLayoutDescriptor, BindGroupLayoutEntry, ShaderStages, BindingType, StorageTextureAccess, TextureViewDimension, PipelineCache, ComputePipelineDescriptor, BufferBindingType, ShaderType, ShaderDefVal}, texture::ImageSampler, renderer::RenderDevice, render_asset::RenderAssets}};
+use bevy::{prelude::{Image, Commands, Res, World, FromWorld, AssetServer, Resource, UVec2}, render::{render_resource::{BindGroup, BindGroupLayout, CachedComputePipelineId, BindGroupDescriptor, BindGroupEntry, BindingResource, BindGroupLayoutDescriptor, BindGroupLayoutEntry, ShaderStages, BindingType, StorageTextureAccess, TextureViewDimension, PipelineCache, ComputePipelineDescriptor, BufferBindingType, ShaderType, ShaderDefVal}, renderer::RenderDevice, render_asset::RenderAssets}};
 
-use crate::{world::WorldData, plugins::{config::LightSmoothness, world::resources::WorldUndergroundLevel}};
+use crate::{plugins::{config::LightSmoothness, world::resources::WorldUndergroundLevel}, lighting::{LightMapTexture, TileTexture, LIGHTMAP_FORMAT, TILES_FORMAT, gpu_types::GpuLightSourceBuffer}};
 
-use super::{pipeline_assets::PipelineAssets, LightMapTexture, TileTexture, gpu_types::GpuLightSourceBuffer};
-
-pub(super) const LIGHTMAP_FORMAT: TextureFormat = TextureFormat::R8Unorm;
-pub(super) const TILES_FORMAT: TextureFormat = TextureFormat::R8Uint;
+use super::assets::LightMapPipelineAssets;
 
 #[derive(Resource)]
-pub(super) struct PipelineBindGroups {
-    pub(super) scan_bind_group: BindGroup,
-    pub(super) light_sources_bind_group: BindGroup,
-    pub(super) left_to_right_bind_group: BindGroup,
-    pub(super) top_to_bottom_bind_group: BindGroup,
-    pub(super) right_to_left_bind_group: BindGroup,
-    pub(super) bottom_to_top_bind_group: BindGroup,
+pub(crate) struct LightMapPipelineBindGroups {
+    pub(crate) scan_bind_group: BindGroup,
+    pub(crate) light_sources_bind_group: BindGroup,
+    pub(crate) left_to_right_bind_group: BindGroup,
+    pub(crate) top_to_bottom_bind_group: BindGroup,
+    pub(crate) right_to_left_bind_group: BindGroup,
+    pub(crate) bottom_to_top_bind_group: BindGroup,
 }
 
 #[derive(Resource)]
-pub(super) struct LightMapPipeline {
-    pub(super) scan_layout: BindGroupLayout,
-    pub(super) scan_pipeline: CachedComputePipelineId,
+pub(crate) struct LightMapPipeline {
+    pub(crate) scan_layout: BindGroupLayout,
+    pub(crate) scan_pipeline: CachedComputePipelineId,
 
-    pub(super) light_sources_layout: BindGroupLayout,
-    pub(super) light_sources_pipeline: CachedComputePipelineId,
+    pub(crate) light_sources_layout: BindGroupLayout,
+    pub(crate) light_sources_pipeline: CachedComputePipelineId,
 
-    pub(super) left_to_right_layout: BindGroupLayout,
-    pub(super) left_to_right_pipeline: CachedComputePipelineId,
+    pub(crate) left_to_right_layout: BindGroupLayout,
+    pub(crate) left_to_right_pipeline: CachedComputePipelineId,
 
-    pub(super) top_to_bottom_layout: BindGroupLayout,
-    pub(super) top_to_bottom_pipeline: CachedComputePipelineId,
+    pub(crate) top_to_bottom_layout: BindGroupLayout,
+    pub(crate) top_to_bottom_pipeline: CachedComputePipelineId,
 
-    pub(super) right_to_left_layout: BindGroupLayout,
-    pub(super) right_to_left_pipeline: CachedComputePipelineId,
+    pub(crate) right_to_left_layout: BindGroupLayout,
+    pub(crate) right_to_left_pipeline: CachedComputePipelineId,
 
-    pub(super) bottom_to_top_layout: BindGroupLayout,
-    pub(super) bottom_to_top_pipeline: CachedComputePipelineId,
+    pub(crate) bottom_to_top_layout: BindGroupLayout,
+    pub(crate) bottom_to_top_pipeline: CachedComputePipelineId,
 }
 
-
-pub(super) fn create_texture_2d(size: (u32, u32), format: TextureFormat) -> Image {
-    let mut image = Image::new_fill(
-        Extent3d {
-            width: size.0,
-            height: size.1,
-            ..Default::default()
-        },
-        TextureDimension::D2,
-        &[0],
-        format,
-    );
-
-    image.texture_descriptor.usage = TextureUsages::COPY_SRC | TextureUsages::TEXTURE_BINDING | TextureUsages::STORAGE_BINDING;
-
-    image.sampler_descriptor = ImageSampler::Descriptor(SamplerDescriptor {
-        mag_filter: FilterMode::Nearest,
-        min_filter: FilterMode::Nearest,
-        ..default()
-    });
-
-    image
-}
-
-pub(super) fn init_light_map_texture(
-    mut commands: Commands,
-    world_data: Res<WorldData>,
-    light_smoothness: Res<LightSmoothness>,
-    mut images: ResMut<Assets<Image>>,
-) {
-    let width = world_data.size.width as u32 * light_smoothness.subdivision();
-    let height = world_data.size.height as u32 * light_smoothness.subdivision();
-
-    let texture = create_texture_2d((width, height), LIGHTMAP_FORMAT);
-
-    commands.insert_resource(LightMapTexture(images.add(texture)));
-}
-
-pub(super) fn queue_bind_groups(
+pub(crate) fn queue_lightmap_bind_groups(
     mut commands: Commands,
     pipeline: Res<LightMapPipeline>,
     gpu_images: Res<RenderAssets<Image>>,
     render_device: Res<RenderDevice>,
-    pipeline_assets: Res<PipelineAssets>,
+    pipeline_assets: Res<LightMapPipelineAssets>,
     tile_texture: Res<TileTexture>,
     lightmap_texture: Res<LightMapTexture>,
 ) {
@@ -223,7 +182,7 @@ pub(super) fn queue_bind_groups(
             ],
         });
 
-        commands.insert_resource(PipelineBindGroups {
+        commands.insert_resource(LightMapPipelineBindGroups {
             scan_bind_group,
             light_sources_bind_group,
             left_to_right_bind_group,
@@ -603,13 +562,4 @@ impl FromWorld for LightMapPipeline {
             bottom_to_top_pipeline,
         }
     }
-}
-
-pub(super) fn init_pipeline(mut commands: Commands) {
-    commands.init_resource::<LightMapPipeline>();
-}
-
-pub(super) fn remove_pipeline(mut commands: Commands) {
-    commands.remove_resource::<LightMapPipeline>();
-    commands.remove_resource::<PipelineBindGroups>();
 }
