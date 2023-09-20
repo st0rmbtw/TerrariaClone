@@ -4,7 +4,7 @@ use crate::{
 };
 use bevy::{
     prelude::{default, App, Commands, Plugin, Res, Vec2, Query, Camera, With, OnExit, IntoSystemConfigs, Name, Assets, Image, Camera2dBundle, UiCameraConfig, PostUpdate, Transform, Without, Component, OnEnter, Camera2d, Color},
-    sprite::Anchor, render::view::RenderLayers, core_pipeline::{clear_color::ClearColorConfig, tonemapping::Tonemapping},
+    sprite::Anchor, render::view::RenderLayers, core_pipeline::{clear_color::ClearColorConfig, tonemapping::Tonemapping}, transform::TransformSystem,
 };
 
 use super::{assets::BackgroundAssets, camera::{components::{BackgroundCamera, MoveCamera, ZoomableCamera, InGameBackgroundCamera}, CameraSet}, world::constants::TILE_SIZE, InGameSystemSet, DespawnOnGameExit};
@@ -39,7 +39,8 @@ impl Plugin for BackgroundPlugin {
             PostUpdate,
             follow_camera_system
                 .in_set(InGameSystemSet::PostUpdate)
-                .after(CameraSet::MoveCamera),
+                .after(CameraSet::MoveCamera)
+                .before(TransformSystem::TransformPropagate),
         );
     }
 }
@@ -106,11 +107,13 @@ fn spawn_ingame_background_camera(
         Camera2dBundle {
             camera: Camera {
                 order: -1,
+                msaa_writeback: false,
                 ..default()
             },
             camera_2d: Camera2d {
                 clear_color: ClearColorConfig::Custom(Color::NONE)
             },
+            tonemapping: Tonemapping::None,
             ..default()
         },
     ));

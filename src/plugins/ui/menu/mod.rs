@@ -14,7 +14,7 @@ use crate::{
     common::{state::{GameState, MenuState, SettingsMenuState}, conditions::on_click, systems::{send_event, despawn_with, set_state, animate_button_scale, animate_button_color}, lens::TransformLens},
     parallax::{parallax_animation_system, ParallaxSet},
     animation::{Animator, RepeatCount, Tween, RepeatStrategy}, 
-    plugins::{assets::{FontAssets, UiAssets}, camera::components::MainCamera, audio::{PlaySoundEvent, SoundType}, MenuSystemSet}, language::keys::UIStringKey
+    plugins::{assets::{FontAssets, UiAssets}, camera::components::MainCamera, audio::{PlaySoundEvent, SoundType, HandleAudioEvents}, MenuSystemSet}, language::keys::UIStringKey
 };
 use self::{settings::SettingsMenuPlugin, celestial_body::CelestialBodyPlugin, builders::{menu, menu_button}, events::{Back, EnterMenu}};
 
@@ -68,6 +68,7 @@ impl Plugin for MenuPlugin {
                 handle_back_event,
                 handle_enter_menu_event,
             )
+            .before(HandleAudioEvents)
             .in_set(MenuSystemSet::PostUpdate)
         );
         

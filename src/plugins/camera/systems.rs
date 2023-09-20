@@ -181,9 +181,9 @@ pub(super) fn free_camera(
 
 pub(super) fn keep_camera_inside_world_bounds(
     world_data: Res<WorldData>,
-    mut query_main_camera: Query<(&mut Transform, &OrthographicProjection), With<MoveCamera>>,
+    mut query_camera: Query<(&mut Transform, &OrthographicProjection), With<MoveCamera>>,
 ) {
-    query_main_camera.for_each_mut(|(mut camera_transform, projection)| {
+    query_camera.for_each_mut(|(mut camera_transform, projection)| {
         let proj_left = projection.area.min.x;
         let proj_right = projection.area.max.x;
         let proj_top = projection.area.max.y;

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use bevy::{prelude::{Plugin, App, OnExit, PreUpdate, Update, PostUpdate, FixedUpdate, in_state, GizmoConfig, default, IntoSystemSetConfig, UVec2, Msaa}, winit::{WinitSettings, UpdateMode}};
+use bevy::{prelude::{Plugin, App, OnExit, PreUpdate, Update, PostUpdate, FixedUpdate, in_state, GizmoConfig, default, IntoSystemSetConfig, UVec2, Msaa}, winit::{WinitSettings, UpdateMode}, ecs::schedule::{ScheduleBuildSettings, LogLevel}};
 use bevy_ecs_tilemap::prelude::TilemapRenderSettings;
 use bevy_hanabi::HanabiPlugin;
 
@@ -70,6 +70,38 @@ impl Plugin for MainPlugin {
         app.configure_set(PreUpdate, MenuSystemSet::PreUpdate.run_if(in_state(GameState::Menu)));
         app.configure_set(Update, MenuSystemSet::Update.run_if(in_state(GameState::Menu)));
         app.configure_set(PostUpdate, MenuSystemSet::PostUpdate.run_if(in_state(GameState::Menu)));
+
+        // #[cfg(debug_assertions)]
+        // app.edit_schedule(PreUpdate, |schedule| {
+        //     schedule.set_build_settings(ScheduleBuildSettings {
+        //         ambiguity_detection: LogLevel::Error,
+        //         report_sets: false,
+        //         ..default()
+        //     });
+        // });
+
+        // app.edit_schedule(Update, |schedule| {
+        //     schedule.set_build_settings(ScheduleBuildSettings {
+        //         ambiguity_detection: LogLevel::Error,
+        //         ..default()
+        //     });
+        // });
+
+        // app.edit_schedule(PostUpdate, |schedule| {
+        //     schedule.set_build_settings(ScheduleBuildSettings {
+        //         ambiguity_detection: LogLevel::Error,
+        //         report_sets: false,
+        //         ..default()
+        //     });
+        // });
+
+        #[cfg(debug_assertions)]
+        app.edit_schedule(FixedUpdate, |schedule| {
+            schedule.set_build_settings(ScheduleBuildSettings {
+                ambiguity_detection: LogLevel::Error,
+                ..default()
+            });
+        });
 
         app.add_systems(OnExit(GameState::InGame), despawn_with::<DespawnOnGameExit>);
     }

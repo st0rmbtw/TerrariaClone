@@ -238,9 +238,9 @@ pub(super) fn update_player_position(
     let max_x = world_data.size.width as f32 * TILE_SIZE - PLAYER_HALF_WIDTH - TILE_SIZE / 2.;
     const max_y: f32 = -PLAYER_HALF_HEIGHT - TILE_SIZE / 2.;
 
-    let new_position = (player_position.0 + velocity.0).clamp(vec2(min_x, min_y), vec2(max_x, max_y));
+    let new_position = (player_position.0 + velocity.0).floor();
 
-    player_position.0 = new_position;
+    player_position.0 = new_position.clamp(vec2(min_x, min_y), vec2(max_x, max_y));
 }
 
 #[allow(non_upper_case_globals)]

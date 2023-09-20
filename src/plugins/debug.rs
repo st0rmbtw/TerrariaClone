@@ -188,6 +188,7 @@ fn block_gui(
         .anchor(Align2::RIGHT_BOTTOM, (-10., -10.))
         .resizable(false)
         .default_size((320., 200.))
+        .default_open(false)
         .show(egui_context, |ui| {
             ScrollArea::vertical().show(ui, |ui| {
                 ui.columns(3, |columns| {

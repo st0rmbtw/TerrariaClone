@@ -11,7 +11,7 @@ pub(crate) use body_sprites::*;
 
 use crate::{common::{state::{GameState, MovementState}, helpers::tile_pos_to_world_coords, systems::{component_equals, despawn_with, set_resource}}, plugins::player::utils::simple_animation, world::WorldData};
 use std::time::Duration;
-use bevy::{prelude::*, time::{Timer, TimerMode}, math::vec2};
+use bevy::{prelude::*, time::{Timer, TimerMode}, math::vec2, input::InputSystem};
 
 use super::{assets::PlayerAssets, world::constants::TILE_SIZE, inventory::UseItemAnimationData, InGameSystemSet};
 
@@ -68,11 +68,16 @@ impl Plugin for PlayerPlugin {
             .in_set(InGameSystemSet::Update)
         );
 
-        app.add_systems(PreUpdate, update_input_axis.in_set(InGameSystemSet::PreUpdate));
+        app.add_systems(
+            PreUpdate,
+            update_input_axis
+                .after(InputSystem)
+                .in_set(InGameSystemSet::PreUpdate)
+        );
 
         let handle_player_movement_systems = (
             horizontal_movement,
-            update_jump,
+            update_jump.ambiguous_with(horizontal_movement),
         );
 
         #[cfg(feature = "debug")]
@@ -82,14 +87,12 @@ impl Plugin for PlayerPlugin {
             FixedUpdate,
             (
                 handle_player_movement_systems,
-                (
-                    gravity,
-                    detect_collisions,
-                    update_player_position,
-                    update_player_rect,
-                )
-                .chain()
+                gravity,
+                detect_collisions,
+                update_player_position,
+                update_player_rect,
             )
+            .chain()
             .in_set(InGameSystemSet::FixedUpdate)
         );
 

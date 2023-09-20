@@ -21,28 +21,29 @@ impl Plugin for PlayerInventoryPlugin {
 
         app.add_systems(
             FixedUpdate,
-            (
-                systems::use_item,
-                systems::stop_swing_animation
-            )
-            .in_set(InGameSystemSet::FixedUpdate)
+            systems::use_item.in_set(InGameSystemSet::FixedUpdate)
         );
 
         app.add_systems(
             FixedUpdate,
             (
-                systems::play_swing_sound,
-                systems::update_swing_cooldown,
-                systems::update_use_item_animation_index,
-                systems::update_sprite_index,
-                systems::set_using_item_position,
-                systems::set_using_item_rotation,
-                systems::set_using_item_visibility(true),
-                systems::reset_swing_animation,
+                (
+                    systems::play_swing_sound,
+                    systems::update_swing_cooldown,
+                    systems::update_use_item_animation_index,
+                    systems::update_sprite_index,
+                    systems::set_using_item_position,
+                    systems::set_using_item_rotation,
+                    systems::set_using_item_visibility(true),
+                    systems::reset_swing_animation,
+                )
+                .chain()
+                .run_if(resource_exists_and_equals(SwingAnimation(true))),
+                
+                systems::stop_swing_animation
             )
             .chain()
             .in_set(InGameSystemSet::FixedUpdate)
-            .run_if(resource_exists_and_equals(SwingAnimation(true)))
         );
 
         app.add_systems(
