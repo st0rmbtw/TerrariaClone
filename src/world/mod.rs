@@ -189,28 +189,23 @@ impl WorldData {
         let tile_pos = world_pos.as_tile_pos();
         let tilemap_size = &self.size.as_tilemap_size();
 
-        let get_block = move |pos: Option<TilePos>| -> Option<&Block> {
-            match pos {
-                Some(pos) => {
-                    if solid {
-                        self.get_solid_block(pos)
-                    } else {
-                        self.get_block(pos)
-                    }
-                },
-                None => self.get_solid_block(world_pos),
+        let get_block = move |pos: TilePos| -> Option<&Block> {
+            if solid {
+                self.get_solid_block(pos)
+            } else {
+                self.get_block(pos)
             }
         };
 
         Neighbors {
-            west:       get_block(tile_pos.square_offset(&SquareDirection::West,      tilemap_size)),
-            east:       get_block(tile_pos.square_offset(&SquareDirection::East,      tilemap_size)),
-            north:      get_block(tile_pos.square_offset(&SquareDirection::South,     tilemap_size)),
-            south:      get_block(tile_pos.square_offset(&SquareDirection::North,     tilemap_size)),
-            north_west: get_block(tile_pos.square_offset(&SquareDirection::SouthWest, tilemap_size)),
-            south_west: get_block(tile_pos.square_offset(&SquareDirection::NorthWest, tilemap_size)),
-            south_east: get_block(tile_pos.square_offset(&SquareDirection::NorthEast, tilemap_size)),
-            north_east: get_block(tile_pos.square_offset(&SquareDirection::SouthEast, tilemap_size)),
+            west:       tile_pos.square_offset(&SquareDirection::West,      tilemap_size).map_or_else(|| self.get_solid_block(world_pos), get_block),
+            east:       tile_pos.square_offset(&SquareDirection::East,      tilemap_size).map_or_else(|| self.get_solid_block(world_pos), get_block),
+            north:      tile_pos.square_offset(&SquareDirection::South,     tilemap_size).and_then(get_block),
+            south:      tile_pos.square_offset(&SquareDirection::North,     tilemap_size).and_then(get_block),
+            north_west: tile_pos.square_offset(&SquareDirection::SouthWest, tilemap_size).and_then(get_block),
+            south_west: tile_pos.square_offset(&SquareDirection::NorthWest, tilemap_size).and_then(get_block),
+            south_east: tile_pos.square_offset(&SquareDirection::NorthEast, tilemap_size).and_then(get_block),
+            north_east: tile_pos.square_offset(&SquareDirection::SouthEast, tilemap_size).and_then(get_block),
         }
     }
 

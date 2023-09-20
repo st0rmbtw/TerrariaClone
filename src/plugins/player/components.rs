@@ -4,10 +4,15 @@ use crate::{common::{state::MovementState, rect::FRect, components::Velocity}, P
 
 use super::{InputAxis, WALKING_ANIMATION_MAX_INDEX, PLAYER_HEIGHT, PLAYER_WIDTH};
 
+#[cfg(feature = "debug")]
+use bevy::prelude::{ReflectComponent, Reflect};
+
 #[derive(Component, Default)]
 pub(crate) struct Player;
 
 #[derive(Default, PartialEq, Eq, Clone, Copy, Component)]
+#[cfg_attr(feature = "debug", derive(Reflect))]
+#[cfg_attr(feature = "debug", reflect(Component))]
 #[cfg_attr(feature = "debug", derive(bevy_inspector_egui::InspectorOptions))]
 pub(crate) enum FaceDirection {
     Left,
@@ -85,6 +90,9 @@ pub(super) struct MovementAnimationBundle {
 pub(crate) struct PlayerRect(pub(crate) FRect);
 
 #[derive(Component, Deref, DerefMut, Default)]
+#[cfg_attr(feature = "debug", derive(bevy_inspector_egui::InspectorOptions))]
+#[cfg_attr(feature = "debug", derive(Reflect))]
+#[cfg_attr(feature = "debug", reflect(Component))]
 pub(crate) struct PlayerPosition(pub(crate) Vec2);
 
 #[derive(Bundle)]

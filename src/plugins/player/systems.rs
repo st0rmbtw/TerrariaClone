@@ -71,15 +71,19 @@ pub(super) fn gravity(
 ) {
     let Ok((mut velocity, rect)) = query_player.get_single_mut() else { return; };
 
+    const DIRECTION: f32 = -1.0;
+
     if !collisions.bottom {
         if velocity.y <= 0. && player_data.fall_start.is_none() {
             player_data.fall_start = Some(rect.bottom());
         }
 
-        velocity.y -= GRAVITY;
+        velocity.y += GRAVITY * DIRECTION;
     }
 
-    velocity.y = velocity.y.max(MAX_FALL_SPEED);
+    if velocity.y.abs() > MAX_FALL_SPEED.abs() {
+        velocity.y = MAX_FALL_SPEED * DIRECTION;
+    }
 }
 
 pub(super) fn detect_collisions(
@@ -104,9 +108,8 @@ pub(super) fn detect_collisions(
     let left = ((position.x - PLAYER_HALF_WIDTH) / TILE_SIZE) - 1.;
     let right = ((position.x + PLAYER_HALF_WIDTH) / TILE_SIZE) + 2.;
     let mut top = ((position.y.abs() - PLAYER_HALF_HEIGHT) / TILE_SIZE) - 1.;
-    let mut bottom = ((position.y.abs() + PLAYER_HALF_HEIGHT) / TILE_SIZE) + 2.;
+    let bottom = ((position.y.abs() + PLAYER_HALF_HEIGHT) / TILE_SIZE) + 2.;
 
-    bottom = bottom.clamp(0., world_data.size.height as f32);
     top = top.max(0.);
 
     let left_u32 = left as u32;
@@ -118,7 +121,7 @@ pub(super) fn detect_collisions(
 
     'outer: for x in left_u32..right_u32 {
         for y in top_u32..bottom_u32 {
-            if world_data.solid_block_exists((x, y)) {
+            if y >= world_data.size.height as u32 || world_data.solid_block_exists((x, y)) {
                 let tile_rect = FRect::new_center(
                     x as f32 * TILE_SIZE,
                     -(y as f32 * TILE_SIZE),
@@ -229,11 +232,11 @@ pub(super) fn update_player_position(
 ) {
     let Ok((mut player_position, velocity)) = query_player.get_single_mut() else { return; };
 
-    const min_x: f32 = PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
-    let min_y: f32 = -(world_data.size.height as f32) * TILE_SIZE + PLAYER_HALF_HEIGHT;
+    const min_x: f32 = PLAYER_HALF_WIDTH - TILE_SIZE / 2.;
+    let min_y: f32 = -(world_data.size.height as f32) * TILE_SIZE;
 
-    let max_x = world_data.size.width as f32 * TILE_SIZE - PLAYER_WIDTH * 0.75 / 2. - TILE_SIZE / 2.;
-    const max_y: f32 = -PLAYER_HALF_HEIGHT;
+    let max_x = world_data.size.width as f32 * TILE_SIZE - PLAYER_HALF_WIDTH - TILE_SIZE / 2.;
+    const max_y: f32 = -PLAYER_HALF_HEIGHT - TILE_SIZE / 2.;
 
     let new_position = (player_position.0 + velocity.0).clamp(vec2(min_x, min_y), vec2(max_x, max_y));
 

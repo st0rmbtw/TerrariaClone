@@ -1,7 +1,11 @@
-use bevy::{prelude::{Component, ReflectComponent}, reflect::Reflect};
+use bevy::prelude::Component;
 
-#[derive(Reflect, Component, Clone, Copy, Default)]
-#[reflect(Component)]
+#[cfg(feature = "debug")]
+use bevy::prelude::{ReflectComponent, Reflect};
+
+#[derive(Component, Clone, Copy, Default)]
+#[cfg_attr(feature = "debug", derive(Reflect))]
+#[cfg_attr(feature = "debug", reflect(Component))]
 pub(crate) struct UseItemAnimationData(pub usize);
 
 #[derive(Component)]

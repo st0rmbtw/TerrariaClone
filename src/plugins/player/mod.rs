@@ -34,7 +34,7 @@ const JUMP_HEIGHT: i32 = 15;
 const JUMP_SPEED: f32 = 5.01;
 
 pub(crate) const MAX_RUN_SPEED: f32 = 3.;
-pub(crate) const MAX_FALL_SPEED: f32 = -10.;
+pub(crate) const MAX_FALL_SPEED: f32 = 10.;
 
 pub(crate) struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
