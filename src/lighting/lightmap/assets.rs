@@ -6,8 +6,8 @@ use crate::{world::WorldData, plugins::{camera::components::WorldCamera, world::
 #[derive(Resource, ExtractResource, Deref, Clone, Copy, Default)]
 pub(crate) struct BlurArea(pub(crate) URect);
 
-#[derive(Resource, Clone, Copy, Deref)]
-pub(super) struct LightSourceCount(pub(super) u32);
+#[derive(Resource, Clone, Copy, Deref, Default)]
+pub(crate) struct LightSourceCount(pub(super) u32);
 
 #[derive(Resource, Default)]
 pub(crate) struct LightMapPipelineAssets {
@@ -145,12 +145,11 @@ pub(crate) fn prepare_lightmap_pipeline_assets(
 }
 
 pub(crate) fn extract_lightmap_pipeline_assets(
-    mut commands: Commands,
-
     world_size: Extract<Option<Res<WorldSize>>>,
     blur_area: Res<BlurArea>,
     light_smoothness: Res<LightSmoothness>,
     
+    mut light_source_count: ResMut<LightSourceCount>,
     mut pipeline_assets: ResMut<LightMapPipelineAssets>,
 
     query_light_source: Extract<Query<(&Transform, &LightSource, &ComputedVisibility)>>,
@@ -185,5 +184,5 @@ pub(crate) fn extract_lightmap_pipeline_assets(
         count += 1;
     }
 
-    commands.insert_resource(LightSourceCount(count));
+    light_source_count.0 = count;
 }

@@ -170,13 +170,14 @@ pub(crate) fn parallax_animation_system(
 fn update_layer_textures_system(
     mut query_texture: Query<
         (
+            &Parent,
             &LayerTextureComponent,
             &GlobalTransform,
             &mut Transform,
         ),
         Without<ParallaxCameraComponent>,
     >,
-    query_layer: Query<(&LayerComponent, &Children)>,
+    query_layer: Query<&LayerComponent>,
     query_camera: Query<&GlobalTransform, With<ParallaxCameraComponent>>,
     query_window: Query<&Window, With<PrimaryWindow>>
 ) {
@@ -187,30 +188,29 @@ fn update_layer_textures_system(
 
     let camera_position = camera_transform.translation();
 
-    query_layer.for_each(|(layer, children)| {
-        for &child in children {
-            let (
-                layer_texture,
-                texture_global_transform,
-                mut texture_transform
-            ) = query_texture.get_mut(child).unwrap();
-            
-            let texture_translation = texture_global_transform.translation();
-            let texture_scale = texture_transform.scale;
+    query_texture.par_iter_mut().for_each_mut(|(
+        parent,
+        layer_texture,
+        texture_global_transform,
+        mut texture_transform
+    )| {
+        let layer = query_layer.get(parent.get()).unwrap();
 
-            // Move right-most texture to left side of layer when camera is approaching left-most end
-            if camera_position.x - texture_translation.x
-                + ((layer_texture.width * texture_scale.x) / 2.0) 
-                < -(window_width * layer.transition_factor)
-            {
-                texture_transform.translation.x -= layer_texture.width * layer.texture_count;
-            // Move left-most texture to right side of layer when camera is approaching right-most end
-            } else if camera_position.x - texture_translation.x
-                - ((layer_texture.width * texture_scale.x) / 2.0)
-                > window_width * layer.transition_factor
-            {
-                texture_transform.translation.x += layer_texture.width * layer.texture_count;
-            }   
+        let texture_translation = texture_global_transform.translation();
+        let texture_scale = texture_transform.scale;
+
+        // Move right-most texture to left side of layer when camera is approaching left-most end
+        if camera_position.x - texture_translation.x
+            + ((layer_texture.width * texture_scale.x) / 2.0) 
+            < -(window_width * layer.transition_factor)
+        {
+            texture_transform.translation.x -= layer_texture.width * layer.texture_count;
+        // Move left-most texture to right side of layer when camera is approaching right-most end
+        } else if camera_position.x - texture_translation.x
+            - ((layer_texture.width * texture_scale.x) / 2.0)
+            > window_width * layer.transition_factor
+        {
+            texture_transform.translation.x += layer_texture.width * layer.texture_count;
         }
     });
 }

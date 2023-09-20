@@ -19,7 +19,7 @@ impl Node for LightMapNode {
             let pipeline_cache = world.resource::<PipelineCache>();
             let pipeline = world.resource::<LightMapPipeline>();
             let blur_area = world.resource::<BlurArea>();
-            let light_source_count = *world.resource::<LightSourceCount>();
+            let light_source_count = **world.resource::<LightSourceCount>();
 
             if blur_area.width() > 0 && blur_area.height() > 0 {
                 if let (
@@ -51,10 +51,12 @@ impl Node for LightMapNode {
                     pass.set_pipeline(scan_pipeline);
                     pass.dispatch_workgroups(grid_w, grid_h, 1);
 
-                    // Light sources
-                    pass.set_bind_group(0, &pipeline_bind_groups.light_sources_bind_group, &[]);
-                    pass.set_pipeline(place_light_pipeline);
-                    pass.dispatch_workgroups(*light_source_count, 1, 1);
+                    if light_source_count > 0 {
+                        // Light sources
+                        pass.set_bind_group(0, &pipeline_bind_groups.light_sources_bind_group, &[]);
+                        pass.set_pipeline(place_light_pipeline);
+                        pass.dispatch_workgroups(light_source_count, 1, 1);
+                    }
                     
                     // First blur pass
                     pass.set_bind_group(0, &pipeline_bind_groups.top_to_bottom_bind_group, &[]);

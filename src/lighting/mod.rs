@@ -10,7 +10,7 @@ use crate::common::state::GameState;
 use crate::plugins::InGameSystemSet;
 
 use self::lightmap::LightMapNode;
-use self::lightmap::assets::{BlurArea, LightMapPipelineAssets};
+use self::lightmap::assets::{BlurArea, LightMapPipelineAssets, LightSourceCount};
 use self::lightmap::pipeline::{LightMapPipeline, LightMapPipelineBindGroups};
 use self::postprocess::PostProcessNode;
 use self::postprocess::assets::PostProcessPipelineAssets;
@@ -159,6 +159,7 @@ impl Plugin for LightingPlugin {
     fn finish(&self, app: &mut App) {
         let render_app = app.sub_app_mut(RenderApp);
         render_app.init_resource::<BlurArea>();
+        render_app.init_resource::<LightSourceCount>();
         render_app.init_resource::<LightMapPipelineAssets>();
         render_app.init_resource::<PostProcessPipelineAssets>();
     }

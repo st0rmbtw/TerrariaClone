@@ -80,8 +80,7 @@ pub(crate) struct MusicVolume(VolumeLevel);
 
 impl MusicVolume {
     pub(crate) fn new(value: f32) -> Self {
-        debug_assert!((0.0..=1.0).contains(&value));
-        Self(VolumeLevel::new(value))
+        Self(VolumeLevel::new(value.clamp(0., 1.)))
     }
 }
 
@@ -90,8 +89,7 @@ pub(crate) struct SoundVolume(VolumeLevel);
 
 impl SoundVolume {
     pub(crate) fn new(value: f32) -> Self {
-        debug_assert!((0.0..=1.0).contains(&value));
-        Self(VolumeLevel::new(value))
+        Self(VolumeLevel::new(value.clamp(0., 1.)))
     }
 }
 
