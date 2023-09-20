@@ -5,7 +5,7 @@ use crate::{
         world::constants::TILE_SIZE,
         inventory::{ItemInHand, SwingAnimation},
     },
-    common::{math::{move_towards, map_range_usize}, state::MovementState, rect::FRect, components::Velocity}, world::WorldData,
+    common::{math::{move_towards, map_range_usize, map_range_f32}, state::MovementState, rect::FRect, components::{Velocity, EntityRect}}, world::WorldData,
 };
 
 use super::{*, utils::get_fall_distance};
@@ -67,15 +67,15 @@ pub(super) fn update_jump(
 pub(super) fn gravity(
     collisions: Res<Collisions>,
     mut player_data: ResMut<PlayerData>,
-    mut query_player: Query<(&mut Velocity, &PlayerRect), With<Player>>
+    mut query_player: Query<(&mut Velocity, &EntityRect), With<Player>>
 ) {
-    let Ok((mut velocity, rect)) = query_player.get_single_mut() else { return; };
+    let Ok((mut velocity, position)) = query_player.get_single_mut() else { return; };
 
     const DIRECTION: f32 = -1.0;
 
     if !collisions.bottom {
         if velocity.y <= 0. && player_data.fall_start.is_none() {
-            player_data.fall_start = Some(rect.bottom());
+            player_data.fall_start = Some(position.bottom());
         }
 
         velocity.y += GRAVITY * DIRECTION;
@@ -90,25 +90,25 @@ pub(super) fn detect_collisions(
     world_data: Res<WorldData>,
     mut collisions: ResMut<Collisions>,
     mut player_data: ResMut<PlayerData>,
-    mut query_player: Query<(&mut PlayerPosition, &mut Velocity, &FaceDirection, &PlayerRect), With<Player>>,
+    mut query_player: Query<(&mut EntityRect, &mut Velocity, &FaceDirection), With<Player>>,
     #[cfg(feature = "debug")]
     mut gizmos: Gizmos,
     #[cfg(feature = "debug")]
     debug_config: Res<DebugConfiguration>,
 ) {
     let Ok((
-        mut player_pos, mut velocity, face_direction, PlayerRect(player_rect)
+        mut player_rect, mut velocity, face_direction
     )) = query_player.get_single_mut() else { return; };
 
-    let position = player_pos.0;
-    let next_position = player_pos.0 + velocity.0;
+    let pos = player_rect.center();
+    let next_position = pos + velocity.0;
 
-    let next_player_rect = FRect::new_center(next_position.x, next_position.y, PLAYER_WIDTH, PLAYER_HEIGHT);
+    let next_rect = FRect::new_center(next_position.x, next_position.y, player_rect.width(), player_rect.height());
 
-    let left = ((position.x - PLAYER_HALF_WIDTH) / TILE_SIZE) - 1.;
-    let right = ((position.x + PLAYER_HALF_WIDTH) / TILE_SIZE) + 2.;
-    let mut top = ((position.y.abs() - PLAYER_HALF_HEIGHT) / TILE_SIZE) - 1.;
-    let bottom = ((position.y.abs() + PLAYER_HALF_HEIGHT) / TILE_SIZE) + 2.;
+    let left = ((pos.x - PLAYER_HALF_WIDTH) / TILE_SIZE) - 1.;
+    let right = ((pos.x + PLAYER_HALF_WIDTH) / TILE_SIZE) + 2.;
+    let mut top = ((pos.y.abs() - PLAYER_HALF_HEIGHT) / TILE_SIZE) - 1.;
+    let bottom = ((pos.y.abs() + PLAYER_HALF_HEIGHT) / TILE_SIZE) + 2.;
 
     top = top.max(0.);
 
@@ -129,12 +129,12 @@ pub(super) fn detect_collisions(
                     TILE_SIZE
                 );
 
-                if next_player_rect.intersects(&tile_rect) {
+                if next_rect.intersects(&tile_rect) {
                     let delta_x = tile_rect.centerx - player_rect.centerx;
                     let delta_y = if player_rect.centery < tile_rect.centery {
-                        player_rect.top().abs() + (tile_rect.top() + tile_rect.height / 2.)
+                        player_rect.top().abs() + (tile_rect.top() + tile_rect.height() / 2.)
                     } else {
-                        player_rect.bottom().abs() + (tile_rect.bottom() - tile_rect.height / 2.)
+                        player_rect.bottom().abs() + (tile_rect.bottom() - tile_rect.height() / 2.)
                     };
 
                     if delta_x.abs() > delta_y.abs() {
@@ -149,7 +149,14 @@ pub(super) fn detect_collisions(
 
                         if is_enough_space && is_bottom_tile && f32::from(face_direction) == delta_x.signum() {
                             new_collisions.bottom = true;
-                            velocity.y = (tile_rect.top() - player_rect.bottom()) * 0.2;
+                            let a = if velocity.x.abs() > 1.5 {
+                                1.
+                            } else {
+                                velocity.x = velocity.x.abs().max(0.5) * velocity.x.signum();
+                                map_range_f32(0., 3., 0., 0.3, velocity.x.abs()).max(1. / 6.)
+                            };
+
+                            velocity.y = (tile_rect.top() - player_rect.bottom()) * a;
                             break 'outer;
                         }
 
@@ -158,8 +165,8 @@ pub(super) fn detect_collisions(
                             new_collisions.left = true;
 
                             // If the player's left side is more to the left than the tile's right side then move the player right.
-                            if next_player_rect.left <= tile_rect.right {
-                                player_pos.x = tile_rect.right + player_rect.width / 2.;
+                            if next_rect.left() <= tile_rect.right() {
+                                player_rect.centerx = tile_rect.right() + player_rect.width() / 2.;
                             }
 
                             #[cfg(feature = "debug")]
@@ -171,8 +178,8 @@ pub(super) fn detect_collisions(
                             new_collisions.right = true;
 
                             // If the player's right side is more to the right than the tile's left side then move the player left.
-                            if next_player_rect.right >= tile_rect.left {
-                                player_pos.x = tile_rect.left - player_rect.width / 2.;
+                            if next_rect.right() >= tile_rect.left() {
+                                player_rect.centerx = tile_rect.right() + player_rect.width() / 2.;
                             }
 
                             #[cfg(feature = "debug")]
@@ -182,7 +189,7 @@ pub(super) fn detect_collisions(
                         }
                     } else {
                         // Checking for collisions again with an offset to workaround the bug when the player stuck in a wall.
-                        if FRect::new_bounds_h(next_player_rect.left + 2.0, next_player_rect.top(), PLAYER_WIDTH - 4.0, PLAYER_HEIGHT).intersects(&tile_rect) {
+                        if FRect::new_bounds_h(next_rect.left() + 2.0, next_rect.top(), PLAYER_WIDTH - 4.0, PLAYER_HEIGHT).intersects(&tile_rect) {
                             if delta_y > 0. {
                                 velocity.y = 0.;
                                 new_collisions.top = true;
@@ -202,7 +209,7 @@ pub(super) fn detect_collisions(
                                 
                                 // If the player's bottom side is lower than the tile's top side then move the player up
                                 if player_rect.bottom() >= tile_rect.top() {
-                                    player_pos.y = tile_rect.top() + player_rect.height / 2.;
+                                    player_rect.centery = tile_rect.top() + player_rect.height() / 2.;
                                     velocity.y = 0.;
                                 }
 
@@ -226,11 +233,11 @@ pub(super) fn detect_collisions(
 }
 
 #[allow(non_upper_case_globals)]
-pub(super) fn update_player_position(
+pub(super) fn update_player_rect(
     world_data: Res<WorldData>,
-    mut query_player: Query<(&mut PlayerPosition, &Velocity), With<Player>>,
+    mut query_player: Query<(&mut EntityRect, &Velocity), With<Player>>,
 ) {
-    let Ok((mut player_position, velocity)) = query_player.get_single_mut() else { return; };
+    let Ok((mut player_rect, velocity)) = query_player.get_single_mut() else { return; };
 
     const min_x: f32 = PLAYER_HALF_WIDTH - TILE_SIZE / 2.;
     let min_y: f32 = -(world_data.size.height as f32) * TILE_SIZE;
@@ -238,32 +245,25 @@ pub(super) fn update_player_position(
     let max_x = world_data.size.width as f32 * TILE_SIZE - PLAYER_HALF_WIDTH - TILE_SIZE / 2.;
     const max_y: f32 = -PLAYER_HALF_HEIGHT - TILE_SIZE / 2.;
 
-    let new_position = (player_position.0 + velocity.0).floor();
+    let new_position = (player_rect.center() + velocity.0).floor();
 
-    player_position.0 = new_position.clamp(vec2(min_x, min_y), vec2(max_x, max_y));
+    player_rect.centerx = new_position.x.clamp(min_x, max_x);
+    player_rect.centery = new_position.y.clamp(min_y, max_y);
 }
 
 #[allow(non_upper_case_globals)]
 pub(super) fn move_player(
-    mut query_player: Query<(&mut Transform, &PlayerPosition), With<Player>>,
+    mut query_player: Query<(&mut Transform, &EntityRect), With<Player>>,
 ) {
-    let Ok((mut transform, player_position)) = query_player.get_single_mut() else { return; };
+    let Ok((mut transform, player_rect)) = query_player.get_single_mut() else { return; };
 
-    transform.set_if_neq(transform.with_translation(Vec3::new(player_position.x, player_position.y, transform.translation.z)));
-}
-
-pub(super) fn update_player_rect(
-    mut query_player: Query<(&PlayerPosition, &mut PlayerRect), With<Player>>,
-) {
-    let Ok((player_position, mut player_rect)) = query_player.get_single_mut() else { return; };
-
-    *player_rect = PlayerRect(FRect::new_center(player_position.x, player_position.y, PLAYER_WIDTH, PLAYER_HEIGHT));
+    transform.set_if_neq(transform.with_translation(player_rect.center().extend(transform.translation.z)));
 }
 
 pub(super) fn update_movement_state(
     collisions: Res<Collisions>,
     player_data: Res<PlayerData>,
-    mut query: Query<(&PlayerRect, &Velocity, &mut MovementState), With<Player>>,
+    mut query: Query<(&EntityRect, &Velocity, &mut MovementState), With<Player>>,
 ) {
     let Ok((player_rect, velocity, mut movement_state)) = query.get_single_mut() else { return; };
 
@@ -402,11 +402,11 @@ use crate::plugins::{cursor::position::CursorPosition, camera::components::MainC
 #[cfg(feature = "debug")]
 pub(super) fn teleport_player(
     cursor_position: Res<CursorPosition<MainCamera>>,
-    mut query_player: Query<(&mut PlayerPosition, &mut Velocity), With<Player>>,
+    mut query_player: Query<(&mut EntityRect, &mut Velocity), With<Player>>,
 ) {
-    if let Ok((mut player_position, mut velocity)) = query_player.get_single_mut() {
-        player_position.x = cursor_position.world.x;
-        player_position.y = cursor_position.world.y;
+    if let Ok((mut player_rect, mut velocity)) = query_player.get_single_mut() {
+        player_rect.centerx = cursor_position.world.x;
+        player_rect.centery = cursor_position.world.y;
         velocity.0 = Vec2::ZERO;
     }
 }

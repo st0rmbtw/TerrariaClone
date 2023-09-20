@@ -89,7 +89,6 @@ impl Plugin for PlayerPlugin {
                 handle_player_movement_systems,
                 gravity,
                 detect_collisions,
-                update_player_position,
                 update_player_rect,
             )
             .chain()

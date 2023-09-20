@@ -2,9 +2,9 @@ use bevy::{prelude::{App, Plugin, ResMut, Commands, TextBundle, Res, Color, OnEn
 use bevy_ecs_tilemap::{tiles::TilePos, helpers::square_grid::neighbors::Neighbors};
 use bevy_inspector_egui::{bevy_egui::{egui, EguiContexts}, egui::{Align2, CollapsingHeader, ScrollArea}, quick::WorldInspectorPlugin, reflect_inspector};
 
-use crate::{common::{state::GameState, helpers}, world::{block::BlockType, WorldData, chunk::ChunkContainer}};
+use crate::{common::{state::GameState, helpers, components::EntityRect}, world::{block::BlockType, WorldData, chunk::ChunkContainer}};
 
-use super::{assets::FontAssets, inventory::{UseItemAnimationIndex, UseItemAnimationData}, camera::components::MainCamera, cursor::position::CursorPosition, DespawnOnGameExit, InGameSystemSet, player::{FaceDirection, PlayerPosition}};
+use super::{assets::FontAssets, inventory::{UseItemAnimationIndex, UseItemAnimationData}, camera::components::MainCamera, cursor::position::CursorPosition, DespawnOnGameExit, InGameSystemSet, player::FaceDirection};
 
 pub(crate) struct DebugPlugin;
 impl Plugin for DebugPlugin {
@@ -32,7 +32,7 @@ impl Plugin for DebugPlugin {
         app.register_type::<UseItemAnimationIndex>();
         app.register_type::<UseItemAnimationData>();
         app.register_type::<FaceDirection>();
-        app.register_type::<PlayerPosition>();
+        app.register_type::<EntityRect>();
 
         app.add_systems(OnEnter(GameState::InGame), spawn_free_camera_legend);
         app.add_systems(

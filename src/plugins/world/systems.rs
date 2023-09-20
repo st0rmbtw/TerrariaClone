@@ -20,7 +20,7 @@ use bevy_ecs_tilemap::{
 };
 use rand::{thread_rng, Rng};
 
-use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::components::MainCamera, player::{Player, PlayerRect}, audio::{PlaySoundEvent, SoundType}, DespawnOnGameExit}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect, TextureAtlasPos, math::map_range_i32}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}, lighting::UpdateTilesTextureEvent, WALL_LAYER, TILES_LAYER};
+use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::components::MainCamera, player::Player, audio::{PlaySoundEvent, SoundType}, DespawnOnGameExit}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect, TextureAtlasPos, math::map_range_i32, components::EntityRect}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}, lighting::UpdateTilesTextureEvent, WALL_LAYER, TILES_LAYER};
 
 use super::{
     utils::{get_chunk_pos, get_camera_fov, get_chunk_tile_pos, get_chunk_range_by_camera_fov}, 
@@ -471,7 +471,7 @@ pub(super) fn handle_dig_block_event(
 
 pub(super) fn handle_place_block_event(
     mut commands: Commands,
-    query_player: Query<&PlayerRect, With<Player>>,
+    query_player: Query<&EntityRect, With<Player>>,
     mut query_chunk: Query<(&Chunk, &mut TileStorage, Entity)>,
     mut world_data: ResMut<WorldData>,
     mut place_block: EventReader<PlaceBlockEvent>,
