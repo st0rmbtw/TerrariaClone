@@ -1,30 +1,8 @@
 use bevy::{prelude::{Commands, EventReader, Res, AudioBundle, PlaybackSettings, Query, Entity, With, ResMut, AudioSink, AudioSinkPlayback, EventWriter}, audio::Volume};
 
-use crate::plugins::{assets::{MusicAssets, SoundAssets}, config::{MusicVolume, SoundVolume}};
+use crate::plugins::{assets::MusicAssets, config::{MusicVolume, SoundVolume}};
 
-use super::{PlaySoundEvent, PlayMusicEvent, MusicAudio, UpdateMusicVolume, UpdateSoundVolume, SoundAudio, MusicType, ToBeDespawned};
-
-pub(super) fn handle_play_sound_event(
-    mut commands: Commands,
-    mut event_reader: EventReader<PlaySoundEvent>,
-    sound_assets: Res<SoundAssets>,
-    sound_volume: Res<SoundVolume>
-) {
-    // We don't need to spawn if the sound volume is 0
-    if sound_volume.get() < f32::EPSILON {
-        return;
-    }
-
-    for event in event_reader.iter() {
-        commands.spawn((
-            SoundAudio,
-            AudioBundle {
-                source: sound_assets.get_handle_by_sound_type(event.0),
-                settings: PlaybackSettings::DESPAWN.with_volume(Volume::Relative(**sound_volume)),
-            }
-        ));
-    }
-}
+use super::{PlayMusicEvent, MusicAudio, UpdateMusicVolume, UpdateSoundVolume, SoundAudio, MusicType, ToBeDespawned};
 
 pub(super) fn handle_play_music_event(
     mut commands: Commands,

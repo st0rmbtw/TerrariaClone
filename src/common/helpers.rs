@@ -5,7 +5,7 @@ use crate::{plugins::world::constants::TILE_SIZE, world::{block::BlockType, wall
 
 use super::TextureAtlasPos;
 
-pub(crate) fn get_tile_start_index(block: BlockType) -> TextureAtlasPos {
+pub(crate) const fn get_tile_start_index(block: BlockType) -> TextureAtlasPos {
     match block {
         BlockType::Dirt => TextureAtlasPos::ZERO,
         BlockType::Stone => TextureAtlasPos::new(0, 15),
@@ -14,7 +14,7 @@ pub(crate) fn get_tile_start_index(block: BlockType) -> TextureAtlasPos {
     }
 }
 
-pub(crate) fn get_wall_start_index(wall: Wall) -> TextureAtlasPos {
+pub(crate) const fn get_wall_start_index(wall: Wall) -> TextureAtlasPos {
     match wall {
         Wall::Stone => TextureAtlasPos::ZERO,
         Wall::Dirt => TextureAtlasPos::new(0, 5),

@@ -29,9 +29,10 @@ fn left_to_right(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let y = min.y + invocation_id.y;
 
     var prev_light = vec3(0.);
+    var prev_decay = 0.;
 
     for (var x = min.x; x < max.x; x += 1u) {
-        blur(vec2(x, y), &prev_light);
+        blur(vec2(x, y), &prev_light, &prev_decay);
     }
 }
 
@@ -40,9 +41,10 @@ fn right_to_left(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let y = min.y + invocation_id.y;
 
     var prev_light = vec3(0.);
+    var prev_decay = 0.;
 
     for (var x = max.x - 1u; x > min.x; x -= 1u) {
-        blur(vec2(x, y), &prev_light);
+        blur(vec2(x, y), &prev_light, &prev_decay);
     }
 }
 
@@ -51,9 +53,10 @@ fn top_to_bottom(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let x = min.x + invocation_id.x;
 
     var prev_light = vec3(0.);
+    var prev_decay = 0.;
 
     for (var y = min.y; y < max.y; y += 1u) {
-        blur(vec2(x, y), &prev_light);
+        blur(vec2(x, y), &prev_light, &prev_decay);
     }
 }
 
@@ -62,9 +65,10 @@ fn bottom_to_top(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let x = min.x + invocation_id.x;
 
     var prev_light = vec3(0.);
+    var prev_decay = 0.;
 
     for (var y = max.y - 1u; y > min.y; y -= 1u) {
-        blur(vec2(x, y), &prev_light);
+        blur(vec2(x, y), &prev_light, &prev_decay);
     }
 }
 
@@ -81,8 +85,10 @@ fn get_decay(pos: vec2<u32>) -> f32 {
 fn blur(
     pos: vec2<u32>,
     prev_light_ptr: ptr<function, vec3<f32>>,
+    prev_decay_ptr: ptr<function, f32>
 ) {
     var prev_light = *prev_light_ptr;
+    let decay = *prev_decay_ptr;
     var this_light = textureLoad(light_texture, pos);
 
     var this_light_changed = false;
@@ -112,5 +118,6 @@ fn blur(
         textureStore(light_texture, pos, this_light);
     }
 
-    *prev_light_ptr = prev_light * get_decay(pos);
+    *prev_light_ptr = prev_light * decay;
+    *prev_decay_ptr = get_decay(pos);
 }

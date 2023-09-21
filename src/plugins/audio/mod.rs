@@ -1,4 +1,4 @@
-use bevy::prelude::{Plugin, App, PostUpdate, IntoSystemConfigs, not, in_state, OnEnter, SystemSet};
+use bevy::{prelude::{Plugin, App, PostUpdate, IntoSystemConfigs, not, in_state, OnEnter, Commands, World, AudioBundle, PlaybackSettings}, ecs::system::Command, audio::Volume};
 
 use crate::{world::block::BlockType, items::Tool, common::state::GameState};
 
@@ -9,8 +9,7 @@ mod components;
 pub(crate) use events::*;
 pub(crate) use components::*;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, SystemSet)]
-pub(crate) struct HandleAudioEvents;
+use super::{config::SoundVolume, assets::SoundAssets};
 
 pub(crate) struct AudioPlugin;
 impl Plugin for AudioPlugin {
@@ -27,17 +26,12 @@ impl Plugin for AudioPlugin {
             PostUpdate,
             (
                 (
-                    (
-                        systems::handle_update_music_volume_event,
-                        systems::handle_update_sound_volume_event,
-                    ),
-                    (
-                        systems::handle_play_sound_event,
-                        systems::handle_play_music_event,
-                    )
+                    systems::handle_update_music_volume_event,
+                    systems::handle_play_music_event,
                 )
-                .in_set(HandleAudioEvents)
                 .chain(),
+
+                systems::handle_update_sound_volume_event,
                 systems::update_to_be_despawned_audio
             )
             .run_if(not(in_state(GameState::AssetLoading)))
@@ -61,4 +55,41 @@ pub(crate) enum SoundType {
 pub(crate) enum MusicType {
     TitleScreen,
     OverworldDay
+}
+
+struct PlaySoundCommand {
+    sound: SoundType
+}
+
+impl Command for PlaySoundCommand {
+    fn apply(self, world: &mut World) {
+        let sound_volume = world.resource::<SoundVolume>();
+        let sound_assets = world.resource::<SoundAssets>();
+
+        // We don't need to spawn if the sound volume is 0
+        if sound_volume.get() < f32::EPSILON {
+            return;
+        }
+
+        world.spawn((
+            SoundAudio,
+            AudioBundle {
+                source: sound_assets.get_handle_by_sound_type(self.sound),
+                settings: PlaybackSettings::DESPAWN.with_volume(Volume::Relative(**sound_volume)),
+            }
+        ));
+    }
+}
+
+pub(crate) trait AudioCommandsExt {
+    fn play_sound(&mut self, sound: SoundType);
+}
+
+impl AudioCommandsExt for Commands<'_, '_> {
+    #[inline(always)]
+    fn play_sound(&mut self, sound: SoundType) {
+        self.add(PlaySoundCommand {
+            sound
+        });
+    }
 }

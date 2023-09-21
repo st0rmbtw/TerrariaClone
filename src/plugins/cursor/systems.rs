@@ -18,10 +18,10 @@ use crate::{
     plugins::{
         assets::{FontAssets, CursorAssets, UiAssets}, 
         camera::components::MainCamera, 
-        world::constants::TILE_SIZE, config::CursorColor, DespawnOnGameExit, player::Player
+        world::constants::TILE_SIZE, config::{CursorColor, ShowTileGrid}, DespawnOnGameExit, player::Player, ui::UiVisibility
     }, 
     animation::{Tween, lens::TransformScaleLens, Animator, RepeatStrategy, RepeatCount}, 
-    common::{lens::BackgroundColorLens, components::Velocity}, language::LanguageContent,
+    common::{lens::BackgroundColorLens, components::Velocity, helpers, BoolValue}, language::LanguageContent,
 };
 
 use crate::plugins::player::{MAX_RUN_SPEED, MAX_FALL_SPEED};
@@ -147,6 +147,15 @@ pub(super) fn spawn_tile_grid(
             visibility: Visibility::Hidden
         }
     ));
+}
+
+pub(super) fn update_tile_grid_visibility(
+    ui_visibility: Res<UiVisibility>,
+    show_tile_grid: Res<ShowTileGrid>,
+    mut query: Query<&mut Visibility, With<TileGrid>>,
+) {
+    let Ok(visibility) = query.get_single_mut() else { return; };
+    helpers::set_visibility(visibility, ui_visibility.value() && show_tile_grid.value());
 }
 
 pub(super) fn update_cursor_position(

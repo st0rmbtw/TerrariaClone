@@ -9,12 +9,12 @@ use std::time::Duration;
 use components::*;
 use interpolation::EaseFunction;
 
-use bevy::{prelude::{Plugin, App, IntoSystemConfigs, OnEnter, OnExit, Color, Update, KeyCode, PostUpdate, EventWriter, Res, Query, Entity, With, Commands, Name, NodeBundle, BuildChildren, ImageBundle, default, Visibility, TextBundle, Transform, Quat, Vec3, Camera2dBundle, Camera2d, State, ResMut, NextState, EventReader, Component}, input::common_conditions::input_just_pressed, app::AppExit, text::{TextStyle, Text, TextSection}, ui::{Style, PositionType, AlignSelf, Val, UiRect, FlexDirection, UiImage}, core_pipeline::clear_color::ClearColorConfig};
+use bevy::{prelude::{Plugin, App, IntoSystemConfigs, OnEnter, OnExit, Color, Update, KeyCode, PostUpdate, Res, Query, Entity, With, Commands, Name, NodeBundle, BuildChildren, ImageBundle, default, Visibility, TextBundle, Transform, Quat, Vec3, Camera2dBundle, Camera2d, State, ResMut, NextState, EventReader, Component}, input::common_conditions::input_just_pressed, app::AppExit, text::{TextStyle, Text, TextSection}, ui::{Style, PositionType, AlignSelf, Val, UiRect, FlexDirection, UiImage}, core_pipeline::clear_color::ClearColorConfig};
 use crate::{
     common::{state::{GameState, MenuState, SettingsMenuState}, conditions::on_click, systems::{send_event, despawn_with, set_state, animate_button_scale, animate_button_color}, lens::TransformLens},
     parallax::{parallax_animation_system, ParallaxSet},
     animation::{Animator, RepeatCount, Tween, RepeatStrategy}, 
-    plugins::{assets::{FontAssets, UiAssets}, camera::components::MainCamera, audio::{PlaySoundEvent, SoundType, HandleAudioEvents}, MenuSystemSet}, language::keys::UIStringKey
+    plugins::{assets::{FontAssets, UiAssets}, camera::components::MainCamera, audio::{SoundType, AudioCommandsExt}, MenuSystemSet}, language::keys::UIStringKey
 };
 use self::{settings::SettingsMenuPlugin, celestial_body::CelestialBodyPlugin, builders::{menu, menu_button}, events::{Back, EnterMenu}};
 
@@ -68,7 +68,6 @@ impl Plugin for MenuPlugin {
                 handle_back_event,
                 handle_enter_menu_event,
             )
-            .before(HandleAudioEvents)
             .in_set(MenuSystemSet::PostUpdate)
         );
         
@@ -242,25 +241,25 @@ fn setup_main_menu(
 }
 
 fn handle_back_event(
+    mut commands: Commands,
     state: Res<State<MenuState>>,
     mut next_state: ResMut<NextState<MenuState>>,
-    mut play_sound: EventWriter<PlaySoundEvent>,
     mut back_events: EventReader<Back>
 ) {
     if !back_events.is_empty() {
         back_events.clear();
         next_state.set(state.back());
-        play_sound.send(PlaySoundEvent(SoundType::MenuClose));
+        commands.play_sound(SoundType::MenuClose);
     }
 }
 
 fn handle_enter_menu_event(
+    mut commands: Commands,
     mut next_state: ResMut<NextState<MenuState>>,
-    mut play_sound: EventWriter<PlaySoundEvent>,
     mut enter_events: EventReader<EnterMenu>
 ) {
     if let Some(event) = enter_events.iter().last() {
         next_state.set(event.0);
-        play_sound.send(PlaySoundEvent(SoundType::MenuOpen));
+        commands.play_sound(SoundType::MenuOpen);
     }
 }

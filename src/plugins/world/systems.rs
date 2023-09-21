@@ -20,7 +20,7 @@ use bevy_ecs_tilemap::{
 };
 use rand::{thread_rng, Rng};
 
-use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::components::MainCamera, player::Player, audio::{PlaySoundEvent, SoundType}, DespawnOnGameExit}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect, TextureAtlasPos, math::map_range_i32, components::EntityRect}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}, lighting::UpdateTilesTextureEvent, WALL_LAYER, TILES_LAYER};
+use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::components::MainCamera, player::Player, audio::{SoundType, AudioCommandsExt}, DespawnOnGameExit}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect, TextureAtlasPos, math::map_range_i32, components::EntityRect}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}, lighting::UpdateTilesTextureEvent, WALL_LAYER, TILES_LAYER};
 
 use super::{
     utils::{get_chunk_pos, get_camera_fov, get_chunk_tile_pos, get_chunk_range_by_camera_fov}, 
@@ -405,7 +405,6 @@ pub(super) fn handle_break_block_event(
     mut world_data: ResMut<WorldData>,
     mut break_block: EventReader<BreakBlockEvent>,
     mut update_neighbors: EventWriter<UpdateNeighborsEvent>,
-    mut play_sound: EventWriter<PlaySoundEvent>,
     mut update_tiles_texture: EventWriter<UpdateTilesTextureEvent>
 ) {
     for &BreakBlockEvent { tile_pos } in break_block.iter() {
@@ -422,20 +421,20 @@ pub(super) fn handle_break_block_event(
                 x: tile_pos.x as usize,
                 y: tile_pos.y as usize
             });
-            play_sound.send(PlaySoundEvent(SoundType::BlockHit(block.block_type)));
+            commands.play_sound(SoundType::BlockHit(block.block_type));
             update_neighbors.send(UpdateNeighborsEvent { tile_pos });
         }
     }
 }
 
 pub(super) fn handle_dig_block_event(
+    mut commands: Commands,
     mut world_data: ResMut<WorldData>,
     mut break_block_events: EventWriter<BreakBlockEvent>,
     mut update_block_events: EventWriter<UpdateBlockEvent>,
     mut update_cracks_events: EventWriter<UpdateCracksEvent>,
     mut update_neighbors_events: EventWriter<UpdateNeighborsEvent>,
     mut dig_block_events: EventReader<DigBlockEvent>,
-    mut play_sound: EventWriter<PlaySoundEvent>
 ) {
     let mut rng = thread_rng();
 
@@ -445,9 +444,7 @@ pub(super) fn handle_dig_block_event(
 
             if block.hp <= 0 {
                 break_block_events.send(BreakBlockEvent { tile_pos });
-            } else {
-                play_sound.send(PlaySoundEvent(SoundType::BlockHit(block.block_type)));
-                
+            } else {                
                 if block.block_type == BlockType::Grass {
                     block.block_type = BlockType::Dirt;
                 }
@@ -458,10 +455,8 @@ pub(super) fn handle_dig_block_event(
 
                 block.cracks_index = Some(index);
 
-                update_block_events.send(UpdateBlockEvent {
-                    tile_pos,
-                    block: *block,
-                });
+                commands.play_sound(SoundType::BlockHit(block.block_type));
+                update_block_events.send(UpdateBlockEvent { tile_pos, block: *block });
                 update_neighbors_events.send(UpdateNeighborsEvent { tile_pos });
                 update_cracks_events.send(UpdateCracksEvent { tile_pos, index });
             }
@@ -476,7 +471,6 @@ pub(super) fn handle_place_block_event(
     mut world_data: ResMut<WorldData>,
     mut place_block: EventReader<PlaceBlockEvent>,
     mut update_neighbors: EventWriter<UpdateNeighborsEvent>,
-    mut play_sound: EventWriter<PlaySoundEvent>,
     mut update_tiles_texture: EventWriter<UpdateTilesTextureEvent>
 ) {
     let player_rect = query_player.single();
@@ -508,7 +502,7 @@ pub(super) fn handle_place_block_event(
             y: tile_pos.y as usize
         });
         update_neighbors.send(UpdateNeighborsEvent { tile_pos });
-        play_sound.send(PlaySoundEvent(SoundType::BlockHit(block)));
+        commands.play_sound(SoundType::BlockHit(block));
     }
 }
 
@@ -559,15 +553,15 @@ pub(super) fn handle_update_block_event(
 }
 
 pub(super) fn handle_seed_event(
+    mut commands: Commands,
     mut seed_events: EventReader<SeedEvent>,
     mut update_block_events: EventWriter<UpdateBlockEvent>,
     mut update_neighbors_events: EventWriter<UpdateNeighborsEvent>,
     mut world_data: ResMut<WorldData>,
-    mut play_sound: EventWriter<PlaySoundEvent>
 ) {
     for &SeedEvent { tile_pos, seed } in seed_events.iter() {
         if let Some(block) = world_data.get_block_with_type_mut(tile_pos, BlockType::Dirt) {
-            play_sound.send(PlaySoundEvent(SoundType::BlockPlace(block.block_type)));
+            commands.play_sound(SoundType::BlockPlace(block.block_type));
             
             block.block_type = seed.seeded_dirt();
 

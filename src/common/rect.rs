@@ -42,13 +42,15 @@ impl FRect {
         Vec2::new(self.centerx, self.centery)
     }
 
+    #[inline]
     pub(crate) fn intersects(&self, other: &FRect) -> bool {
         self.left < other.right &&
-            self.top() >= other.bottom() &&
+            self.top() > other.bottom() &&
             self.right > other.left &&
-            self.bottom() <= other.top()
+            self.bottom() < other.top()
     }
 
+    #[inline]
     pub(crate) fn contains(&self, point: (f32, f32)) -> bool {
         point.0 > self.left && point.0 < self.right && point.1 > self.bottom() && point.1 < self.top()
     }

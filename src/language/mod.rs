@@ -152,24 +152,28 @@ pub(crate) trait Localize: Sync + Send {
 }
 
 impl<T: Into<LanguageStringKey> + Send + Sync + Clone> Localize for T {
+    #[inline]
     fn localize(&self, language_content: &LanguageContent) -> Box<str> {
         Box::from(language_content.get_by_key(self.clone().into()))
     }
 }
 
 impl Localize for &str {
+    #[inline]
     fn localize(&self, _: &LanguageContent) -> Box<str> {
         Box::from(*self)
     }
 }
 
 impl Localize for f32 {
+    #[inline]
     fn localize(&self, _: &LanguageContent) -> Box<str> {
         Box::from(self.to_string())
     }
 }
 
 impl Localize for u16 {
+    #[inline]
     fn localize(&self, _: &LanguageContent) -> Box<str> {
         Box::from(self.to_string())
     }
@@ -208,18 +212,21 @@ impl LocalizedText {
 }
 
 impl From<LanguageStringKey> for LocalizedText {
+    #[inline(always)]
     fn from(key: LanguageStringKey) -> Self {
         Self { key, format: None, args: None }       
     }
 }
 
 impl From<UIStringKey> for LocalizedText {
+    #[inline(always)]
     fn from(key: UIStringKey) -> Self {
         Self { key: key.into(), format: None, args: None }       
     }
 }
 
 impl From<ItemStringKey> for LocalizedText {
+    #[inline(always)]
     fn from(key: ItemStringKey) -> Self {
         Self { key: key.into(), format: None, args: None }       
     }

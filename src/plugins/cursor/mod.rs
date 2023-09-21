@@ -2,7 +2,7 @@ pub(crate) mod components;
 pub(crate) mod position;
 mod systems;
 
-use bevy::{prelude::{Plugin, App, OnExit, OnEnter, IntoSystemConfigs, not, resource_equals, in_state, Condition, Update}, ui::BackgroundColor};
+use bevy::{prelude::{Plugin, App, OnExit, OnEnter, IntoSystemConfigs, not, resource_equals, in_state, Update, Condition}, ui::BackgroundColor};
 use crate::{common::{state::GameState, systems::set_visibility}, animation::{AnimationSystemSet, component_animator_system}};
 use self::position::CursorPositionPlugin;
 
@@ -39,41 +39,31 @@ impl Plugin for CursorPlugin {
 
         app.add_systems(
             Update,
-            systems::update_tile_grid_position
-                .in_set(InGameSystemSet::Update)
-                .run_if(resource_equals(UiVisibility::VISIBLE).and_then(
-                        resource_equals(ShowTileGrid(true))))
-        );
-
-        app.add_systems(
-            Update,
             component_animator_system::<BackgroundColor>
                 .in_set(AnimationSystemSet::AnimationUpdate)
                 .run_if(not(in_state(GameState::AssetLoading)))
                 .run_if(resource_equals(UiVisibility::VISIBLE))
         );
 
-        app.add_systems(
-            Update,
-            set_visibility::<components::CursorBackground, UiVisibility>.in_set(InGameSystemSet::Update)
-        );
+        let update_tile_grid_opacity = systems::update_tile_grid_opacity;
+
+        #[cfg(feature = "debug")]
+        let update_tile_grid_opacity = update_tile_grid_opacity.run_if(|config: Res<DebugConfiguration>| !config.free_camera);
 
         app.add_systems(
             Update,
             (
-                set_visibility::<components::TileGrid, UiVisibility>,
-                set_visibility::<components::TileGrid, ShowTileGrid>,
+                (
+                    update_tile_grid_opacity,
+                    systems::update_tile_grid_position,
+                )
+                .run_if(resource_equals(UiVisibility::VISIBLE).and_then(resource_equals(ShowTileGrid(true)))),
+
+                systems::update_tile_grid_visibility,
+                set_visibility::<components::CursorBackground, UiVisibility>
             )
             .in_set(InGameSystemSet::Update)
         );
 
-        let update_tile_grid_opacity = systems::update_tile_grid_opacity
-            .in_set(InGameSystemSet::Update)
-            .run_if(resource_equals(ShowTileGrid(true)));
-
-        #[cfg(feature = "debug")]
-        let update_tile_grid_opacity = update_tile_grid_opacity.run_if(|config: Res<DebugConfiguration>| !config.free_camera);
-        
-        app.add_systems(Update, update_tile_grid_opacity);
     }
 }

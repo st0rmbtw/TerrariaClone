@@ -1,30 +1,30 @@
-use bevy::{prelude::{EventWriter, Res, Resource, With, Changed, Query, Component, Color, DetectChanges, DetectChangesMut}, text::Text, ui::{Interaction, BackgroundColor}};
+use bevy::{prelude::{EventWriter, Res, Resource, With, Changed, Query, Component, Color, DetectChanges, DetectChangesMut, Commands}, text::Text, ui::{Interaction, BackgroundColor}};
 
-use crate::{plugins::{audio::{PlaySoundEvent, SoundType, UpdateMusicVolume, UpdateSoundVolume}, slider::Slider, config::ShowTileGrid}, common::BoolValue, language::{LocalizedText, keys::UIStringKey, args}};
+use crate::{plugins::{audio::{SoundType, UpdateMusicVolume, UpdateSoundVolume, AudioCommandsExt}, slider::Slider, config::ShowTileGrid}, common::BoolValue, language::{LocalizedText, keys::UIStringKey, args}};
 
 use super::components::{SoundVolumeSlider, MusicVolumeSlider, ToggleTileGridButton, PreviousInteraction};
 
 pub(super) fn play_sound_on_hover<B: Component>(
+    mut commands: Commands,
     mut query: Query<(&PreviousInteraction, &Interaction), (With<B>, Changed<Interaction>)>,
-    mut play_sound: EventWriter<PlaySoundEvent>
 ) {
     for (previous_interaction, interaction) in &mut query {
         if **previous_interaction != Interaction::Pressed && *interaction == Interaction::Hovered {
-            play_sound.send(PlaySoundEvent(SoundType::MenuTick));
+            commands.play_sound(SoundType::MenuTick);
         }
     }
 }
 
 pub(super) fn play_sound_on_toggle<R: BoolValue + Resource>(
+    mut commands: Commands,
     res: Res<R>,
-    mut play_sound: EventWriter<PlaySoundEvent>
 ) {
     let sound = match res.value() {
         true => SoundType::MenuOpen,
         false => SoundType::MenuClose,
     };
 
-    play_sound.send(PlaySoundEvent(sound));
+    commands.play_sound(sound);
 }
 
 pub(super) fn update_music_volume(

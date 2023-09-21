@@ -1,28 +1,28 @@
 
-use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, With, Query, Visibility, Handle, Image, MouseButton, EventWriter, DetectChanges, Local, Transform, Quat}, input::mouse::MouseWheel, sprite::TextureAtlasSprite};
+use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, With, Query, Visibility, Handle, Image, MouseButton, EventWriter, DetectChanges, Local, Transform, Quat, Commands}, input::mouse::MouseWheel, sprite::TextureAtlasSprite};
 
-use crate::{plugins::{ui::ingame::inventory::CELL_COUNT_IN_ROW, assets::ItemAssets, cursor::position::CursorPosition, world::events::{DigBlockEvent, PlaceBlockEvent, SeedEvent, BreakBlockEvent}, player::{FaceDirection, Player, PlayerSpriteBody}, audio::{PlaySoundEvent, SoundType}, camera::components::MainCamera}, common::helpers, items::{Item, get_animation_points}, world::WorldData};
+use crate::{plugins::{ui::ingame::inventory::CELL_COUNT_IN_ROW, assets::ItemAssets, cursor::position::CursorPosition, world::events::{DigBlockEvent, PlaceBlockEvent, SeedEvent, BreakBlockEvent}, player::{FaceDirection, Player, PlayerSpriteBody}, audio::{SoundType, AudioCommandsExt}, camera::components::MainCamera}, common::helpers, items::{Item, get_animation_points}, world::WorldData};
 
 use super::{Inventory, SelectedItem, util::keycode_to_digit, SwingItemCooldown, ItemInHand, UseItemAnimationIndex, PlayerUsingItem, UseItemAnimationData, SwingItemCooldownMax, ITEM_ROTATION, SwingAnimation};
 
 pub(super) fn select_inventory_cell(
+    mut commands: Commands,
     input: Res<Input<KeyCode>>,
     mut inventory: ResMut<Inventory>, 
-    mut play_sound: EventWriter<PlaySoundEvent>
 ) {
     let digit = input
         .get_just_pressed()
         .find_map(keycode_to_digit);
 
     if digit.is_some_and(|i| inventory.select_item(i)) {
-        play_sound.send(PlaySoundEvent(SoundType::MenuTick));
+        commands.play_sound(SoundType::MenuTick);
     }
 }
 
 pub(super) fn scroll_select_inventory_item(
+    mut commands: Commands,
     mut inventory: ResMut<Inventory>, 
     mut mouse_wheel: EventReader<MouseWheel>,
-    mut play_sound: EventWriter<PlaySoundEvent>
 ) {
     for event in mouse_wheel.iter() {
         let selected_item_index = inventory.selected_slot as f32;
@@ -32,7 +32,7 @@ pub(super) fn scroll_select_inventory_item(
 
         inventory.select_item(new_index as usize);
 
-        play_sound.send(PlaySoundEvent(SoundType::MenuTick));
+        commands.play_sound(SoundType::MenuTick);
     }
 }
 
@@ -216,14 +216,14 @@ pub(super) fn update_sprite_index(
 }
 
 pub(super) fn play_swing_sound(
+    mut commands: Commands,
     selected_item: Res<SelectedItem>,
     swing_cooldown: Res<SwingItemCooldown>,
     swing_cooldown_max: Res<SwingItemCooldownMax>,
-    mut play_sound: EventWriter<PlaySoundEvent>
 ) {
     if **swing_cooldown == **swing_cooldown_max {
         if let Some(Item::Tool(tool)) = selected_item.map(|i| i.item) {
-            play_sound.send(PlaySoundEvent(SoundType::PlayerToolSwing(tool)));
+            commands.play_sound(SoundType::PlayerToolSwing(tool));
         }
     }
 }

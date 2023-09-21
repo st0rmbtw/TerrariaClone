@@ -5,7 +5,7 @@ use crate::{
         world::constants::TILE_SIZE,
         inventory::{ItemInHand, SwingAnimation},
     },
-    common::{math::{move_towards, map_range_usize, map_range_f32}, state::MovementState, rect::FRect, components::{Velocity, EntityRect}}, world::WorldData,
+    common::{math::{move_towards, map_range_usize}, state::MovementState, rect::FRect, components::{Velocity, EntityRect}}, world::WorldData,
 };
 
 use super::{*, utils::get_fall_distance};
@@ -149,14 +149,7 @@ pub(super) fn detect_collisions(
 
                         if is_enough_space && is_bottom_tile && f32::from(face_direction) == delta_x.signum() {
                             new_collisions.bottom = true;
-                            let a = if velocity.x.abs() > 1.5 {
-                                1.
-                            } else {
-                                velocity.x = velocity.x.abs().max(0.5) * velocity.x.signum();
-                                map_range_f32(0., 3., 0., 0.3, velocity.x.abs()).max(1. / 6.)
-                            };
-
-                            velocity.y = (tile_rect.top() - player_rect.bottom()) * a;
+                            velocity.y = (tile_rect.top() - player_rect.bottom()) * 0.2;
                             break 'outer;
                         }
 
@@ -251,7 +244,6 @@ pub(super) fn update_player_rect(
     player_rect.centery = new_position.y.clamp(min_y, max_y);
 }
 
-#[allow(non_upper_case_globals)]
 pub(super) fn move_player(
     mut query_player: Query<(&mut Transform, &EntityRect), With<Player>>,
 ) {
