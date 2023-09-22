@@ -1,5 +1,8 @@
+use std::f32::consts::PI;
+
 use bevy::{prelude::{Visibility, Vec2, Mut}, math::vec2};
 use bevy_ecs_tilemap::tiles::TilePos;
+use rand::{thread_rng, Rng};
 
 use crate::{plugins::world::constants::TILE_SIZE, world::{block::BlockType, wall::Wall, Size}};
 
@@ -40,4 +43,58 @@ pub(crate) fn get_tile_pos_from_world_coords(world_size: Size, world_coords: Vec
 
 pub(crate) fn tile_pos_to_world_coords(tile_pos: TilePos) -> Vec2 {
     vec2(tile_pos.x as f32 * TILE_SIZE, -(tile_pos.y as f32) * TILE_SIZE)
+}
+
+pub(crate) fn random_point_circle(width: f32, height: f32) -> Vec2 {
+    debug_assert!((0.0..=1.0).contains(&width));
+    debug_assert!((0.0..=1.0).contains(&height));
+
+    let mut rng = thread_rng();
+    
+    let radius = Vec2::new(width, height) * rng.gen_range(0f32..1f32).sqrt();
+    let theta = rng.gen_range(0.0..1.0) * 2. * PI;
+
+    let theta_cos = theta.cos();
+    let theta_sin = theta.sin();
+
+    let x = radius.x * theta_cos;
+    let y = radius.y * theta_sin;
+
+    Vec2::new(x, y)
+}
+
+pub(crate) fn random_point_ring(width: f32, height: f32) -> Vec2 {
+    debug_assert!((0.0..=1.0).contains(&width));
+    debug_assert!((0.0..=1.0).contains(&height));
+
+    let mut rng = thread_rng();
+    
+    let radius = Vec2::new(width, height);
+    let theta = rng.gen_range(0.0..1.0) * 2. * PI;
+
+    let theta_cos = theta.cos();
+    let theta_sin = theta.sin();
+
+    let x = radius.x * theta_cos;
+    let y = radius.y * theta_sin;
+
+    Vec2::new(x, y)
+}
+
+pub(crate) fn random_point_cone(direction: Vec2, angle: f32, max_length: f32) -> Vec2 {
+    let mut rng = thread_rng();
+
+    let rad = angle.to_radians();
+
+    let a = direction.y.atan2(direction.x);
+
+    let start_angle = -(rad / 2.) + a;
+    let end_angle = rad / 2. + a;
+
+    let theta = rng.gen_range(start_angle..end_angle);
+
+    let x = theta.cos();
+    let y = theta.sin();
+
+    Vec2::new(x, y) * rng.gen_range(0.0..max_length)
 }

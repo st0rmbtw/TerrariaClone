@@ -13,6 +13,7 @@ pub(crate) mod ui;
 pub(crate) mod world;
 pub(crate) mod audio;
 pub(crate) mod slider;
+pub(crate) mod particles;
 
 #[cfg(feature = "debug")]
 pub(crate) mod debug;
