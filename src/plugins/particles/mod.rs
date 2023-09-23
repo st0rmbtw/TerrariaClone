@@ -10,7 +10,7 @@ use self::components::{ParticleBundle, ParticleData};
 
 use super::{assets::ParticleAssets, InGameSystemSet};
 
-const PARTICLE_SIZE: f32 = 8.;
+pub(crate) const PARTICLE_SIZE: f32 = 8.;
 
 pub(crate) struct ParticlePlugin;
 
@@ -46,6 +46,7 @@ struct SpawnParticleCommand {
     velocity: Velocity,
     position: Vec2,
     lifetime: f64,
+    size: Option<f32>,
     light_source: Option<LightSource>
 }
 
@@ -59,14 +60,16 @@ impl Command for SpawnParticleCommand {
         let mut entity = world.spawn(ParticleBundle {
             particle_data: ParticleData {
                 lifetime: self.lifetime,
-                spawn_time: time.elapsed_seconds_f64()
+                size: self.size,
+                spawn_time: time.elapsed_seconds_f64(),
             },
             sprite: TextureAtlasSprite {
                 index: get_particle_index(self.particle, rng.gen_range(0..3)),
+                custom_size: self.size.map(|size| Vec2::splat(size)),
                 ..default()
             },
             texture_atlas: particle_assets.particles.clone_weak(),
-            transform: Transform::from_xyz(self.position.x, self.position.y, 10.),
+            transform: Transform::from_xyz(self.position.x, self.position.y, 100.),
             velocity: self.velocity,
             global_transform: GlobalTransform::default(),
             visibility: Visibility::default(),
@@ -80,27 +83,29 @@ impl Command for SpawnParticleCommand {
 }
 
 pub(crate) trait ParticleCommandsExt {
-    fn spawn_particle(&mut self, particle: Particle, position: Vec2, velocity: Velocity, lifetime: f64);
-    fn spawn_particle_light(&mut self, particle: Particle, position: Vec2, velocity: Velocity, lifetime: f64, light_color: Color);
+    fn spawn_particle(&mut self, particle: Particle, position: Vec2, velocity: Velocity, lifetime: f64, size: Option<f32>);
+    fn spawn_particle_light(&mut self, particle: Particle, position: Vec2, velocity: Velocity, lifetime: f64, light_color: Color, size: Option<f32>);
 }
 
 impl ParticleCommandsExt for Commands<'_, '_> {
-    fn spawn_particle(&mut self, particle: Particle, position: Vec2, velocity: Velocity, lifetime: f64) {
+    fn spawn_particle(&mut self, particle: Particle, position: Vec2, velocity: Velocity, lifetime: f64, size: Option<f32>) {
         self.add(SpawnParticleCommand {
             particle,
             velocity,
             position,
             lifetime,
+            size,
             light_source: None
         });
     }
 
-    fn spawn_particle_light(&mut self, particle: Particle, position: Vec2, velocity: Velocity, lifetime: f64, light_color: Color) {
+    fn spawn_particle_light(&mut self, particle: Particle, position: Vec2, velocity: Velocity, lifetime: f64, light_color: Color, size: Option<f32>) {
         self.add(SpawnParticleCommand {
             particle,
             velocity,
             position,
             lifetime,
+            size,
             light_source: Some(LightSource {
                 size: UVec2::splat(1),
                 color: Vec4::from(light_color).truncate(),

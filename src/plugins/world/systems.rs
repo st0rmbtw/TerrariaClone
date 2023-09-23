@@ -167,7 +167,11 @@ pub(super) fn spawn_chunk(
         ChunkContainer { pos: chunk_pos },
         DespawnOnGameExit,
         SpatialBundle {
-            transform: Transform::from_xyz(chunk_pos.x as f32 * CHUNK_SIZE * TILE_SIZE, -(chunk_pos.y as f32 + 1.) * CHUNK_SIZE * TILE_SIZE + TILE_SIZE, 0.),
+            transform: Transform::from_xyz(
+                chunk_pos.x as f32 * CHUNK_SIZE * TILE_SIZE + TILE_SIZE / 2.,
+                -(chunk_pos.y as f32 + 1.) * CHUNK_SIZE * TILE_SIZE + TILE_SIZE / 2.,
+                0.
+            ),
             ..default()
         }
     ))

@@ -6,6 +6,7 @@ use crate::common::components::Velocity;
 pub(crate) struct ParticleData {
     pub(super) spawn_time: f64,
     pub(super) lifetime: f64,
+    pub(super) size: Option<f32>
 }
 
 #[derive(Bundle)]

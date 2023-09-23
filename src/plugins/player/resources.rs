@@ -1,5 +1,7 @@
 use bevy::{prelude::{Deref, DerefMut, Resource}, time::Timer};
 
+use crate::world::block::BlockType;
+
 #[derive(Resource, Default, Clone, Copy)]
 pub(super) struct InputAxis {
     pub x: f32,
@@ -15,6 +17,7 @@ pub(super) struct MovementAnimationIndex(pub usize);
 pub(super) struct PlayerData {
     pub(super) jumping: bool,
     pub(super) fall_start: Option<f32>,
+    pub(super) ground: Option<BlockType>,
 }
 
 #[derive(Debug, Resource, Clone, Copy, Default)]

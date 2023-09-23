@@ -1,11 +1,12 @@
 use bevy::{prelude::*, sprite::Anchor};
+use rand::{thread_rng, Rng};
 
 use crate::{
     plugins::{
         world::constants::TILE_SIZE,
-        inventory::{ItemInHand, SwingAnimation},
+        inventory::{ItemInHand, SwingAnimation}, particles::{ParticleCommandsExt, Particle, PARTICLE_SIZE},
     },
-    common::{math::{move_towards, map_range_usize}, state::MovementState, rect::FRect, components::{Velocity, EntityRect}}, world::WorldData,
+    common::{math::{move_towards, map_range_usize}, state::MovementState, rect::FRect, components::{Velocity, EntityRect}, helpers::random_point_cone}, world::WorldData,
 };
 
 use super::{*, utils::get_fall_distance};
@@ -21,16 +22,15 @@ pub(super) fn horizontal_movement(
             velocity.x *= 0.9;
         }
         velocity.x += ACCELERATION;
-        velocity.x = velocity.x.clamp(-MAX_RUN_SPEED, MAX_RUN_SPEED);
     } else if axis.x < 0. {
         if velocity.x > 0. {
             velocity.x *= 0.9;
         }
         velocity.x -= ACCELERATION;
-        velocity.x = velocity.x.clamp(-MAX_RUN_SPEED, MAX_RUN_SPEED);
     } else {
         velocity.x = move_towards(velocity.x, 0., SLOWDOWN);
-    } 
+    }
+    velocity.x = velocity.x.clamp(-MAX_RUN_SPEED, MAX_RUN_SPEED);
 }
 
 pub(super) fn update_jump(
@@ -77,9 +77,9 @@ pub(super) fn gravity(
         if velocity.y <= 0. && player_data.fall_start.is_none() {
             player_data.fall_start = Some(position.bottom());
         }
-
-        velocity.y += GRAVITY * DIRECTION;
     }
+
+    velocity.y += GRAVITY * DIRECTION;
 
     if velocity.y.abs() > MAX_FALL_SPEED.abs() {
         velocity.y = MAX_FALL_SPEED * DIRECTION;
@@ -105,10 +105,10 @@ pub(super) fn detect_collisions(
 
     let next_rect = FRect::new_center(next_position.x, next_position.y, player_rect.width(), player_rect.height());
 
-    let left = ((pos.x - PLAYER_HALF_WIDTH) / TILE_SIZE) - 1.;
-    let right = ((pos.x + PLAYER_HALF_WIDTH) / TILE_SIZE) + 2.;
-    let mut top = ((pos.y.abs() - PLAYER_HALF_HEIGHT) / TILE_SIZE) - 1.;
-    let bottom = ((pos.y.abs() + PLAYER_HALF_HEIGHT) / TILE_SIZE) + 2.;
+    let left = (player_rect.left() / TILE_SIZE) - 1.;
+    let right = (player_rect.right() / TILE_SIZE) + 2.;
+    let mut top = (player_rect.top().abs() / TILE_SIZE) - 1.;
+    let bottom = (player_rect.bottom().abs() / TILE_SIZE) + 2.;
 
     top = top.max(0.);
 
@@ -118,13 +118,14 @@ pub(super) fn detect_collisions(
     let bottom_u32 = bottom as u32;
 
     let mut new_collisions = Collisions::default();
+    player_data.ground = None;
 
     'outer: for x in left_u32..right_u32 {
         for y in top_u32..bottom_u32 {
             if y >= world_data.size.height as u32 || world_data.solid_block_exists((x, y)) {
                 let tile_rect = FRect::new_center(
-                    x as f32 * TILE_SIZE,
-                    -(y as f32 * TILE_SIZE),
+                    x as f32 * TILE_SIZE + TILE_SIZE / 2.,
+                    -(y as f32 * TILE_SIZE + TILE_SIZE / 2.),
                     TILE_SIZE,
                     TILE_SIZE
                 );
@@ -149,17 +150,16 @@ pub(super) fn detect_collisions(
 
                         if is_enough_space && is_bottom_tile && f32::from(face_direction) == delta_x.signum() {
                             new_collisions.bottom = true;
-                            velocity.y = (tile_rect.top() - player_rect.bottom()) * 0.2;
+                            velocity.y = (tile_rect.top() - player_rect.bottom()) * 0.1;
                             break 'outer;
                         }
 
                         if delta_x < 0. {
-                            velocity.x = 0.;
                             new_collisions.left = true;
 
                             // If the player's left side is more to the left than the tile's right side then move the player right.
                             if next_rect.left() <= tile_rect.right() {
-                                player_rect.centerx = tile_rect.right() + player_rect.width() / 2.;
+                                velocity.x = tile_rect.right() - next_rect.left();
                             }
 
                             #[cfg(feature = "debug")]
@@ -167,12 +167,11 @@ pub(super) fn detect_collisions(
                                 tile_rect.draw_right_side(&mut gizmos, Color::BLUE);
                             }
                         } else {
-                            velocity.x = 0.;
                             new_collisions.right = true;
 
                             // If the player's right side is more to the right than the tile's left side then move the player left.
-                            if next_rect.right() >= tile_rect.left() {
-                                player_rect.centerx = tile_rect.right() + player_rect.width() / 2.;
+                            if player_rect.right() >= tile_rect.left() {
+                                velocity.x = tile_rect.left() - player_rect.right();
                             }
 
                             #[cfg(feature = "debug")]
@@ -184,11 +183,10 @@ pub(super) fn detect_collisions(
                         // Checking for collisions again with an offset to workaround the bug when the player stuck in a wall.
                         if FRect::new_bounds_h(next_rect.left() + 2.0, next_rect.top(), PLAYER_WIDTH - 4.0, PLAYER_HEIGHT).intersects(&tile_rect) {
                             if delta_y > 0. {
-                                velocity.y = 0.;
                                 new_collisions.top = true;
 
                                 // If the player's top side is higher than the tile's bottom side then move the player down.
-                                if player_rect.top() > tile_rect.bottom() {
+                                if player_rect.top() >= tile_rect.bottom() {
                                     velocity.y = tile_rect.bottom() - player_rect.top();
                                 }
 
@@ -199,16 +197,13 @@ pub(super) fn detect_collisions(
                             } else {
                                 new_collisions.bottom = true;
                                 player_data.jumping = false;
+                                player_data.ground = world_data.get_block((x, y)).map(|b| b.block_type);
                                 
                                 // If the player's bottom side is lower than the tile's top side then move the player up
-                                if player_rect.bottom() >= tile_rect.top() {
-                                    player_rect.centery = tile_rect.top() + player_rect.height() / 2.;
+                                if player_rect.bottom() <= tile_rect.top() {
                                     velocity.y = 0.;
+                                    player_rect.centery = tile_rect.top() + PLAYER_HALF_HEIGHT;
                                 }
-
-                                let _fall_distance = (get_fall_distance(player_rect.bottom(), player_data.fall_start) / TILE_SIZE).ceil();
-
-                                player_data.fall_start = None;
 
                                 #[cfg(feature = "debug")]
                                 if debug_config.show_collisions {
@@ -238,10 +233,11 @@ pub(super) fn update_player_rect(
     let max_x = world_data.size.width as f32 * TILE_SIZE - PLAYER_HALF_WIDTH - TILE_SIZE / 2.;
     const max_y: f32 = -PLAYER_HALF_HEIGHT - TILE_SIZE / 2.;
 
-    let new_position = (player_rect.center() + velocity.0).floor();
+    let new_position = (player_rect.center() + velocity.0)
+        .floor()
+        .clamp(vec2(min_x, min_y), vec2(max_x, max_y));
 
-    player_rect.centerx = new_position.x.clamp(min_x, max_x);
-    player_rect.centery = new_position.y.clamp(min_y, max_y);
+    *player_rect = EntityRect(FRect::new_center(new_position.x, new_position.y, player_rect.width(), player_rect.height()))
 }
 
 pub(super) fn move_player(
@@ -266,6 +262,66 @@ pub(super) fn update_movement_state(
         Vec2 { x, .. } if x != 0. => MovementState::Walking,
         _ => MovementState::Idle
     };
+}
+
+pub(super) fn spawn_particles_on_walk(
+    mut commands: Commands,
+    query_player: Query<(&MovementState, &FaceDirection, &Velocity, &EntityRect), With<Player>>,
+) {
+    let (movement_state, face_direction, velocity, rect) = query_player.single();
+
+    if *movement_state != MovementState::Walking { return; }
+
+    let direction = match face_direction {
+        FaceDirection::Left => Vec2::new(1., 0.),
+        FaceDirection::Right => Vec2::new(-1., 0.),
+    };
+
+    let mut rng = thread_rng();
+
+    for _ in 0..(velocity.x.abs().floor() as u32) {
+        let size = rng.gen_range(0f32..=1f32) * PARTICLE_SIZE;
+        let position = Vec2::new(rect.centerx, rect.bottom());
+
+        let point = random_point_cone(direction, 90., 50.);
+        let velocity = point.normalize() * 0.5;
+
+        commands.spawn_particle(Particle::Dirt, position, velocity.into(), 0.3, Some(size));
+    }
+}
+
+pub(super) fn spawn_particles_grounded(
+    mut commands: Commands,
+    collisions: Res<Collisions>,
+    player_data: Res<PlayerData>,
+    query_player: Query<&EntityRect, With<Player>>,
+    mut prev_grounded: Local<bool>
+) {
+    let rect = query_player.single();
+
+    let fall_distance = get_fall_distance(rect.bottom(), player_data.fall_start);
+
+    if !*prev_grounded && collisions.bottom && fall_distance > TILE_SIZE {
+        let center = Vec2::new(rect.centerx, rect.bottom());
+
+        let mut rng = thread_rng();
+
+        for _ in 0..10 {
+            let size = rng.gen_range(0f32..=1f32) * PARTICLE_SIZE;
+            let point = random_point_cone(Vec2::Y, 180., 20.);
+            let velocity = point.normalize();
+
+            commands.spawn_particle(
+                Particle::Dirt,
+                center,
+                velocity.into(),
+                0.25,
+                Some(size)
+            );
+        }
+    }
+
+    *prev_grounded = collisions.bottom;
 }
 
 pub(super) fn update_face_direction(axis: Res<InputAxis>, mut query: Query<&mut FaceDirection>) {
@@ -362,6 +418,15 @@ pub(super) fn walking_animation(
             );
         }
     });
+}
+
+pub(super) fn reset_fallstart(
+    collisions: Res<Collisions>,
+    mut player_data: ResMut<PlayerData>
+) {
+    if collisions.bottom {
+        player_data.fall_start = None;
+    }
 }
 
 #[cfg(feature = "debug")]

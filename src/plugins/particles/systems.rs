@@ -1,7 +1,7 @@
 use bevy::{prelude::{Query, Transform, With, Commands, Res, Vec2, Entity, Color}, sprite::TextureAtlasSprite, time::Time};
 use rand::{thread_rng, Rng};
 
-use crate::{common::{components::Velocity, math::map_range_f64, helpers::random_point_cone}, plugins::{cursor::position::CursorPosition, camera::components::MainCamera}, lighting::types::LightSource};
+use crate::{common::{components::Velocity, math::map_range_f64, helpers::{random_point_cone, random_point_circle, random_point_ring}}, plugins::{cursor::position::CursorPosition, camera::components::MainCamera}, lighting::types::LightSource};
 
 use super::{Particle, ParticleCommandsExt, components::ParticleData, PARTICLE_SIZE};
 
@@ -31,7 +31,7 @@ pub(super) fn update_particle_opacity(
             time.elapsed_seconds_f64()
         ).clamp(0., 1.) as f32;
 
-        sprite.custom_size = Some(Vec2::splat(factor * PARTICLE_SIZE));
+        sprite.custom_size = Some(Vec2::splat(factor * particle_data.size.unwrap_or(PARTICLE_SIZE)));
 
         if let Some(mut light_source) = light_source {
             light_source.intensity = factor as f32;
@@ -51,18 +51,19 @@ pub(super) fn try_spawn_particles(
         let lifetime = rng.gen_range(0.5f64..2f64);
 
         // let point = random_point_ring(1., 1.) * 100.;
-        let point = random_point_cone(Vec2::X, 90., 200.);
+        let point = random_point_circle(1., 1.);
 
         let position = center + point;
-        // let velocity = point.normalize() * 2.;
-        let velocity = Vec2::ZERO;
+        let velocity = point;
+        // let velocity = Vec2::ZERO;
 
         commands.spawn_particle_light(
             Particle::Grass,
             position,
             velocity.into(),
             lifetime,
-            Color::GREEN
+            Color::GREEN,
+            None,
         );
     }
 }
