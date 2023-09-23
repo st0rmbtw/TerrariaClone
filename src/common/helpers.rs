@@ -41,7 +41,7 @@ pub(crate) fn get_tile_pos_from_world_coords(world_size: Size, world_coords: Vec
 }
 
 pub(crate) fn tile_pos_to_world_coords(tile_pos: TilePos) -> Vec2 {
-    vec2(tile_pos.x as f32 * TILE_SIZE, -(tile_pos.y as f32) * TILE_SIZE)
+    vec2(tile_pos.x as f32 * TILE_SIZE + TILE_SIZE / 2., -(tile_pos.y as f32 * TILE_SIZE + TILE_SIZE / 2.))
 }
 
 pub(crate) fn random_point_circle(width: f32, height: f32) -> Vec2 {

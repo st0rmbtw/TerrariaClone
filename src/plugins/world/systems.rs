@@ -23,7 +23,7 @@ use rand::{thread_rng, Rng};
 use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::components::MainCamera, player::Player, audio::{SoundType, AudioCommandsExt}, DespawnOnGameExit}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect, TextureAtlasPos, math::map_range_i32, components::EntityRect}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}, lighting::UpdateTilesTextureEvent, WALL_LAYER, TILES_LAYER};
 
 use super::{
-    utils::{get_chunk_pos, get_camera_fov, get_chunk_tile_pos, get_chunk_range_by_camera_fov}, 
+    utils::{get_chunk_pos, get_camera_fov, get_chunk_tile_pos, get_chunk_range_by_camera_fov, self}, 
     events::{UpdateNeighborsEvent, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent, UpdateBlockEvent, SeedEvent, UpdateCracksEvent},
     resources::{ChunkManager, WorldUndergroundLevel}, 
     constants::{CHUNK_SIZE_U, WALL_SIZE, CHUNKMAP_SIZE, TREE_SIZE, TREE_BRANCHES_SIZE, TREE_TOPS_SIZE, CHUNK_SIZE, TILE_SIZE}, WORLD_RENDER_LAYER
@@ -427,6 +427,7 @@ pub(super) fn handle_break_block_event(
             });
             commands.play_sound(SoundType::BlockHit(block.block_type));
             update_neighbors.send(UpdateNeighborsEvent { tile_pos });
+            utils::spawn_particles_on_break(&mut commands, block.block_type, tile_pos);
         }
     }
 }
@@ -448,7 +449,9 @@ pub(super) fn handle_dig_block_event(
 
             if block.hp <= 0 {
                 break_block_events.send(BreakBlockEvent { tile_pos });
-            } else {                
+            } else {
+                utils::spawn_particles_on_dig(&mut commands, block.block_type, tile_pos);
+
                 if block.block_type == BlockType::Grass {
                     block.block_type = BlockType::Dirt;
                 }

@@ -3,7 +3,7 @@ use rand::{thread_rng, Rng};
 
 use crate::{
     plugins::{
-        world::constants::TILE_SIZE,
+        world::{constants::TILE_SIZE, WORLD_RENDER_LAYER},
         inventory::{ItemInHand, SwingAnimation}, particles::{ParticleCommandsExt, Particle, PARTICLE_SIZE},
     },
     common::{math::{move_towards, map_range_usize}, state::MovementState, rect::FRect, components::{Velocity, EntityRect}, helpers::random_point_cone}, world::WorldData,
@@ -266,11 +266,13 @@ pub(super) fn update_movement_state(
 
 pub(super) fn spawn_particles_on_walk(
     mut commands: Commands,
+    player_data: Res<PlayerData>,
     query_player: Query<(&MovementState, &FaceDirection, &Velocity, &EntityRect), With<Player>>,
 ) {
     let (movement_state, face_direction, velocity, rect) = query_player.single();
 
     if *movement_state != MovementState::Walking { return; }
+    if !player_data.ground.is_some_and(|b| b.dusty()) { return; }
 
     let direction = match face_direction {
         FaceDirection::Left => Vec2::new(1., 0.),
@@ -286,7 +288,7 @@ pub(super) fn spawn_particles_on_walk(
         let point = random_point_cone(direction, 90., 50.);
         let velocity = point.normalize() * 0.5;
 
-        commands.spawn_particle(Particle::Dirt, position, velocity.into(), 0.3, Some(size));
+        commands.spawn_particle(Particle::Dirt, position, velocity.into(), 0.3, Some(size), false, WORLD_RENDER_LAYER);
     }
 }
 
@@ -298,6 +300,11 @@ pub(super) fn spawn_particles_grounded(
     mut prev_grounded: Local<bool>
 ) {
     let rect = query_player.single();
+
+    if !player_data.ground.is_some_and(|b| b.dusty()) {
+        *prev_grounded = collisions.bottom;
+        return;
+    }
 
     let fall_distance = get_fall_distance(rect.bottom(), player_data.fall_start);
 
@@ -316,7 +323,9 @@ pub(super) fn spawn_particles_grounded(
                 center,
                 velocity.into(),
                 0.25,
-                Some(size)
+                Some(size),
+                false,
+                WORLD_RENDER_LAYER
             );
         }
     }

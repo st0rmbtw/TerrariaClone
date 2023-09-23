@@ -65,6 +65,13 @@ impl BlockType {
             BlockType::Tree(_) => 500,
         }
     }
+
+    pub(crate) const fn dusty(&self) -> bool {
+        match self {
+            BlockType::Dirt => true,
+            _ => false
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Component)]

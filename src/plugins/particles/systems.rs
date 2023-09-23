@@ -1,4 +1,4 @@
-use bevy::{prelude::{Query, Transform, With, Commands, Res, Vec2, Entity, Color}, sprite::TextureAtlasSprite, time::Time};
+use bevy::{prelude::{Query, Transform, With, Commands, Res, Vec2, Entity, Color}, sprite::TextureAtlasSprite, time::Time, render::view::RenderLayers};
 use rand::{thread_rng, Rng};
 
 use crate::{common::{components::Velocity, math::map_range_f64, helpers::{random_point_cone, random_point_circle, random_point_ring}}, plugins::{cursor::position::CursorPosition, camera::components::MainCamera}, lighting::types::LightSource};
@@ -11,6 +11,16 @@ pub(super) fn update_particle_position(
     for (mut transform, velocity) in &mut query {
         transform.translation.x += velocity.x;
         transform.translation.y += velocity.y;
+    }
+}
+
+pub(super) fn update_particle_velocity(
+    mut query: Query<(&mut Velocity, &ParticleData)>
+) {
+    for (mut velocity, particle_data) in &mut query {
+        if particle_data.gravity {
+            velocity.y -= 0.1;
+        }
     }
 }
 
@@ -62,8 +72,10 @@ pub(super) fn try_spawn_particles(
             position,
             velocity.into(),
             lifetime,
-            Color::GREEN,
             None,
+            false,
+            RenderLayers::default(),
+            Color::GREEN,
         );
     }
 }
