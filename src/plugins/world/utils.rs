@@ -1,8 +1,10 @@
+use std::f32::consts::PI;
+
 use bevy::prelude::{Vec2, OrthographicProjection, UVec2, Commands};
 use bevy_ecs_tilemap::tiles::TilePos;
 use rand::{thread_rng, Rng};
 
-use crate::{world::{chunk::ChunkPos, Size, block::BlockType}, common::helpers::{random_point_circle, tile_pos_to_world_coords}, plugins::particles::{PARTICLE_SIZE, Particle, ParticleCommandsExt}};
+use crate::{world::{chunk::ChunkPos, Size, block::BlockType}, common::helpers::{random_point_circle, tile_pos_to_world_coords}, plugins::particles::{PARTICLE_SIZE, Particle, ParticleCommandsExt, ParticleBuilder}};
 
 use super::{constants::{CHUNK_SIZE_U, CHUNK_SIZE, TILE_SIZE}, CameraFov, ChunkRange, WORLD_RENDER_LAYER};
 
@@ -53,19 +55,19 @@ pub(super) fn get_chunk_range_by_camera_fov(camera_fov: CameraFov, world_size: S
 pub(super) fn spawn_particles_on_dig(commands: &mut Commands, block: BlockType, tile_pos: TilePos) {
     let mut rng = thread_rng();
 
+    let Some(particle) = Particle::get_by_block(block) else { return; };
+
     for _ in 0..3 {
         let point = random_point_circle(1., 1.) * 8.;
         let velocity = point.normalize() * 1.5;
         let size = rng.gen_range(0.3..1.0) * PARTICLE_SIZE;
 
         commands.spawn_particle(
-            Particle::get_by_block(block).unwrap(),
-            tile_pos_to_world_coords(tile_pos),
-            velocity.into(),
-            0.5,
-            Some(size),
-            true,
-            WORLD_RENDER_LAYER
+            ParticleBuilder::new(particle, tile_pos_to_world_coords(tile_pos), velocity, 1.)
+                .with_size(size)
+                .with_gravity(true)
+                .with_render_layer(WORLD_RENDER_LAYER)
+                .with_rotation(PI / 12.)
         );
     }
 }
@@ -73,19 +75,19 @@ pub(super) fn spawn_particles_on_dig(commands: &mut Commands, block: BlockType, 
 pub(super) fn spawn_particles_on_break(commands: &mut Commands, block: BlockType, tile_pos: TilePos) {
     let mut rng = thread_rng();
 
+    let Some(particle) = Particle::get_by_block(block) else { return; };
+
     for _ in 0..10 {
         let point = random_point_circle(1., 1.) * 8.;
         let velocity = point.normalize() * 1.5;
         let size = rng.gen_range(0.3..1.0) * PARTICLE_SIZE;
 
         commands.spawn_particle(
-            Particle::get_by_block(block).unwrap(),
-            tile_pos_to_world_coords(tile_pos),
-            velocity.into(),
-            0.5,
-            Some(size),
-            true,
-            WORLD_RENDER_LAYER
+            ParticleBuilder::new(particle, tile_pos_to_world_coords(tile_pos), velocity, 1.)
+                .with_size(size)
+                .with_gravity(true)
+                .with_render_layer(WORLD_RENDER_LAYER)
+                .with_rotation(PI / 12.)
         );
     }
 }

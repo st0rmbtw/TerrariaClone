@@ -407,11 +407,11 @@ impl MusicAssets {
 
 #[derive(Resource, AssetCollection)]
 pub(crate) struct ParticleAssets {
-    #[asset(texture_atlas(tile_size_x = 8., tile_size_y = 8., columns = 94, rows = 12, padding_x = 2., padding_y = 2.))]
+    #[asset(texture_atlas(tile_size_x = 8., tile_size_y = 8., columns = 100, rows = 12, padding_x = 2., padding_y = 2.))]
     #[asset(path = "sprites/Particles.png")]
     pub(crate) particles: Handle<TextureAtlas>,
 }
 
 impl ParticleAssets {
-    pub(crate) const COLUMNS: usize = 94;
+    pub(crate) const COLUMNS: usize = 100;
 }

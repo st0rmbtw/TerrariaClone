@@ -1,12 +1,14 @@
+use std::f32::consts::PI;
+
 use bevy::{prelude::*, sprite::Anchor};
 use rand::{thread_rng, Rng};
 
 use crate::{
     plugins::{
         world::{constants::TILE_SIZE, WORLD_RENDER_LAYER},
-        inventory::{ItemInHand, SwingAnimation}, particles::{ParticleCommandsExt, Particle, PARTICLE_SIZE},
+        inventory::{ItemInHand, SwingAnimation}, particles::{ParticleCommandsExt, Particle, PARTICLE_SIZE, ParticleBuilder},
     },
-    common::{math::{move_towards, map_range_usize}, state::MovementState, rect::FRect, components::{Velocity, EntityRect}, helpers::random_point_cone}, world::WorldData,
+    common::{math::{move_towards, map_range_usize}, state::MovementState, rect::FRect, components::{Velocity, EntityRect}, helpers::{random_point_cone, random_point_circle}}, world::WorldData,
 };
 
 use super::{*, utils::get_fall_distance};
@@ -272,7 +274,9 @@ pub(super) fn spawn_particles_on_walk(
     let (movement_state, face_direction, velocity, rect) = query_player.single();
 
     if *movement_state != MovementState::Walking { return; }
-    if !player_data.ground.is_some_and(|b| b.dusty()) { return; }
+
+    let Some(ground_block) = player_data.ground else { return; };
+    if !ground_block.dusty() { return; }
 
     let direction = match face_direction {
         FaceDirection::Left => Vec2::new(1., 0.),
@@ -288,7 +292,11 @@ pub(super) fn spawn_particles_on_walk(
         let point = random_point_cone(direction, 90., 50.);
         let velocity = point.normalize() * 0.5;
 
-        commands.spawn_particle(Particle::Dirt, position, velocity.into(), 0.3, Some(size), false, WORLD_RENDER_LAYER);
+        commands.spawn_particle(
+            ParticleBuilder::new(Particle::get_by_block(ground_block).unwrap(), position, velocity, 0.3)
+                .with_size(size)
+                .with_render_layer(WORLD_RENDER_LAYER)
+        );
     }
 }
 
@@ -301,31 +309,34 @@ pub(super) fn spawn_particles_grounded(
 ) {
     let rect = query_player.single();
 
-    if !player_data.ground.is_some_and(|b| b.dusty()) {
+    let Some(ground_block) = player_data.ground else {
+        *prev_grounded = collisions.bottom;
+        return;
+    };
+
+    if !ground_block.dusty() {
         *prev_grounded = collisions.bottom;
         return;
     }
 
     let fall_distance = get_fall_distance(rect.bottom(), player_data.fall_start);
 
-    if !*prev_grounded && collisions.bottom && fall_distance > TILE_SIZE {
+    if !*prev_grounded && collisions.bottom && fall_distance > TILE_SIZE * 1.5 {
         let center = Vec2::new(rect.centerx, rect.bottom());
 
         let mut rng = thread_rng();
 
         for _ in 0..10 {
             let size = rng.gen_range(0f32..=1f32) * PARTICLE_SIZE;
-            let point = random_point_cone(Vec2::Y, 180., 20.);
-            let velocity = point.normalize();
+            let point = random_point_circle(1., 0.5) * PLAYER_HALF_WIDTH;
+            let position = center + point;
+            let velocity = Vec2::new(point.normalize().x, 0.5);
 
             commands.spawn_particle(
-                Particle::Dirt,
-                center,
-                velocity.into(),
-                0.25,
-                Some(size),
-                false,
-                WORLD_RENDER_LAYER
+                ParticleBuilder::new(Particle::get_by_block(ground_block).unwrap(), position, velocity, 0.3)
+                    .with_size(size)
+                    .with_render_layer(WORLD_RENDER_LAYER)
+                    .with_rotation(PI / 12.)
             );
         }
     }

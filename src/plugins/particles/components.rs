@@ -7,7 +7,8 @@ pub(crate) struct ParticleData {
     pub(super) spawn_time: f64,
     pub(super) lifetime: f64,
     pub(super) gravity: bool,
-    pub(super) size: Option<f32>
+    pub(super) size: Option<f32>,
+    pub(super) rotation_speed: f32
 }
 
 #[derive(Bundle)]
@@ -20,6 +21,6 @@ pub(crate) struct ParticleBundle {
     pub(crate) visibility: Visibility,
     pub(crate) computed_visibility: ComputedVisibility,
     pub(crate) velocity: Velocity,
-    pub(crate) render_layer: RenderLayers
+    pub(crate) render_layer: RenderLayers,
 }
 

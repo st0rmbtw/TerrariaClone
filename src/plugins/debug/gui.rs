@@ -1,85 +1,11 @@
-use bevy::{prelude::{App, Plugin, ResMut, Commands, TextBundle, Res, Color, OnEnter, Query, Visibility, With, DetectChanges, Name, AppTypeRegistry, Vec2, Update, IntoSystemConfigs, Resource, Component}, utils::default, text::{Text, TextSection, TextStyle}, ui::{Style, Val, PositionType}, sprite::TextureAtlasSprite, time::Time, reflect::{Reflect, ReflectMut}};
-use bevy_ecs_tilemap::{tiles::TilePos, helpers::square_grid::neighbors::Neighbors};
-use bevy_inspector_egui::{bevy_egui::{egui, EguiContexts}, egui::{Align2, CollapsingHeader, ScrollArea}, quick::WorldInspectorPlugin, reflect_inspector};
+use bevy::{prelude::{ResMut, Res, Query, AppTypeRegistry, With, Vec3}, time::Time, reflect::{ReflectMut, Reflect}, window::{PrimaryWindow, Window}};
+use bevy_inspector_egui::{bevy_egui::EguiContexts, egui::{self, Align2, ScrollArea, CollapsingHeader, DragValue, Checkbox}, reflect_inspector};
 
-use crate::{common::{state::GameState, helpers, components::EntityRect}, world::{block::BlockType, WorldData, chunk::ChunkContainer}};
+use crate::world::{chunk::ChunkContainer, block::BlockType};
 
-use super::{assets::FontAssets, inventory::{UseItemAnimationIndex, UseItemAnimationData}, camera::components::MainCamera, cursor::position::CursorPosition, DespawnOnGameExit, InGameSystemSet, player::FaceDirection};
+use super::resources::{DebugConfiguration, HoverBlockData, MouseParticleSettings, MouseLightSettings};
 
-pub(crate) struct DebugPlugin;
-impl Plugin for DebugPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_plugins(WorldInspectorPlugin::new());
-
-        app.insert_resource(HoverBlockData {
-            pos: TilePos::default(),
-            block_type: None,
-            neighbors: Neighbors {
-                east: None,
-                north_east: None,
-                north: None,
-                north_west: None,
-                west: None,
-                south_west: None,
-                south: None,
-                south_east: None,
-            },
-        });
-
-        app.insert_resource(DebugConfiguration::default());
-
-        app.register_type::<TextureAtlasSprite>();
-        app.register_type::<UseItemAnimationIndex>();
-        app.register_type::<UseItemAnimationData>();
-        app.register_type::<FaceDirection>();
-        app.register_type::<EntityRect>();
-
-        app.add_systems(OnEnter(GameState::InGame), spawn_free_camera_legend);
-        app.add_systems(
-            Update,
-            (
-                debug_gui,
-                block_gui,
-                set_free_camera_legend_visibility,
-                block_hover,
-            )
-            .in_set(InGameSystemSet::Update)
-        );
-    }
-}
-
-#[derive(Resource)]
-pub(crate) struct DebugConfiguration {
-    pub(crate) free_camera: bool,
-    pub(crate) instant_break: bool,
-
-    pub(crate) show_hitboxes: bool,
-    pub(crate) show_collisions: bool,
-    pub(crate) show_tiles: bool,
-    pub(crate) show_walls: bool,
-    pub(crate) shadow_tiles: bool,
-    pub(crate) player_speed: Vec2,
-}
-
-impl Default for DebugConfiguration {
-    fn default() -> Self {
-        Self {
-            free_camera: false,
-            instant_break: false,
-            show_hitboxes: false,
-            shadow_tiles: false,
-            show_collisions: true,
-            show_tiles: true,
-            show_walls: true,
-            player_speed: default()
-        }
-    }
-}
-
-#[derive(Component)]
-struct FreeCameraLegendText;
-
-fn debug_gui(
+pub(super) fn debug_gui(
     mut contexts: EguiContexts, 
     mut debug_config: ResMut<DebugConfiguration>,
     mut time: ResMut<Time>,
@@ -130,54 +56,7 @@ fn debug_gui(
         });
 }
 
-fn set_free_camera_legend_visibility(
-    mut query: Query<&mut Visibility, With<FreeCameraLegendText>>,
-    debug_config: Res<DebugConfiguration>
-) {
-    if debug_config.is_changed() {
-        let visibility = query.single_mut();
-        helpers::set_visibility(visibility, debug_config.free_camera);
-    }
-}
-
-fn spawn_free_camera_legend(
-    mut commands: Commands,
-    font_assets: Res<FontAssets>,
-) {
-    let text_style = TextStyle {
-        font: font_assets.andy_regular.clone_weak(),
-        font_size: 22.,
-        color: Color::WHITE,
-    };
-
-    commands.spawn((
-        Name::new("Free Camera Legend Text"),
-        FreeCameraLegendText,
-        DespawnOnGameExit,
-        TextBundle {
-            style: Style {
-                left: Val::Px(20.),
-                bottom: Val::Px(50.),
-                position_type: PositionType::Absolute,
-                ..default()
-            },
-            text: Text::from_sections([
-                TextSection::new("Right Click to teleport\nWASD to pan, Shift for faster, Alt for slower", text_style),
-            ]),
-            visibility: Visibility::Hidden,
-            ..default()
-        },
-    ));
-}
-
-#[derive(Resource)]
-struct HoverBlockData {
-    pos: TilePos,
-    block_type: Option<BlockType>,
-    neighbors: Neighbors<BlockType>
-}
-
-fn block_gui(
+pub(super) fn block_gui(
     mut contexts: EguiContexts,
     block_data: Res<HoverBlockData>,
     type_registry: Res<AppTypeRegistry>,
@@ -259,16 +138,112 @@ fn block_gui(
         });
 }
 
-fn block_hover(
-    cursor: Res<CursorPosition<MainCamera>>,
-    world_data: Res<WorldData>,
-    mut block_data: ResMut<HoverBlockData>
+pub(super) fn particle_gui(
+    mut contexts: EguiContexts,
+    mut mouse_particle: ResMut<MouseParticleSettings>,
+    type_registry: Res<AppTypeRegistry>,
+    query_window: Query<&Window, With<PrimaryWindow>>
 ) {
-    let tile_pos = helpers::get_tile_pos_from_world_coords(world_data.size, cursor.world);
-    let block_type = world_data.get_block(tile_pos).map(|b| *b);
-    let neighbors = world_data.get_block_neighbors(tile_pos, true);
+    let window = query_window.single();
+    let width = window.width();
+    let height = window.height();
 
-    block_data.pos = tile_pos;
-    block_data.block_type = block_type.map(|b| b.block_type);
-    block_data.neighbors = neighbors.map_ref(|b| b.block_type);
+    let egui_context = contexts.ctx_mut();
+    
+    let mut light_color = mouse_particle.light_color.is_some();
+    let mut color = mouse_particle.light_color.unwrap_or(Vec3::new(1., 0., 0.)).to_array();
+
+    let pos = (
+        0. * width + 10.,
+        0.5 * height + 120.
+    );
+
+    egui::Window::new("Spawn Particles")
+        .resizable(false)
+        .default_pos(pos)
+        .default_open(false)
+        .show(&egui_context, |ui| {
+            ui.columns(2, |columns| {
+                columns[0].label("Index");
+                columns[1].add(
+                    DragValue::new(&mut mouse_particle.index)
+                        .clamp_range(0..=300)
+                        .speed(1.)
+                );
+
+                columns[0].label("Velocity");
+                columns[1].columns(2, |columns| {
+                    reflect_inspector::ui_for_value(&mut mouse_particle.velocity.x, &mut columns[0], &type_registry.0.read());
+                    reflect_inspector::ui_for_value(&mut mouse_particle.velocity.y, &mut columns[1], &type_registry.0.read());
+                });
+
+                columns[0].label("Lifetime");
+                columns[1].add(DragValue::new(&mut mouse_particle.lifetime).speed(0.1));
+
+                columns[0].label("Count");
+                columns[1].add(DragValue::new(&mut mouse_particle.count));
+
+                columns[0].label("Spawn type");
+                reflect_inspector::ui_for_value(&mut mouse_particle.spawn_type, &mut columns[1], &type_registry.0.read());
+
+                columns[0].label("Light color");
+                columns[1].columns(2, |columns| {
+                    columns[0].add(Checkbox::without_text(&mut light_color));
+                    if light_color {
+                        columns[1].color_edit_button_rgb(&mut color);
+                    }
+                });
+            });
+        });
+
+    mouse_particle.light_color = light_color.then_some(Vec3::from_array(color));
+}
+
+pub(super) fn mouse_light_gui(
+    mut contexts: EguiContexts,
+    mut mouse_light: ResMut<MouseLightSettings>,
+    query_window: Query<&Window, With<PrimaryWindow>>
+) {
+    let window = query_window.single();
+    let width = window.width();
+    let height = window.height();
+
+    let egui_context = contexts.ctx_mut();
+    
+    let mut color = mouse_light.color.to_array();
+
+    let pos = (
+        0. * width + 10.,
+        0.5 * height - 25.
+    );
+
+    egui::Window::new("Mouse Light")
+        .resizable(false)
+        .default_open(false)
+        .default_pos(pos)
+        .show(&egui_context, |ui| {
+            ui.columns(2, |columns| {
+                columns[0].label("Enabled");
+                columns[1].add(Checkbox::without_text(&mut mouse_light.enabled));
+
+                columns[0].label("Intensity");
+                columns[1].add(
+                    DragValue::new(&mut mouse_light.intensity)
+                        .speed(0.1)
+                        .clamp_range(0.0..=1.0)
+                );
+
+                columns[0].label("Jitter intensity");
+                columns[1].add(
+                    DragValue::new(&mut mouse_light.jitter_intensity)
+                        .speed(0.1)
+                        .clamp_range(0.0..=1.0)
+                );
+
+                columns[0].label("Color");
+                columns[1].color_edit_button_rgb(&mut color);
+            });
+        });
+
+    mouse_light.color = Vec3::from_array(color);
 }

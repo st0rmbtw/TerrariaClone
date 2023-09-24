@@ -1,9 +1,8 @@
-use bevy::{prelude::{Query, Transform, With, Commands, Res, Vec2, Entity, Color}, sprite::TextureAtlasSprite, time::Time, render::view::RenderLayers};
-use rand::{thread_rng, Rng};
+use bevy::{prelude::{Query, Transform, With, Commands, Res, Vec2, Entity}, sprite::TextureAtlasSprite, time::Time};
 
-use crate::{common::{components::Velocity, math::map_range_f64, helpers::{random_point_cone, random_point_circle, random_point_ring}}, plugins::{cursor::position::CursorPosition, camera::components::MainCamera}, lighting::types::LightSource};
+use crate::{common::{components::Velocity, math::map_range_f64}, lighting::types::LightSource};
 
-use super::{Particle, ParticleCommandsExt, components::ParticleData, PARTICLE_SIZE};
+use super::{components::ParticleData, PARTICLE_SIZE};
 
 pub(super) fn update_particle_position(
     mut query: Query<(&mut Transform, &Velocity), With<ParticleData>>
@@ -24,7 +23,15 @@ pub(super) fn update_particle_velocity(
     }
 }
 
-pub(super) fn update_particle_opacity(
+pub(super) fn update_particle_rotation(
+    mut query: Query<(&mut Transform, &ParticleData)>
+) {
+    for (mut transform, particle_data) in &mut query {
+        transform.rotate_local_z(particle_data.rotation_speed);
+    }
+}
+
+pub(super) fn update_particle_over_lifetime(
     mut commands: Commands,
     time: Res<Time>,
     mut query: Query<(Entity, &mut TextureAtlasSprite, &ParticleData, Option<&mut LightSource>)>
@@ -46,36 +53,5 @@ pub(super) fn update_particle_opacity(
         if let Some(mut light_source) = light_source {
             light_source.intensity = factor as f32;
         }
-    }
-}
-
-pub(super) fn try_spawn_particles(
-    cursor_pos: Res<CursorPosition<MainCamera>>,
-    mut commands: Commands
-) {
-    let center = cursor_pos.world;
-
-    let mut rng = thread_rng();
-
-    for _ in 0..30 {
-        let lifetime = rng.gen_range(0.5f64..2f64);
-
-        // let point = random_point_ring(1., 1.) * 100.;
-        let point = random_point_circle(1., 1.);
-
-        let position = center + point;
-        let velocity = point;
-        // let velocity = Vec2::ZERO;
-
-        commands.spawn_particle_light(
-            Particle::Grass,
-            position,
-            velocity.into(),
-            lifetime,
-            None,
-            false,
-            RenderLayers::default(),
-            Color::GREEN,
-        );
     }
 }
