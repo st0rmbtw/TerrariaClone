@@ -160,8 +160,8 @@ pub(super) fn detect_collisions(
                             new_collisions.left = true;
 
                             // If the player's left side is more to the left than the tile's right side then move the player right.
-                            if next_rect.left() <= tile_rect.right() {
-                                velocity.x = tile_rect.right() - next_rect.left();
+                            if player_rect.left() <= tile_rect.right() {
+                                velocity.x = tile_rect.right() - player_rect.left();
                             }
 
                             #[cfg(feature = "debug")]
@@ -239,7 +239,7 @@ pub(super) fn update_player_rect(
         .floor()
         .clamp(vec2(min_x, min_y), vec2(max_x, max_y));
 
-    *player_rect = EntityRect(FRect::new_center(new_position.x, new_position.y, player_rect.width(), player_rect.height()))
+    **player_rect = player_rect.with_center(new_position.x, new_position.y);
 }
 
 pub(super) fn move_player(
@@ -277,7 +277,9 @@ pub(super) fn spawn_particles_on_walk(
 
     let Some(ground_block) = player_data.ground else { return; };
     if !ground_block.dusty() { return; }
-
+    
+    let particle = Particle::get_by_block(ground_block).unwrap();
+    
     let direction = match face_direction {
         FaceDirection::Left => Vec2::new(1., 0.),
         FaceDirection::Right => Vec2::new(-1., 0.),
@@ -293,8 +295,9 @@ pub(super) fn spawn_particles_on_walk(
         let velocity = point.normalize() * 0.5;
 
         commands.spawn_particle(
-            ParticleBuilder::new(Particle::get_by_block(ground_block).unwrap(), position, velocity, 0.3)
+            ParticleBuilder::new(particle, position, velocity, 0.3)
                 .with_size(size)
+                .with_rotation(PI / 12.)
                 .with_render_layer(WORLD_RENDER_LAYER)
         );
     }
@@ -319,6 +322,8 @@ pub(super) fn spawn_particles_grounded(
         return;
     }
 
+    let particle = Particle::get_by_block(ground_block).unwrap();
+
     let fall_distance = get_fall_distance(rect.bottom(), player_data.fall_start);
 
     if !*prev_grounded && collisions.bottom && fall_distance > TILE_SIZE * 1.5 {
@@ -333,7 +338,7 @@ pub(super) fn spawn_particles_grounded(
             let velocity = Vec2::new(point.normalize().x, 0.5);
 
             commands.spawn_particle(
-                ParticleBuilder::new(Particle::get_by_block(ground_block).unwrap(), position, velocity, 0.3)
+                ParticleBuilder::new(particle, position, velocity, 0.3)
                     .with_size(size)
                     .with_render_layer(WORLD_RENDER_LAYER)
                     .with_rotation(PI / 12.)
@@ -348,9 +353,7 @@ pub(super) fn update_face_direction(axis: Res<InputAxis>, mut query: Query<&mut 
     let mut direction = query.single_mut();
 
     if let Some(new_direction) = (*axis).into() {
-        if *direction != new_direction {
-            *direction = new_direction;
-        }
+        direction.set_if_neq(new_direction);
     }
 }
 
@@ -428,12 +431,9 @@ pub(super) fn walking_animation(
 ) {
     query.for_each_mut(|(mut sprite, anim_data, use_item_animation)| {
         if use_item_animation.is_none() || !**swing_animation {
-            let walking_anim_offset = anim_data.offset;
-            let walking_anim_count = anim_data.count;
-
-            sprite.index = walking_anim_offset + map_range_usize(
+            sprite.index = anim_data.offset + map_range_usize(
                 (0, WALKING_ANIMATION_MAX_INDEX),
-                (0, walking_anim_count),
+                (0, anim_data.count),
                 index.0,
             );
         }
@@ -482,8 +482,7 @@ pub(super) fn teleport_player(
     mut query_player: Query<(&mut EntityRect, &mut Velocity), With<Player>>,
 ) {
     if let Ok((mut player_rect, mut velocity)) = query_player.get_single_mut() {
-        player_rect.centerx = cursor_position.world.x;
-        player_rect.centery = cursor_position.world.y;
+        **player_rect = player_rect.with_center(cursor_position.world.x, cursor_position.world.y);
         velocity.0 = Vec2::ZERO;
     }
 }

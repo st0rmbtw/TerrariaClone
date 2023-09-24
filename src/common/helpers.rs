@@ -81,8 +81,8 @@ pub(crate) fn random_point_ring(width: f32, height: f32) -> Vec2 {
 }
 
 pub(crate) fn random_point_cone(direction: Vec2, angle: f32, radius: f32) -> Vec2 {
-    debug_assert!((0.0..=1.0).contains(&direction.x));
-    debug_assert!((0.0..=1.0).contains(&direction.y));
+    debug_assert!((-1.0..=1.0).contains(&direction.x));
+    debug_assert!((-1.0..=1.0).contains(&direction.y));
     debug_assert!((0.0..=180.0).contains(&angle));
 
     let mut rng = thread_rng();

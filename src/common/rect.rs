@@ -37,6 +37,17 @@ impl FRect {
         }
     }
 
+    pub(crate) fn with_center(&self, centerx: f32, centery: f32) -> Self {
+        Self {
+            centerx,
+            centery,
+            left: centerx - self.width / 2.,
+            right: centerx + self.width / 2.,
+            width: self.width,
+            height: self.height,
+        }
+    }
+
     #[inline]
     pub(crate) fn center(&self) -> Vec2 {
         Vec2::new(self.centerx, self.centery)

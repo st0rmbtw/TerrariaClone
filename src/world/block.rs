@@ -949,6 +949,25 @@ fn get_tree_sprite_index(neighbors: &Neighbors<BlockType>, tree: Tree) -> Textur
             north: None,
             ..
         }) => TreeFrameType::TopBare.texture_atlas_pos(tree.tree_type, tree.variant),
+
+        (TreeFrameType::BasePlainA | TreeFrameType::BasePlainD | TreeFrameType::BasePlainAD, Neighbors {
+            west: None,
+            east: Some(BlockType::Tree(_)),
+            ..
+        }) => TreeFrameType::BasePlainD.texture_atlas_pos(tree.tree_type, tree.variant),
+
+        (TreeFrameType::BasePlainA | TreeFrameType::BasePlainD | TreeFrameType::BasePlainAD, Neighbors {
+            west: Some(BlockType::Tree(_)),
+            east: None,
+            ..
+        }) => TreeFrameType::BasePlainA.texture_atlas_pos(tree.tree_type, tree.variant),
+
+        (TreeFrameType::BasePlainA | TreeFrameType::BasePlainD | TreeFrameType::BasePlainAD, Neighbors {
+            west: None,
+            east: None,
+            ..
+        }) => TreeFrameType::TrunkPlain.texture_atlas_pos(tree.tree_type, tree.variant),
+
         _ => tree.frame_type.texture_atlas_pos(tree.tree_type, tree.variant)
     }
 }

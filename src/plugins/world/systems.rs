@@ -483,16 +483,16 @@ pub(super) fn handle_place_block_event(
     let player_rect = query_player.single();
 
     for &PlaceBlockEvent { tile_pos, block } in place_block.iter() {
-        if world_data.block_exists(tile_pos) { continue; }
-
-        let new_block = Block::new(block);
-
-        // Forbid to place a block inside the player 
+        // Forbid placing a block inside the player 
         {
             let Vec2 { x, y } = tile_pos_to_world_coords(tile_pos);
             let tile_rect = FRect::new_center(x, y, TILE_SIZE, TILE_SIZE);
             if player_rect.intersects(&tile_rect) { continue; }
         }
+
+        if world_data.block_exists(tile_pos) { continue; }
+
+        let new_block = Block::new(block);
         
         world_data.set_block(tile_pos, &new_block);
 
