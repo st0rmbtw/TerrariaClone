@@ -75,6 +75,12 @@ pub(super) fn use_item(
                     if !world_data.get_block(tile_pos).is_some_and(|b| b.check_required_tool(tool)) {
                         return;
                     }
+
+                    if tile_pos.y > 0 {
+                        if world_data.solid_block_exists(tile_pos) && world_data.get_block((tile_pos.x, tile_pos.y - 1)).is_some_and(|b| !b.is_solid()) {
+                            return;
+                        }
+                    }
                     
                     if instant_break {
                         break_block_events.send(BreakBlockEvent { tile_pos });    
@@ -82,9 +88,9 @@ pub(super) fn use_item(
                         dig_block_events.send(DigBlockEvent { tile_pos, tool });
                     }
                 },
-                Item::Block(block) => {
+                Item::Block(block_type) => {
                     if !world_data.block_exists(tile_pos) {
-                        place_block_events.send(PlaceBlockEvent { tile_pos, block });
+                        place_block_events.send(PlaceBlockEvent { tile_pos, block_type });
                         inventory.consume_item(selected_item_index);
                     }
                 },

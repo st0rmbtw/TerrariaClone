@@ -65,6 +65,7 @@ impl Plugin for AssetsPlugin {
         app.add_collection_to_loading_state::<_, CursorAssets>(GameState::AssetLoading);
         app.add_collection_to_loading_state::<_, BackgroundAssets>(GameState::AssetLoading);
         app.add_collection_to_loading_state::<_, CelestialBodyAssets>(GameState::AssetLoading);
+        app.add_collection_to_loading_state::<_, ParticleAssets>(GameState::AssetLoading);
         
         app.add_systems(OnExit(GameState::AssetLoading), setup);
     }
@@ -402,4 +403,15 @@ impl MusicAssets {
             MusicType::OverworldDay => self.overworld_day.clone_weak(),
         }
     }
+}
+
+#[derive(Resource, AssetCollection)]
+pub(crate) struct ParticleAssets {
+    #[asset(texture_atlas(tile_size_x = 8., tile_size_y = 8., columns = 100, rows = 12, padding_x = 2., padding_y = 2.))]
+    #[asset(path = "sprites/Particles.png")]
+    pub(crate) particles: Handle<TextureAtlas>,
+}
+
+impl ParticleAssets {
+    pub(crate) const COLUMNS: usize = 100;
 }

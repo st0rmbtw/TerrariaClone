@@ -17,7 +17,7 @@ pub(crate) struct DigBlockEvent {
 #[derive(Event)]
 pub(crate) struct PlaceBlockEvent {
     pub(crate) tile_pos: TilePos,
-    pub(crate) block: BlockType,
+    pub(crate) block_type: BlockType,
 }
 
 #[derive(Event)]

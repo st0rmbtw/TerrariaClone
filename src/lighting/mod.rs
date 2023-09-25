@@ -71,20 +71,13 @@ impl Plugin for LightingPlugin {
             )
         );
 
-        app.add_systems(
-            OnEnter(GameState::InGame),
-            (
-                compositing::setup_post_processing_camera,
-                compositing::spawn_mouse_light
-            )
-        );
+        app.add_systems(OnEnter(GameState::InGame), compositing::setup_post_processing_camera);
 
         app.add_systems(
             Update,
             (
                 lightmap::assets::handle_update_tiles_texture_event,
                 compositing::update_image_to_window_size,
-                compositing::update_mouse_light
             ).in_set(InGameSystemSet::Update)
         );
 

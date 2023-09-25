@@ -5,11 +5,10 @@ use bevy::{
         TextureDimension, TextureUsages,
     }, texture::BevyDefault, camera::RenderTarget, view::RenderLayers}, window::{PrimaryWindow, WindowResized}, core_pipeline::tonemapping::Tonemapping,
 };
-use rand::{thread_rng, Rng};
 
-use crate::plugins::{camera::components::{WorldCamera, MainCamera, BackgroundCamera, InGameBackgroundCamera}, DespawnOnGameExit, cursor::position::CursorPosition};
+use crate::plugins::{camera::components::{WorldCamera, MainCamera, BackgroundCamera, InGameBackgroundCamera}, DespawnOnGameExit};
 
-use super::{types::LightSource, MainTexture, WorldTexture, BackgroundTexture, InGameBackgroundTexture, PostProcessCamera};
+use super::{MainTexture, WorldTexture, BackgroundTexture, InGameBackgroundTexture, PostProcessCamera};
 
 #[derive(Component, Deref)]
 pub(crate) struct FitToWindowSize(Handle<Image>);
@@ -145,40 +144,4 @@ pub(super) fn setup_post_processing_camera(
         },
         RenderLayers::none()
     ));
-}
-
-#[derive(Component)]
-pub(super) struct MouseLight;
-
-pub(super) fn spawn_mouse_light(
-    mut commands: Commands
-) {
-    commands.spawn((
-        DespawnOnGameExit,
-        SpatialBundle::default(),
-        LightSource {
-            size: UVec2::splat(1),
-            color: Vec4::from(Color::RED).truncate(),
-            intensity: 1.,
-            jitter_intensity: 0.2,
-        }, 
-        MouseLight
-    ));
-}
-
-pub(super) fn update_mouse_light(
-    input: Res<Input<MouseButton>>,
-    cursor_pos: Res<CursorPosition<MainCamera>>,
-    mut query_mouse_light: Query<(&mut Transform, &mut LightSource), With<MouseLight>>
-) {
-    let Ok((mut light_transform, mut light_source)) = query_mouse_light.get_single_mut() else { return; };
-
-    let mut rng = thread_rng();
-
-    light_transform.translation.x = cursor_pos.world.x;
-    light_transform.translation.y = cursor_pos.world.y;
-
-    if input.just_pressed(MouseButton::Right) {
-        light_source.color = Vec4::from(Color::rgb(rng.gen(), rng.gen(), rng.gen())).truncate();
-    }
 }

@@ -171,9 +171,13 @@ pub(crate) fn extract_lightmap_pipeline_assets(
         if !visibility.is_visible() { continue; }
 
         let uv = transform.translation.xy().abs() / (world_size * TILE_SIZE);
-        let light_pos = (uv * world_size * light_smoothness.subdivision() as f32).ceil().as_uvec2();
+        let light_pos = (uv * world_size * light_smoothness.subdivision() as f32).as_uvec2();
 
-        let intensity = light_source.intensity + rng.gen_range(-1f32..1f32) * light_source.jitter_intensity;
+        let intensity = if light_source.jitter_intensity > 0. {
+            light_source.intensity + rng.gen_range(-1.0..1.0) * light_source.jitter_intensity
+        } else {
+            light_source.intensity
+        };
 
         light_sources.data.push(GpuLightSource {
             pos: light_pos,

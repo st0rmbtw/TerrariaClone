@@ -65,7 +65,7 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
         camera_params.screen_size_inv,
     );
 
-    let light_uv = (abs(world_pos) + vec2(8., 8.)) / (vec2(1750., 900.) * 16.);
+    let light_uv = abs(world_pos) / (vec2(1750., 900.) * 16.);
 
     let light = textureSampleLevel(lightmap_texture, lightmap_texture_sampler, light_uv, 0.0);
 

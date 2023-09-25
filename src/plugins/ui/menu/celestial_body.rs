@@ -1,11 +1,10 @@
 use std::time::Duration;
 
 use bevy::{prelude::{Commands, Res, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, Local, Input, MouseButton, Color, Vec4, DetectChanges, IntoSystemConfigs, Name, Update, OnEnter, Without, Entity, Deref, DerefMut, PreUpdate, on_event, Vec3, Component, Resource, Event, EventWriter}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas, SpriteBundle}, window::{Window, PrimaryWindow, WindowResized}, utils::default, ecs::query::Has, time::Time};
-use bevy_hanabi::Gradient;
 use interpolation::{Lerp, EaseFunction};
 use rand::{thread_rng, Rng, seq::SliceRandom};
 
-use crate::{plugins::{assets::{CelestialBodyAssets, BackgroundAssets}, camera::components::BackgroundCamera, background::{BACKGROUND_RENDER_LAYER, BackgroundPlugin}, cursor::position::CursorPosition, MenuSystemSet}, animation::{Tween, Animator, RepeatStrategy, RepeatCount, lens::TransformScaleLens}, common::state::GameState, common::{rect::FRect, systems::despawn_with, math::map_range_f32}, parallax::{LayerTextureComponent, ParallaxSet}, BACKGROUND_LAYER};
+use crate::{plugins::{assets::{CelestialBodyAssets, BackgroundAssets}, camera::components::BackgroundCamera, background::{BACKGROUND_RENDER_LAYER, BackgroundPlugin}, cursor::position::CursorPosition, MenuSystemSet}, animation::{Tween, Animator, RepeatStrategy, RepeatCount, lens::TransformScaleLens}, common::state::GameState, common::{rect::FRect, systems::despawn_with, math::map_range_f32, gradient::Gradient}, parallax::{LayerTextureComponent, ParallaxSet}, BACKGROUND_LAYER};
 
 use super::DespawnOnMenuExit;
 

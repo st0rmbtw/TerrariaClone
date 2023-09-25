@@ -29,13 +29,6 @@ impl BlockType {
         }
     }
 
-    pub(crate) const fn frame(&self) -> Option<TerrariaFrame> {
-        match self {
-            BlockType::Tree(tree) => Some(tree.terraria_frame()),
-            _ => None
-        }
-    }
-
     pub(crate) const fn is_solid(&self) -> bool {
         !matches!(self, BlockType::Tree(_))
     }
@@ -65,6 +58,29 @@ impl BlockType {
             BlockType::Tree(_) => 500,
         }
     }
+
+    pub(crate) const fn dusty(&self) -> bool {
+        match self {
+            BlockType::Dirt => true,
+            _ => false
+        }
+    }
+
+    pub(crate) const fn cracks(&self) -> bool {
+        match self {
+            BlockType::Tree(tree) => match tree.frame_type {
+                TreeFrameType::TrunkPlain => true,
+                TreeFrameType::BasePlainA => true,
+                TreeFrameType::BasePlainD  => true,
+                TreeFrameType::BasePlainAD => true,
+                TreeFrameType::TopBare => true,
+                TreeFrameType::TopLeaves => true,
+                TreeFrameType::TopBareJagged => true,
+                _ => false
+            },
+            _ => true
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Component)]
@@ -76,7 +92,10 @@ pub(crate) struct Block {
 }
 
 impl From<BlockType> for Block {
-    fn from(block_type: BlockType) -> Self { Block::new(block_type) }
+    fn from(block_type: BlockType) -> Self {
+        let mut rng = thread_rng();
+        Block::new(block_type, rng.gen_range(0..3))
+    }
 }
 
 impl Deref for Block {
@@ -88,14 +107,20 @@ impl Deref for Block {
 }
 
 impl Block {
-    #[inline]
-    pub(crate) fn new(block_type: BlockType) -> Block {
-        let mut rng = thread_rng();
+    #[inline(always)]
+    pub(crate) fn new(block_type: BlockType, variant: u32) -> Block {
         Self {
             block_type,
+            variant,
             hp: block_type.max_hp(),
-            variant: rng.gen_range(0..3),
             cracks_index: None
+        }
+    }
+
+    pub(crate) const fn frame(&self) -> Option<TerrariaFrame> {
+        match self.block_type {
+            BlockType::Tree(tree) => Some(tree.terraria_frame(self.variant)),
+            _ => None
         }
     }
 }
@@ -109,7 +134,7 @@ impl Block {
         */
 
         if let BlockType::Tree(tree) = block.block_type {
-            return get_tree_sprite_index(neighbors, tree).to_2d_index_from_block_type(block.block_type);
+            return get_tree_sprite_index(neighbors, tree, block.variant).to_2d_index_from_block_type(block.block_type);
         }
 
         let mut index = Self::get_sprite_index_by_neighbors(neighbors, block.variant);
@@ -936,12 +961,31 @@ fn get_grass_sprite_index_by_dirt_connections(neighbors: &Neighbors<BlockType>, 
     }
 }
 
-fn get_tree_sprite_index(neighbors: &Neighbors<BlockType>, tree: Tree) -> TextureAtlasPos {
+fn get_tree_sprite_index(neighbors: &Neighbors<BlockType>, tree: Tree, variant: u32) -> TextureAtlasPos {
     match (tree.frame_type, neighbors) {
         (TreeFrameType::TrunkPlain, Neighbors {
             north: None,
             ..
-        }) => TreeFrameType::TopBare.texture_atlas_pos(tree.tree_type, tree.variant),
-        _ => tree.frame_type.texture_atlas_pos(tree.tree_type, tree.variant)
+        }) => TreeFrameType::TopBare.texture_atlas_pos(tree.tree_type, variant),
+
+        (TreeFrameType::BasePlainA | TreeFrameType::BasePlainD | TreeFrameType::BasePlainAD, Neighbors {
+            west: None,
+            east: Some(BlockType::Tree(_)),
+            ..
+        }) => TreeFrameType::BasePlainD.texture_atlas_pos(tree.tree_type, variant),
+
+        (TreeFrameType::BasePlainA | TreeFrameType::BasePlainD | TreeFrameType::BasePlainAD, Neighbors {
+            west: Some(BlockType::Tree(_)),
+            east: None,
+            ..
+        }) => TreeFrameType::BasePlainA.texture_atlas_pos(tree.tree_type, variant),
+
+        (TreeFrameType::BasePlainA | TreeFrameType::BasePlainD | TreeFrameType::BasePlainAD, Neighbors {
+            west: None,
+            east: None,
+            ..
+        }) => TreeFrameType::TrunkPlain.texture_atlas_pos(tree.tree_type, variant),
+
+        _ => tree.frame_type.texture_atlas_pos(tree.tree_type, variant)
     }
 }

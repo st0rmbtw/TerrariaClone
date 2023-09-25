@@ -77,10 +77,11 @@ fn parallax_container_added(
                     let layer_data = &parallax_container.layer_data[i];
 
                     let texture = images.get(&layer_data.image).unwrap();
+                    let texture_size = texture.size();
 
                     let spritesheet_bundle = SpriteBundle {
                         sprite: Sprite {
-                            custom_size: layer_data.fill_screen_height.then_some(Vec2::new(texture.size().x, window_height)),
+                            custom_size: layer_data.fill_screen_height.then_some(Vec2::new(texture_size.x, window_height)),
                             anchor: layer_data.anchor.clone(),
                             ..default()
                         },
@@ -90,7 +91,7 @@ fn parallax_container_added(
 
                     let x_max_index = match layer_data.speed {
                         LayerSpeed::Horizontal(_) | LayerSpeed::Bidirectional(..) => max(
-                            (window_width / (texture.size().x * layer_data.scale / 2.) + 1.0) as i32,
+                            (window_width / (texture_size.x * layer_data.scale / 2.) + 1.0) as i32,
                             1,
                         ),
                         LayerSpeed::Vertical(_) => 0,
@@ -125,10 +126,10 @@ fn parallax_container_added(
                     .with_children(|parent| {
                         for x in -x_max_index..=x_max_index {
                             let mut adjusted_spritesheet_bundle = spritesheet_bundle.clone();
-                            adjusted_spritesheet_bundle.transform.translation.x = texture.size().x * x as f32;
+                            adjusted_spritesheet_bundle.transform.translation.x = texture_size.x * x as f32;
                             parent.spawn(adjusted_spritesheet_bundle).insert(
                                 LayerTextureComponent {
-                                    width: texture.size().x,
+                                    width: texture_size.x,
                                 },
                             ).insert(parallax_container.render_layer);
                         }

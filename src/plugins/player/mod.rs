@@ -9,14 +9,18 @@ use systems::*;
 pub(crate) use components::*;
 pub(crate) use body_sprites::*;
 
-use crate::{common::{state::{GameState, MovementState}, helpers::tile_pos_to_world_coords, systems::{component_equals, despawn_with, set_resource}}, plugins::player::utils::simple_animation, world::WorldData};
+use crate::{common::{state::{GameState, MovementState}, helpers::tile_pos_to_world_coords, systems::{component_equals, despawn_with}}, plugins::player::utils::simple_animation, world::WorldData};
 use std::time::Duration;
-use bevy::{prelude::*, time::{Timer, TimerMode}, math::vec2, input::InputSystem};
+use bevy::{prelude::*, time::{Timer, TimerMode, common_conditions::on_timer}, math::vec2, input::InputSystem};
 
 use super::{assets::PlayerAssets, world::constants::TILE_SIZE, inventory::UseItemAnimationData, InGameSystemSet};
 
 #[cfg(feature = "debug")]
 use crate::plugins::debug::DebugConfiguration;
+#[cfg(feature = "debug")]
+use bevy::input::common_conditions::input_just_pressed;
+#[cfg(feature = "debug")]
+use crate::common::systems::set_resource;
 
 const PLAYER_WIDTH: f32 = 22.;
 const PLAYER_HEIGHT: f32 = 42.;
@@ -63,10 +67,16 @@ impl Plugin for PlayerPlugin {
                     walking_animation.run_if(component_equals::<Player, _>(MovementState::Walking)),
                 ).chain(),
                 simple_animation::<IdleAnimationData>.run_if(component_equals::<Player, _>(MovementState::Idle)),
-                simple_animation::<FlyingAnimationData>.run_if(component_equals::<Player, _>(MovementState::Flying))
+                simple_animation::<FlyingAnimationData>.run_if(component_equals::<Player, _>(MovementState::Flying)),
+                spawn_particles_on_walk.run_if(on_timer(Duration::from_secs_f32(1. / 20.))),
+                spawn_particles_grounded
             )
             .in_set(InGameSystemSet::Update)
         );
+
+        let update_input_axis = update_input_axis;
+        #[cfg(feature = "debug")]
+        let update_input_axis = update_input_axis.run_if(|config: Res<DebugConfiguration>| !config.free_camera);
 
         app.add_systems(
             PreUpdate,
@@ -75,18 +85,18 @@ impl Plugin for PlayerPlugin {
                 .in_set(InGameSystemSet::PreUpdate)
         );
 
-        let handle_player_movement_systems = (
-            horizontal_movement,
-            update_jump.ambiguous_with(horizontal_movement),
-        );
-
+        let update_jump = update_jump;
+        
         #[cfg(feature = "debug")]
-        let handle_player_movement_systems = handle_player_movement_systems.run_if(|config: Res<DebugConfiguration>| !config.free_camera);
+        let update_jump = update_jump.run_if(|config: Res<DebugConfiguration>| !config.free_camera);
 
         app.add_systems(
             FixedUpdate,
             (
-                handle_player_movement_systems,
+                (
+                    horizontal_movement,
+                    update_jump.ambiguous_with(horizontal_movement),
+                ),
                 gravity,
                 detect_collisions,
                 update_player_rect,
@@ -97,12 +107,13 @@ impl Plugin for PlayerPlugin {
 
         app.add_systems(Update, move_player.in_set(InGameSystemSet::Update));
 
-        app.add_systems(PostUpdate, set_resource(InputAxis::default()));
+        app.add_systems(PostUpdate, reset_fallstart.in_set(InGameSystemSet::PostUpdate));
+
+        #[cfg(feature = "debug")]
+        app.add_systems(PostUpdate, set_resource(InputAxis::default()).in_set(InGameSystemSet::PostUpdate));
 
         #[cfg(feature = "debug")]
         {
-            use bevy::input::common_conditions::input_just_pressed;
-
             app.add_systems(
                 Update,
                 (

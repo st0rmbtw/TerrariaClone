@@ -1,12 +1,11 @@
 use std::time::Duration;
 
-use bevy::{prelude::{Plugin, App, OnExit, PreUpdate, Update, PostUpdate, FixedUpdate, in_state, GizmoConfig, default, IntoSystemSetConfig, UVec2, Msaa}, winit::{WinitSettings, UpdateMode}, ecs::schedule::{ScheduleBuildSettings, LogLevel}};
+use bevy::{prelude::{Plugin, App, OnExit, PreUpdate, Update, PostUpdate, FixedUpdate, in_state, GizmoConfig, default, IntoSystemSetConfig, UVec2, Msaa}, winit::{WinitSettings, UpdateMode}};
 use bevy_ecs_tilemap::prelude::TilemapRenderSettings;
-use bevy_hanabi::HanabiPlugin;
 
 use crate::{common::{systems::despawn_with, state::{GameState, MenuState}}, lighting::LightingPlugin, parallax::ParallaxPlugin, animation::TweeningPlugin, language::plugin::LanguagePlugin};
 
-use super::{InGameSystemSet, MenuSystemSet, DespawnOnGameExit, audio::AudioPlugin, cursor::CursorPlugin, camera::CameraPlugin, background::BackgroundPlugin, ui::UiPlugin, world::WorldPlugin, inventory::PlayerInventoryPlugin, fps::FpsPlugin, player::PlayerPlugin, slider::SliderPlugin, assets::AssetsPlugin};
+use super::{InGameSystemSet, MenuSystemSet, DespawnOnGameExit, audio::AudioPlugin, cursor::CursorPlugin, camera::CameraPlugin, background::BackgroundPlugin, ui::UiPlugin, world::WorldPlugin, inventory::PlayerInventoryPlugin, fps::FpsPlugin, player::PlayerPlugin, slider::SliderPlugin, assets::AssetsPlugin, particles::ParticlePlugin};
 
 pub(crate) struct MainPlugin;
 impl Plugin for MainPlugin {
@@ -14,12 +13,12 @@ impl Plugin for MainPlugin {
         app.add_plugins((
             TweeningPlugin,
             AssetsPlugin,
-            HanabiPlugin,
             ParallaxPlugin,
             SliderPlugin,
         ));
 
         app.add_plugins((
+            ParticlePlugin,
             LanguagePlugin,
             LightingPlugin,
             AudioPlugin,
@@ -95,13 +94,14 @@ impl Plugin for MainPlugin {
         //     });
         // });
 
-        #[cfg(debug_assertions)]
-        app.edit_schedule(FixedUpdate, |schedule| {
-            schedule.set_build_settings(ScheduleBuildSettings {
-                ambiguity_detection: LogLevel::Error,
-                ..default()
-            });
-        });
+        // #[cfg(debug_assertions)]
+        // app.edit_schedule(FixedUpdate, |schedule| {
+        //     schedule.set_build_settings(ScheduleBuildSettings {
+        //         ambiguity_detection: LogLevel::Error,
+        //         report_sets: false,
+        //         ..default()
+        //     });
+        // });
 
         app.add_systems(OnExit(GameState::InGame), despawn_with::<DespawnOnGameExit>);
     }

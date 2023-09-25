@@ -133,33 +133,33 @@ impl WorldData {
         self.walls.get_mut(world_pos.yx()).and_then(|w| w.as_mut())
     }
 
-    pub(crate) fn set_block<Pos: AsWorldPos>(&mut self, world_pos: Pos, block: &Block) {
-        unsafe {
-            if let Some(b) = self.blocks.get_mut_ptr(world_pos.yx()) {
-                *b = Some(*block);
+    pub(crate) fn set_block<Pos: AsWorldPos>(&mut self, world_pos: Pos, block: impl Into<Block>) {
+        if let Some(b) = self.blocks.get_mut_ptr(world_pos.yx()) {
+            unsafe {
+                *b = Some(block.into());
             }
         }
     }
 
     pub(crate) fn set_wall<Pos: AsWorldPos>(&mut self, world_pos: Pos, wall: Wall) {
-        unsafe {
-            if let Some(w) = self.walls.get_mut_ptr(world_pos.yx()) {
+        if let Some(w) = self.walls.get_mut_ptr(world_pos.yx()) {
+            unsafe {
                 *w = Some(wall);
             }
         }
     }
 
     pub(crate) fn remove_block<Pos: AsWorldPos>(&mut self, world_pos: Pos) {
-        unsafe {
-            if let Some(block) = self.blocks.get_mut_ptr(world_pos.yx()) {
+        if let Some(block) = self.blocks.get_mut_ptr(world_pos.yx()) {
+            unsafe {
                 *block = None;
             }
         }
     }
 
     pub(crate) fn remove_wall<Pos: AsWorldPos>(&mut self, world_pos: Pos) {
-        unsafe {
-            if let Some(wall) = self.walls.get_mut_ptr(world_pos.yx()) {
+        if let Some(wall) = self.walls.get_mut_ptr(world_pos.yx()) {
+            unsafe {
                 *wall = None;
             }
         }
