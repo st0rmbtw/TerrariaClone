@@ -11,6 +11,7 @@ use simdnoise::NoiseBuilder;
 use crate::common::math::map_range_f32;
 use crate::world::block::BlockType;
 
+use super::block::Block;
 use super::wall::Wall;
 use super::tree::{TreeType, TreeFrameType};
 use super::{WorldSize, WorldData, Layer, BlockArray, WallArray, AsWorldPos};
@@ -18,8 +19,8 @@ use super::{WorldSize, WorldData, Layer, BlockArray, WallArray, AsWorldPos};
 pub(crate) const DIRT_HILL_HEIGHT: usize = 75;
 
 macro_rules! tree {
-    ($tree_type: path, $frame_type: ident, $variant: ident) => {
-        super::block::Block::new(super::block::BlockType::Tree(super::tree::Tree::new($tree_type, $frame_type, $variant)))
+    ($tree_type: expr, $frame_type: expr) => {
+        super::block::BlockType::Tree(super::tree::Tree::new($tree_type, $frame_type))
     };
 }
 
@@ -309,7 +310,7 @@ fn grassify(world: &mut WorldData) {
         let mut queue = VecDeque::new();
         queue.push_back((x, y));
 
-        world.set_block((x, y), &BlockType::Grass.into());
+        world.set_block((x, y), BlockType::Grass);
     
         while !queue.is_empty() {
             let (x, y) = queue[queue.len() - 1];
@@ -319,49 +320,49 @@ fn grassify(world: &mut WorldData) {
 
             if is_valid(world, x + 1, y) {
                 let pos = (x + 1, y);
-                world.set_block(pos, &BlockType::Grass.into());
+                world.set_block(pos, BlockType::Grass);
                 queue.push_back(pos);
             }
     
             if is_valid(world, prev_x, y) {
                 let pos = (prev_x, y);
-                world.set_block(pos, &BlockType::Grass.into());
+                world.set_block(pos, BlockType::Grass);
                 queue.push_back(pos);
             }
     
             if is_valid(world, x, y + 1) {
                 let pos = (x, y + 1);
-                world.set_block(pos, &BlockType::Grass.into());
+                world.set_block(pos, BlockType::Grass);
                 queue.push_back(pos);
             }
     
             if is_valid(world, x, y - 1) {
                 let pos = (x, y - 1);
-                world.set_block(pos, &BlockType::Grass.into());
+                world.set_block(pos, BlockType::Grass);
                 queue.push_back(pos);
             }
 
             if is_valid(world, prev_x, y - 1) {
                 let pos = (prev_x, y - 1);
-                world.set_block(pos, &BlockType::Grass.into());
+                world.set_block(pos, BlockType::Grass);
                 queue.push_back(pos);
             }
 
             if is_valid(world, x + 1, y - 1) {
                 let pos = (x + 1, y - 1);
-                world.set_block(pos, &BlockType::Grass.into());
+                world.set_block(pos, BlockType::Grass);
                 queue.push_back(pos);
             }
 
             if is_valid(world, prev_x, y + 1) {
                 let pos = (prev_x, y + 1);
-                world.set_block(pos, &BlockType::Grass.into());
+                world.set_block(pos, BlockType::Grass);
                 queue.push_back(pos);
             }
 
             if is_valid(world, x + 1, y + 1) {
                 let pos = (x + 1, y + 1);
-                world.set_block(pos, &BlockType::Grass.into());
+                world.set_block(pos, BlockType::Grass);
                 queue.push_back(pos);
             }
         }
@@ -442,9 +443,6 @@ fn remove_walls_from_surface(world: &mut WorldData) {
 fn grow_tree(world: &mut WorldData, rng: &mut StdRng, root_pos: impl AsWorldPos) {
     let height: usize = rng.gen_range(5..=16);
 
-    let left_base = rng.gen_bool(0.5);
-    let right_base = rng.gen_bool(0.5);
-
     let root_pos_x = root_pos.x();
     let root_pos_y = root_pos.y();
 
@@ -475,59 +473,49 @@ fn grow_tree(world: &mut WorldData, rng: &mut StdRng, root_pos: impl AsWorldPos)
         }
     }
 
+    let left_base = rng.gen_bool(0.5) && left_block;
+    let right_base = rng.gen_bool(0.5) && right_block;
+
+    let mut variant: u32;
+
     // Base
-    if left_base && right_base && left_block && right_block {
-        {
-            let frame_type = TreeFrameType::BasePlainLeft;
-            let variant = rng.gen_range(0..3);
-            world.blocks[(root_pos_y, root_pos_x - 1)] = Some(tree!(TreeType::Forest, frame_type, variant));
-        }
-        {
-            let frame_type = TreeFrameType::BasePlainAD;
-            let variant = rng.gen_range(0..3);
-            world.blocks[(root_pos_y, root_pos_x)] = Some(tree!(TreeType::Forest, frame_type, variant));
-        }
-        {
-            let frame_type = TreeFrameType::BasePlainRight;
-            let variant = rng.gen_range(0..3);
-            world.blocks[(root_pos_y, root_pos_x + 1)] = Some(tree!(TreeType::Forest, frame_type, variant));
-        }
-    } else if left_base && left_block {
-        {
-            let frame_type = TreeFrameType::BasePlainLeft;
-            let variant = rng.gen_range(0..3);
-            world.blocks[(root_pos_y, root_pos_x - 1)] = Some(tree!(TreeType::Forest, frame_type, variant));
-        }
-        {
-            let frame_type = TreeFrameType::BasePlainA;
-            let variant = rng.gen_range(0..3);
-            world.blocks[(root_pos_y, root_pos_x)] = Some(tree!(TreeType::Forest, frame_type, variant));
-        }
-    } else if right_base && right_block {
-        {
-            let frame_type = TreeFrameType::BasePlainD;
-            let variant = rng.gen_range(0..3);
-            world.blocks[(root_pos_y, root_pos_x)] = Some(tree!(TreeType::Forest, frame_type, variant));
-        }
-        {
-            let frame_type = TreeFrameType::BasePlainRight;
-            let variant = rng.gen_range(0..3);
-            world.blocks[(root_pos_y, root_pos_x + 1)] = Some(tree!(TreeType::Forest, frame_type, variant));
-        }
-    } else {
-        let frame_type = TreeFrameType::TrunkPlain;
-        let variant = rng.gen_range(0..3);
-        world.blocks[(root_pos_y, root_pos_x)] = Some(tree!(TreeType::Forest, frame_type, variant));
+    if left_base {
+        variant = rng.gen_range(0..3);
+        world.set_block(
+            (root_pos_x - 1, root_pos_y),
+            Block::new(tree!(TreeType::Forest, TreeFrameType::BasePlainLeft), variant)
+        );
     }
 
-    // Trunk
-    {
-        let frame_type = TreeFrameType::TrunkPlain;
-        let variant = rng.gen_range(0..3);
-        world.blocks
-            .slice_mut(s![root_pos_y - height..root_pos_y, root_pos_x])
-            .fill(Some(tree!(TreeType::Forest, frame_type, variant)));
+    if right_base {
+        variant = rng.gen_range(0..3);
+        world.set_block(
+            (root_pos_x + 1, root_pos_y),
+            Block::new(tree!(TreeType::Forest, TreeFrameType::BasePlainRight), variant)
+        );
     }
+
+    let trunk = if left_base && right_base {
+        TreeFrameType::BasePlainAD
+    } else if left_base {
+        TreeFrameType::BasePlainA
+    } else if right_base {
+        TreeFrameType::BasePlainD
+    } else {
+        TreeFrameType::TrunkPlain
+    };
+
+    variant = rng.gen_range(0..3);
+    world.set_block(
+        (root_pos_x, root_pos_y),
+        Block::new(tree!(TreeType::Forest, trunk), variant)
+    );
+
+    // Trunk
+    variant = rng.gen_range(0..3);
+    world.blocks
+        .slice_mut(s![root_pos_y - height..root_pos_y, root_pos_x])
+        .fill(Block::new(tree!(TreeType::Forest, TreeFrameType::TrunkPlain), variant).into());
 
     // Branches
     
@@ -543,9 +531,11 @@ fn grow_tree(world: &mut WorldData, rng: &mut StdRng, root_pos: impl AsWorldPos)
                 TreeFrameType::BranchLeftLeaves
             };
 
-            let variant = rng.gen_range(0..3);
-
-            world.blocks[(y, root_pos_x - 1)] = Some(tree!(TreeType::Forest, frame_type, variant));
+            variant = rng.gen_range(0..3);
+            world.set_block(
+                (root_pos_x - 1, y),
+                Block::new(tree!(TreeType::Forest, frame_type), variant)
+            );
         }
     }
 
@@ -561,28 +551,31 @@ fn grow_tree(world: &mut WorldData, rng: &mut StdRng, root_pos: impl AsWorldPos)
                 TreeFrameType::BranchRightLeaves
             };
 
-            let variant = rng.gen_range(0..3);
-
-            world.blocks[(y, root_pos_x + 1)] = Some(tree!(TreeType::Forest, frame_type, variant));
+            variant = rng.gen_range(0..3);
+            world.set_block(
+                (root_pos_x + 1, y),
+                Block::new(tree!(TreeType::Forest, frame_type), variant)
+            );
         }
     }
 
     // Top
     let bare = rng.gen_bool(1. / 5.);
-    let frame_type = if bare {
-        let jagged = rng.gen_bool(1. - 1./3.);
-        if jagged {
-            TreeFrameType::TopBareJagged
-        } else {
-            TreeFrameType::TopBare
-        }
+    let jagged = rng.gen_bool(1. / 3.);
+
+    let frame_type = if jagged {
+        TreeFrameType::TopBareJagged
+    } else if bare {
+        TreeFrameType::TopBare
     } else {
         TreeFrameType::TopLeaves
     };
 
-    let variant = rng.gen_range(0..3);
-
-    world.blocks[(root_pos_y - height - 1, root_pos_x)] = Some(tree!(TreeType::Forest, frame_type, variant));
+    variant = rng.gen_range(0..3);
+    world.set_block(
+        (root_pos_x, root_pos_y - height - 1),
+        Block::new(tree!(TreeType::Forest, frame_type), variant)
+    );
 }
 
 fn grow_trees(world: &mut WorldData, seed: u32) {

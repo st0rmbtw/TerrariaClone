@@ -209,7 +209,7 @@ pub(super) fn spawn_chunk(
 
             if let Some(&block) = world_data.get_block(map_tile_pos) {
                 if let BlockType::Tree(tree) = block.block_type {
-                    let index = tree.texture_atlas_pos();
+                    let index = tree.texture_atlas_pos(block.variant);
                     
                     match tree.frame_type {
                         TreeFrameType::BranchLeftLeaves | TreeFrameType::BranchRightLeaves => {
@@ -420,6 +420,7 @@ pub(super) fn handle_break_block_event(
 
                 ChunkManager::remove(&mut commands, &mut query_chunk, tile_pos, ChunkType::from(block.block_type));
                 ChunkManager::remove(&mut commands, &mut query_chunk, tile_pos, ChunkType::Cracks);
+                utils::spawn_particles_on_break(&mut commands, block.block_type, tile_pos);
             }
             update_tiles_texture.send(UpdateTilesTextureEvent {
                 x: tile_pos.x as usize,
@@ -427,7 +428,6 @@ pub(super) fn handle_break_block_event(
             });
             commands.play_sound(SoundType::BlockHit(block.block_type));
             update_neighbors.send(UpdateNeighborsEvent { tile_pos });
-            utils::spawn_particles_on_break(&mut commands, block.block_type, tile_pos);
         }
     }
 }
@@ -482,7 +482,7 @@ pub(super) fn handle_place_block_event(
 ) {
     let player_rect = query_player.single();
 
-    for &PlaceBlockEvent { tile_pos, block } in place_block.iter() {
+    for &PlaceBlockEvent { tile_pos, block_type: block } in place_block.iter() {
         // Forbid placing a block inside the player 
         {
             let Vec2 { x, y } = tile_pos_to_world_coords(tile_pos);
@@ -492,9 +492,9 @@ pub(super) fn handle_place_block_event(
 
         if world_data.block_exists(tile_pos) { continue; }
 
-        let new_block = Block::new(block);
+        let new_block = Block::from(block);
         
-        world_data.set_block(tile_pos, &new_block);
+        world_data.set_block(tile_pos, new_block);
 
         let neighbors = world_data
             .get_block_neighbors(tile_pos, block.is_solid())
@@ -583,11 +583,15 @@ pub(super) fn handle_seed_event(
 
 pub(super) fn handle_update_cracks_event(
     mut commands: Commands,
+    world_data: Res<WorldData>,
     mut update_cracks_events: EventReader<UpdateCracksEvent>,
     mut query_tile: Query<&mut TileTextureIndex>,
     mut query_chunk: Query<(&Chunk, &mut TileStorage, Entity)>,
 ) {
     for &UpdateCracksEvent { tile_pos, index } in update_cracks_events.iter() {
+        let block = world_data.get_block(tile_pos).unwrap();
+        if !block.cracks() { continue; }
+
         ChunkManager::update_tile_cracks(&mut commands, &mut query_chunk, &mut query_tile, tile_pos, index);
     }
 }
@@ -605,6 +609,7 @@ fn break_tree(
 
             ChunkManager::remove(commands, chunks, pos, ChunkType::from(block.block_type));
             ChunkManager::remove(commands, chunks, pos, ChunkType::Cracks);
+            utils::spawn_particles_on_break(commands, block.block_type, pos);
 
             if tree.frame_type.is_trunk() || tree_falling {
                 break_tree(commands, world_data, chunks, TilePos::new(pos.x + 1, pos.y), true);

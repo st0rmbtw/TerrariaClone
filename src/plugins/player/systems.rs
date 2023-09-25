@@ -239,7 +239,8 @@ pub(super) fn update_player_rect(
         .floor()
         .clamp(vec2(min_x, min_y), vec2(max_x, max_y));
 
-    **player_rect = player_rect.with_center(new_position.x, new_position.y);
+    player_rect.centerx = new_position.x;
+    player_rect.centery = new_position.y;
 }
 
 pub(super) fn move_player(
@@ -281,15 +282,15 @@ pub(super) fn spawn_particles_on_walk(
     let particle = Particle::get_by_block(ground_block).unwrap();
     
     let direction = match face_direction {
-        FaceDirection::Left => Vec2::new(1., 0.),
-        FaceDirection::Right => Vec2::new(-1., 0.),
+        FaceDirection::Left => vec2(1., 0.),
+        FaceDirection::Right => vec2(-1., 0.),
     };
 
     let mut rng = thread_rng();
 
     for _ in 0..(velocity.x.abs().floor() as u32) {
         let size = rng.gen_range(0f32..=1f32) * PARTICLE_SIZE;
-        let position = Vec2::new(rect.centerx, rect.bottom());
+        let position = vec2(rect.centerx, rect.bottom());
 
         let point = random_point_cone(direction, 90., 50.);
         let velocity = point.normalize() * 0.5;
@@ -327,7 +328,7 @@ pub(super) fn spawn_particles_grounded(
     let fall_distance = get_fall_distance(rect.bottom(), player_data.fall_start);
 
     if !*prev_grounded && collisions.bottom && fall_distance > TILE_SIZE * 1.5 {
-        let center = Vec2::new(rect.centerx, rect.bottom());
+        let center = vec2(rect.centerx, rect.bottom());
 
         let mut rng = thread_rng();
 
@@ -335,7 +336,7 @@ pub(super) fn spawn_particles_grounded(
             let size = rng.gen_range(0f32..=1f32) * PARTICLE_SIZE;
             let point = random_point_circle(1., 0.5) * PLAYER_HALF_WIDTH;
             let position = center + point;
-            let velocity = Vec2::new(point.normalize().x, 0.5);
+            let velocity = vec2(point.normalize().x, 0.5);
 
             commands.spawn_particle(
                 ParticleBuilder::new(particle, position, velocity, 0.3)
@@ -470,7 +471,7 @@ pub(super) fn draw_hitbox(
     let transform = query_player.single();
     let player_pos = transform.translation.truncate();
 
-    gizmos.rect_2d(player_pos, 0., Vec2::new(PLAYER_WIDTH, PLAYER_HEIGHT), Color::RED);
+    gizmos.rect_2d(player_pos, 0., vec2(PLAYER_WIDTH, PLAYER_HEIGHT), Color::RED);
 }
 
 #[cfg(feature = "debug")]
@@ -482,7 +483,8 @@ pub(super) fn teleport_player(
     mut query_player: Query<(&mut EntityRect, &mut Velocity), With<Player>>,
 ) {
     if let Ok((mut player_rect, mut velocity)) = query_player.get_single_mut() {
-        **player_rect = player_rect.with_center(cursor_position.world.x, cursor_position.world.y);
+        player_rect.centerx = cursor_position.world.x;
+        player_rect.centery = cursor_position.world.y;
         velocity.0 = Vec2::ZERO;
     }
 }

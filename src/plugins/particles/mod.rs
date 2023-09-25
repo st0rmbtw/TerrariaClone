@@ -174,7 +174,7 @@ impl Command for SpawnParticleCommand {
             },
             sprite: TextureAtlasSprite {
                 index: self.index,
-                custom_size: self.size.map(|size| Vec2::splat(size)),
+                custom_size: self.size.map(Vec2::splat),
                 ..default()
             },
             texture_atlas: particle_assets.particles.clone_weak(),

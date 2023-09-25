@@ -51,7 +51,7 @@ pub(super) fn update_particle_over_lifetime(
         sprite.custom_size = Some(Vec2::splat(factor * particle_data.size.unwrap_or(PARTICLE_SIZE)));
 
         if let Some(mut light_source) = light_source {
-            light_source.intensity = factor as f32;
+            light_source.intensity = factor;
         }
     }
 }

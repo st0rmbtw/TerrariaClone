@@ -83,7 +83,7 @@ pub(super) fn spawn_particles_on_break(commands: &mut Commands, block: BlockType
         let size = rng.gen_range(0.3..1.0) * PARTICLE_SIZE;
 
         commands.spawn_particle(
-            ParticleBuilder::new(particle, tile_pos_to_world_coords(tile_pos), velocity, 1.)
+            ParticleBuilder::new(particle, tile_pos_to_world_coords(tile_pos), velocity, 1.5)
                 .with_size(size)
                 .with_gravity(true)
                 .with_render_layer(WORLD_RENDER_LAYER)

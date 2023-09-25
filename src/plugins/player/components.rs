@@ -39,6 +39,12 @@ impl From<InputAxis> for Option<FaceDirection> {
 
 impl From<&FaceDirection> for f32 {
     fn from(direction: &FaceDirection) -> Self {
+        f32::from(*direction)
+    }
+}
+
+impl From<FaceDirection> for f32 {
+    fn from(direction: FaceDirection) -> Self {
         match direction {
             FaceDirection::Left => -1.,
             FaceDirection::Right => 1.,

@@ -88,9 +88,9 @@ pub(super) fn use_item(
                         dig_block_events.send(DigBlockEvent { tile_pos, tool });
                     }
                 },
-                Item::Block(block) => {
+                Item::Block(block_type) => {
                     if !world_data.block_exists(tile_pos) {
-                        place_block_events.send(PlaceBlockEvent { tile_pos, block });
+                        place_block_events.send(PlaceBlockEvent { tile_pos, block_type });
                         inventory.consume_item(selected_item_index);
                     }
                 },

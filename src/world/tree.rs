@@ -105,23 +105,20 @@ pub(crate) enum TreeType {
 pub(crate) struct Tree {
     pub(crate) tree_type: TreeType,
     pub(crate) frame_type: TreeFrameType,
-    pub(crate) variant: u32
 }
 
 impl Tree {
-    pub(crate) const fn new(tree_type: TreeType, frame_type: TreeFrameType, variant: u32) -> Self {
-        assert!(variant < 3, "Frame variant must be in range of 0 to 3");
-
-        Self { tree_type, frame_type, variant }
+    pub(crate) const fn new(tree_type: TreeType, frame_type: TreeFrameType) -> Self {
+        Self { tree_type, frame_type }
     }
 
-    pub(crate) const fn terraria_frame(&self) -> TerrariaFrame {
-        self.frame_type.terraria_frame(self.tree_type)[self.variant as usize]
+    pub(crate) const fn terraria_frame(&self, variant: u32) -> TerrariaFrame {
+        self.frame_type.terraria_frame(self.tree_type)[variant as usize]
     }
     
-    pub(crate) const fn texture_atlas_pos(&self) -> u32 {
+    pub(crate) const fn texture_atlas_pos(&self, variant: u32) -> u32 {
         self.frame_type
-            .texture_atlas_pos(self.tree_type, self.variant)
+            .texture_atlas_pos(self.tree_type, variant)
             .to_2d_index(self.frame_type.texture_width())
     }
 }
