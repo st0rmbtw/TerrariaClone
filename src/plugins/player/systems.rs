@@ -183,7 +183,7 @@ pub(super) fn detect_collisions(
                         }
                     } else {
                         // Checking for collisions again with an offset to workaround the bug when the player stuck in a wall.
-                        if FRect::new_bounds_h(next_rect.left() + 2.0, next_rect.top(), PLAYER_WIDTH - 4.0, PLAYER_HEIGHT).intersects(&tile_rect) {
+                        if FRect::new(next_rect.left() + 2.0, next_rect.top(), PLAYER_WIDTH - 4.0, PLAYER_HEIGHT).intersects(&tile_rect) {
                             if delta_y > 0. {
                                 new_collisions.top = true;
 

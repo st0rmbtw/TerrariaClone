@@ -115,8 +115,6 @@ fn parallax_container_added(
                                 LayerSpeed::Vertical(vy) => Vec2::new(1.0, vy),
                                 LayerSpeed::Bidirectional(vx, vy) => Vec2::new(vx, vy),
                             },
-                            texture_count,
-                            transition_factor: layer_data.transition_factor
                         },
                         LayerDataComponent {
                             position: layer_data.position
@@ -127,11 +125,17 @@ fn parallax_container_added(
                         for x in -x_max_index..=x_max_index {
                             let mut adjusted_spritesheet_bundle = spritesheet_bundle.clone();
                             adjusted_spritesheet_bundle.transform.translation.x = texture_size.x * x as f32;
-                            parent.spawn(adjusted_spritesheet_bundle).insert(
-                                LayerTextureComponent {
-                                    width: texture_size.x,
-                                },
-                            ).insert(parallax_container.render_layer);
+
+                            parent
+                                .spawn((
+                                    adjusted_spritesheet_bundle,
+                                    parallax_container.render_layer,
+                                    LayerTextureComponent {
+                                        width: texture_size.x,
+                                        texture_count,
+                                        transition_factor: layer_data.transition_factor
+                                    },
+                                ));
                         }
                     });
                 }
@@ -171,47 +175,42 @@ pub(crate) fn parallax_animation_system(
 fn update_layer_textures_system(
     mut query_texture: Query<
         (
-            &Parent,
             &LayerTextureComponent,
             &GlobalTransform,
             &mut Transform,
         ),
         Without<ParallaxCameraComponent>,
     >,
-    query_layer: Query<&LayerComponent>,
     query_camera: Query<&GlobalTransform, With<ParallaxCameraComponent>>,
     query_window: Query<&Window, With<PrimaryWindow>>
 ) {
-    let Ok(window) = query_window.get_single() else { return; };
+    let window = query_window.single();
     let window_width = window.width();
 
     let Ok(camera_transform) = query_camera.get_single() else { return; };
 
     let camera_position = camera_transform.translation();
 
-    query_texture.par_iter_mut().for_each_mut(|(
-        parent,
+    query_texture.for_each_mut(|(
         layer_texture,
         texture_global_transform,
         mut texture_transform
     )| {
-        let layer = query_layer.get(parent.get()).unwrap();
-
         let texture_translation = texture_global_transform.translation();
         let texture_scale = texture_transform.scale;
 
         // Move right-most texture to left side of layer when camera is approaching left-most end
         if camera_position.x - texture_translation.x
             + ((layer_texture.width * texture_scale.x) / 2.0) 
-            < -(window_width * layer.transition_factor)
+            < -(window_width * layer_texture.transition_factor)
         {
-            texture_transform.translation.x -= layer_texture.width * layer.texture_count;
+            texture_transform.translation.x -= layer_texture.width * layer_texture.texture_count;
         // Move left-most texture to right side of layer when camera is approaching right-most end
         } else if camera_position.x - texture_translation.x
             - ((layer_texture.width * texture_scale.x) / 2.0)
-            > window_width * layer.transition_factor
+            > window_width * layer_texture.transition_factor
         {
-            texture_transform.translation.x += layer_texture.width * layer.texture_count;
+            texture_transform.translation.x += layer_texture.width * layer_texture.texture_count;
         }
     });
 }

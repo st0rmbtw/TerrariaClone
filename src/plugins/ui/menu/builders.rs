@@ -57,7 +57,7 @@ pub(crate) fn menu_button(
                     style: Style {
                         position_type: PositionType::Absolute,
                     },
-                    text: Text::from_section("", text_style.clone()).with_no_wrap(),
+                    text: Text::from_section(String::new(), text_style.clone()).with_no_wrap(),
                 },
                 text.into()
             ));
@@ -81,7 +81,7 @@ pub(crate) fn menu_text_localized(builder: &mut ChildBuilder, text_style: TextSt
     builder.spawn((
         Name::new("MenuText"),
         TextBundle {
-            text: Text::from_section("", text_style.clone()).with_no_wrap(),
+            text: Text::from_section(String::new(), text_style.clone()).with_no_wrap(),
         },
         text.into()
     ));
@@ -239,7 +239,7 @@ pub(crate) fn slider_name_text(builder: &mut ChildBuilder, text_style: TextStyle
         Name::new("SliderNameText"),
         TextBundle {
             text: Text::from_sections([
-                TextSection::new("", text_style.clone()),
+                TextSection::new(String::new(), text_style.clone()),
                 TextSection::new(":", text_style)
             ]).with_no_wrap(),
             ..default()

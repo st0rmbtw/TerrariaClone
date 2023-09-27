@@ -46,7 +46,7 @@ pub(crate) fn spawn_ingame_settings_button(
                         ..default()
                     },
                     text: Text::from_section(
-                        "",
+                        String::new(),
                         TextStyle {
                             font: fonts.andy_bold.clone_weak(),
                             font_size: 32.,
@@ -125,7 +125,7 @@ pub(super) fn spawn_settings_menu(
                 style: Style {
                     align_self: AlignSelf::Center
                 },
-                text: Text::from_section("", text_style),
+                text: Text::from_section(String::new(), text_style),
             },
             LocalizedText::from(UIStringKey::SettingsMenu),
         ));

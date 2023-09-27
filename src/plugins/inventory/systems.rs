@@ -1,9 +1,9 @@
 
-use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, With, Query, Visibility, Handle, Image, MouseButton, EventWriter, DetectChanges, Local, Transform, Quat, Commands}, input::mouse::MouseWheel, sprite::TextureAtlasSprite};
+use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, With, Query, Visibility, Handle, Image, MouseButton, EventWriter, DetectChanges, Local, Transform, Quat, Commands, Vec2}, input::mouse::MouseWheel, sprite::TextureAtlasSprite};
 
-use crate::{plugins::{ui::ingame::inventory::CELL_COUNT_IN_ROW, assets::ItemAssets, cursor::position::CursorPosition, world::events::{DigBlockEvent, PlaceBlockEvent, SeedEvent, BreakBlockEvent}, player::{FaceDirection, Player, PlayerSpriteBody}, audio::{SoundType, AudioCommandsExt}, camera::components::MainCamera}, common::helpers, items::{Item, get_animation_points}, world::WorldData};
+use crate::{plugins::{ui::ingame::inventory::CELL_COUNT_IN_ROW, assets::ItemAssets, cursor::position::CursorPosition, world::{events::{DigBlockEvent, PlaceBlockEvent, SeedEvent, BreakBlockEvent}, constants::TILE_SIZE}, player::{FaceDirection, Player, PlayerSpriteBody}, audio::{SoundType, AudioCommandsExt}, camera::components::MainCamera}, common::{helpers::{self, tile_pos_to_world_coords}, components::EntityRect, rect::FRect}, items::Item, world::{WorldData, block::BlockType}};
 
-use super::{Inventory, SelectedItem, util::keycode_to_digit, SwingItemCooldown, ItemInHand, UseItemAnimationIndex, PlayerUsingItem, UseItemAnimationData, SwingItemCooldownMax, ITEM_ROTATION, SwingAnimation};
+use super::{Inventory, SelectedItem, util::keycode_to_digit, SwingItemCooldown, ItemInHand, UseItemAnimationIndex, PlayerUsingItem, UseItemAnimationData, SwingItemCooldownMax, ITEM_ROTATION, SwingAnimation, ITEM_ANIMATION_POINTS};
 
 pub(super) fn select_inventory_cell(
     mut commands: Commands,
@@ -46,6 +46,7 @@ pub(super) fn use_item(
     world_data: Res<WorldData>,
     #[cfg(feature = "debug")]
     debug_config: Res<crate::plugins::debug::DebugConfiguration>,
+    query_player: Query<&EntityRect, With<Player>>,
     mut inventory: ResMut<Inventory>,
     mut dig_block_events: EventWriter<DigBlockEvent>,
     mut break_block_events: EventWriter<BreakBlockEvent>,
@@ -53,6 +54,8 @@ pub(super) fn use_item(
     mut seed_events: EventWriter<SeedEvent>,
     mut use_cooldown: Local<u32>,
 ) {
+    let player_rect = query_player.single();
+
     #[cfg(feature = "debug")]
     let instant_break = debug_config.instant_break;
     #[cfg(not(feature = "debug"))]
@@ -89,13 +92,23 @@ pub(super) fn use_item(
                     }
                 },
                 Item::Block(block_type) => {
-                    if !world_data.block_exists(tile_pos) {
-                        place_block_events.send(PlaceBlockEvent { tile_pos, block_type });
-                        inventory.consume_item(selected_item_index);
+                    if world_data.block_exists(tile_pos) { return; }
+
+                    // Forbid placing a block inside the player 
+                    {
+                        let Vec2 { x, y } = tile_pos_to_world_coords(tile_pos);
+                        let tile_rect = FRect::new_center(x, y, TILE_SIZE, TILE_SIZE);
+                        if player_rect.intersects(&tile_rect) { return; }
                     }
+
+                    place_block_events.send(PlaceBlockEvent { tile_pos, block_type });
+                    inventory.consume_item(selected_item_index);
                 },
                 Item::Seed(seed) => {
+                    if !world_data.block_exists_with_type(tile_pos, BlockType::Dirt) { return; }
+
                     seed_events.send(SeedEvent { tile_pos, seed });
+                    inventory.consume_item(selected_item_index);
                 }
             }
         }
@@ -173,7 +186,7 @@ pub(super) fn set_using_item_position(
     let face_direction = query_player.single();
     let direction = f32::from(face_direction);
 
-    let position = get_animation_points()[**index];
+    let position = ITEM_ANIMATION_POINTS[**index];
 
     transform.translation.x = position.x * direction;
     transform.translation.y = position.y;

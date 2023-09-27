@@ -42,7 +42,7 @@ pub enum WorldSize {
 }
 
 impl WorldSize {
-    pub(crate) fn size(&self) -> Size {
+    pub(crate) const fn size(&self) -> Size {
         match self {
             WorldSize::Tiny => Size { width: 1750, height: 900 },
             WorldSize::Medium => Size { width: 6400, height: 1800 },
@@ -64,27 +64,42 @@ pub trait AsWorldPos {
     fn x(&self) -> usize;
     fn y(&self) -> usize;
 
+    #[inline(always)]
     fn yx(&self) -> (usize, usize) { (self.y(), self.x()) }
+
+    #[inline(always)]
     fn as_tile_pos(&self) -> TilePos { TilePos::new(self.x() as u32, self.y() as u32) }
 }
 
 impl AsWorldPos for TilePos {
+    #[inline(always)]
     fn x(&self) -> usize { self.x as usize }
+
+    #[inline(always)]
     fn y(&self) -> usize { self.y as usize }
 }
 
 impl AsWorldPos for &TilePos {
+    #[inline(always)]
     fn x(&self) -> usize { self.x as usize }
+
+    #[inline(always)]
     fn y(&self) -> usize { self.y as usize }
 }
 
 impl AsWorldPos for (usize, usize) {
+    #[inline(always)]
     fn x(&self) -> usize { self.0 }
+
+    #[inline(always)]
     fn y(&self) -> usize { self.1 }
 }
 
 impl AsWorldPos for (u32, u32) {
+    #[inline(always)]
     fn x(&self) -> usize { self.0 as usize }
+
+    #[inline(always)]
     fn y(&self) -> usize { self.1 as usize }
 }
 

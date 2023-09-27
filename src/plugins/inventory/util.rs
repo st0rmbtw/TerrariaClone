@@ -1,6 +1,6 @@
 use bevy::prelude::KeyCode;
 
-pub(super) fn keycode_to_digit(keycode: &KeyCode) -> Option<usize> {
+pub(super) const fn keycode_to_digit(keycode: &KeyCode) -> Option<usize> {
     match keycode {
         KeyCode::Key1 => Some(0),
         KeyCode::Key2 => Some(1),

@@ -51,10 +51,6 @@ impl Default for LayerData {
 pub(crate) struct LayerComponent {
     /// Relative speed of layer to the camera movement
     pub(crate) speed: Vec2,
-    /// Number of textures in the layer
-    pub(crate) texture_count: f32,
-    /// Number used to determine when textures are moved to opposite side of camera
-    pub(crate) transition_factor: f32,
 }
 
 /// Core component for layer texture
@@ -62,6 +58,8 @@ pub(crate) struct LayerComponent {
 pub(crate) struct LayerTextureComponent {
     /// Width of the texture
     pub width: f32,
+    pub texture_count: f32,
+    pub transition_factor: f32,
 }
 
 #[derive(Component)]

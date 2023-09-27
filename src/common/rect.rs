@@ -13,6 +13,7 @@ pub(crate) struct FRect {
 }
 
 impl FRect {
+    #[inline]
     pub(crate) fn new_center(centerx: f32, centery: f32, width: f32, height: f32) -> Self {
         Self { 
             centerx,
@@ -22,7 +23,8 @@ impl FRect {
         }
     }
 
-    pub(crate) fn new_bounds_h(left: f32, top: f32, width: f32, height: f32) -> Self {
+    #[inline]
+    pub(crate) fn new(left: f32, top: f32, width: f32, height: f32) -> Self {
         Self {
             centerx: left + width / 2.,
             centery: top - height / 2.,

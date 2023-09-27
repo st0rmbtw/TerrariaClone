@@ -1,5 +1,3 @@
-use bevy::{math::vec2, prelude::Vec2};
-
 use crate::world::block::BlockType;
 
 use super::{Tool, Seed};
@@ -43,15 +41,15 @@ pub(crate) struct ItemStack {
 }
 
 impl ItemStack {
-    pub(crate) fn new_block(block_type: BlockType) -> Self {
+    pub(crate) const fn new_block(block_type: BlockType) -> Self {
         ItemStack { item: Item::Block(block_type), stack: 1 }
     }
 
-    pub(crate) fn new_tool(tool: Tool) -> Self {
+    pub(crate) const fn new_tool(tool: Tool) -> Self {
         ItemStack { item: Item::Tool(tool), stack: 1 }
     }
 
-    pub(crate) fn new_seed(seed: Seed) -> Self {
+    pub(crate) const fn new_seed(seed: Seed) -> Self {
         ItemStack { item: Item::Seed(seed), stack: 1 }
     }
 
@@ -60,12 +58,8 @@ impl ItemStack {
         self
     }
 
-    pub(crate) fn with_max_stack(mut self) -> Self {
-        self.stack = self.item.max_stack();
-        self
+    #[inline(always)]
+    pub(crate) fn with_max_stack(self) -> Self {
+        self.with_stack(self.item.max_stack())
     }
-}
-
-pub(crate) fn get_animation_points() -> [Vec2; 3] {
-    [vec2(-7.5, 11.0), vec2(6.0, 7.5), vec2(7.0, -4.0)]
 }

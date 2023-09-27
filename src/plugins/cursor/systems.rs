@@ -56,77 +56,85 @@ pub(super) fn setup(
     ).with_repeat_count(RepeatCount::Infinite);
 
     commands
-        .spawn(NodeBundle {
-            style: Style {
-                position_type: PositionType::Absolute,
-                flex_direction: FlexDirection::Column,
-                justify_content: JustifyContent::SpaceBetween,
-                ..default()
-            },
-            focus_policy: FocusPolicy::Pass,
-            z_index: ZIndex::Global(i32::MAX),
-            ..default()
-        })
-        .with_children(|c| {
-            // region: Cursor
-
-            c.spawn(ImageBundle {
+        .spawn((
+            CursorContainer,
+            Name::new("Cursor Container"),
+            NodeBundle {
                 style: Style {
-                    justify_content: JustifyContent::Center,
-                    align_items: AlignItems::Center,
-                    align_self: AlignSelf::FlexStart,
-                    width: Val::Px(CURSOR_SIZE),
-                    height: Val::Px(CURSOR_SIZE),
+                    position_type: PositionType::Absolute,
+                    flex_direction: FlexDirection::Column,
+                    justify_content: JustifyContent::SpaceBetween,
                     ..default()
                 },
                 focus_policy: FocusPolicy::Pass,
-                image: cursor_assets.cursor_background.clone_weak().into(),
-                background_color: cursor_color.background_color.into(),
+                z_index: ZIndex::Global(i32::MAX),
                 ..default()
-            })
-            .insert(CursorBackground)
-            .insert(Animator::new(animate_scale))
-            .with_children(|c| {
-                c.spawn(ImageBundle {
+            }
+        ))
+        .with_children(|c| {
+            // region: Cursor
+
+            c.spawn((
+                CursorBackground,
+                Animator::new(animate_scale),
+                ImageBundle {
                     style: Style {
                         justify_content: JustifyContent::Center,
                         align_items: AlignItems::Center,
-                        align_self: AlignSelf::Center,
-                        width: Val::Px(16.),
-                        height: Val::Px(16.),
+                        align_self: AlignSelf::FlexStart,
+                        width: Val::Px(CURSOR_SIZE),
+                        height: Val::Px(CURSOR_SIZE),
                         ..default()
                     },
                     focus_policy: FocusPolicy::Pass,
-                    image: cursor_assets.cursor.clone_weak().into(),
-                    background_color: cursor_color.foreground_color.into(),
+                    image: cursor_assets.cursor_background.clone_weak().into(),
+                    background_color: cursor_color.background_color.into(),
                     ..default()
-                })
-                .insert(CursorForeground)
-                .insert(Animator::new(animate_color));
+                }
+            ))
+            .with_children(|c| {
+                c.spawn((
+                    CursorForeground,
+                    Animator::new(animate_color),
+                    ImageBundle {
+                        style: Style {
+                            justify_content: JustifyContent::Center,
+                            align_items: AlignItems::Center,
+                            align_self: AlignSelf::Center,
+                            width: Val::Px(16.),
+                            height: Val::Px(16.),
+                            ..default()
+                        },
+                        focus_policy: FocusPolicy::Pass,
+                        image: cursor_assets.cursor.clone_weak().into(),
+                        background_color: cursor_color.foreground_color.into(),
+                        ..default()
+                    }
+                ));
             });
 
             // endregion
 
-            c.spawn(TextBundle {
-                style: Style {
-                    align_self: AlignSelf::FlexEnd,
-                    margin: UiRect::left(Val::Px(CURSOR_SIZE)),
-                    ..default()
-                },
-                text: Text::from_section(
-                    "",
-                    TextStyle {
-                        font: fonts.andy_bold.clone_weak(),
-                        font_size: 22.,
-                        color: Color::WHITE,
+            c.spawn((
+                CursorInfoMarker,
+                TextBundle {
+                    style: Style {
+                        align_self: AlignSelf::FlexEnd,
+                        margin: UiRect::left(Val::Px(CURSOR_SIZE)),
+                        ..default()
                     },
-                ),
-                ..default()
-            })
-            .insert(CursorInfoMarker);
-        })
-        .insert(CursorContainer)
-        .insert(Name::new("Cursor Container"));
+                    text: Text::from_section(
+                        String::new(),
+                        TextStyle {
+                            font: fonts.andy_bold.clone_weak(),
+                            font_size: 22.,
+                            color: Color::WHITE,
+                        },
+                    ),
+                    ..default()
+                }
+            ));
+        });
 }
 
 #[autodefault]
@@ -140,7 +148,7 @@ pub(super) fn spawn_tile_grid(
         DespawnOnGameExit,
         SpriteBundle {
             sprite: Sprite {
-                color: Color::rgba(1., 1., 1., MAX_TILE_GRID_OPACITY),
+                color: Color::WHITE.with_a(MAX_TILE_GRID_OPACITY),
             },
             texture: ui_assets.radial.clone_weak(),
             transform: Transform::from_xyz(0., 0., 5.),

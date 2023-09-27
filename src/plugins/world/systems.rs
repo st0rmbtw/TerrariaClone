@@ -4,7 +4,7 @@ use bevy::{
     prelude::{
         EventReader, ResMut, Query, Commands, EventWriter, Entity, BuildChildren, Transform, 
         default, SpatialBundle, DespawnRecursiveExt, OrthographicProjection, Changed, 
-        GlobalTransform, With, Res, UVec2, NextState, Vec2, Name,
+        GlobalTransform, With, Res, UVec2, NextState, Name,
     }, 
     math::Vec3Swizzles
 };
@@ -20,7 +20,7 @@ use bevy_ecs_tilemap::{
 };
 use rand::{thread_rng, Rng};
 
-use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::components::MainCamera, player::Player, audio::{SoundType, AudioCommandsExt}, DespawnOnGameExit}, common::{state::GameState, helpers::tile_pos_to_world_coords, rect::FRect, TextureAtlasPos, math::map_range_i32, components::EntityRect}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}, lighting::UpdateTilesTextureEvent, WALL_LAYER, TILES_LAYER};
+use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::components::MainCamera, audio::{SoundType, AudioCommandsExt}, DespawnOnGameExit}, common::{state::GameState, TextureAtlasPos, math::map_range_i32}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}, lighting::UpdateTilesTextureEvent, WALL_LAYER, TILES_LAYER};
 
 use super::{
     utils::{get_chunk_pos, get_camera_fov, get_chunk_tile_pos, get_chunk_range_by_camera_fov, self}, 
@@ -473,23 +473,13 @@ pub(super) fn handle_dig_block_event(
 
 pub(super) fn handle_place_block_event(
     mut commands: Commands,
-    query_player: Query<&EntityRect, With<Player>>,
     mut query_chunk: Query<(&Chunk, &mut TileStorage, Entity)>,
     mut world_data: ResMut<WorldData>,
     mut place_block: EventReader<PlaceBlockEvent>,
     mut update_neighbors: EventWriter<UpdateNeighborsEvent>,
     mut update_tiles_texture: EventWriter<UpdateTilesTextureEvent>
 ) {
-    let player_rect = query_player.single();
-
     for &PlaceBlockEvent { tile_pos, block_type: block } in place_block.iter() {
-        // Forbid placing a block inside the player 
-        {
-            let Vec2 { x, y } = tile_pos_to_world_coords(tile_pos);
-            let tile_rect = FRect::new_center(x, y, TILE_SIZE, TILE_SIZE);
-            if player_rect.intersects(&tile_rect) { continue; }
-        }
-
         if world_data.block_exists(tile_pos) { continue; }
 
         let new_block = Block::from(block);

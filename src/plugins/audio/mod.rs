@@ -66,7 +66,7 @@ impl Command for PlaySoundCommand {
         let sound_volume = world.resource::<SoundVolume>();
         let sound_assets = world.resource::<SoundAssets>();
 
-        // We don't need to spawn if the sound volume is 0
+        // Don't spawn a sound if the volume is 0
         if sound_volume.get() < f32::EPSILON {
             return;
         }

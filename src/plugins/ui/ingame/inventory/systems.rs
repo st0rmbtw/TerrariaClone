@@ -35,7 +35,7 @@ pub(crate) fn spawn_inventory_ui(
                             align_self: AlignSelf::Center,
                         },
                         text: Text::from_section(
-                            "",
+                            String::new(),
                             TextStyle {
                                 font: fonts.andy_bold.clone_weak(),
                                 font_size: 24.,
@@ -212,7 +212,7 @@ fn spawn_inventory_cell(
                             },
                             focus_policy: FocusPolicy::Pass,
                             text: Text::from_section(
-                                "",
+                                String::new(),
                                 TextStyle {
                                     font: fonts.andy_regular.clone_weak(),
                                     font_size: 16.,

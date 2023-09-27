@@ -3,7 +3,7 @@ mod resources;
 mod systems;
 mod util;
 
-use bevy::prelude::{Plugin, App, IntoSystemConfigs, Update, FixedUpdate, OnExit, Commands, resource_exists_and_changed, resource_exists_and_equals};
+use bevy::{prelude::{Plugin, App, IntoSystemConfigs, Update, FixedUpdate, OnExit, Commands, resource_exists_and_changed, resource_exists_and_equals, Vec2}, math::vec2};
 pub(crate) use components::*;
 pub(crate) use resources::*;
 
@@ -12,6 +12,8 @@ use crate::{common::state::GameState, items::{ItemStack, Tool, Axe, Pickaxe, See
 use super::{InGameSystemSet, ui::InventoryUiVisibility};
 
 const ITEM_ROTATION: f32 = 1.7;
+
+const ITEM_ANIMATION_POINTS: [Vec2; 3] = [vec2(-7.5, 11.0), vec2(6.0, 7.5), vec2(7.0, -4.0)];
 
 pub struct PlayerInventoryPlugin;
 impl Plugin for PlayerInventoryPlugin {
@@ -53,20 +55,15 @@ impl Plugin for PlayerInventoryPlugin {
                     systems::update_player_using_item,
                     systems::start_swing_animation
                 ).chain(),
+                (
+                    systems::scroll_select_inventory_item.run_if(resource_exists_and_equals(InventoryUiVisibility::HIDDEN)),
+                    systems::select_inventory_cell,
+                    systems::set_selected_item.run_if(resource_exists_and_changed::<Inventory>())
+                )
+                .chain(),
                 systems::set_using_item_image.run_if(resource_exists_and_changed::<SelectedItem>()),
                 systems::set_using_item_visibility(false)
             )
-            .in_set(InGameSystemSet::Update)
-        );
-
-        app.add_systems(
-            Update,
-            (
-                systems::scroll_select_inventory_item.run_if(resource_exists_and_equals(InventoryUiVisibility::HIDDEN)),
-                systems::select_inventory_cell,
-                systems::set_selected_item.run_if(resource_exists_and_changed::<Inventory>())
-            )
-            .chain()
             .in_set(InGameSystemSet::Update)
         );
     }

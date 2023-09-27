@@ -282,7 +282,7 @@ impl WorldData {
                     write_false(writer)?;
                 }
 
-                // Wall?
+                // Is wall
                 write_bool(wall.is_some(), writer)?;
 
                 if let Some(wall) = wall {
@@ -292,10 +292,10 @@ impl WorldData {
                     write_false(writer)?;
                 }
 
-                // Is liquid?
+                // Is liquid
                 write_false(writer)?;
 
-                // Is wire? (red, green, blue)
+                // Is wire (red, green, blue)
                 write_false(writer)?;
                 write_false(writer)?;
                 write_false(writer)?;
