@@ -1,7 +1,8 @@
-use bevy::{prelude::{Commands, SpatialBundle, Res, Query, Transform, With, Visibility, Color, Name, TextBundle, Input, KeyCode, ResMut, UVec2, Vec4, DetectChanges}, text::{TextStyle, Text, TextSection}, ui::{Style, Val, PositionType}, utils::default};
+use bevy::{prelude::{Commands, SpatialBundle, Res, Query, Transform, With, Visibility, Color, Name, TextBundle, Input, KeyCode, ResMut, UVec2, Vec4, DetectChanges}, text::{TextStyle, Text, TextSection}, ui::{Style, Val, PositionType}, utils::default, window::{Window, PrimaryWindow}};
+use bevy_inspector_egui::bevy_egui::EguiContexts;
 use rand::{thread_rng, Rng};
 
-use crate::{plugins::{DespawnOnGameExit, cursor::position::CursorPosition, camera::components::MainCamera, assets::{FontAssets, ParticleAssets}, particles::{ParticleBuilder, ParticleCommandsExt}}, lighting::types::LightSource, common::helpers::{self, random_point_circle, random_point_ring, random_point_cone}, world::WorldData};
+use crate::{plugins::{DespawnOnGameExit, cursor::{position::CursorPosition, components::CursorContainer}, camera::components::MainCamera, assets::{FontAssets, ParticleAssets}, particles::{ParticleBuilder, ParticleCommandsExt}}, lighting::types::LightSource, common::helpers::{self, random_point_circle, random_point_ring, random_point_cone}, world::WorldData};
 
 use super::{resources::{MouseLightSettings, DebugConfiguration, MouseParticleSettings, ParticleSpawnType, HoverBlockData}, components::{MouseLight, FreeCameraLegendText}};
 
@@ -135,4 +136,17 @@ pub(super) fn block_hover(
     block_data.pos = tile_pos;
     block_data.block_type = block_type.map(|b| b.block_type);
     block_data.neighbors = neighbors.map_ref(|b| b.block_type);
+}
+
+pub(super) fn cursor_visibility(
+    mut query_window: Query<&mut Window, With<PrimaryWindow>>,
+    mut query_cursor: Query<&mut Visibility, With<CursorContainer>>,
+    mut egui: EguiContexts
+) {
+    let Ok(mut window) = query_window.get_single_mut() else { return; };
+    let Ok(cursor_visibility) = query_cursor.get_single_mut() else { return; };
+
+    let ctx = egui.ctx_mut();
+    window.cursor.visible = ctx.is_pointer_over_area();
+    helpers::set_visibility(cursor_visibility, !ctx.is_pointer_over_area());
 }

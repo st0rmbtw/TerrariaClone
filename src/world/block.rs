@@ -109,6 +109,8 @@ impl Deref for Block {
 impl Block {
     #[inline(always)]
     pub(crate) fn new(block_type: BlockType, variant: u32) -> Block {
+        debug_assert!((0..3).contains(&variant));
+
         Self {
             block_type,
             variant,
@@ -551,7 +553,7 @@ impl Block {
                 south_east: Some(BlockType::Dirt),
                 ..
             } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *bb != BlockType::Dirt && *bl != BlockType::Dirt && *br != BlockType::Dirt
-            => Some(TextureAtlasPos::new(16, 5 + variant * 2)),
+            => Some(TextureAtlasPos::new(0, 5 + variant * 2)),
 
             //  $#
             // $X$
@@ -850,16 +852,50 @@ impl Block {
 }
 
 fn get_grass_sprite_index_by_dirt_connections(neighbors: &Neighbors<BlockType>, variant: u32) -> Option<TextureAtlasPos> {
-    match neighbors {
+    match *neighbors {
+        Neighbors {
+            north: None,
+            south: Some(BlockType::Grass),
+            east: None,
+            west: Some(BlockType::Grass),
+            south_west: None,
+            ..
+        } => Some(TextureAtlasPos::new(8 + variant, 15)),
+
         Neighbors {
             north: Some(BlockType::Grass),
-            south: Some(_),
+            south: Some(BlockType::Dirt),
             east: Some(BlockType::Grass),
+            west: None,
+            ..
+        } => Some(TextureAtlasPos::new(4, 5 + variant)),
+
+        Neighbors {
+            north: Some(BlockType::Grass),
+            south: None,
+            east: Some(BlockType::Grass),
+            west: None,
+            ..
+        } => Some(TextureAtlasPos::new(5 + variant, 16)),
+
+        Neighbors {
+            north: None,
+            south: Some(BlockType::Grass),
+            east: Some(BlockType::Grass),
+            west: None,
+            south_east: None,
+            ..
+        } => Some(TextureAtlasPos::new(5 + variant, 15)),
+
+        Neighbors {
+            north: Some(BlockType::Grass),
+            south: Some(BlockType::Dirt),
+            east: Some(BlockType::Grass),
+            west: Some(BlockType::Dirt),
+
             north_east: None,
             ..
-        } => {
-            Some(TextureAtlasPos::new(2, 6 + variant * 2))
-        },
+        } => Some(TextureAtlasPos::new(2, 6 + variant * 2)),
 
         Neighbors {
             north: Some(BlockType::Grass),
@@ -867,19 +903,16 @@ fn get_grass_sprite_index_by_dirt_connections(neighbors: &Neighbors<BlockType>, 
             west: Some(BlockType::Grass),
             north_west: None,
             ..
-        } => {
-            Some(TextureAtlasPos::new(3, 6 + variant * 2))
-        },
+        } => Some(TextureAtlasPos::new(3, 6 + variant * 2)),
 
         Neighbors {
-            north: Some(_),
+            north: Some(bt),
             south: Some(BlockType::Grass),
             east: Some(BlockType::Grass),
+            west: Some(BlockType::Dirt),
             south_east: None,
             ..
-        } => {
-            Some(TextureAtlasPos::new(2, 6 + variant * 2 - 1))
-        },
+        } if bt != BlockType::Grass => Some(TextureAtlasPos::new(2, 6 + variant * 2 - 1)),
 
         Neighbors {
             north: Some(_),
@@ -887,9 +920,7 @@ fn get_grass_sprite_index_by_dirt_connections(neighbors: &Neighbors<BlockType>, 
             west: Some(BlockType::Grass),
             south_west: None,
             ..
-        } => {
-            Some(TextureAtlasPos::new(3, 6 + variant * 2 - 1))
-        },
+        } => Some(TextureAtlasPos::new(3, 6 + variant * 2 - 1)),
 
         //
         // #X#
@@ -923,6 +954,19 @@ fn get_grass_sprite_index_by_dirt_connections(neighbors: &Neighbors<BlockType>, 
             south: Some(_),
             ..
         } => Some(TextureAtlasPos::new(variant, 11)),
+
+        //  X
+        // #XX
+        //  X
+        Neighbors { 
+            east: Some(BlockType::Grass),
+            west: Some(BlockType::Dirt),
+            north: Some(BlockType::Grass),
+            south: Some(BlockType::Grass),
+            ..
+        } => {
+            Some(TextureAtlasPos::new(11, variant))
+        },
         
 
         //  $

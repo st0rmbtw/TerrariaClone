@@ -184,9 +184,9 @@ fn update_layer_textures_system(
     query_camera: Query<&GlobalTransform, With<ParallaxCameraComponent>>,
     query_window: Query<&Window, With<PrimaryWindow>>
 ) {
-    let window = query_window.single();
+    let Ok(window) = query_window.get_single() else { return; };
     let window_width = window.width();
-
+    
     let Ok(camera_transform) = query_camera.get_single() else { return; };
 
     let camera_position = camera_transform.translation();

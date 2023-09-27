@@ -9,7 +9,7 @@ pub(super) struct CursorInfoMarker;
 pub(super) struct TileGrid;
 
 #[derive(Component)]
-pub(super) struct CursorContainer;
+pub(crate) struct CursorContainer;
 
 #[derive(Component)]
 pub(super) struct CursorBackground;

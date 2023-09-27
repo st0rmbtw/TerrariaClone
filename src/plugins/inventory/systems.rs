@@ -1,5 +1,7 @@
-
 use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, With, Query, Visibility, Handle, Image, MouseButton, EventWriter, DetectChanges, Local, Transform, Quat, Commands, Vec2}, input::mouse::MouseWheel, sprite::TextureAtlasSprite};
+
+#[cfg(feature = "debug")]
+use bevy_inspector_egui::bevy_egui::EguiContexts;
 
 use crate::{plugins::{ui::ingame::inventory::CELL_COUNT_IN_ROW, assets::ItemAssets, cursor::position::CursorPosition, world::{events::{DigBlockEvent, PlaceBlockEvent, SeedEvent, BreakBlockEvent}, constants::TILE_SIZE}, player::{FaceDirection, Player, PlayerSpriteBody}, audio::{SoundType, AudioCommandsExt}, camera::components::MainCamera}, common::{helpers::{self, tile_pos_to_world_coords}, components::EntityRect, rect::FRect}, items::Item, world::{WorldData, block::BlockType}};
 
@@ -8,8 +10,15 @@ use super::{Inventory, SelectedItem, util::keycode_to_digit, SwingItemCooldown, 
 pub(super) fn select_inventory_cell(
     mut commands: Commands,
     input: Res<Input<KeyCode>>,
-    mut inventory: ResMut<Inventory>, 
+    mut inventory: ResMut<Inventory>,
+    #[cfg(feature = "debug")] mut egui: EguiContexts
 ) {
+    #[cfg(feature = "debug")]
+    let ctx = egui.ctx_mut();
+
+    #[cfg(feature = "debug")]
+    if ctx.wants_keyboard_input() { return; }
+
     let digit = input
         .get_just_pressed()
         .find_map(keycode_to_digit);
@@ -23,7 +32,14 @@ pub(super) fn scroll_select_inventory_item(
     mut commands: Commands,
     mut inventory: ResMut<Inventory>, 
     mut mouse_wheel: EventReader<MouseWheel>,
+    #[cfg(feature = "debug")] mut egui: EguiContexts
 ) {
+    #[cfg(feature = "debug")]
+    let ctx = egui.ctx_mut();
+
+    #[cfg(feature = "debug")]
+    if ctx.wants_pointer_input() { return; }
+
     for event in mouse_wheel.iter() {
         let selected_item_index = inventory.selected_slot as f32;
         let hotbar_length = CELL_COUNT_IN_ROW as f32;
@@ -251,7 +267,14 @@ pub(super) fn update_player_using_item(
     input: Res<Input<MouseButton>>,
     selected_item: Res<SelectedItem>,
     mut using_item: ResMut<PlayerUsingItem>,
+    #[cfg(feature = "debug")] mut egui: EguiContexts
 ) {
+    #[cfg(feature = "debug")]
+    let ctx = egui.ctx_mut();
+
+    #[cfg(feature = "debug")]
+    if ctx.is_pointer_over_area() { return; }
+
     let pressed = input.pressed(MouseButton::Left) || input.just_pressed(MouseButton::Left);
     
     **using_item = pressed && selected_item.is_some();

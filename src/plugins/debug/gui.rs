@@ -1,5 +1,5 @@
 use bevy::{prelude::{ResMut, Res, Query, AppTypeRegistry, With, Vec3}, time::Time, reflect::{ReflectMut, Reflect}, window::{PrimaryWindow, Window}};
-use bevy_inspector_egui::{bevy_egui::EguiContexts, egui::{self, Align2, ScrollArea, CollapsingHeader, DragValue, Checkbox}, reflect_inspector};
+use bevy_inspector_egui::{bevy_egui::EguiContexts, egui::{self, Align2, ScrollArea, CollapsingHeader, DragValue, Checkbox, Grid, Vec2, Layout, Align}, reflect_inspector};
 
 use crate::world::{chunk::ChunkContainer, block::BlockType};
 
@@ -163,37 +163,49 @@ pub(super) fn particle_gui(
         .default_pos(pos)
         .default_open(false)
         .show(&egui_context, |ui| {
-            ui.columns(2, |columns| {
-                columns[0].label("Index");
-                columns[1].add(
-                    DragValue::new(&mut mouse_particle.index)
-                        .clamp_range(0..=300)
-                        .speed(1.)
-                );
+            Grid::new("grid")
+                .num_columns(2)
+                .show(ui, |grid| {
+                    grid.allocate_ui_with_layout(
+                        grid.max_rect().size() * Vec2::new(0.5, 1.),
+                        Layout::top_down_justified(Align::Min),
+                        |ui| ui.label("Index")
+                    );
+                    grid.add_sized(
+                        grid.available_size_before_wrap(),
+                        DragValue::new(&mut mouse_particle.index)
+                            .clamp_range(0..=323)
+                            .speed(1.)
+                    );
+                    grid.end_row();
 
-                columns[0].label("Velocity");
-                columns[1].columns(2, |columns| {
-                    reflect_inspector::ui_for_value(&mut mouse_particle.velocity.x, &mut columns[0], &type_registry.0.read());
-                    reflect_inspector::ui_for_value(&mut mouse_particle.velocity.y, &mut columns[1], &type_registry.0.read());
+                    grid.label("Velocity");
+                    grid.columns(2, |columns| {
+                        reflect_inspector::ui_for_value(&mut mouse_particle.velocity.x, &mut columns[0], &type_registry.0.read());
+                        reflect_inspector::ui_for_value(&mut mouse_particle.velocity.y, &mut columns[1], &type_registry.0.read());
+                    });
+                    grid.end_row();
+
+                    grid.label("Lifetime");
+                    grid.add_sized(grid.available_size_before_wrap(), DragValue::new(&mut mouse_particle.lifetime).speed(0.1));
+                    grid.end_row();
+
+                    grid.label("Count");
+                    grid.add_sized(grid.available_size_before_wrap(), DragValue::new(&mut mouse_particle.count));
+                    grid.end_row();
+
+                    grid.label("Spawn type");
+                    reflect_inspector::ui_for_value(&mut mouse_particle.spawn_type, grid, &type_registry.0.read());
+                    grid.end_row();
+
+                    grid.label("Light color");
+                    grid.columns(2, |columns| {
+                        columns[0].add(Checkbox::without_text(&mut light_color));
+                        if light_color {
+                            columns[1].color_edit_button_rgb(&mut color);
+                        }
+                    });
                 });
-
-                columns[0].label("Lifetime");
-                columns[1].add(DragValue::new(&mut mouse_particle.lifetime).speed(0.1));
-
-                columns[0].label("Count");
-                columns[1].add(DragValue::new(&mut mouse_particle.count));
-
-                columns[0].label("Spawn type");
-                reflect_inspector::ui_for_value(&mut mouse_particle.spawn_type, &mut columns[1], &type_registry.0.read());
-
-                columns[0].label("Light color");
-                columns[1].columns(2, |columns| {
-                    columns[0].add(Checkbox::without_text(&mut light_color));
-                    if light_color {
-                        columns[1].color_edit_button_rgb(&mut color);
-                    }
-                });
-            });
         });
 
     mouse_particle.light_color = light_color.then_some(Vec3::from_array(color));
@@ -222,27 +234,38 @@ pub(super) fn mouse_light_gui(
         .default_open(false)
         .default_pos(pos)
         .show(&egui_context, |ui| {
-            ui.columns(2, |columns| {
-                columns[0].label("Enabled");
-                columns[1].add(Checkbox::without_text(&mut mouse_light.enabled));
+            Grid::new("grid")
+                .num_columns(2)
+                .show(ui, |grid| {
+                    grid.allocate_ui_with_layout(
+                        grid.max_rect().size() * Vec2::new(0.5, 1.),
+                        Layout::top_down_justified(Align::Min),
+                        |ui| ui.label("Color")
+                    );
+                    grid.color_edit_button_rgb(&mut color);
+                    grid.end_row();
 
-                columns[0].label("Intensity");
-                columns[1].add(
-                    DragValue::new(&mut mouse_light.intensity)
-                        .speed(0.1)
-                        .clamp_range(0.0..=1.0)
-                );
+                    grid.label("Intensity");
+                    grid.add_sized(
+                        grid.available_size_before_wrap(),
+                        DragValue::new(&mut mouse_light.intensity)
+                            .speed(0.1)
+                            .clamp_range(0.0..=1.0)
+                    );
+                    grid.end_row();
 
-                columns[0].label("Jitter intensity");
-                columns[1].add(
-                    DragValue::new(&mut mouse_light.jitter_intensity)
-                        .speed(0.1)
-                        .clamp_range(0.0..=1.0)
-                );
+                    grid.label("Jitter intensity");
+                    grid.add_sized(
+                        grid.available_size_before_wrap(),
+                        DragValue::new(&mut mouse_light.jitter_intensity)
+                            .speed(0.1)
+                            .clamp_range(0.0..=1.0)
+                    );
+                    grid.end_row();
 
-                columns[0].label("Color");
-                columns[1].color_edit_button_rgb(&mut color);
-            });
+                    grid.label("Enabled");
+                    grid.add(Checkbox::without_text(&mut mouse_light.enabled));
+                });
         });
 
     mouse_light.color = Vec3::from_array(color);

@@ -1,4 +1,4 @@
-use bevy::{prelude::{Plugin, App, OnEnter, Update, IntoSystemConfigs}, sprite::TextureAtlasSprite};
+use bevy::{prelude::{Plugin, App, OnEnter, Update, IntoSystemConfigs, PreUpdate}, sprite::TextureAtlasSprite};
 use bevy_ecs_tilemap::{tiles::TilePos, helpers::square_grid::neighbors::Neighbors};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
@@ -44,6 +44,8 @@ impl Plugin for DebugPlugin {
         app.register_type::<UseItemAnimationData>();
         app.register_type::<FaceDirection>();
         app.register_type::<EntityRect>();
+
+        app.add_systems(PreUpdate, systems::cursor_visibility);
 
         app.add_systems(
             OnEnter(GameState::InGame),

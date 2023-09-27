@@ -514,7 +514,7 @@ pub(super) fn handle_update_neighbors_event(
             y: world_data.size.height as u32,
         };
         
-        let neighbor_positions = Neighbors::get_square_neighboring_positions(tile_pos, &map_size, false);
+        let neighbor_positions = Neighbors::get_square_neighboring_positions(tile_pos, &map_size, true);
 
         for pos in neighbor_positions.iter() {
             if let Some(block) = world_data.get_block(*pos) {

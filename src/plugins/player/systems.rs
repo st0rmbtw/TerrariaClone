@@ -11,6 +11,9 @@ use crate::{
     common::{math::{move_towards, map_range_usize}, state::MovementState, rect::FRect, components::{Velocity, EntityRect}, helpers::{random_point_cone, random_point_circle}}, world::WorldData,
 };
 
+#[cfg(feature = "debug")]
+use bevy_inspector_egui::bevy_egui::EguiContexts;
+
 use super::{*, utils::get_fall_distance};
 
 pub(super) fn horizontal_movement(
@@ -40,8 +43,15 @@ pub(super) fn update_jump(
     collisions: Res<Collisions>,
     mut player_data: ResMut<PlayerData>,
     mut query_player: Query<&mut Velocity, With<Player>>,
-    mut jump: Local<i32>
+    mut jump: Local<i32>,
+    #[cfg(feature = "debug")] mut egui: EguiContexts
 ) {
+    #[cfg(feature = "debug")]
+    let ctx = egui.ctx_mut();
+
+    #[cfg(feature = "debug")]
+    if ctx.wants_keyboard_input() { return; }
+
     let Ok(mut velocity) = query_player.get_single_mut() else { return; };
     
     // TODO: Call just_pressed instead when https://github.com/bevyengine/bevy/issues/6183 is fixed
@@ -358,7 +368,17 @@ pub(super) fn update_face_direction(axis: Res<InputAxis>, mut query: Query<&mut 
     }
 }
 
-pub(super) fn update_input_axis(input: Res<Input<KeyCode>>, mut axis: ResMut<InputAxis>) {
+pub(super) fn update_input_axis(
+    input: Res<Input<KeyCode>>,
+    mut axis: ResMut<InputAxis>,
+    #[cfg(feature = "debug")] mut egui: EguiContexts
+) {
+    #[cfg(feature = "debug")]
+    let ctx = egui.ctx_mut();
+
+    #[cfg(feature = "debug")]
+    if ctx.wants_keyboard_input() { return; }
+    
     let left = input.pressed(KeyCode::A);
     let right = input.pressed(KeyCode::D);
 
