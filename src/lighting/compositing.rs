@@ -3,7 +3,7 @@ use bevy::{
     render::{render_resource::{
         Extent3d,
         TextureDimension, TextureUsages,
-    }, texture::BevyDefault, camera::RenderTarget, view::RenderLayers}, window::{PrimaryWindow, WindowResized}, core_pipeline::tonemapping::Tonemapping,
+    }, texture::BevyDefault, camera::RenderTarget, view::RenderLayers}, window::{PrimaryWindow, WindowResized}, core_pipeline::{tonemapping::Tonemapping, clear_color::ClearColorConfig},
 };
 
 use crate::plugins::{camera::components::{WorldCamera, MainCamera, BackgroundCamera, InGameBackgroundCamera}, DespawnOnGameExit};
@@ -43,15 +43,15 @@ pub(super) fn setup_post_processing_camera(
     mut images: ResMut<Assets<Image>>,
 
     query_window: Query<&Window, With<PrimaryWindow>>,
-    mut query_main_camera: Query<&mut Camera, With<MainCamera>>,
-    mut query_world_camera: Query<&mut Camera, (With<WorldCamera>, Without<MainCamera>)>,
+    mut query_main_camera: Query<(&mut Camera, &mut Camera2d, &mut UiCameraConfig), With<MainCamera>>,
+    mut query_world_camera: Query<(&mut Camera, &mut Camera2d), (With<WorldCamera>, Without<MainCamera>)>,
     mut query_background_camera: Query<&mut Camera, (With<BackgroundCamera>, Without<MainCamera>, Without<WorldCamera>)>,
-    mut query_ingame_background_camera: Query<&mut Camera, (With<InGameBackgroundCamera>, Without<BackgroundCamera>, Without<MainCamera>, Without<WorldCamera>)>,
+    mut query_ingame_background_camera: Query<(&mut Camera, &mut Camera2d), (With<InGameBackgroundCamera>, Without<BackgroundCamera>, Without<MainCamera>, Without<WorldCamera>)>,
 ) {
-    let Ok(mut main_camera) = query_main_camera.get_single_mut() else { return; };
-    let Ok(mut world_camera) = query_world_camera.get_single_mut() else { return; };
+    let Ok((mut main_camera, mut main_camera_2d, mut ui_camera_config)) = query_main_camera.get_single_mut() else { return; };
+    let Ok((mut world_camera, mut world_camera_2d)) = query_world_camera.get_single_mut() else { return; };
     let Ok(mut background_camera) = query_background_camera.get_single_mut() else { return; };
-    let Ok(mut ingame_background_camera) = query_ingame_background_camera.get_single_mut() else { return; };
+    let Ok((mut ingame_background_camera, mut ingame_background_camera_2d)) = query_ingame_background_camera.get_single_mut() else { return; };
 
     let window = query_window.single();
     
@@ -103,6 +103,12 @@ pub(super) fn setup_post_processing_camera(
     world_camera.target = RenderTarget::Image(world_texture_handle.clone());
     background_camera.target = RenderTarget::Image(background_texture_handle.clone());
     ingame_background_camera.target = RenderTarget::Image(ingame_background_texture_handle.clone());
+
+    main_camera_2d.clear_color = ClearColorConfig::Custom(Color::NONE);
+    world_camera_2d.clear_color = ClearColorConfig::Custom(Color::NONE);
+    ingame_background_camera_2d.clear_color = ClearColorConfig::Custom(Color::NONE);
+
+    ui_camera_config.show_ui = false;
 
     commands.spawn((
         DespawnOnGameExit,

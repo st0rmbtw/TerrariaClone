@@ -1,5 +1,5 @@
 use bevy::core_pipeline::core_2d;
-use bevy::prelude::{Plugin, App, Update, IntoSystemConfigs, OnEnter, OnExit, PostUpdate, Event, in_state, Handle, Image, Resource, Deref, not, Condition, Commands, state_changed, Component};
+use bevy::prelude::{Plugin, App, Update, IntoSystemConfigs, OnEnter, OnExit, PostUpdate, in_state, Handle, Image, Resource, Deref, not, Condition, Commands, state_changed, Component, on_event};
 use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
 use bevy::render::extract_resource::ExtractResource;
 use bevy::render::render_graph::{RenderGraph, RenderGraphApp, ViewNodeRunner};
@@ -8,6 +8,7 @@ use bevy::render::{RenderApp, Render, RenderSet, ExtractSchedule};
 use bevy::transform::TransformSystem;
 use crate::common::state::GameState;
 use crate::plugins::InGameSystemSet;
+use crate::plugins::world::events::{BreakBlockEvent, PlaceBlockEvent};
 
 use self::lightmap::LightMapNode;
 use self::lightmap::assets::{BlurArea, LightMapPipelineAssets, LightSourceCount};
@@ -22,13 +23,6 @@ pub(super) mod types;
 pub(super) mod gpu_types;
 pub(super) mod lightmap;
 pub(super) mod postprocess;
-
-
-#[derive(Event, Clone, Copy)]
-pub(crate) struct UpdateTilesTextureEvent {
-    pub(crate) x: usize,
-    pub(crate) y: usize
-}
 
 #[derive(Resource, ExtractResource, Clone)]
 pub(crate) struct BackgroundTexture(Handle<Image>);
@@ -61,7 +55,6 @@ impl Plugin for LightingPlugin {
         app.add_plugins(ExtractComponentPlugin::<PostProcessCamera>::default());
 
         app.init_resource::<BlurArea>();
-        app.add_event::<UpdateTilesTextureEvent>();
 
         app.add_systems(
             OnExit(GameState::WorldLoading),
@@ -76,7 +69,8 @@ impl Plugin for LightingPlugin {
         app.add_systems(
             Update,
             (
-                lightmap::assets::handle_update_tiles_texture_event,
+                lightmap::assets::handle_update_tiles_texture_event
+                    .run_if(on_event::<BreakBlockEvent>().or_else(on_event::<PlaceBlockEvent>())),
                 compositing::update_image_to_window_size,
             ).in_set(InGameSystemSet::Update)
         );

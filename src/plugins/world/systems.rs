@@ -20,7 +20,7 @@ use bevy_ecs_tilemap::{
 };
 use rand::{thread_rng, Rng};
 
-use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::components::MainCamera, audio::{SoundType, AudioCommandsExt}, DespawnOnGameExit}, common::{state::GameState, TextureAtlasPos, math::map_range_i32}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}, lighting::UpdateTilesTextureEvent, WALL_LAYER, TILES_LAYER};
+use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::components::MainCamera, audio::{SoundType, AudioCommandsExt}, DespawnOnGameExit}, common::{state::GameState, TextureAtlasPos, math::map_range_i32}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}, WALL_LAYER, TILES_LAYER};
 
 use super::{
     utils::{get_chunk_pos, get_camera_fov, get_chunk_tile_pos, get_chunk_range_by_camera_fov, self}, 
@@ -409,7 +409,6 @@ pub(super) fn handle_break_block_event(
     mut world_data: ResMut<WorldData>,
     mut break_block: EventReader<BreakBlockEvent>,
     mut update_neighbors: EventWriter<UpdateNeighborsEvent>,
-    mut update_tiles_texture: EventWriter<UpdateTilesTextureEvent>
 ) {
     for &BreakBlockEvent { tile_pos } in break_block.iter() {
         if let Some(&block) = world_data.get_block(tile_pos) {
@@ -422,10 +421,7 @@ pub(super) fn handle_break_block_event(
                 ChunkManager::remove(&mut commands, &mut query_chunk, tile_pos, ChunkType::Cracks);
                 utils::spawn_particles_on_break(&mut commands, block.block_type, tile_pos);
             }
-            update_tiles_texture.send(UpdateTilesTextureEvent {
-                x: tile_pos.x as usize,
-                y: tile_pos.y as usize
-            });
+
             commands.play_sound(SoundType::BlockHit(block.block_type));
             update_neighbors.send(UpdateNeighborsEvent { tile_pos });
         }
@@ -477,29 +473,24 @@ pub(super) fn handle_place_block_event(
     mut world_data: ResMut<WorldData>,
     mut place_block: EventReader<PlaceBlockEvent>,
     mut update_neighbors: EventWriter<UpdateNeighborsEvent>,
-    mut update_tiles_texture: EventWriter<UpdateTilesTextureEvent>
 ) {
-    for &PlaceBlockEvent { tile_pos, block_type: block } in place_block.iter() {
+    for &PlaceBlockEvent { tile_pos, block_type } in place_block.iter() {
         if world_data.block_exists(tile_pos) { continue; }
 
-        let new_block = Block::from(block);
+        let new_block = Block::from(block_type);
         
         world_data.set_block(tile_pos, new_block);
 
         let neighbors = world_data
-            .get_block_neighbors(tile_pos, block.is_solid())
+            .get_block_neighbors(tile_pos, block_type.is_solid())
             .map_ref(|b| b.block_type);
         
         let index = Block::get_sprite_index(&neighbors, &new_block);
 
         ChunkManager::spawn_block(&mut commands, &mut query_chunk, tile_pos, &new_block, index);
 
-        update_tiles_texture.send(UpdateTilesTextureEvent {
-            x: tile_pos.x as usize,
-            y: tile_pos.y as usize
-        });
         update_neighbors.send(UpdateNeighborsEvent { tile_pos });
-        commands.play_sound(SoundType::BlockHit(block));
+        commands.play_sound(SoundType::BlockHit(block_type));
     }
 }
 

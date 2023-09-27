@@ -3,7 +3,7 @@ use crate::{
     common::{state::GameState, systems::despawn_with}, world::WorldData, BACKGROUND_LAYER
 };
 use bevy::{
-    prelude::{default, App, Commands, Plugin, Res, Vec2, Query, Camera, With, OnExit, IntoSystemConfigs, Name, Assets, Image, Camera2dBundle, UiCameraConfig, PostUpdate, Transform, Without, Component, OnEnter, Camera2d, Color},
+    prelude::{default, App, Commands, Plugin, Res, Vec2, Query, Camera, With, OnExit, IntoSystemConfigs, Name, Assets, Image, Camera2dBundle, UiCameraConfig, PostUpdate, Transform, Without, Component, OnEnter, Camera2d},
     sprite::Anchor, render::view::RenderLayers, core_pipeline::{clear_color::ClearColorConfig, tonemapping::Tonemapping}, transform::TransformSystem,
 };
 
@@ -83,7 +83,7 @@ fn spawn_background_camera(
         DespawnOnGameExit,
         Camera2dBundle {
             camera: Camera {
-                order: -1,
+                order: -2,
                 msaa_writeback: false,
                 ..default()
             },
@@ -111,7 +111,7 @@ fn spawn_ingame_background_camera(
                 ..default()
             },
             camera_2d: Camera2d {
-                clear_color: ClearColorConfig::Custom(Color::NONE)
+                clear_color: ClearColorConfig::None
             },
             tonemapping: Tonemapping::None,
             ..default()
