@@ -217,6 +217,7 @@ pub(super) fn update_cursor_info(
         if let (Hoverable::SimpleText(info), Interaction::Hovered) = (hoverable, interaction) {
             text.sections[0].value = info.format(&language_content);
             *visibility = Visibility::Visible;
+            return;
         } else {
             *visibility = Visibility::Hidden;
         }

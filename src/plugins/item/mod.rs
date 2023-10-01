@@ -1,4 +1,4 @@
-use bevy::{prelude::{Plugin, App, World, default, Vec2, Transform, Update, IntoSystemConfigs, FixedUpdate, Commands}, ecs::system::Command, sprite::{SpriteBundle, Sprite}, ui::Interaction, time::Timer};
+use bevy::{prelude::{Plugin, App, World, default, Vec2, Transform, Update, IntoSystemConfigs, FixedUpdate, Commands}, ecs::system::Command, sprite::SpriteBundle, ui::Interaction, time::Timer};
 
 use crate::{items::ItemStack, common::{components::{EntityRect, Velocity}, rect::FRect}, language::{LocalizedText, keys::ItemStringKey, args}};
 
@@ -20,13 +20,11 @@ impl Plugin for ItemPlugin {
                         systems::air_resistance,
                     ),
                     systems::detect_collisions,
-                    systems::update_stackable_items,
+                    systems::stack_items,
                     systems::update_item_rect,
                 ).chain(),
 
-                systems::find_stackable_items,
-                systems::update_stackable_items,
-                systems::delete_stacked,
+                systems::stack_items,
                 systems::follow_player
             )
             .chain()
@@ -49,7 +47,7 @@ const ITEM_SIZE: f32 = 16.;
 const GRAVITY: f32 = 0.1;
 const MAX_VERTICAL_SPEED: f32 = 5.;
 const MAX_HORIZONTAL_SPEED: f32 = 5.;
-const GRAB_RANGE: f32 = 2.625 * TILE_SIZE;
+const GRAB_RANGE: f32 = 5.25 * TILE_SIZE;
 
 
 struct SpawnDroppedItemCommand {
@@ -65,10 +63,6 @@ impl Command for SpawnDroppedItemCommand {
 
         let mut entity = world.spawn((
             SpriteBundle {
-                sprite: Sprite {
-                    custom_size: Some(Vec2::splat(16.)),
-                    ..default()
-                },
                 texture: item_assets.get_by_item(self.item_stack.item),
                 transform: Transform::from_xyz(self.position.x, self.position.y, 10.),
                 ..default()

@@ -20,7 +20,7 @@ use bevy_ecs_tilemap::{
 };
 use rand::{thread_rng, Rng};
 
-use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::components::MainCamera, audio::{SoundType, AudioCommandsExt}, DespawnOnGameExit, item::ItemCommandsExt}, common::{state::GameState, TextureAtlasPos, math::map_range_i32, helpers::tile_to_world_pos}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}, WALL_LAYER, TILES_LAYER, items::ItemStack};
+use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::components::MainCamera, audio::{SoundType, AudioCommandsExt}, DespawnOnGameExit, item::ItemCommandsExt}, common::{state::GameState, TextureAtlasPos, math::map_range_i32, helpers::{tile_to_world_pos, random_point_cone}}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}, WALL_LAYER, TILES_LAYER, items::ItemStack};
 
 use super::{
     utils::{get_chunk_pos, get_camera_fov, get_chunk_tile_pos, get_chunk_range_by_camera_fov, self}, 
@@ -614,7 +614,7 @@ fn break_tree(
 
             commands.spawn_dropped_item(
                 tile_to_world_pos(pos),
-                Vec2::Y * 2.,
+                random_point_cone(Vec2::Y, 180.0, 1.) * 4.,
                 ItemStack::new_block(block.block_type.into()),
                 None
             );

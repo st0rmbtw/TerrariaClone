@@ -3,7 +3,7 @@ use bevy::{prelude::{Commands, Name, NodeBundle, BuildChildren, TextBundle, Colo
 
 use crate::{plugins::{assets::{UiAssets, FontAssets, ItemAssets}, cursor::components::Hoverable, inventory::{Inventory, SelectedItem}, ui::InventoryUiVisibility}, language::{keys::{LanguageStringKey, UIStringKey, ItemStringKey}, LocalizedText, args}, common::{extensions::EntityCommandsExtensions, BoolValue, helpers}};
 
-use super::{components::*, INVENTORY_ROWS, CELL_COUNT_IN_ROW, HOTBAR_CELL_SIZE, INVENTORY_CELL_SIZE, HOTBAR_CELL_SIZE_SELECTED};
+use super::{components::*, INVENTORY_ROWS, SLOT_COUNT_IN_ROW, HOTBAR_SLOT_SIZE, INVENTORY_SLOT_SIZE, HOTBAR_SLOT_SIZE_SELECTED};
 
 #[autodefault]
 pub(crate) fn spawn_inventory_ui(
@@ -59,8 +59,8 @@ pub(crate) fn spawn_inventory_ui(
                     }
                 ))
                 .with_children(|children| {
-                    for i in 0..CELL_COUNT_IN_ROW {
-                        spawn_inventory_cell(
+                    for i in 0..SLOT_COUNT_IN_ROW {
+                        spawn_inventory_slot(
                             children,
                             ui_assets.inventory_background.clone_weak(),
                             true,
@@ -100,10 +100,10 @@ pub(crate) fn spawn_inventory_ui(
                                 },
                             }
                         )).with_children(|children| {
-                            for i in 0..CELL_COUNT_IN_ROW {
-                                let index = (j * CELL_COUNT_IN_ROW) + i;
+                            for i in 0..SLOT_COUNT_IN_ROW {
+                                let index = (j * SLOT_COUNT_IN_ROW) + i;
 
-                                spawn_inventory_cell(
+                                spawn_inventory_slot(
                                     children,
                                     ui_assets.inventory_background.clone_weak(),
                                     false,
@@ -118,22 +118,22 @@ pub(crate) fn spawn_inventory_ui(
         .id()
 }
 
-fn spawn_inventory_cell(
+fn spawn_inventory_slot(
     children: &mut ChildBuilder<'_, '_, '_>,
-    cell_background: Handle<Image>,
-    hotbar_cell: bool,
+    slot_background: Handle<Image>,
+    hotbar_slot: bool,
     index: usize,
     fonts: &FontAssets,
 ) {
-    let size = if hotbar_cell { HOTBAR_CELL_SIZE } else { INVENTORY_CELL_SIZE };
+    let size = if hotbar_slot { HOTBAR_SLOT_SIZE } else { INVENTORY_SLOT_SIZE };
 
     children
         .spawn((
             Hoverable::None,
-            Name::new(format!("Cell #{}", index)),
-            CellIndex(index),
+            Name::new(format!("Slot #{}", index)),
+            SlotIndex(index),
             Interaction::default(),
-            InventoryCell,
+            InventorySlot,
             ImageBundle {
                 style: Style {
                     margin: UiRect::horizontal(Val::Px(2.)),
@@ -145,23 +145,22 @@ fn spawn_inventory_cell(
                     padding: UiRect::all(Val::Px(8.)),
                     ..default()
                 },
-                image: cell_background.into(),
+                image: slot_background.into(),
                 background_color: BackgroundColor(Color::WHITE.with_a(0.8)),
                 ..default()
             }
         ))
-        .insert_if(HotbarCell, hotbar_cell)
+        .insert_if(HotbarSlot, hotbar_slot)
         .with_children(|c| {
             c.spawn((
-                CellIndex(index),
-                CellItemImage::default(),
+                SlotIndex(index),
+                SlotItemImage::default(),
                 ImageBundle {
                     focus_policy: FocusPolicy::Pass,
                     z_index: ZIndex::Global(2),
                     ..default()
                 }
             ));
-
             
             c.spawn(NodeBundle {
                 style: Style {
@@ -170,7 +169,7 @@ fn spawn_inventory_cell(
                     height: Val::Percent(100.),
                     position_type: PositionType::Absolute,
                     flex_direction: FlexDirection::Column,
-                    justify_content: if hotbar_cell { JustifyContent::SpaceBetween } else { JustifyContent::End },
+                    justify_content: if hotbar_slot { JustifyContent::SpaceBetween } else { JustifyContent::End },
                     align_items: AlignItems::FlexStart,
                     align_content: AlignContent::FlexStart,
                     ..default()
@@ -179,11 +178,11 @@ fn spawn_inventory_cell(
                 z_index: ZIndex::Global(3),
                 ..default()
             }).with_children(|c| {
-                if hotbar_cell {
-                    // Hotbar cell index
+                if hotbar_slot {
+                    // Hotbar slot index
                     c.spawn((
-                        CellIndex(index),
-                        HotbarCellIndex,
+                        SlotIndex(index),
+                        HotbarSlotIndex,
                         TextBundle {
                             style: Style {
                                 align_self: AlignSelf::FlexStart,
@@ -191,7 +190,7 @@ fn spawn_inventory_cell(
                             },
                             focus_policy: FocusPolicy::Pass,
                             text: Text::from_section(
-                                ((index + 1) % CELL_COUNT_IN_ROW).to_string(),
+                                ((index + 1) % SLOT_COUNT_IN_ROW).to_string(),
                                 TextStyle {
                                     font: fonts.andy_bold.clone_weak(),
                                     font_size: 16.,
@@ -206,7 +205,7 @@ fn spawn_inventory_cell(
 
                 // Item stack
                 c.spawn((
-                    CellIndex(index),
+                    SlotIndex(index),
                     ItemAmount::default(),
                     TextBundle {
                         style: Style {
@@ -230,28 +229,28 @@ fn spawn_inventory_cell(
         });
 }
 
-pub(super) fn update_cell_size(
+pub(super) fn update_slot_size(
     inventory: Res<Inventory>,
     visibility: Res<InventoryUiVisibility>,
-    mut hotbar_cells: Query<(&CellIndex, &mut Style), (With<HotbarCell>, Without<CellItemImage>)>,
-    mut item_images: Query<(&CellIndex, &UiImageSize, &mut Style), (Without<HotbarCell>, With<CellItemImage>)>
+    mut hotbar_slots: Query<(&SlotIndex, &mut Style), (With<HotbarSlot>, Without<SlotItemImage>)>,
+    mut item_images: Query<(&SlotIndex, &UiImageSize, &mut Style), (Without<HotbarSlot>, With<SlotItemImage>)>
 ) {
-    for (cell_index, mut style) in &mut hotbar_cells {
-        let selected = cell_index.0 == inventory.selected_slot;
+    for (slot_index, mut style) in &mut hotbar_slots {
+        let selected = slot_index.0 == inventory.selected_slot;
         if visibility.value() {
-            style.width = Val::Px(INVENTORY_CELL_SIZE);
-            style.height = Val::Px(INVENTORY_CELL_SIZE);
+            style.width = Val::Px(INVENTORY_SLOT_SIZE);
+            style.height = Val::Px(INVENTORY_SLOT_SIZE);
         } else if selected {
-            style.width = Val::Px(HOTBAR_CELL_SIZE_SELECTED);
-            style.height = Val::Px(HOTBAR_CELL_SIZE_SELECTED);
+            style.width = Val::Px(HOTBAR_SLOT_SIZE_SELECTED);
+            style.height = Val::Px(HOTBAR_SLOT_SIZE_SELECTED);
         } else {
-            style.width = Val::Px(HOTBAR_CELL_SIZE);
-            style.height = Val::Px(HOTBAR_CELL_SIZE);
+            style.width = Val::Px(HOTBAR_SLOT_SIZE);
+            style.height = Val::Px(HOTBAR_SLOT_SIZE);
         }
     }
 
-    for (cell_index, image_size, mut style) in &mut item_images {
-        let selected = cell_index.0 == inventory.selected_slot;
+    for (slot_index, image_size, mut style) in &mut item_images {
+        let selected = slot_index.0 == inventory.selected_slot;
         let image_size = image_size.size();
 
         if visibility.value() {
@@ -267,14 +266,14 @@ pub(super) fn update_cell_size(
     }
 }
 
-pub(super) fn update_cell_index_text(
+pub(super) fn update_slot_index_text(
     inventory: Res<Inventory>,
     visibility: Res<InventoryUiVisibility>,
-    mut hotbar_cells: Query<(&CellIndex, &mut Text), With<HotbarCellIndex>>,
+    mut hotbar_slots: Query<(&SlotIndex, &mut Text), With<HotbarSlotIndex>>,
 ) {
-    for (cell_index, mut text) in &mut hotbar_cells {
+    for (slot_index, mut text) in &mut hotbar_slots {
         let (color, font_size) = if visibility.value() {
-            if inventory.selected_slot == cell_index.0 {
+            if inventory.selected_slot == slot_index.0 {
                 (Color::WHITE, 18.)
             } else {
                 (Color::rgb(0.8, 0.8, 0.8), 16.)
@@ -288,14 +287,14 @@ pub(super) fn update_cell_index_text(
     }
 }
 
-pub(super) fn update_cell_background_image(
+pub(super) fn update_slot_background_image(
     inventory: Res<Inventory>,
     ui_assets: Res<UiAssets>,
     visibility: Res<InventoryUiVisibility>,
-    mut hotbar_cells: Query<(&CellIndex, &mut UiImage), With<HotbarCell>>,
+    mut hotbar_slots: Query<(&SlotIndex, &mut UiImage), With<HotbarSlot>>,
 ) {
-    for (cell_index, mut image) in &mut hotbar_cells {
-        let selected = cell_index.0 == inventory.selected_slot;
+    for (slot_index, mut image) in &mut hotbar_slots {
+        let selected = slot_index.0 == inventory.selected_slot;
         let texture = if selected && !visibility.value() {
             &ui_assets.selected_inventory_background
         } else {
@@ -308,10 +307,10 @@ pub(super) fn update_cell_background_image(
 
 pub(super) fn update_hoverable(
     inventory: Res<Inventory>,
-    mut hotbar_cells: Query<(&CellIndex, &mut Hoverable), With<InventoryCell>>
+    mut hotbar_slots: Query<(&SlotIndex, &mut Hoverable), With<InventorySlot>>
 ) {
-    for (cell_index, mut hoverable) in &mut hotbar_cells {
-        if let Some(item) = inventory.get_item(cell_index.0) {
+    for (slot_index, mut hoverable) in &mut hotbar_slots {
+        if let Some(item) = inventory.get_item(slot_index.0) {
             let item_key = LanguageStringKey::Items(ItemStringKey::get_by_item(item.item));
 
             let name = if item.stack > 1 {
@@ -361,33 +360,33 @@ pub(super) fn update_selected_item_name_text(
     }
 }
 
-pub(super) fn update_cell(
+pub(super) fn update_slot_item_image(
     inventory: Res<Inventory>,
     item_assets: Res<ItemAssets>,
-    mut item_images: Query<(&CellIndex, &mut CellItemImage)>,
+    mut item_images: Query<(&SlotIndex, &mut SlotItemImage)>,
 ) {
-    for (cell_index, mut cell_image) in &mut item_images {
-        cell_image.0 = inventory
-            .get_item(cell_index.0)
+    for (slot_index, mut slot_image) in &mut item_images {
+        slot_image.0 = inventory
+            .get_item(slot_index.0)
             .map(|item_stack| item_assets.get_by_item(item_stack.item))
             .unwrap_or_default();
     }
 }
 
-pub(super) fn update_cell_item_image(
-    mut query: Query<(&mut UiImage, &CellItemImage), Changed<CellItemImage>>,
+pub(super) fn update_slot_image(
+    mut query: Query<(&mut UiImage, &SlotItemImage), Changed<SlotItemImage>>,
 ) {
     for (mut image, item_image) in &mut query {
-        image.texture = item_image.0.clone();
+        image.texture = item_image.0.clone_weak();
     }
 }
 
 pub(super) fn update_item_amount(
     inventory: Res<Inventory>,
-    mut query: Query<(&CellIndex, &mut ItemAmount)>,
+    mut query: Query<(&SlotIndex, &mut ItemAmount)>,
 ) {
-    for (cell_index, mut item_stack) in &mut query {
-        let stack = inventory.slots.get(cell_index.0)
+    for (slot_index, mut item_stack) in &mut query {
+        let stack = inventory.slots.get(slot_index.0)
             .and_then(|item| *item)
             .map(|item_stack| item_stack.stack)
             .unwrap_or(0);

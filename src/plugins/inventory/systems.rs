@@ -5,7 +5,7 @@ use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, With, Query, Visi
 #[cfg(feature = "debug")]
 use bevy_inspector_egui::bevy_egui::EguiContexts;
 
-use crate::{plugins::{ui::ingame::inventory::CELL_COUNT_IN_ROW, assets::ItemAssets, cursor::position::CursorPosition, world::{events::{DigBlockEvent, PlaceBlockEvent, SeedEvent, BreakBlockEvent}, constants::TILE_SIZE}, player::{FaceDirection, Player, PlayerSpriteBody}, audio::{SoundType, AudioCommandsExt}, camera::components::MainCamera, item::ItemCommandsExt}, common::{helpers::{self, tile_to_world_pos}, components::EntityRect, rect::FRect}, items::Item, world::{WorldData, block::BlockType}};
+use crate::{plugins::{ui::ingame::inventory::SLOT_COUNT_IN_ROW, assets::ItemAssets, cursor::position::CursorPosition, world::{events::{DigBlockEvent, PlaceBlockEvent, SeedEvent, BreakBlockEvent}, constants::TILE_SIZE}, player::{FaceDirection, Player, PlayerSpriteBody}, audio::{SoundType, AudioCommandsExt}, camera::components::MainCamera, item::ItemCommandsExt}, common::{helpers::{self, tile_to_world_pos}, components::EntityRect, rect::FRect}, items::Item, world::{WorldData, block::BlockType}};
 
 use super::{Inventory, SelectedItem, util::keycode_to_digit, SwingItemCooldown, ItemInHand, UseItemAnimationIndex, PlayerUsingItem, UseItemAnimationData, SwingItemCooldownMax, ITEM_ROTATION, SwingAnimation, ITEM_ANIMATION_POINTS};
 
@@ -44,7 +44,7 @@ pub(super) fn scroll_select_inventory_item(
 
     for event in mouse_wheel.iter() {
         let selected_item_index = inventory.selected_slot as f32;
-        let hotbar_length = CELL_COUNT_IN_ROW as f32;
+        let hotbar_length = SLOT_COUNT_IN_ROW as f32;
         let next_index = selected_item_index - event.y.signum();
         let new_index = ((next_index % hotbar_length) + hotbar_length) % hotbar_length;
 
@@ -56,18 +56,29 @@ pub(super) fn scroll_select_inventory_item(
 
 pub(super) fn drop_item_stack(
     mut commands: Commands,
-    mut inventory: ResMut<Inventory>,
     input: Res<Input<KeyCode>>,
-    query_player: Query<&EntityRect, With<Player>>
+    mut inventory: ResMut<Inventory>,
+    mut swing_animation: ResMut<SwingAnimation>,
+    mut swing_cooldown: ResMut<SwingItemCooldown>,
+    mut swing_cooldown_max: ResMut<SwingItemCooldownMax>,
+    query_player: Query<(&EntityRect, &FaceDirection), With<Player>>,
+    mut query_using_item: Query<&mut Handle<Image>, With<ItemInHand>>,
 ) {
     if input.just_pressed(KeyCode::T) {
-        let Ok(player_rect) = query_player.get_single() else { return; };
+        let Ok((player_rect, face_direction)) = query_player.get_single() else { return; };
+
         let selected_slot = inventory.selected_slot;
 
         if let Some(item_stack) = inventory.drop_item(selected_slot) {
+            let mut using_item_image = query_using_item.single_mut();
+            swing_animation.0 = true;
+            swing_cooldown.0 = 10;
+            swing_cooldown_max.0 = 10;
+            *using_item_image = Handle::default();
+
             commands.spawn_dropped_item(
                 player_rect.center(),
-                Vec2::new(1., 0.7) * 4.,
+                Vec2::new(face_direction.into(), 0.9) * 3.,
                 item_stack,
                 Some(Timer::new(Duration::from_secs_f32(1.5), TimerMode::Once))
             );

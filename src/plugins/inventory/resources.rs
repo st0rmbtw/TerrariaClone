@@ -1,6 +1,6 @@
 use bevy::{prelude::{Resource, Deref, DerefMut, ReflectResource}, reflect::Reflect};
 
-use crate::{items::{ItemStack, Stack}, plugins::ui::ingame::inventory::CELL_COUNT_IN_ROW};
+use crate::{items::{ItemStack, Stack}, plugins::ui::ingame::inventory::SLOT_COUNT_IN_ROW};
 
 #[derive(Resource, Default, Deref, DerefMut)]
 pub(crate) struct SelectedItem(pub Option<ItemStack>);
@@ -48,7 +48,7 @@ impl Inventory {
 
     /// Returns `true` if the `slot` is less than [`CELL_COUNT_IN_ROW`] and is not the same as the selected_slot
     pub fn select_item(&mut self, slot: usize) -> bool {
-        if slot < CELL_COUNT_IN_ROW && slot != self.selected_slot {
+        if slot < SLOT_COUNT_IN_ROW && slot != self.selected_slot {
             self.selected_slot = slot;
             return true;
         }
@@ -63,12 +63,12 @@ impl Inventory {
 
     #[inline(always)]
     pub fn consume_item(&mut self, slot: usize) {
-        self._consume_item(slot, 1);
+        self.consume_item_impl(slot, 1);
     }
 
-    fn _consume_item(&mut self, slot: usize, stack: Stack) -> Option<ItemStack> {
+    fn consume_item_impl(&mut self, slot: usize, stack: Stack) -> Option<ItemStack> {
         let item = self.get_item_mut(slot)?;
-        let item_copy = item.clone();
+        let item_copy = *item;
 
         if item.stack > stack {
             item.stack -= stack;
@@ -76,7 +76,7 @@ impl Inventory {
             self.remove_item(slot);
         }
 
-        return Some(item_copy.with_stack(stack));
+        Some(item_copy.with_stack(stack))
     }
 
     // Returns the amount of items added to the inventory
@@ -104,7 +104,7 @@ impl Inventory {
             }
         }
 
-        return 0;
+        0
     }
 
     pub fn can_be_added(&self, new_item: ItemStack) -> bool {
@@ -127,12 +127,12 @@ impl Inventory {
             }
         }
 
-        return false;
+        false
     }
 
     pub fn drop_item(&mut self, slot: usize) -> Option<ItemStack> {
         let item_stack = self.get_item(slot)?;
-        self._consume_item(slot, item_stack.stack)
+        self.consume_item_impl(slot, item_stack.stack)
     }
 
     pub fn empty_slots_count(&self) -> u8 {

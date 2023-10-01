@@ -367,6 +367,9 @@ pub(crate) struct SoundAssets {
 
     #[asset(paths("sounds/Tink_0.wav", "sounds/Tink_1.wav", "sounds/Tink_2.wav"), collection(typed))]
     pub(crate) tink: Vec<Handle<AudioSource>>,
+
+    #[asset(path = "sounds/Grab.wav")]
+    pub(crate) grab: Handle<AudioSource>
 }
 
 impl SoundAssets {
@@ -378,6 +381,7 @@ impl SoundAssets {
             SoundType::BlockHit(block_type) => self.get_by_block(block_type, &mut thread_rng()),
             SoundType::BlockPlace(block_type) => self.get_by_block(block_type, &mut thread_rng()),
             SoundType::PlayerToolSwing(_tool) => self.swing.choose(&mut thread_rng()).unwrap().clone_weak(),
+            SoundType::ItemGrab => self.grab.clone_weak()
         }
     }
     

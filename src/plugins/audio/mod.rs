@@ -48,7 +48,9 @@ pub(crate) enum SoundType {
     BlockHit(BlockType),
     BlockPlace(BlockType),
 
-    PlayerToolSwing(ItemTool)
+    PlayerToolSwing(ItemTool),
+
+    ItemGrab
 }
 
 #[derive(Clone, Copy)]

@@ -1,6 +1,6 @@
-use bevy::{prelude::{Query, With, Res, Commands, Entity, Transform, Changed, DetectChangesMut, Without, ResMut, Local, FixedTime}, math::vec2, ecs::query::Has};
+use bevy::{prelude::{Query, With, Res, Commands, Entity, Transform, Changed, DetectChangesMut, Without, ResMut, Local, FixedTime, Vec3}, math::vec2, ecs::query::Has};
 
-use crate::{common::{components::{Velocity, EntityRect}, math::move_towards, rect::FRect}, plugins::{item::{GRAVITY, MAX_VERTICAL_SPEED}, world::constants::TILE_SIZE, cursor::components::Hoverable, inventory::Inventory, player::Player}, world::WorldData};
+use crate::{common::{components::{Velocity, EntityRect}, math::move_towards, rect::FRect}, plugins::{item::{GRAVITY, MAX_VERTICAL_SPEED}, world::constants::TILE_SIZE, cursor::components::Hoverable, inventory::Inventory, player::Player, audio::{AudioCommandsExt, SoundType}}, world::WorldData};
 
 use super::{STACK_RANGE, item_hoverable_text, GRAB_RANGE, MAX_HORIZONTAL_SPEED};
 use super::components::*;
@@ -25,7 +25,7 @@ pub(super) fn air_resistance(
     mut query: Query<&mut Velocity, (With<DroppedItem>, Without<Following>)>
 ) {
     for mut velocity in &mut query {
-        velocity.x = move_towards(velocity.x, 0., 0.1);
+        velocity.x = move_towards(velocity.x, 0., 0.09);
 
         velocity.x = velocity.x.clamp(-MAX_HORIZONTAL_SPEED, MAX_HORIZONTAL_SPEED);
     }
@@ -126,17 +126,17 @@ pub(super) fn update_item_rect(
     }
 }
 
-pub(super) fn find_stackable_items(
+pub(super) fn stack_items(
     mut commands: Commands,
-    query: Query<(Entity, &EntityRect, &DroppedItem), Without<Stacking>>,
+    mut query: Query<(Entity, &EntityRect, &mut DroppedItem), Without<Stacking>>,
     mut stacked: Local<Vec<Entity>>
 ) {
     stacked.clear();
 
-    let mut combinations = query.iter_combinations();
+    let mut combinations = query.iter_combinations_mut();
 
     while let Some([
-        (entity, rect, item),
+        (entity, rect, mut item),
         (other_entity, other_rect, other_item),
     ]) = combinations.fetch_next() {
         if stacked.contains(&entity) { continue; }
@@ -147,52 +147,13 @@ pub(super) fn find_stackable_items(
         if item_stack.item != other_item_stack.item { continue; }
         if item_stack.stack + other_item_stack.stack > item_stack.item.max_stack() { continue; }
 
-        let distance = rect.center().distance(other_rect.center());
+        let stack_rect = FRect::new_center(rect.centerx, rect.centery, STACK_RANGE, STACK_RANGE);
 
-        if distance > STACK_RANGE {
-            commands.entity(other_entity).remove::<Following>();
-            commands.entity(other_entity).remove::<Stacking>();
-            continue;
-        }
+        if !stack_rect.intersects(&other_rect) { continue; }
 
-        commands.entity(other_entity)
-            .insert(Following)
-            .insert(Stacking { with: entity });
-
+        item.item_stack.stack += other_item.item_stack.stack;
+        commands.entity(other_entity).despawn();
         stacked.push(other_entity);
-
-        commands.entity(entity).insert(Following);
-    }
-}
-
-pub(super) fn update_stackable_items(
-    mut query_stacked: Query<(&mut Velocity, &EntityRect, &Stacking), With<DroppedItem>>,
-    mut query_items: Query<(&mut Velocity, &EntityRect), (With<DroppedItem>, Without<Stacking>)>,
-) {
-    for (mut velocity, rect, stacked) in &mut query_stacked {
-        let Ok((mut other_velocity, other_rect)) = query_items.get_mut(stacked.with) else { continue; };
-
-        velocity.0 = (other_rect.center() - rect.center()).normalize_or_zero() * 2.;
-        other_velocity.0 = (rect.center() - other_rect.center()).normalize_or_zero() * 2.;
-    }
-}
-
-pub(super) fn delete_stacked(
-    mut commands: Commands,
-    query_stacked: Query<(Entity, &EntityRect, &Stacking, &DroppedItem)>,
-    mut query_items: Query<(Entity, &EntityRect, &mut DroppedItem), Without<Stacking>>,
-) {
-    for (entity, rect, stacked, other_dropped_item) in &query_stacked {
-        let Ok((other_entity, other_rect, mut dropped_item)) = query_items.get_mut(stacked.with) else { continue; };
-
-        let distance = rect.center().distance(other_rect.center());
-
-        if distance > 8. { continue; }
-
-        dropped_item.item_stack.stack += other_dropped_item.item_stack.stack;
-
-        commands.entity(entity).despawn();
-        commands.entity(other_entity).remove::<Following>();
     }
 }
 
@@ -217,31 +178,37 @@ pub(super) fn follow_player(
     mut commands: Commands,
     mut inventory: ResMut<Inventory>,
     query_player: Query<&EntityRect, With<Player>>,
-    mut query_items: Query<(Entity, &EntityRect, &DroppedItem, &mut Velocity, Has<Following>, Option<&mut GrabTimer>), Without<Stacking>>
+    mut query_items: Query<(Entity, &EntityRect, &DroppedItem, &mut Transform, &mut Velocity, Has<Following>, Option<&mut GrabTimer>), Without<Stacking>>
 ) {
     let player_rect = query_player.single();
 
-    for (entity, item_rect, dropped_item, mut velocity, is_following, grab_timer_opt) in &mut query_items {
+    for (entity, item_rect, dropped_item, mut transform, mut velocity, is_following, grab_timer_opt) in &mut query_items {
         if let Some(mut grab_timer) = grab_timer_opt {
             if !grab_timer.tick(time.period).finished() { continue; }
         }
-        
-        let distance = (player_rect.center() - item_rect.center()).length();
 
-        if distance > GRAB_RANGE || !inventory.can_be_added(dropped_item.item_stack) {
+        let player_grab_rect = FRect::new_center(player_rect.centerx, player_rect.centery, GRAB_RANGE, GRAB_RANGE);
+
+        if !player_grab_rect.intersects(&item_rect) || !inventory.can_be_added(dropped_item.item_stack) {
             if is_following {
                 commands.entity(entity).remove::<Following>();
             }
             continue;
         }
 
+        let distance = (player_rect.center() - item_rect.center()).length();
+
         if distance <= 16. {
             inventory.add_item_stack(dropped_item.item_stack);
             commands.entity(entity).despawn();
+            commands.play_sound(SoundType::ItemGrab);
             continue;
         }
 
-        velocity.0 = (player_rect.center() - item_rect.center()).normalize_or_zero() * 4.;
+        let direction = (player_rect.center() - item_rect.center()).normalize_or_zero();
+
+        velocity.0 = direction * 4.;
+        transform.look_to(direction.extend(10.), Vec3::NEG_Z);
 
         if !is_following {
             commands.entity(entity).insert(Following);
