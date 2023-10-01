@@ -8,7 +8,7 @@ use crate::common::state::GameState;
 use bevy::{prelude::{Plugin, App, OnEnter, IntoSystemConfigs, Update, Rect, OnExit, Resource, UVec2, Deref}, math::URect, render::view::RenderLayers};
 use bevy_ecs_tilemap::TilemapPlugin;
 
-use super::InGameSystemSet;
+use super::{InGameSystemSet, particles::ParticlePlugin, item::ItemPlugin};
 
 pub(crate) const WORLD_RENDER_LAYER: RenderLayers = RenderLayers::layer(26);
 
@@ -21,7 +21,7 @@ pub(crate) struct WorldSize(UVec2);
 pub(crate) struct WorldPlugin;
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(TilemapPlugin);
+        app.add_plugins((TilemapPlugin, ParticlePlugin, ItemPlugin));
 
         app.add_event::<events::BreakBlockEvent>();
         app.add_event::<events::DigBlockEvent>();

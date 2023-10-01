@@ -1,6 +1,6 @@
 use bevy::{prelude::{Resource, Deref, DerefMut, ReflectResource}, reflect::Reflect};
 
-use crate::{items::ItemStack, plugins::ui::ingame::inventory::CELL_COUNT_IN_ROW};
+use crate::{items::{ItemStack, Stack}, plugins::ui::ingame::inventory::CELL_COUNT_IN_ROW};
 
 #[derive(Resource, Default, Deref, DerefMut)]
 pub(crate) struct SelectedItem(pub Option<ItemStack>);
@@ -23,27 +23,27 @@ pub(crate) struct UseItemAnimationIndex(usize);
 
 #[derive(Resource)]
 pub(crate) struct Inventory {
-    pub(crate) items: [Option<ItemStack>; 50],
+    pub(crate) slots: [Option<ItemStack>; 50],
     pub(crate) selected_slot: usize,
 }
 
 impl Default for Inventory {
     fn default() -> Self {
-        Self { items: [None; 50], selected_slot: 0 }
+        Self { slots: [None; 50], selected_slot: 0 }
     }
 }
 
 impl Inventory {
     pub fn get_item(&self, slot: usize) -> Option<ItemStack> {
-        self.items.iter().nth(slot).and_then(|a| *a)
+        self.slots.iter().nth(slot).and_then(|a| *a)
     }
 
     pub fn get_item_mut(&mut self, slot: usize) -> Option<&mut ItemStack> {
-        self.items.iter_mut().nth(slot).and_then(|a| a.as_mut())
+        self.slots.iter_mut().nth(slot).and_then(|a| a.as_mut())
     }
 
     pub fn remove_item(&mut self, slot: usize) {
-        self.items[slot] = None;
+        self.slots[slot] = None;
     }
 
     /// Returns `true` if the `slot` is less than [`CELL_COUNT_IN_ROW`] and is not the same as the selected_slot
@@ -56,38 +56,86 @@ impl Inventory {
         false
     }
 
+    #[inline(always)]
     pub fn selected_item(&self) -> Option<ItemStack> {
         self.get_item(self.selected_slot)
     }
 
+    #[inline(always)]
     pub fn consume_item(&mut self, slot: usize) {
-        let item_option = self.get_item_mut(slot);
-        if let Some(item) = item_option {
-            if item.stack > 1 {
-                item.stack -= 1;
-            } else {
-                self.remove_item(slot);
-            }
-        }
+        self._consume_item(slot, 1);
     }
 
-    pub fn add_item(&mut self, item: ItemStack) {
-        for inv_item_option in self.items.iter_mut() {
-            match inv_item_option {
-                Some(inv_item) if inv_item.item == item.item => {
-                    let new_stack = inv_item.stack + item.stack;
+    fn _consume_item(&mut self, slot: usize, stack: Stack) -> Option<ItemStack> {
+        let item = self.get_item_mut(slot)?;
+        let item_copy = item.clone();
 
-                    if new_stack < inv_item.item.max_stack() {
-                        inv_item.stack += new_stack;
-                        break;
+        if item.stack > stack {
+            item.stack -= stack;
+        } else {
+            self.remove_item(slot);
+        }
+
+        return Some(item_copy.with_stack(stack));
+    }
+
+    // Returns the amount of items added to the inventory
+    pub fn add_item_stack(&mut self, new_item: ItemStack) -> u16 {
+        let mut remaining = new_item.stack;
+
+        for inv_item_option in self.slots.iter_mut() {
+            match inv_item_option {
+                Some(inv_item) if inv_item.item == new_item.item && inv_item.stack < inv_item.item.max_stack() => {
+                    let new_stack = inv_item.stack + remaining;
+
+                    if new_stack <= inv_item.item.max_stack() {
+                        inv_item.stack = new_stack;
+                        return new_item.stack;
+                    } else {
+                        inv_item.stack += remaining % inv_item.item.max_stack();
+                        remaining -= remaining % inv_item.item.max_stack();
                     }
                 },
                 None => {
-                    *inv_item_option = Some(item);
-                    break;
+                    *inv_item_option = Some(new_item);
+                    return new_item.stack;
                 },
-                _ => ()
+                _ => continue
             }
         }
+
+        return 0;
+    }
+
+    pub fn can_be_added(&self, new_item: ItemStack) -> bool {
+        let mut remaining = new_item.stack;
+
+        for item_option in self.slots.iter() {
+            let Some(item_stack) = item_option else { return true; };
+
+            if remaining == 0 { return true; }
+
+            if new_item.item != item_stack.item { continue; }
+            if item_stack.stack == item_stack.item.max_stack() { continue; }
+
+            let new_stack = item_stack.stack + remaining;
+
+            if new_stack <= item_stack.item.max_stack() {
+                return true;
+            } else {
+                remaining -= remaining % item_stack.item.max_stack();
+            }
+        }
+
+        return false;
+    }
+
+    pub fn drop_item(&mut self, slot: usize) -> Option<ItemStack> {
+        let item_stack = self.get_item(slot)?;
+        self._consume_item(slot, item_stack.stack)
+    }
+
+    pub fn empty_slots_count(&self) -> u8 {
+        self.slots.iter().filter(|slot| slot.is_none()).count() as u8
     }
 }

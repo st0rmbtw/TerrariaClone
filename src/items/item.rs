@@ -1,14 +1,12 @@
-use crate::world::block::BlockType;
+use super::{ItemTool, ItemSeed, ItemBlock};
 
-use super::{Tool, Seed};
-
-type Stack = u16;
+pub(crate) type Stack = u16;
 
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) enum Item {
-    Tool(Tool),
-    Block(BlockType),
-    Seed(Seed)
+    Tool(ItemTool),
+    Block(ItemBlock),
+    Seed(ItemSeed)
 }
 
 impl Item {
@@ -41,19 +39,21 @@ pub(crate) struct ItemStack {
 }
 
 impl ItemStack {
-    pub(crate) const fn new_block(block_type: BlockType) -> Self {
-        ItemStack { item: Item::Block(block_type), stack: 1 }
+    pub(crate) const fn new_block(block: ItemBlock) -> Self {
+        ItemStack { item: Item::Block(block), stack: 1 }
     }
 
-    pub(crate) const fn new_tool(tool: Tool) -> Self {
+    pub(crate) const fn new_tool(tool: ItemTool) -> Self {
         ItemStack { item: Item::Tool(tool), stack: 1 }
     }
 
-    pub(crate) const fn new_seed(seed: Seed) -> Self {
+    pub(crate) const fn new_seed(seed: ItemSeed) -> Self {
         ItemStack { item: Item::Seed(seed), stack: 1 }
     }
 
     pub(crate) fn with_stack(mut self, stack: Stack) -> Self {
+        debug_assert!(stack <= self.item.max_stack());
+        
         self.stack = stack;
         self
     }

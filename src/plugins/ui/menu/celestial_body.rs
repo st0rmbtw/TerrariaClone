@@ -301,7 +301,7 @@ fn drag_celestial_body(
 
     let rect = FRect::new_center(transform.translation.x, transform.translation.y, size, size);
 
-    let cursor_is_on_celestial_body = rect.contains((cursor_position.world.x, cursor_position.world.y));
+    let cursor_is_on_celestial_body = rect.contains(cursor_position.world);
 
     if input.pressed(MouseButton::Left) && (cursor_is_on_celestial_body || is_dragging) {
         transform.translation.x = cursor_position.world.x;

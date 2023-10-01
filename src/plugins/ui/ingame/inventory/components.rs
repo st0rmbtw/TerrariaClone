@@ -13,6 +13,9 @@ pub(super) struct HotbarUi;
 pub(super) struct HotbarCell;
 
 #[derive(Component)]
+pub(super) struct InventoryCell;
+
+#[derive(Component)]
 pub(super) struct SelectedItemName;
 
 #[derive(Component)]

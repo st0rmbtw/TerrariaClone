@@ -35,7 +35,7 @@ pub(super) fn horizontal_movement(
     } else {
         velocity.x = move_towards(velocity.x, 0., SLOWDOWN);
     }
-    velocity.x = velocity.x.clamp(-MAX_RUN_SPEED, MAX_RUN_SPEED);
+    velocity.x = velocity.x.clamp(-MAX_WALK_SPEED, MAX_WALK_SPEED);
 }
 
 pub(super) fn update_jump(
@@ -93,8 +93,10 @@ pub(super) fn gravity(
 
     velocity.y += GRAVITY * DIRECTION;
 
-    if velocity.y.abs() > MAX_FALL_SPEED.abs() {
-        velocity.y = MAX_FALL_SPEED * DIRECTION;
+    if velocity.y > MAX_FALL_SPEED {
+        velocity.y = MAX_FALL_SPEED;
+    } else if velocity.y < -MAX_FALL_SPEED {
+        velocity.y = -MAX_FALL_SPEED;
     }
 }
 

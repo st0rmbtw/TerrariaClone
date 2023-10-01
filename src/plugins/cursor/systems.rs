@@ -4,7 +4,7 @@ use autodefault::autodefault;
 use bevy::{
     prelude::{
         Res, Commands, Vec3, Color, NodeBundle, default, TextBundle, Name, ImageBundle, Transform, Query, With, Visibility, 
-        BuildChildren, Changed
+        BuildChildren, Changed, DetectChangesMut, Or
     }, 
     ui::{
         Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Val, AlignSelf, ZIndex, FlexDirection, UiRect, Interaction
@@ -21,10 +21,10 @@ use crate::{
         world::constants::TILE_SIZE, config::{CursorColor, ShowTileGrid}, DespawnOnGameExit, player::Player, ui::UiVisibility
     }, 
     animation::{Tween, lens::TransformScaleLens, Animator, RepeatStrategy, RepeatCount}, 
-    common::{lens::BackgroundColorLens, components::Velocity, helpers, BoolValue}, language::LanguageContent,
+    common::{lens::BackgroundColorLens, components::{Velocity, EntityRect}, helpers, BoolValue}, language::LanguageContent,
 };
 
-use crate::plugins::player::{MAX_RUN_SPEED, MAX_FALL_SPEED};
+use crate::plugins::player::{MAX_WALK_SPEED, MAX_FALL_SPEED};
 
 use super::{MAX_TILE_GRID_OPACITY, MIN_TILE_GRID_OPACITY, CURSOR_SIZE, components::{Hoverable, CursorBackground, CursorForeground, CursorInfoMarker, CursorContainer, TileGrid}, position::CursorPosition};
 
@@ -196,7 +196,7 @@ pub(super) fn update_tile_grid_opacity(
     let mut sprite = query_tile_grid.single_mut();
 
     let opacity = if velocity.x.abs() > 0. {
-        MIN_TILE_GRID_OPACITY.lerp(&MAX_TILE_GRID_OPACITY, &(1. - velocity.x.abs() / MAX_RUN_SPEED))
+        MIN_TILE_GRID_OPACITY.lerp(&MAX_TILE_GRID_OPACITY, &(1. - velocity.x.abs() / MAX_WALK_SPEED))
     } else if velocity.y.abs() > 0. {
         0f32.lerp(&MAX_TILE_GRID_OPACITY, &(1. - velocity.y.abs() / MAX_FALL_SPEED))
     } else {
@@ -208,7 +208,7 @@ pub(super) fn update_tile_grid_opacity(
 
 pub(super) fn update_cursor_info(
     language_content: Res<LanguageContent>,
-    query_hoverable: Query<(&Hoverable, &Interaction), Changed<Interaction>>,
+    query_hoverable: Query<(&Hoverable, &Interaction), Or<(Changed<Interaction>, Changed<Hoverable>)>>,
     mut query_info: Query<(&mut Text, &mut Visibility), With<CursorInfoMarker>>,
 ) {
     let (mut text, mut visibility) = query_info.single_mut();
@@ -221,4 +221,19 @@ pub(super) fn update_cursor_info(
             *visibility = Visibility::Hidden;
         }
     });
+}
+
+pub(super) fn update_entity_interaction(
+    cursor_pos: Res<CursorPosition<MainCamera>>,
+    mut query: Query<(&EntityRect, &mut Interaction)>
+) {
+    for (item_rect, mut interaction) in &mut query {
+        let new_interaction = if item_rect.contains(cursor_pos.world) {
+            Interaction::Hovered
+        } else {
+            Interaction::None
+        };
+
+        interaction.set_if_neq(new_interaction);
+    }
 }

@@ -133,6 +133,7 @@ fn spawn_inventory_cell(
             Name::new(format!("Cell #{}", index)),
             CellIndex(index),
             Interaction::default(),
+            InventoryCell,
             ImageBundle {
                 style: Style {
                     margin: UiRect::horizontal(Val::Px(2.)),
@@ -161,23 +162,24 @@ fn spawn_inventory_cell(
                 }
             ));
 
-            if hotbar_cell {
-                c.spawn(NodeBundle {
-                    style: Style {
-                        padding: UiRect::axes(Val::Px(5.), Val::Px(2.5)),
-                        width: Val::Percent(100.),
-                        height: Val::Percent(100.),
-                        position_type: PositionType::Absolute,
-                        flex_direction: FlexDirection::Column,
-                        justify_content: JustifyContent::SpaceBetween,
-                        align_items: AlignItems::FlexStart,
-                        align_content: AlignContent::FlexStart,
-                        ..default()
-                    },
-                    focus_policy: FocusPolicy::Pass,
-                    z_index: ZIndex::Global(3),
+            
+            c.spawn(NodeBundle {
+                style: Style {
+                    padding: UiRect::axes(Val::Px(5.), Val::Px(2.5)),
+                    width: Val::Percent(100.),
+                    height: Val::Percent(100.),
+                    position_type: PositionType::Absolute,
+                    flex_direction: FlexDirection::Column,
+                    justify_content: if hotbar_cell { JustifyContent::SpaceBetween } else { JustifyContent::End },
+                    align_items: AlignItems::FlexStart,
+                    align_content: AlignContent::FlexStart,
                     ..default()
-                }).with_children(|c| {
+                },
+                focus_policy: FocusPolicy::Pass,
+                z_index: ZIndex::Global(3),
+                ..default()
+            }).with_children(|c| {
+                if hotbar_cell {
                     // Hotbar cell index
                     c.spawn((
                         CellIndex(index),
@@ -200,31 +202,31 @@ fn spawn_inventory_cell(
                             ..default()
                         }
                     ));
+                }
 
-                    // Item stack
-                    c.spawn((
-                        CellIndex(index),
-                        ItemAmount::default(),
-                        TextBundle {
-                            style: Style {
-                                align_self: AlignSelf::Center,
-                                ..default()
-                            },
-                            focus_policy: FocusPolicy::Pass,
-                            text: Text::from_section(
-                                String::new(),
-                                TextStyle {
-                                    font: fonts.andy_regular.clone_weak(),
-                                    font_size: 16.,
-                                    color: Color::WHITE,
-                                },
-                            ),
-                            z_index: ZIndex::Global(4),
+                // Item stack
+                c.spawn((
+                    CellIndex(index),
+                    ItemAmount::default(),
+                    TextBundle {
+                        style: Style {
+                            align_self: AlignSelf::Center,
                             ..default()
-                        }
-                    ));
-                });
-            }
+                        },
+                        focus_policy: FocusPolicy::Pass,
+                        text: Text::from_section(
+                            String::new(),
+                            TextStyle {
+                                font: fonts.andy_regular.clone_weak(),
+                                font_size: 16.,
+                                color: Color::WHITE,
+                            },
+                        ),
+                        z_index: ZIndex::Global(4),
+                        ..default()
+                    }
+                ));
+            });
         });
 }
 
@@ -306,11 +308,11 @@ pub(super) fn update_cell_background_image(
 
 pub(super) fn update_hoverable(
     inventory: Res<Inventory>,
-    mut hotbar_cells: Query<(&CellIndex, &mut Hoverable), With<HotbarCell>>
+    mut hotbar_cells: Query<(&CellIndex, &mut Hoverable), With<InventoryCell>>
 ) {
     for (cell_index, mut hoverable) in &mut hotbar_cells {
         if let Some(item) = inventory.get_item(cell_index.0) {
-            let item_key = LanguageStringKey::Items(ItemStringKey::get_by_item(&item.item));
+            let item_key = LanguageStringKey::Items(ItemStringKey::get_by_item(item.item));
 
             let name = if item.stack > 1 {
                 LocalizedText::new(item_key, "{} ({})", args![item.stack])
@@ -352,7 +354,7 @@ pub(super) fn update_selected_item_name_text(
         UIStringKey::Inventory.into()
     } else {
         current_item.0.as_ref()
-            .map(|item_stack| &item_stack.item)
+            .map(|item_stack| item_stack.item)
             .map(ItemStringKey::get_by_item)
             .map(LanguageStringKey::Items)
             .unwrap_or(UIStringKey::Items.into())
@@ -385,7 +387,7 @@ pub(super) fn update_item_amount(
     mut query: Query<(&CellIndex, &mut ItemAmount)>,
 ) {
     for (cell_index, mut item_stack) in &mut query {
-        let stack = inventory.items.get(cell_index.0)
+        let stack = inventory.slots.get(cell_index.0)
             .and_then(|item| *item)
             .map(|item_stack| item_stack.stack)
             .unwrap_or(0);

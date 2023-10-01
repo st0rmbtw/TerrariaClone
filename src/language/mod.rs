@@ -76,7 +76,8 @@ struct Items {
     stone_block: String,
     dirt_wall: String,
     stone_wall: String,
-    grass_seed: String
+    grass_seed: String,
+    wood: String
 }
 
 #[derive(Deserialize, Resource)]
@@ -133,6 +134,7 @@ impl LanguageContent {
                 keys::ItemStringKey::DirtWall => &self.items.dirt_wall,
                 keys::ItemStringKey::StoneWall => &self.items.stone_wall,
                 keys::ItemStringKey::GrassSeeds => &self.items.grass_seed,
+                keys::ItemStringKey::Wood => &self.items.wood
             },
         }
     }
@@ -233,6 +235,10 @@ impl From<ItemStringKey> for LocalizedText {
 }
 
 macro_rules! args {
+    [] => {
+        std::sync::Arc::new([])
+    };
+
     [$($i:expr),+] => {
         std::sync::Arc::new([$(std::boxed::Box::new($i)),+])
     };

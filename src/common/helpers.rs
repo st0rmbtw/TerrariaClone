@@ -14,6 +14,7 @@ pub(crate) const fn get_tile_start_index(block: BlockType) -> TextureAtlasPos {
         BlockType::Stone => TextureAtlasPos::new(0, 15),
         BlockType::Grass => TextureAtlasPos::new(0, 30),
         BlockType::Tree(_) => TextureAtlasPos::ZERO,
+        BlockType::Wood => TextureAtlasPos::new(0, 52),
     }
 }
 
@@ -41,7 +42,7 @@ pub(crate) fn get_tile_pos_from_world_coords(world_size: Size, world_coords: Vec
 }
 
 #[inline]
-pub(crate) fn tile_pos_to_world_coords(tile_pos: TilePos) -> Vec2 {
+pub(crate) fn tile_to_world_pos(tile_pos: TilePos) -> Vec2 {
     vec2(tile_pos.x as f32 * TILE_SIZE + TILE_SIZE / 2., -(tile_pos.y as f32 * TILE_SIZE + TILE_SIZE / 2.))
 }
 

@@ -7,7 +7,7 @@ use bevy::{
     time::Time, core_pipeline::{clear_color::ClearColorConfig, tonemapping::Tonemapping}
 };
 
-use crate::{plugins::{world::{constants::TILE_SIZE, WORLD_RENDER_LAYER}, DespawnOnGameExit}, common::{helpers::tile_pos_to_world_coords, math::map_range_f32}, world::WorldData};
+use crate::{plugins::{world::{constants::TILE_SIZE, WORLD_RENDER_LAYER}, DespawnOnGameExit}, common::{helpers::tile_to_world_pos, math::map_range_f32}, world::WorldData};
 
 use crate::plugins::player::Player;
 
@@ -18,7 +18,7 @@ pub(super) fn setup_main_camera(
     world_data: Res<WorldData>,
     zoom: Res<Zoom>
 ) {
-    let player_spawn_point = tile_pos_to_world_coords(world_data.spawn_point);
+    let player_spawn_point = tile_to_world_pos(world_data.spawn_point);
 
     commands
         .spawn((
@@ -53,7 +53,7 @@ pub(super) fn setup_world_camera(
     world_data: Res<WorldData>,
     zoom: Res<Zoom>
 ) {
-    let player_spawn_point = tile_pos_to_world_coords(world_data.spawn_point);
+    let player_spawn_point = tile_to_world_pos(world_data.spawn_point);
 
     commands.spawn((
         Name::new("WorldCamera"),

@@ -9,7 +9,7 @@ use systems::*;
 pub(crate) use components::*;
 pub(crate) use body_sprites::*;
 
-use crate::{common::{state::{GameState, MovementState}, helpers::tile_pos_to_world_coords, systems::{component_equals, despawn_with}}, plugins::player::utils::simple_animation, world::WorldData};
+use crate::{common::{state::{GameState, MovementState}, helpers::tile_to_world_pos, systems::{component_equals, despawn_with}}, plugins::player::utils::simple_animation, world::WorldData};
 use std::time::Duration;
 use bevy::{prelude::*, time::{Timer, TimerMode, common_conditions::on_timer}, math::vec2, input::InputSystem};
 
@@ -37,7 +37,7 @@ const SLOWDOWN: f32 = 0.2;
 const JUMP_HEIGHT: i32 = 15;
 const JUMP_SPEED: f32 = 5.01;
 
-pub(crate) const MAX_RUN_SPEED: f32 = 3.;
+pub(crate) const MAX_WALK_SPEED: f32 = 3.;
 pub(crate) const MAX_FALL_SPEED: f32 = 10.;
 
 pub(crate) struct PlayerPlugin;
@@ -151,7 +151,7 @@ fn spawn_player(
     player_assets: Res<PlayerAssets>,
     world_data: Res<WorldData>
 ) {
-    let spawn_point = tile_pos_to_world_coords(world_data.spawn_point) 
+    let spawn_point = tile_to_world_pos(world_data.spawn_point) 
         + TILE_SIZE / 2.
         + vec2(PLAYER_HALF_WIDTH, PLAYER_HALF_HEIGHT);
 

@@ -1,9 +1,11 @@
-use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, With, Query, Visibility, Handle, Image, MouseButton, EventWriter, DetectChanges, Local, Transform, Quat, Commands, Vec2}, input::mouse::MouseWheel, sprite::TextureAtlasSprite};
+use std::time::Duration;
+
+use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, With, Query, Visibility, Handle, Image, MouseButton, EventWriter, DetectChanges, Local, Transform, Quat, Commands, Vec2}, input::mouse::MouseWheel, sprite::TextureAtlasSprite, time::{Timer, TimerMode}};
 
 #[cfg(feature = "debug")]
 use bevy_inspector_egui::bevy_egui::EguiContexts;
 
-use crate::{plugins::{ui::ingame::inventory::CELL_COUNT_IN_ROW, assets::ItemAssets, cursor::position::CursorPosition, world::{events::{DigBlockEvent, PlaceBlockEvent, SeedEvent, BreakBlockEvent}, constants::TILE_SIZE}, player::{FaceDirection, Player, PlayerSpriteBody}, audio::{SoundType, AudioCommandsExt}, camera::components::MainCamera}, common::{helpers::{self, tile_pos_to_world_coords}, components::EntityRect, rect::FRect}, items::Item, world::{WorldData, block::BlockType}};
+use crate::{plugins::{ui::ingame::inventory::CELL_COUNT_IN_ROW, assets::ItemAssets, cursor::position::CursorPosition, world::{events::{DigBlockEvent, PlaceBlockEvent, SeedEvent, BreakBlockEvent}, constants::TILE_SIZE}, player::{FaceDirection, Player, PlayerSpriteBody}, audio::{SoundType, AudioCommandsExt}, camera::components::MainCamera, item::ItemCommandsExt}, common::{helpers::{self, tile_to_world_pos}, components::EntityRect, rect::FRect}, items::Item, world::{WorldData, block::BlockType}};
 
 use super::{Inventory, SelectedItem, util::keycode_to_digit, SwingItemCooldown, ItemInHand, UseItemAnimationIndex, PlayerUsingItem, UseItemAnimationData, SwingItemCooldownMax, ITEM_ROTATION, SwingAnimation, ITEM_ANIMATION_POINTS};
 
@@ -49,6 +51,27 @@ pub(super) fn scroll_select_inventory_item(
         inventory.select_item(new_index as usize);
 
         commands.play_sound(SoundType::MenuTick);
+    }
+}
+
+pub(super) fn drop_item_stack(
+    mut commands: Commands,
+    mut inventory: ResMut<Inventory>,
+    input: Res<Input<KeyCode>>,
+    query_player: Query<&EntityRect, With<Player>>
+) {
+    if input.just_pressed(KeyCode::T) {
+        let Ok(player_rect) = query_player.get_single() else { return; };
+        let selected_slot = inventory.selected_slot;
+
+        if let Some(item_stack) = inventory.drop_item(selected_slot) {
+            commands.spawn_dropped_item(
+                player_rect.center(),
+                Vec2::new(1., 0.7) * 4.,
+                item_stack,
+                Some(Timer::new(Duration::from_secs_f32(1.5), TimerMode::Once))
+            );
+        }
     }
 }
 
@@ -107,15 +130,17 @@ pub(super) fn use_item(
                         dig_block_events.send(DigBlockEvent { tile_pos, tool });
                     }
                 },
-                Item::Block(block_type) => {
+                Item::Block(item_block) => {
                     if world_data.block_exists(tile_pos) { return; }
 
                     // Forbid placing a block inside the player 
                     {
-                        let Vec2 { x, y } = tile_pos_to_world_coords(tile_pos);
+                        let Vec2 { x, y } = tile_to_world_pos(tile_pos);
                         let tile_rect = FRect::new_center(x, y, TILE_SIZE, TILE_SIZE);
                         if player_rect.intersects(&tile_rect) { return; }
                     }
+
+                    let block_type = BlockType::from(item_block);
 
                     place_block_events.send(PlaceBlockEvent { tile_pos, block_type });
                     inventory.consume_item(selected_item_index);
@@ -273,7 +298,7 @@ pub(super) fn update_player_using_item(
     let ctx = egui.ctx_mut();
 
     #[cfg(feature = "debug")]
-    if ctx.is_pointer_over_area() { return; }
+    if ctx.is_pointer_over_area() || ctx.wants_pointer_input() { return; }
 
     let pressed = input.pressed(MouseButton::Left) || input.just_pressed(MouseButton::Left);
     
