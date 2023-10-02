@@ -1,10 +1,10 @@
-use bevy::{prelude::{Plugin, App, World, default, Vec2, Transform, Update, IntoSystemConfigs, FixedUpdate, Commands}, ecs::system::Command, sprite::SpriteBundle, ui::Interaction, time::Timer};
+use bevy::{prelude::{Plugin, App, World, default, Vec2, Transform, Update, IntoSystemConfigs, FixedUpdate, Commands, apply_deferred, Assets, Image}, ecs::system::Command, sprite::SpriteBundle, ui::Interaction, time::Timer};
 
 use crate::{items::ItemStack, common::{components::{EntityRect, Velocity}, rect::FRect}, language::{LocalizedText, keys::ItemStringKey, args}};
 
 use self::components::{DroppedItem, GrabTimer};
 
-use super::{assets::ItemAssets, world::constants::TILE_SIZE, InGameSystemSet, cursor::components::Hoverable};
+use super::{assets::ItemAssets, world::{constants::TILE_SIZE, WORLD_RENDER_LAYER}, InGameSystemSet, cursor::components::Hoverable};
 
 mod systems;
 mod components;
@@ -15,17 +15,18 @@ impl Plugin for ItemPlugin {
             FixedUpdate,
             (
                 (
-                    (
-                        systems::gravity,
-                        systems::air_resistance,
-                    ),
-                    systems::detect_collisions,
                     systems::stack_items,
-                    systems::update_item_rect,
-                ).chain(),
+                    apply_deferred,
+                    systems::follow_player,
+                )
+                .chain(),
 
-                systems::stack_items,
-                systems::follow_player
+                (
+                    systems::gravity,
+                    systems::air_resistance,
+                ),
+                systems::detect_collisions,
+                systems::update_item_rect,
             )
             .chain()
             .in_set(InGameSystemSet::FixedUpdate)
@@ -34,6 +35,7 @@ impl Plugin for ItemPlugin {
         app.add_systems(
             Update,
             (
+                systems::rotate_item,
                 systems::move_item,
                 systems::update_item_hoverable_info
             )
@@ -43,7 +45,6 @@ impl Plugin for ItemPlugin {
 }
 
 const STACK_RANGE: f32 = 1.5 * TILE_SIZE;
-const ITEM_SIZE: f32 = 16.;
 const GRAVITY: f32 = 0.1;
 const MAX_VERTICAL_SPEED: f32 = 5.;
 const MAX_HORIZONTAL_SPEED: f32 = 5.;
@@ -60,20 +61,27 @@ struct SpawnDroppedItemCommand {
 impl Command for SpawnDroppedItemCommand {
     fn apply(self, world: &mut World) {
         let item_assets = world.resource::<ItemAssets>();
+        let images = world.resource::<Assets<Image>>();
+
+        let texture = item_assets.get_by_item(self.item_stack.item);
+        let image = images.get(&texture).unwrap();
+
+        let size = image.size();
 
         let mut entity = world.spawn((
             SpriteBundle {
-                texture: item_assets.get_by_item(self.item_stack.item),
+                texture,
                 transform: Transform::from_xyz(self.position.x, self.position.y, 10.),
                 ..default()
             },
-            EntityRect(FRect::new_center(self.position.x, self.position.y, ITEM_SIZE, ITEM_SIZE)),
+            EntityRect(FRect::new_center(self.position.x, self.position.y, size.x, size.y)),
             Velocity(self.velocity),
             Hoverable::SimpleText(item_hoverable_text(self.item_stack)),
             Interaction::default(),
             DroppedItem {
                 item_stack: self.item_stack
-            }
+            },
+            WORLD_RENDER_LAYER
         ));
 
         if let Some(timer) = self.grab_timer {

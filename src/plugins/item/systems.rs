@@ -1,4 +1,4 @@
-use bevy::{prelude::{Query, With, Res, Commands, Entity, Transform, Changed, DetectChangesMut, Without, ResMut, Local, FixedTime, Vec3}, math::vec2, ecs::query::Has};
+use bevy::{prelude::{Query, With, Res, Commands, Entity, Transform, Changed, DetectChangesMut, Without, ResMut, Local, FixedTime, Vec3, Vec2}, math::vec2, ecs::query::Has};
 
 use crate::{common::{components::{Velocity, EntityRect}, math::move_towards, rect::FRect}, plugins::{item::{GRAVITY, MAX_VERTICAL_SPEED}, world::constants::TILE_SIZE, cursor::components::Hoverable, inventory::Inventory, player::Player, audio::{AudioCommandsExt, SoundType}}, world::WorldData};
 
@@ -22,12 +22,22 @@ pub(super) fn gravity(
 }
 
 pub(super) fn air_resistance(
+    time: Res<FixedTime>,
     mut query: Query<&mut Velocity, (With<DroppedItem>, Without<Following>)>
 ) {
     for mut velocity in &mut query {
-        velocity.x = move_towards(velocity.x, 0., 0.09);
+        velocity.x = move_towards(velocity.x, 0., 5. * time.period.as_secs_f32());
 
         velocity.x = velocity.x.clamp(-MAX_HORIZONTAL_SPEED, MAX_HORIZONTAL_SPEED);
+    }
+}
+
+pub(super) fn rotate_item(
+    mut query: Query<(&mut Transform, &Velocity), With<DroppedItem>>
+) {
+    for (mut transform, velocity) in &mut query {
+        let direction = Vec2::new(velocity.x / MAX_HORIZONTAL_SPEED, 1.).normalize();
+        transform.look_to(direction.extend(-10.), Vec3::Z);
     }
 }
 
@@ -128,7 +138,7 @@ pub(super) fn update_item_rect(
 
 pub(super) fn stack_items(
     mut commands: Commands,
-    mut query: Query<(Entity, &EntityRect, &mut DroppedItem), Without<Stacking>>,
+    mut query: Query<(Entity, &mut EntityRect, &mut Velocity, &mut DroppedItem), Without<Following>>,
     mut stacked: Local<Vec<Entity>>
 ) {
     stacked.clear();
@@ -136,10 +146,10 @@ pub(super) fn stack_items(
     let mut combinations = query.iter_combinations_mut();
 
     while let Some([
-        (entity, rect, mut item),
-        (other_entity, other_rect, other_item),
+        (entity, mut rect, mut velocity, mut item),
+        (other_entity, other_rect, other_velocity, other_item),
     ]) = combinations.fetch_next() {
-        if stacked.contains(&entity) { continue; }
+        if stacked.contains(&entity) || stacked.contains(&other_entity) { continue; }
 
         let item_stack = item.item_stack;
         let other_item_stack = other_item.item_stack;
@@ -152,7 +162,13 @@ pub(super) fn stack_items(
         if !stack_rect.intersects(&other_rect) { continue; }
 
         item.item_stack.stack += other_item.item_stack.stack;
+
+        velocity.0 = (velocity.0 + other_velocity.0) / 2.;
+        rect.centerx = (rect.centerx + other_rect.centerx) / 2.;
+        rect.centery = (rect.centery + other_rect.centery) / 2.;
+
         commands.entity(other_entity).despawn();
+
         stacked.push(other_entity);
     }
 }
@@ -178,11 +194,11 @@ pub(super) fn follow_player(
     mut commands: Commands,
     mut inventory: ResMut<Inventory>,
     query_player: Query<&EntityRect, With<Player>>,
-    mut query_items: Query<(Entity, &EntityRect, &DroppedItem, &mut Transform, &mut Velocity, Has<Following>, Option<&mut GrabTimer>), Without<Stacking>>
+    mut query_items: Query<(Entity, &EntityRect, &DroppedItem, &mut Velocity, Has<Following>, Option<&mut GrabTimer>)>
 ) {
     let player_rect = query_player.single();
 
-    for (entity, item_rect, dropped_item, mut transform, mut velocity, is_following, grab_timer_opt) in &mut query_items {
+    for (entity, item_rect, dropped_item, mut velocity, is_following, grab_timer_opt) in &mut query_items {
         if let Some(mut grab_timer) = grab_timer_opt {
             if !grab_timer.tick(time.period).finished() { continue; }
         }
@@ -208,7 +224,6 @@ pub(super) fn follow_player(
         let direction = (player_rect.center() - item_rect.center()).normalize_or_zero();
 
         velocity.0 = direction * 4.;
-        transform.look_to(direction.extend(10.), Vec3::NEG_Z);
 
         if !is_following {
             commands.entity(entity).insert(Following);

@@ -424,6 +424,8 @@ pub(super) fn handle_break_block_event(
     mut break_block: EventReader<BreakBlockEvent>,
     mut update_neighbors: EventWriter<UpdateNeighborsEvent>,
 ) {
+    let mut rng = thread_rng();
+
     for &BreakBlockEvent { tile_pos } in break_block.iter() {
         if let Some(&block) = world_data.get_block(tile_pos) {
             if let BlockType::Tree(_) = block.block_type {
@@ -436,7 +438,7 @@ pub(super) fn handle_break_block_event(
                 utils::spawn_particles_on_break(&mut commands, block.block_type, tile_pos);
                 commands.spawn_dropped_item(
                     tile_to_world_pos(tile_pos),
-                    Vec2::Y * 3.,
+                    Vec2::new(rng.gen_range(-0.5f32..0.5f32), rng.gen_range(0.5f32..1.0f32)) * 3.,
                     ItemStack::new_block(block.block_type.into()),
                     None
                 );
@@ -614,7 +616,7 @@ fn break_tree(
 
             commands.spawn_dropped_item(
                 tile_to_world_pos(pos),
-                random_point_cone(Vec2::Y, 180.0, 1.) * 4.,
+                random_point_cone(Vec2::Y, 150.0, 1.) * 4.,
                 ItemStack::new_block(block.block_type.into()),
                 None
             );

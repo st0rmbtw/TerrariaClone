@@ -220,6 +220,7 @@ pub(super) fn update_cursor_info(
             return;
         } else {
             *visibility = Visibility::Hidden;
+            return;
         }
     });
 }

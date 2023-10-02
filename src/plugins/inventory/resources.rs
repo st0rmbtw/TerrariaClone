@@ -35,14 +35,17 @@ impl Default for Inventory {
 
 impl Inventory {
     pub fn get_item(&self, slot: usize) -> Option<ItemStack> {
-        self.slots.iter().nth(slot).and_then(|a| *a)
+        debug_assert!((0..50).contains(&slot));
+        self.slots[slot]
     }
 
     pub fn get_item_mut(&mut self, slot: usize) -> Option<&mut ItemStack> {
-        self.slots.iter_mut().nth(slot).and_then(|a| a.as_mut())
+        debug_assert!((0..50).contains(&slot));
+        self.slots[slot].as_mut()
     }
 
     pub fn remove_item(&mut self, slot: usize) {
+        debug_assert!((0..50).contains(&slot));
         self.slots[slot] = None;
     }
 
