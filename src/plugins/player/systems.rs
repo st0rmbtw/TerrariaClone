@@ -248,7 +248,6 @@ pub(super) fn update_player_rect(
     const max_y: f32 = -PLAYER_HALF_HEIGHT - TILE_SIZE / 2.;
 
     let new_position = (player_rect.center() + velocity.0)
-        .floor()
         .clamp(vec2(min_x, min_y), vec2(max_x, max_y));
 
     player_rect.centerx = new_position.x;

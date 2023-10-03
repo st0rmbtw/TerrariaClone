@@ -1,6 +1,6 @@
 use bevy::{prelude::{Query, With, Res, Commands, Entity, Transform, Changed, DetectChangesMut, Without, ResMut, Local, FixedTime, Vec3, Vec2}, math::vec2, ecs::query::Has};
 
-use crate::{common::{components::{Velocity, EntityRect}, math::move_towards, rect::FRect}, plugins::{item::{GRAVITY, MAX_VERTICAL_SPEED}, world::constants::TILE_SIZE, cursor::components::Hoverable, inventory::Inventory, player::Player, audio::{AudioCommandsExt, SoundType}}, world::WorldData};
+use crate::{common::{components::{Velocity, EntityRect}, rect::FRect}, plugins::{item::{GRAVITY, MAX_VERTICAL_SPEED}, world::constants::TILE_SIZE, cursor::components::Hoverable, inventory::Inventory, player::Player, audio::{AudioCommandsExt, SoundType}}, world::WorldData};
 
 use super::{STACK_RANGE, item_hoverable_text, GRAB_RANGE, MAX_HORIZONTAL_SPEED};
 use super::components::*;
@@ -22,11 +22,14 @@ pub(super) fn gravity(
 }
 
 pub(super) fn air_resistance(
-    time: Res<FixedTime>,
     mut query: Query<&mut Velocity, (With<DroppedItem>, Without<Following>)>
 ) {
     for mut velocity in &mut query {
-        velocity.x = move_towards(velocity.x, 0., 5. * time.period.as_secs_f32());
+        velocity.x *= 0.95;
+
+        if velocity.x < 0.1 && velocity.x > -0.1 {
+            velocity.x = 0.;
+        }
 
         velocity.x = velocity.x.clamp(-MAX_HORIZONTAL_SPEED, MAX_HORIZONTAL_SPEED);
     }
@@ -81,13 +84,13 @@ pub(super) fn detect_collisions(
                             if delta_x < 0. {
                                 // If the item's left side is more to the left than the tile's right side then move the item right.
                                 if item_rect.left() <= tile_rect.right() {
-                                    velocity.x = 0.;
+                                    // velocity.x = 0.;
                                     item_rect.centerx = tile_rect.right() + item_rect.half_width();
                                 }
                             } else {
                                 // If the item's right side is more to the right than the tile's left side then move the item left.
                                 if item_rect.right() >= tile_rect.left() {
-                                    velocity.x = 0.;
+                                    // velocity.x = 0.;
                                     item_rect.centerx = tile_rect.left() - item_rect.half_width();
                                 }
                             }
@@ -128,7 +131,6 @@ pub(super) fn update_item_rect(
         let max_y: f32 = -item_rect.half_height() - TILE_SIZE / 2.;
 
         let new_position = (item_rect.center() + velocity.0)
-            .floor()
             .clamp(vec2(min_x, min_y), vec2(max_x, max_y));
 
         item_rect.centerx = new_position.x;

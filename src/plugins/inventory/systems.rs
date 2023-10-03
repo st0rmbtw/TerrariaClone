@@ -5,7 +5,7 @@ use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, With, Query, Visi
 #[cfg(feature = "debug")]
 use bevy_inspector_egui::bevy_egui::EguiContexts;
 
-use crate::{plugins::{ui::ingame::inventory::SLOT_COUNT_IN_ROW, assets::ItemAssets, cursor::position::CursorPosition, world::{events::{DigBlockEvent, PlaceBlockEvent, SeedEvent, BreakBlockEvent}, constants::TILE_SIZE}, player::{FaceDirection, Player, PlayerSpriteBody}, audio::{SoundType, AudioCommandsExt}, camera::components::MainCamera, item::ItemCommandsExt}, common::{helpers::{self, tile_to_world_pos}, components::EntityRect, rect::FRect}, items::Item, world::{WorldData, block::BlockType}};
+use crate::{plugins::{ui::ingame::inventory::SLOT_COUNT_IN_ROW, assets::ItemAssets, cursor::position::CursorPosition, world::{events::{DigBlockEvent, PlaceBlockEvent, SeedEvent, BreakBlockEvent}, constants::TILE_SIZE}, player::{FaceDirection, Player, PlayerSpriteBody}, audio::{SoundType, AudioCommandsExt}, camera::components::MainCamera, item::ItemCommandsExt}, common::{helpers::{self, tile_to_world_pos}, components::{EntityRect, Velocity}, rect::FRect}, items::Item, world::{WorldData, block::BlockType}};
 
 use super::{Inventory, SelectedItem, util::keycode_to_digit, SwingItemCooldown, ItemInHand, UseItemAnimationIndex, PlayerUsingItem, UseItemAnimationData, SwingItemCooldownMax, ITEM_ROTATION, SwingAnimation, ITEM_ANIMATION_POINTS};
 
@@ -61,11 +61,11 @@ pub(super) fn drop_item_stack(
     mut swing_animation: ResMut<SwingAnimation>,
     mut swing_cooldown: ResMut<SwingItemCooldown>,
     mut swing_cooldown_max: ResMut<SwingItemCooldownMax>,
-    query_player: Query<(&EntityRect, &FaceDirection), With<Player>>,
+    query_player: Query<(&Velocity, &EntityRect, &FaceDirection), With<Player>>,
     mut query_using_item: Query<&mut Handle<Image>, With<ItemInHand>>,
 ) {
     if input.just_pressed(KeyCode::T) {
-        let Ok((player_rect, face_direction)) = query_player.get_single() else { return; };
+        let Ok((velocity, player_rect, face_direction)) = query_player.get_single() else { return; };
 
         let selected_slot = inventory.selected_slot;
 
@@ -78,7 +78,7 @@ pub(super) fn drop_item_stack(
 
             commands.spawn_dropped_item(
                 player_rect.center(),
-                Vec2::new(face_direction.into(), 0.9) * 3.,
+                Vec2::new(f32::from(face_direction) * 4. + velocity.x, 2.),
                 item_stack,
                 Some(Timer::new(Duration::from_secs_f32(1.5), TimerMode::Once))
             );

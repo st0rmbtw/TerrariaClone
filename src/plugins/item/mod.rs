@@ -46,7 +46,7 @@ impl Plugin for ItemPlugin {
 
 const STACK_RANGE: f32 = 1.5 * TILE_SIZE;
 const GRAVITY: f32 = 0.1;
-const MAX_VERTICAL_SPEED: f32 = 5.;
+const MAX_VERTICAL_SPEED: f32 = 7.;
 const MAX_HORIZONTAL_SPEED: f32 = 5.;
 const GRAB_RANGE: f32 = 5.25 * TILE_SIZE;
 
