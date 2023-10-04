@@ -84,13 +84,13 @@ pub(super) fn detect_collisions(
                             if delta_x < 0. {
                                 // If the item's left side is more to the left than the tile's right side then move the item right.
                                 if item_rect.left() <= tile_rect.right() {
-                                    // velocity.x = 0.;
+                                    velocity.x = 0.;
                                     item_rect.centerx = tile_rect.right() + item_rect.half_width();
                                 }
                             } else {
                                 // If the item's right side is more to the right than the tile's left side then move the item left.
                                 if item_rect.right() >= tile_rect.left() {
-                                    // velocity.x = 0.;
+                                    velocity.x = 0.;
                                     item_rect.centerx = tile_rect.left() - item_rect.half_width();
                                 }
                             }
@@ -149,27 +149,36 @@ pub(super) fn stack_items(
 
     while let Some([
         (entity, mut rect, mut velocity, mut item),
-        (other_entity, other_rect, other_velocity, other_item),
+        (other_entity, other_rect, other_velocity, mut other_item),
     ]) = combinations.fetch_next() {
         if stacked.contains(&entity) || stacked.contains(&other_entity) { continue; }
 
         let item_stack = item.item_stack;
+        let item_max_stack = item_stack.item.max_stack();
         let other_item_stack = other_item.item_stack;
 
         if item_stack.item != other_item_stack.item { continue; }
-        if item_stack.stack + other_item_stack.stack > item_stack.item.max_stack() { continue; }
+        if item_stack.stack >= item_max_stack { continue; }
 
         let stack_rect = FRect::new_center(rect.centerx, rect.centery, STACK_RANGE, STACK_RANGE);
-
         if !stack_rect.intersects(&other_rect) { continue; }
 
-        item.item_stack.stack += other_item.item_stack.stack;
+        if item_stack.stack + other_item_stack.stack > item_max_stack {
+            let a = item_max_stack - item_stack.stack;
+            item.item_stack.stack += a;
+            other_item.item_stack.stack -= a;
+        } else {
+            item.item_stack.stack += other_item_stack.stack;
+            other_item.item_stack.stack = 0;
+        }
 
         velocity.0 = (velocity.0 + other_velocity.0) / 2.;
         rect.centerx = (rect.centerx + other_rect.centerx) / 2.;
         rect.centery = (rect.centery + other_rect.centery) / 2.;
 
-        commands.entity(other_entity).despawn();
+        if other_item.item_stack.stack == 0 {
+            commands.entity(other_entity).despawn();
+        }
 
         stacked.push(other_entity);
     }

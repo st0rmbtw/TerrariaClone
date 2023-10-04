@@ -1,7 +1,7 @@
 use autodefault::autodefault;
 use bevy::{prelude::{Commands, Name, NodeBundle, BuildChildren, TextBundle, Color, Entity, ImageBundle, default, ChildBuilder, Handle, Image, Visibility, With, Res, Query, DetectChanges, Changed, ResMut, DetectChangesMut, Without}, ui::{Style, FlexDirection, UiRect, Val, AlignSelf, AlignItems, JustifyContent, Interaction, BackgroundColor, ZIndex, FocusPolicy, AlignContent, PositionType, UiImage, widget::UiImageSize}, text::{Text, TextStyle, TextAlignment}};
 
-use crate::{plugins::{assets::{UiAssets, FontAssets, ItemAssets}, cursor::components::Hoverable, inventory::{Inventory, SelectedItem, Slot}, ui::{InventoryUiVisibility, components::PreviousInteraction}, audio::{AudioCommandsExt, SoundType}}, language::{keys::{LanguageStringKey, UIStringKey, ItemStringKey}, LocalizedText, args}, common::{extensions::EntityCommandsExtensions, BoolValue, helpers}};
+use crate::{plugins::{assets::{UiAssets, FontAssets, ItemAssets}, cursor::components::Hoverable, inventory::{Inventory, Slot}, ui::{InventoryUiVisibility, components::PreviousInteraction}, audio::{AudioCommandsExt, SoundType}}, language::{keys::{LanguageStringKey, UIStringKey, ItemStringKey}, LocalizedText, args}, common::{extensions::EntityCommandsExtensions, BoolValue, helpers}};
 
 use super::{components::*, INVENTORY_ROWS, SLOT_COUNT_IN_ROW, HOTBAR_SLOT_SIZE, INVENTORY_SLOT_SIZE, HOTBAR_SLOT_SIZE_SELECTED};
 
@@ -51,6 +51,7 @@ pub(crate) fn spawn_inventory_ui(
                 .spawn((
                     Name::new("Hotbar"),
                     HotbarUi,
+                    Interaction::default(),
                     NodeBundle {
                         style: Style {
                             align_items: AlignItems::Center,
@@ -74,6 +75,7 @@ pub(crate) fn spawn_inventory_ui(
                 .spawn((
                     Name::new("Inventory"),
                     InventoryUi,
+                    Interaction::default(),
                     NodeBundle {
                         style: Style {
                             flex_direction: FlexDirection::Column,
@@ -342,18 +344,19 @@ pub(super) fn update_selected_item_name_alignment(
 }
 
 pub(super) fn update_selected_item_name_text(
-    current_item: Res<SelectedItem>,
+    inventory: Res<Inventory>,
     visibility: Res<InventoryUiVisibility>,
     mut query_selected_item_name: Query<&mut LocalizedText, With<SelectedItemName>>
 ) {
-    if !current_item.is_changed() && !visibility.is_changed() { return; } 
+    if !inventory.is_changed() && !visibility.is_changed() { return; } 
 
     let mut localized_text = query_selected_item_name.single_mut();
 
     localized_text.key = if visibility.value() {
         UIStringKey::Inventory.into()
     } else {
-        current_item.0.as_ref()
+        inventory.get_item(Slot::Index(inventory.selected_slot))
+            .as_ref()
             .map(|item_stack| item_stack.item)
             .map(ItemStringKey::get_by_item)
             .map(LanguageStringKey::Items)

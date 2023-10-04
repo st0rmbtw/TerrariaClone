@@ -191,35 +191,29 @@ pub(super) fn stop_swing_animation(
 pub(super) fn start_swing_animation(
     selected_item: Res<SelectedItem>,
     using_item: Res<PlayerUsingItem>,
+    item_assets: Res<ItemAssets>,
     mut swing_animation: ResMut<SwingAnimation>,
     mut swing_cooldown: ResMut<SwingItemCooldown>,
-    mut swing_cooldown_max: ResMut<SwingItemCooldownMax>
+    mut swing_cooldown_max: ResMut<SwingItemCooldownMax>,
+    mut query_using_item: Query<&mut Handle<Image>, With<ItemInHand>>,
 ) {
     if using_item.is_changed() && using_item.0 {
-        if let Some(selected_item) = **selected_item {
-            if **swing_cooldown == 0 {
-                **swing_cooldown = selected_item.item.swing_cooldown();
-                **swing_cooldown_max = selected_item.item.swing_cooldown();
-            }
+        let Some(selected_item) = **selected_item else { return; };
+        
+        let mut image = query_using_item.single_mut();
+        *image = item_assets.get_by_item(selected_item.item);
 
-            **swing_animation = true;
+        if **swing_cooldown == 0 {
+            **swing_cooldown = selected_item.item.swing_cooldown();
+            **swing_cooldown_max = selected_item.item.swing_cooldown();
         }
+
+        **swing_animation = true;
     }
 }
 
 pub(super) fn reset_swing_animation(mut index: ResMut<UseItemAnimationIndex>) {
     **index = 2;
-}
-
-pub(super) fn set_using_item_image(
-    item_assets: Res<ItemAssets>,
-    selected_item: Res<SelectedItem>,
-    mut query_using_item: Query<&mut Handle<Image>, With<ItemInHand>>,
-) {
-    let mut image = query_using_item.single_mut();
-    if let Some(item_stack) = **selected_item {
-        *image = item_assets.get_by_item(item_stack.item);
-    }
 }
 
 pub(super) fn set_using_item_visibility(visible: bool) -> impl FnMut(Res<SwingAnimation>, Query<&mut Visibility, With<ItemInHand>>) {

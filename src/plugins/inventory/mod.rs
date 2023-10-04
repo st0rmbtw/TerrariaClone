@@ -63,7 +63,6 @@ impl Plugin for PlayerInventoryPlugin {
                     systems::set_selected_item.run_if(resource_exists_and_changed::<Inventory>())
                 )
                 .chain(),
-                systems::set_using_item_image.run_if(resource_exists_and_changed::<SelectedItem>()),
                 systems::set_using_item_visibility(false),
 
                 systems::drop_item_stack,

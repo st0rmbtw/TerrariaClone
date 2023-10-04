@@ -43,7 +43,7 @@ impl Plugin for InventoryUiPlugin {
                         systems::update_item_amount_text,
                     ).chain()
                 )
-                .distributive_run_if(
+                .run_if(
                     resource_exists_and_changed::<Inventory>().or_else(resource_added::<Inventory>())
                 ),
 

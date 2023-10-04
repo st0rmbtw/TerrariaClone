@@ -107,7 +107,7 @@ impl Inventory {
 
     #[inline(always)]
     pub fn selected_item(&self) -> Option<ItemStack> {
-        self.mouse_item.or(self.get_item(Slot::Index(self.selected_slot)))
+        self.get_item(self.selected_slot())
     }
 
     #[inline(always)]
