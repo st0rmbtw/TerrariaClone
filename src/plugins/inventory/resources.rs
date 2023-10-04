@@ -21,32 +21,78 @@ pub(crate) struct SwingAnimation(pub bool);
 #[reflect(Resource)]
 pub(crate) struct UseItemAnimationIndex(usize);
 
+#[derive(Clone, Copy)]
+pub(crate) enum Slot {
+    Index(usize),
+    MouseItem
+}
+
 #[derive(Resource)]
 pub(crate) struct Inventory {
     pub(crate) slots: [Option<ItemStack>; 50],
     pub(crate) selected_slot: usize,
+    mouse_item: Option<ItemStack>
 }
 
 impl Default for Inventory {
     fn default() -> Self {
-        Self { slots: [None; 50], selected_slot: 0 }
+        Self { slots: [None; 50], selected_slot: 0, mouse_item: None }
     }
 }
 
 impl Inventory {
-    pub fn get_item(&self, slot: usize) -> Option<ItemStack> {
-        debug_assert!((0..50).contains(&slot));
-        self.slots[slot]
+    pub fn get_item(&self, slot: Slot) -> Option<ItemStack> {
+        match slot {
+            Slot::Index(index) => {
+                debug_assert!((0..50).contains(&index));
+                self.slots[index]
+            },
+            Slot::MouseItem => {
+                self.mouse_item
+            },
+        }
     }
 
-    pub fn get_item_mut(&mut self, slot: usize) -> Option<&mut ItemStack> {
-        debug_assert!((0..50).contains(&slot));
-        self.slots[slot].as_mut()
+    pub fn get_item_mut(&mut self, slot: Slot) -> Option<&mut ItemStack> {
+        match slot {
+            Slot::Index(index) => {
+                debug_assert!((0..50).contains(&index));
+                self.slots[index].as_mut()
+            },
+            Slot::MouseItem => {
+                self.mouse_item.as_mut()
+            },
+        }
     }
 
-    pub fn remove_item(&mut self, slot: usize) {
-        debug_assert!((0..50).contains(&slot));
-        self.slots[slot] = None;
+    pub fn set_item(&mut self, slot: Slot, item_stack: ItemStack) {
+        match slot {
+            Slot::Index(index) => {
+                debug_assert!((0..50).contains(&index));
+                self.slots[index] = Some(item_stack);
+            },
+            Slot::MouseItem => {
+                self.mouse_item = Some(item_stack);
+            },
+        }
+    }
+
+    pub fn remove_item(&mut self, slot: Slot) -> Option<ItemStack> {
+        let item: Option<ItemStack>;
+
+        match slot {
+            Slot::Index(index) => {
+                debug_assert!((0..50).contains(&index));
+                item = self.slots[index];
+                self.slots[index] = None;
+            },
+            Slot::MouseItem => {
+                item = self.mouse_item;
+                self.mouse_item = None;
+            },
+        }
+
+        item
     }
 
     /// Returns `true` if the `slot` is less than [`CELL_COUNT_IN_ROW`] and is not the same as the selected_slot
@@ -61,15 +107,32 @@ impl Inventory {
 
     #[inline(always)]
     pub fn selected_item(&self) -> Option<ItemStack> {
-        self.get_item(self.selected_slot)
+        self.mouse_item.or(self.get_item(Slot::Index(self.selected_slot)))
     }
 
     #[inline(always)]
-    pub fn consume_item(&mut self, slot: usize) {
+    pub fn consume_item(&mut self, slot: Slot) {
         self.consume_item_impl(slot, 1);
     }
 
-    fn consume_item_impl(&mut self, slot: usize, stack: Stack) -> Option<ItemStack> {
+    #[inline(always)]
+    pub fn selected_slot(&self) -> Slot {
+        self.mouse_item.map(|_| Slot::MouseItem).unwrap_or(Slot::Index(self.selected_slot))
+    }
+
+    pub fn item_exists(&self, slot: Slot) -> bool {
+        match slot {
+            Slot::Index(index) => {
+                debug_assert!((0..50).contains(&index));
+                self.slots[index].is_some()
+            },
+            Slot::MouseItem => {
+                self.mouse_item.is_some()
+            },
+        }
+    }
+
+    fn consume_item_impl(&mut self, slot: Slot, stack: Stack) -> Option<ItemStack> {
         let item = self.get_item_mut(slot)?;
         let item_copy = *item;
 
@@ -133,7 +196,7 @@ impl Inventory {
         false
     }
 
-    pub fn drop_item(&mut self, slot: usize) -> Option<ItemStack> {
+    pub fn drop_item(&mut self, slot: Slot) -> Option<ItemStack> {
         let item_stack = self.get_item(slot)?;
         self.consume_item_impl(slot, item_stack.stack)
     }

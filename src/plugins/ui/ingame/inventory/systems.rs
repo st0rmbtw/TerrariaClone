@@ -1,7 +1,7 @@
 use autodefault::autodefault;
 use bevy::{prelude::{Commands, Name, NodeBundle, BuildChildren, TextBundle, Color, Entity, ImageBundle, default, ChildBuilder, Handle, Image, Visibility, With, Res, Query, DetectChanges, Changed, ResMut, DetectChangesMut, Without}, ui::{Style, FlexDirection, UiRect, Val, AlignSelf, AlignItems, JustifyContent, Interaction, BackgroundColor, ZIndex, FocusPolicy, AlignContent, PositionType, UiImage, widget::UiImageSize}, text::{Text, TextStyle, TextAlignment}};
 
-use crate::{plugins::{assets::{UiAssets, FontAssets, ItemAssets}, cursor::components::Hoverable, inventory::{Inventory, SelectedItem}, ui::InventoryUiVisibility}, language::{keys::{LanguageStringKey, UIStringKey, ItemStringKey}, LocalizedText, args}, common::{extensions::EntityCommandsExtensions, BoolValue, helpers}};
+use crate::{plugins::{assets::{UiAssets, FontAssets, ItemAssets}, cursor::components::Hoverable, inventory::{Inventory, SelectedItem, Slot}, ui::{InventoryUiVisibility, components::PreviousInteraction}, audio::{AudioCommandsExt, SoundType}}, language::{keys::{LanguageStringKey, UIStringKey, ItemStringKey}, LocalizedText, args}, common::{extensions::EntityCommandsExtensions, BoolValue, helpers}};
 
 use super::{components::*, INVENTORY_ROWS, SLOT_COUNT_IN_ROW, HOTBAR_SLOT_SIZE, INVENTORY_SLOT_SIZE, HOTBAR_SLOT_SIZE_SELECTED};
 
@@ -133,6 +133,7 @@ fn spawn_inventory_slot(
             Name::new(format!("Slot #{}", index)),
             SlotIndex(index),
             Interaction::default(),
+            PreviousInteraction::default(),
             InventorySlot,
             ImageBundle {
                 style: Style {
@@ -273,7 +274,7 @@ pub(super) fn update_slot_index_text(
 ) {
     for (slot_index, mut text) in &mut hotbar_slots {
         let (color, font_size) = if visibility.value() {
-            if inventory.selected_slot == slot_index.0 {
+            if inventory.selected_slot == slot_index.0 && !inventory.item_exists(Slot::MouseItem) {
                 (Color::WHITE, 18.)
             } else {
                 (Color::rgb(0.8, 0.8, 0.8), 16.)
@@ -310,7 +311,7 @@ pub(super) fn update_hoverable(
     mut hotbar_slots: Query<(&SlotIndex, &mut Hoverable), With<InventorySlot>>
 ) {
     for (slot_index, mut hoverable) in &mut hotbar_slots {
-        if let Some(item) = inventory.get_item(slot_index.0) {
+        if let Some(item) = inventory.get_item(Slot::Index(slot_index.0)) {
             let item_key = LanguageStringKey::Items(ItemStringKey::get_by_item(item.item));
 
             let name = if item.stack > 1 {
@@ -366,18 +367,26 @@ pub(super) fn update_slot_item_image(
     mut item_images: Query<(&SlotIndex, &mut SlotItemImage)>,
 ) {
     for (slot_index, mut slot_image) in &mut item_images {
-        slot_image.0 = inventory
-            .get_item(slot_index.0)
+        let image = inventory
+            .get_item(Slot::Index(slot_index.0))
             .map(|item_stack| item_assets.get_by_item(item_stack.item))
             .unwrap_or_default();
+
+        slot_image.set_if_neq(SlotItemImage(image));
     }
 }
 
 pub(super) fn update_slot_image(
+    mut inventory: ResMut<Inventory>,
     mut query: Query<(&mut UiImage, &SlotItemImage), Changed<SlotItemImage>>,
 ) {
     for (mut image, item_image) in &mut query {
         image.texture = item_image.0.clone_weak();
+    }
+
+    // For some reason ui image updates only after a second time
+    if !query.is_empty() {
+        inventory.set_changed();
     }
 }
 
@@ -402,6 +411,48 @@ pub(super) fn update_item_amount_text(
         helpers::set_visibility(visibility, item_stack.0 > 1);
         if item_stack.0 > 1 {
             text.sections[0].value = item_stack.0.to_string();
+        }
+    }
+}
+
+pub(super) fn take_item(
+    mut commands: Commands,
+    mut inventory: ResMut<Inventory>,
+    query_slot: Query<(&Interaction, &PreviousInteraction, &SlotIndex)>
+) {
+    if inventory.is_changed() { return; }
+
+    if !inventory.item_exists(Slot::MouseItem) {
+        for (interaction, previous_interaction, index) in &query_slot {
+            if *interaction == Interaction::Pressed && previous_interaction.0 != Interaction::Pressed {
+                if let Some(item_stack) = inventory.remove_item(Slot::Index(index.0)) {
+                    inventory.set_item(Slot::MouseItem, item_stack);
+                    commands.play_sound(SoundType::ItemGrab);
+                }
+            }
+        }
+    }
+}
+
+pub(super) fn put_item(
+    mut commands: Commands,
+    mut inventory: ResMut<Inventory>,
+    query_slot: Query<(&Interaction, &PreviousInteraction, &SlotIndex)>
+) {
+    if inventory.is_changed() { return; }
+
+    if let Some(mouse_item) = inventory.get_item(Slot::MouseItem) {
+        for (interaction, previous_interaction, index) in &query_slot {
+            if *interaction == Interaction::Pressed && previous_interaction.0 != Interaction::Pressed {
+                if let Some(item) = inventory.get_item(Slot::Index(index.0)) {
+                    inventory.set_item(Slot::MouseItem, item);
+                } else {
+                    inventory.remove_item(Slot::MouseItem);
+                }
+                
+                inventory.set_item(Slot::Index(index.0), mouse_item);
+                commands.play_sound(SoundType::ItemGrab);
+            }
         }
     }
 }

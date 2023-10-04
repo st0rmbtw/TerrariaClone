@@ -32,9 +32,13 @@ impl Plugin for CursorPlugin {
         app.add_systems(
             Update,
             (
-                systems::update_cursor_info,
+                (
+                    systems::update_cursor_info,
+                    systems::update_cursor_item,
+                )
+                .in_set(InGameSystemSet::Update),
+                systems::update_entity_interaction,
                 systems::update_cursor_position,
-                systems::update_entity_interaction
             ).run_if(not(in_state(GameState::AssetLoading)))
         );
 

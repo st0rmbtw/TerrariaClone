@@ -4,10 +4,10 @@ use autodefault::autodefault;
 use bevy::{
     prelude::{
         Res, Commands, Vec3, Color, NodeBundle, default, TextBundle, Name, ImageBundle, Transform, Query, With, Visibility, 
-        BuildChildren, Changed, DetectChangesMut, Or
+        BuildChildren, Changed, DetectChangesMut, Or, Without
     }, 
     ui::{
-        Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Val, AlignSelf, ZIndex, FlexDirection, UiRect, Interaction
+        Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Val, AlignSelf, ZIndex, FlexDirection, Interaction, UiImage, Display
     }, 
     text::{Text, TextStyle}, 
     sprite::{SpriteBundle, Sprite}
@@ -16,9 +16,9 @@ use interpolation::{EaseFunction, Lerp};
 
 use crate::{
     plugins::{
-        assets::{FontAssets, CursorAssets, UiAssets}, 
+        assets::{FontAssets, CursorAssets, UiAssets, ItemAssets}, 
         camera::components::MainCamera, 
-        world::constants::TILE_SIZE, config::{CursorColor, ShowTileGrid}, DespawnOnGameExit, player::Player, ui::UiVisibility
+        world::constants::TILE_SIZE, config::{CursorColor, ShowTileGrid}, DespawnOnGameExit, player::Player, ui::UiVisibility, inventory::{Inventory, Slot}
     }, 
     animation::{Tween, lens::TransformScaleLens, Animator, RepeatStrategy, RepeatCount}, 
     common::{lens::BackgroundColorLens, components::{Velocity, EntityRect}, helpers, BoolValue}, language::LanguageContent,
@@ -26,7 +26,7 @@ use crate::{
 
 use crate::plugins::player::{MAX_WALK_SPEED, MAX_FALL_SPEED};
 
-use super::{MAX_TILE_GRID_OPACITY, MIN_TILE_GRID_OPACITY, CURSOR_SIZE, components::{Hoverable, CursorBackground, CursorForeground, CursorInfoMarker, CursorContainer, TileGrid}, position::CursorPosition};
+use super::{MAX_TILE_GRID_OPACITY, MIN_TILE_GRID_OPACITY, CURSOR_SIZE, components::{Hoverable, CursorBackground, CursorForeground, CursorInfoMarker, CursorContainer, TileGrid, CursorItemContainer, CursorItemStack, CursorItemImage}, position::CursorPosition};
 
 pub(super) fn setup(
     mut commands: Commands, 
@@ -37,7 +37,7 @@ pub(super) fn setup(
     let animate_scale = Tween::new(
         EaseFunction::QuadraticInOut,
         RepeatStrategy::MirroredRepeat,
-        Duration::from_millis(500),
+        Duration::from_millis(450),
         TransformScaleLens {
             start: Vec3::new(1., 1., 1.),
             end: Vec3::new(1.15, 1.15, 1.),
@@ -48,7 +48,7 @@ pub(super) fn setup(
     let animate_color = Tween::new(
         EaseFunction::QuadraticInOut,
         RepeatStrategy::MirroredRepeat,
-        Duration::from_millis(500),
+        Duration::from_millis(450),
         BackgroundColorLens {
             start: cursor_color.foreground_color * 0.7,
             end: cursor_color.foreground_color,
@@ -119,8 +119,9 @@ pub(super) fn setup(
                 CursorInfoMarker,
                 TextBundle {
                     style: Style {
-                        align_self: AlignSelf::FlexEnd,
-                        margin: UiRect::left(Val::Px(CURSOR_SIZE)),
+                        position_type: PositionType::Absolute,
+                        left: Val::Px(CURSOR_SIZE),
+                        top: Val::Px(CURSOR_SIZE),
                         ..default()
                     },
                     text: Text::from_section(
@@ -130,10 +131,53 @@ pub(super) fn setup(
                             font_size: 22.,
                             color: Color::WHITE,
                         },
-                    ),
+                    ).with_no_wrap(),
+                    visibility: Visibility::Hidden,
                     ..default()
                 }
             ));
+
+            // Cursor item
+            c.spawn((
+                CursorItemContainer,
+                NodeBundle {
+                    style: Style {
+                        position_type: PositionType::Absolute,
+                        left: Val::Px(16.),
+                        top: Val::Px(16.),
+                        ..default()
+                    },
+                    ..default()
+                },
+            )).with_children(|parent| {
+                // Item image
+                parent.spawn((
+                    CursorItemImage,
+                    ImageBundle::default()
+                ));
+
+                // Item stack
+                parent.spawn((
+                    CursorItemStack,
+                    TextBundle {
+                        style: Style {
+                            top: Val::Px(10.),
+                            right: Val::Px(0.),
+                            position_type: PositionType::Absolute,
+                            ..default()
+                        },
+                        text: Text::from_section(
+                            String::new(),
+                            TextStyle {
+                                font: fonts.andy_bold.clone_weak(),
+                                font_size: 20.,
+                                color: Color::WHITE,
+                            },
+                        ),
+                        ..default()
+                    }
+                ));
+            });
         });
 }
 
@@ -207,14 +251,20 @@ pub(super) fn update_tile_grid_opacity(
 }
 
 pub(super) fn update_cursor_info(
+    inventory: Res<Inventory>,
     language_content: Res<LanguageContent>,
     query_hoverable: Query<(&Hoverable, &Interaction), Or<(Changed<Interaction>, Changed<Hoverable>)>>,
     mut query_info: Query<(&mut Text, &mut Visibility), With<CursorInfoMarker>>,
 ) {
     let (mut text, mut visibility) = query_info.single_mut();
 
+    if inventory.item_exists(Slot::MouseItem) {
+        *visibility = Visibility::Hidden;
+        return;
+    }
+
     query_hoverable.for_each(|(hoverable, interaction)| {
-        if let (Hoverable::SimpleText(info), Interaction::Hovered) = (hoverable, interaction) {
+        if let (Hoverable::SimpleText(info), Interaction::Hovered | Interaction::Pressed) = (hoverable, interaction) {
             text.sections[0].value = info.format(&language_content);
             *visibility = Visibility::Visible;
             return;
@@ -237,5 +287,31 @@ pub(super) fn update_entity_interaction(
         };
 
         interaction.set_if_neq(new_interaction);
+    }
+}
+
+pub(super) fn update_cursor_item(
+    inventory: Res<Inventory>,
+    item_assets: Res<ItemAssets>,
+    mut query_cursor_container: Query<&mut Style, With<CursorItemContainer>>,
+    mut query_cursor_item_image: Query<&mut UiImage, With<CursorItemImage>>,
+    mut query_cursor_item_stack: Query<(&mut Text, &mut Visibility), (With<CursorItemStack>, Without<CursorItemContainer>)>,
+) {
+    let mut style = query_cursor_container.single_mut();
+    let mut image = query_cursor_item_image.single_mut();
+    let (mut text, mut text_visibility) = query_cursor_item_stack.single_mut();
+    
+    if let Some(item_stack) = inventory.get_item(Slot::MouseItem) {
+        if item_stack.stack > 1 {
+            text.sections[0].value = item_stack.stack.to_string();
+            *text_visibility = Visibility::Visible;
+        } else {
+            *text_visibility = Visibility::Hidden;
+        }
+
+        image.texture = item_assets.get_by_item(item_stack.item);
+        style.display = Display::Flex;
+    } else {
+        style.display = Display::None;
     }
 }

@@ -1,7 +1,7 @@
 pub(in crate::plugins::ui) mod systems;
 mod components;
 
-use bevy::prelude::{Plugin, App, IntoSystemConfigs, resource_exists_and_changed, resource_added, Update, Condition};
+use bevy::prelude::{Plugin, App, IntoSystemConfigs, resource_exists_and_changed, resource_added, Update, Condition, resource_exists_and_equals};
 
 use crate::{common::systems::{set_visibility, set_visibility_negated}, plugins::{inventory::Inventory, InGameSystemSet, ui::SettingsMenuVisibility}};
 
@@ -44,6 +44,12 @@ impl Plugin for InventoryUiPlugin {
                 .distributive_run_if(
                     resource_exists_and_changed::<Inventory>().or_else(resource_added::<Inventory>())
                 ),
+
+                (
+                    systems::take_item,
+                    systems::put_item,
+                )
+                .run_if(resource_exists_and_equals(InventoryUiVisibility::VISIBLE))
             )
             .in_set(InGameSystemSet::Update)
         );

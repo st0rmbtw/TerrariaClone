@@ -7,6 +7,7 @@ pub(crate) struct InventoryUiVisibility(bool);
 
 impl InventoryUiVisibility {
     pub(crate) const HIDDEN: Self = Self(false);
+    pub(crate) const VISIBLE: Self = Self(true);
 }
 
 impl Toggle for InventoryUiVisibility {

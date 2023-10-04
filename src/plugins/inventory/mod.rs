@@ -3,11 +3,11 @@ mod resources;
 mod systems;
 mod util;
 
-use bevy::{prelude::{Plugin, App, IntoSystemConfigs, Update, FixedUpdate, OnExit, Commands, resource_exists_and_changed, resource_exists_and_equals, Vec2}, math::vec2};
+use bevy::{prelude::{Plugin, App, IntoSystemConfigs, Update, FixedUpdate, OnExit, Commands, resource_exists_and_changed, resource_exists_and_equals, Vec2, not}, math::vec2};
 pub(crate) use components::*;
 pub(crate) use resources::*;
 
-use crate::{common::state::GameState, items::{ItemStack, ItemTool, Axe, Pickaxe, ItemSeed, ItemBlock}};
+use crate::{common::{state::GameState, conditions::mouse_over_ui}, items::{ItemStack, ItemTool, Axe, Pickaxe, ItemSeed, ItemBlock}};
 
 use super::{InGameSystemSet, ui::InventoryUiVisibility};
 
@@ -52,11 +52,13 @@ impl Plugin for PlayerInventoryPlugin {
             Update,
             (
                 (
-                    systems::update_player_using_item,
+                    systems::update_player_using_item
+                        .run_if(not(mouse_over_ui)),
                     systems::start_swing_animation
                 ).chain(),
                 (
-                    systems::scroll_select_inventory_item.run_if(resource_exists_and_equals(InventoryUiVisibility::HIDDEN)),
+                    systems::scroll_select_inventory_item
+                        .run_if(resource_exists_and_equals(InventoryUiVisibility::HIDDEN)),
                     systems::select_inventory_cell,
                     systems::set_selected_item.run_if(resource_exists_and_changed::<Inventory>())
                 )

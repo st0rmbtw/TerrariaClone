@@ -24,7 +24,7 @@ pub(super) struct HotbarSlotIndex;
 #[derive(Component)]
 pub(super) struct SlotIndex(pub usize);
 
-#[derive(Component, Default)]
+#[derive(Component, Default, PartialEq, Eq)]
 pub(super) struct SlotItemImage(pub Handle<Image>);
 
 #[derive(Component, Default)]

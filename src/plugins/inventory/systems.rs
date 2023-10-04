@@ -67,7 +67,7 @@ pub(super) fn drop_item_stack(
     if input.just_pressed(KeyCode::T) {
         let Ok((velocity, player_rect, face_direction)) = query_player.get_single() else { return; };
 
-        let selected_slot = inventory.selected_slot;
+        let selected_slot = inventory.selected_slot();
 
         if let Some(item_stack) = inventory.drop_item(selected_slot) {
             let mut using_item_image = query_using_item.single_mut();
@@ -86,18 +86,21 @@ pub(super) fn drop_item_stack(
     }
 }
 
-pub(super) fn set_selected_item(inventory: Res<Inventory>, mut selected_item: ResMut<SelectedItem>) {
+pub(super) fn set_selected_item(
+    inventory: Res<Inventory>,
+    mut selected_item: ResMut<SelectedItem>
+) {
     selected_item.0 = inventory.selected_item();
 }
 
 pub(super) fn use_item(
+    mut inventory: ResMut<Inventory>,
     using_item: Res<PlayerUsingItem>,
     cursor_position: Res<CursorPosition<MainCamera>>,
     world_data: Res<WorldData>,
     #[cfg(feature = "debug")]
     debug_config: Res<crate::plugins::debug::DebugConfiguration>,
     query_player: Query<&EntityRect, With<Player>>,
-    mut inventory: ResMut<Inventory>,
     mut dig_block_events: EventWriter<DigBlockEvent>,
     mut break_block_events: EventWriter<BreakBlockEvent>,
     mut place_block_events: EventWriter<PlaceBlockEvent>,
@@ -117,7 +120,7 @@ pub(super) fn use_item(
     }
 
     if **using_item {
-        let selected_item_index = inventory.selected_slot;
+        let selected_item_index = inventory.selected_slot();
 
         if let Some(item_stack) = inventory.selected_item() {
             let tile_pos = helpers::get_tile_pos_from_world_coords(world_data.size, cursor_position.world);
