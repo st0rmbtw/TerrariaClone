@@ -26,3 +26,7 @@ pub(super) struct ToggleTileGridButton;
 
 #[derive(Component, Default, Deref, DerefMut, Copy, Clone, Eq, PartialEq, Debug)]
 pub(crate) struct PreviousInteraction(pub(crate) Interaction);
+
+#[derive(Component)]
+#[component(storage = "SparseSet")]
+pub(crate) struct MouseOver;

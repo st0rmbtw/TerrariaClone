@@ -5,7 +5,7 @@ pub(crate) mod ingame;
 pub(crate) mod menu;
 pub(crate) use resources::*;
 
-use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Color, TextBundle, Condition, Button, resource_exists_and_equals, not, Component, OnEnter, PostUpdate, Resource, Query, ResMut, With, PreUpdate}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, PositionType, Interaction, Node}, text::{TextAlignment, Text, TextStyle, TextSection}};
+use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Color, TextBundle, Condition, Button, resource_exists_and_equals, not, Component, OnEnter, PostUpdate, Resource, PreUpdate}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, PositionType}, text::{TextAlignment, Text, TextStyle, TextSection}};
 use crate::common::{state::GameState, systems::{set_visibility, despawn_with, toggle_resource, animate_button_scale, play_sound}, conditions::on_click};
 
 use self::{
@@ -80,7 +80,14 @@ impl Plugin for UiPlugin {
 
         app.add_systems(PostUpdate, update_previous_interaction);
 
-        app.add_systems(PreUpdate, update_mouse_over_ui);
+        app.add_systems(
+            PreUpdate,
+            (
+                systems::update_mouse_over_ui,
+                systems::update_world_mouse_over,
+                systems::update_ui_mouse_over
+            )
+        );
     }
 }
 
@@ -210,18 +217,4 @@ pub(super) fn spawn_fps_text(mut commands: Commands, font_assets: Res<FontAssets
             ..default()
         }
     ));
-}
-
-fn update_mouse_over_ui(
-    mut mouse_over_ui: ResMut<MouseOverUi>,
-    query: Query<&Interaction, With<Node>>
-) {
-    mouse_over_ui.0 = false;
-
-    query.for_each(|interaction| {
-        if matches!(interaction, Interaction::Hovered | Interaction::Pressed) {
-            mouse_over_ui.0 = true;
-            return;
-        }
-    });
 }

@@ -207,7 +207,7 @@ pub(super) fn follow_player(
 
         let player_grab_rect = FRect::new_center(player_rect.centerx, player_rect.centery, GRAB_RANGE, GRAB_RANGE);
 
-        if !player_grab_rect.intersects(&item_rect) || !inventory.can_be_added(dropped_item.item_stack) {
+        if !player_grab_rect.intersects(item_rect) || !inventory.can_be_added(dropped_item.item_stack) {
             if is_following {
                 commands.entity(entity).remove::<Following>();
             }

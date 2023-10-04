@@ -7,6 +7,8 @@ use crate::{common::systems::{set_visibility, set_visibility_negated}, plugins::
 
 use crate::plugins::ui::InventoryUiVisibility;
 
+use self::systems::return_mouse_item_back_to_inventory;
+
 const INVENTORY_ROWS: usize = 5 - 1;
 
 const HOTBAR_SLOT_SIZE: f32 = 40.;
@@ -49,7 +51,9 @@ impl Plugin for InventoryUiPlugin {
                     systems::take_item,
                     systems::put_item,
                 )
-                .run_if(resource_exists_and_equals(InventoryUiVisibility::VISIBLE))
+                .run_if(resource_exists_and_equals(InventoryUiVisibility::VISIBLE)),
+
+                return_mouse_item_back_to_inventory
             )
             .in_set(InGameSystemSet::Update)
         );

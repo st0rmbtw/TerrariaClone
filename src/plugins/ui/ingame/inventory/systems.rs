@@ -377,16 +377,10 @@ pub(super) fn update_slot_item_image(
 }
 
 pub(super) fn update_slot_image(
-    mut inventory: ResMut<Inventory>,
     mut query: Query<(&mut UiImage, &SlotItemImage), Changed<SlotItemImage>>,
 ) {
     for (mut image, item_image) in &mut query {
         image.texture = item_image.0.clone_weak();
-    }
-
-    // For some reason ui image updates only after a second time
-    if !query.is_empty() {
-        inventory.set_changed();
     }
 }
 
@@ -454,6 +448,18 @@ pub(super) fn put_item(
                 commands.play_sound(SoundType::ItemGrab);
             }
         }
+    }
+}
+
+pub(super) fn return_mouse_item_back_to_inventory(
+    mut commands: Commands,
+    mut inventory: ResMut<Inventory>,
+    inventory_ui_visibility: Res<InventoryUiVisibility>
+) {
+    if !inventory_ui_visibility.value() && inventory.item_exists(Slot::MouseItem) {
+        let item = inventory.remove_item(Slot::MouseItem).unwrap();
+        inventory.add_item_stack(item);
+        commands.play_sound(SoundType::ItemGrab);
     }
 }
 

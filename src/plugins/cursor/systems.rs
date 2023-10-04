@@ -4,13 +4,13 @@ use autodefault::autodefault;
 use bevy::{
     prelude::{
         Res, Commands, Vec3, Color, NodeBundle, default, TextBundle, Name, ImageBundle, Transform, Query, With, Visibility, 
-        BuildChildren, Changed, DetectChangesMut, Or, Without
+        BuildChildren, Without
     }, 
     ui::{
-        Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Val, AlignSelf, ZIndex, FlexDirection, Interaction, UiImage, Display
+        Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Val, AlignSelf, ZIndex, FlexDirection, UiImage, Display
     }, 
     text::{Text, TextStyle}, 
-    sprite::{SpriteBundle, Sprite}
+    sprite::{SpriteBundle, Sprite}, ecs::query::Has
 };
 use interpolation::{EaseFunction, Lerp};
 
@@ -18,10 +18,10 @@ use crate::{
     plugins::{
         assets::{FontAssets, CursorAssets, UiAssets, ItemAssets}, 
         camera::components::MainCamera, 
-        world::constants::TILE_SIZE, config::{CursorColor, ShowTileGrid}, DespawnOnGameExit, player::Player, ui::UiVisibility, inventory::{Inventory, Slot}
+        world::constants::TILE_SIZE, config::{CursorColor, ShowTileGrid}, DespawnOnGameExit, player::Player, ui::{UiVisibility, components::MouseOver}, inventory::{Inventory, Slot}
     }, 
     animation::{Tween, lens::TransformScaleLens, Animator, RepeatStrategy, RepeatCount}, 
-    common::{lens::BackgroundColorLens, components::{Velocity, EntityRect}, helpers, BoolValue}, language::LanguageContent,
+    common::{lens::BackgroundColorLens, components::Velocity, helpers, BoolValue}, language::LanguageContent,
 };
 
 use crate::plugins::player::{MAX_WALK_SPEED, MAX_FALL_SPEED};
@@ -253,40 +253,21 @@ pub(super) fn update_tile_grid_opacity(
 pub(super) fn update_cursor_info(
     inventory: Res<Inventory>,
     language_content: Res<LanguageContent>,
-    query_hoverable: Query<(&Hoverable, &Interaction), Or<(Changed<Interaction>, Changed<Hoverable>)>>,
+    query_hoverable: Query<(&Hoverable, Has<MouseOver>)>,
     mut query_info: Query<(&mut Text, &mut Visibility), With<CursorInfoMarker>>,
 ) {
     let (mut text, mut visibility) = query_info.single_mut();
 
-    if inventory.item_exists(Slot::MouseItem) {
-        *visibility = Visibility::Hidden;
-        return;
-    }
+    *visibility = Visibility::Hidden;
 
-    query_hoverable.for_each(|(hoverable, interaction)| {
-        if let (Hoverable::SimpleText(info), Interaction::Hovered | Interaction::Pressed) = (hoverable, interaction) {
+    if inventory.item_exists(Slot::MouseItem) { return; }
+    
+    for (hoverable, mouse_over) in &query_hoverable {
+        if let (Hoverable::SimpleText(info), true) = (hoverable, mouse_over) {
             text.sections[0].value = info.format(&language_content);
             *visibility = Visibility::Visible;
             return;
-        } else {
-            *visibility = Visibility::Hidden;
-            return;
         }
-    });
-}
-
-pub(super) fn update_entity_interaction(
-    cursor_pos: Res<CursorPosition<MainCamera>>,
-    mut query: Query<(&EntityRect, &mut Interaction)>
-) {
-    for (item_rect, mut interaction) in &mut query {
-        let new_interaction = if item_rect.contains(cursor_pos.world) {
-            Interaction::Hovered
-        } else {
-            Interaction::None
-        };
-
-        interaction.set_if_neq(new_interaction);
     }
 }
 
