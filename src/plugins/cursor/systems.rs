@@ -274,11 +274,11 @@ pub(super) fn update_cursor_info(
 pub(super) fn update_cursor_item(
     inventory: Res<Inventory>,
     item_assets: Res<ItemAssets>,
-    mut query_cursor_container: Query<&mut Style, With<CursorItemContainer>>,
+    mut query_cursor_item_container: Query<&mut Style, With<CursorItemContainer>>,
     mut query_cursor_item_image: Query<&mut UiImage, With<CursorItemImage>>,
     mut query_cursor_item_stack: Query<(&mut Text, &mut Visibility), (With<CursorItemStack>, Without<CursorItemContainer>)>,
 ) {
-    let mut style = query_cursor_container.single_mut();
+    let mut style = query_cursor_item_container.single_mut();
     let mut image = query_cursor_item_image.single_mut();
     let (mut text, mut text_visibility) = query_cursor_item_stack.single_mut();
     

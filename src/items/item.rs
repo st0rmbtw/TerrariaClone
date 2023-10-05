@@ -53,7 +53,6 @@ impl ItemStack {
 
     pub(crate) fn with_stack(mut self, stack: Stack) -> Self {
         debug_assert!(stack <= self.item.max_stack());
-        
         self.stack = stack;
         self
     }

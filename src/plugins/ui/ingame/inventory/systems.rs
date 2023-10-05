@@ -1,5 +1,5 @@
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Name, NodeBundle, BuildChildren, TextBundle, Color, Entity, ImageBundle, default, ChildBuilder, Handle, Image, Visibility, With, Res, Query, DetectChanges, Changed, ResMut, DetectChangesMut, Without}, ui::{Style, FlexDirection, UiRect, Val, AlignSelf, AlignItems, JustifyContent, Interaction, BackgroundColor, ZIndex, FocusPolicy, AlignContent, PositionType, UiImage, widget::UiImageSize}, text::{Text, TextStyle, TextAlignment}};
+use bevy::{prelude::{Commands, Name, NodeBundle, BuildChildren, TextBundle, Color, Entity, ImageBundle, default, ChildBuilder, Handle, Image, Visibility, With, Res, Query, DetectChanges, Changed, ResMut, DetectChangesMut, Without}, ui::{Style, FlexDirection, UiRect, Val, AlignSelf, AlignItems, JustifyContent, Interaction, BackgroundColor, FocusPolicy, AlignContent, PositionType, UiImage, widget::UiImageSize}, text::{Text, TextStyle, TextAlignment}};
 
 use crate::{plugins::{assets::{UiAssets, FontAssets, ItemAssets}, cursor::components::Hoverable, inventory::{Inventory, Slot}, ui::{InventoryUiVisibility, components::PreviousInteraction}, audio::{AudioCommandsExt, SoundType}}, language::{keys::{LanguageStringKey, UIStringKey, ItemStringKey}, LocalizedText, args}, common::{extensions::EntityCommandsExtensions, BoolValue, helpers}};
 
@@ -160,7 +160,6 @@ fn spawn_inventory_slot(
                 SlotItemImage::default(),
                 ImageBundle {
                     focus_policy: FocusPolicy::Pass,
-                    z_index: ZIndex::Global(2),
                     ..default()
                 }
             ));
@@ -178,7 +177,6 @@ fn spawn_inventory_slot(
                     ..default()
                 },
                 focus_policy: FocusPolicy::Pass,
-                z_index: ZIndex::Global(3),
                 ..default()
             }).with_children(|c| {
                 if hotbar_slot {
@@ -200,7 +198,6 @@ fn spawn_inventory_slot(
                                     color: Color::rgb(0.9, 0.9, 0.9),
                                 },
                             ),
-                            z_index: ZIndex::Global(4),
                             ..default()
                         }
                     ));
@@ -224,7 +221,6 @@ fn spawn_inventory_slot(
                                 color: Color::WHITE,
                             },
                         ),
-                        z_index: ZIndex::Global(4),
                         ..default()
                     }
                 ));
@@ -255,6 +251,8 @@ pub(super) fn update_slot_size(
     for (slot_index, image_size, mut style) in &mut item_images {
         let selected = slot_index.0 == inventory.selected_slot;
         let image_size = image_size.size();
+
+        if !(image_size.x > 0. && image_size.y > 0.) { continue; }
 
         if visibility.value() {
             style.width = Val::Px(image_size.x * 0.95);
@@ -392,12 +390,11 @@ pub(super) fn update_item_amount(
     mut query: Query<(&SlotIndex, &mut ItemAmount)>,
 ) {
     for (slot_index, mut item_stack) in &mut query {
-        let stack = inventory.slots.get(slot_index.0)
-            .and_then(|item| *item)
+        let stack = inventory.get_item(Slot::Index(slot_index.0))
             .map(|item_stack| item_stack.stack)
             .unwrap_or(0);
 
-        item_stack.0 = stack;
+        item_stack.set_if_neq(ItemAmount(stack));
     }
 }
 

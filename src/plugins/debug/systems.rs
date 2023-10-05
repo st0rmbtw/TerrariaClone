@@ -1,4 +1,4 @@
-use bevy::{prelude::{Commands, SpatialBundle, Res, Query, Transform, With, Visibility, Color, Name, TextBundle, Input, KeyCode, ResMut, UVec2, Vec4, DetectChanges}, text::{TextStyle, Text, TextSection}, ui::{Style, Val, PositionType}, utils::default, window::{Window, PrimaryWindow}};
+use bevy::{prelude::{Commands, SpatialBundle, Res, Query, Transform, With, Visibility, Color, Name, TextBundle, Input, KeyCode, ResMut, UVec2, Vec4, DetectChanges}, text::{TextStyle, Text, TextSection}, ui::{Style, Val, PositionType, Display}, utils::default, window::{Window, PrimaryWindow}};
 use bevy_inspector_egui::bevy_egui::EguiContexts;
 use rand::{thread_rng, Rng};
 
@@ -140,13 +140,17 @@ pub(super) fn block_hover(
 
 pub(super) fn cursor_visibility(
     mut query_window: Query<&mut Window, With<PrimaryWindow>>,
-    mut query_cursor: Query<&mut Visibility, With<CursorContainer>>,
+    mut query_cursor: Query<&mut Style, With<CursorContainer>>,
     mut egui: EguiContexts
 ) {
     let Ok(mut window) = query_window.get_single_mut() else { return; };
-    let Ok(cursor_visibility) = query_cursor.get_single_mut() else { return; };
+    let Ok(mut style) = query_cursor.get_single_mut() else { return; };
 
     let ctx = egui.ctx_mut();
     window.cursor.visible = ctx.is_pointer_over_area();
-    helpers::set_visibility(cursor_visibility, !ctx.is_pointer_over_area());
+    if ctx.is_pointer_over_area() {
+        style.display = Display::None;
+    } else {
+        style.display = Display::Flex;
+    }
 }
