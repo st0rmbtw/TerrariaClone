@@ -65,29 +65,28 @@ pub(crate) fn menu_button(
 }
 
 #[inline(always)]
-#[autodefault]
 pub(crate) fn menu_text(builder: &mut ChildBuilder, text_style: TextStyle, text: impl Into<String>) {
     builder.spawn((
         Name::new("MenuText"),
         TextBundle {
             text: Text::from_section(text, text_style.clone()).with_no_wrap(),
+            ..default()
         },
     ));
 }
 
 #[inline(always)]
-#[autodefault]
 pub(crate) fn menu_text_localized(builder: &mut ChildBuilder, text_style: TextStyle, text: impl Into<LocalizedText>) {
     builder.spawn((
         Name::new("MenuText"),
         TextBundle {
             text: Text::from_section(String::new(), text_style.clone()).with_no_wrap(),
+            ..default()
         },
         text.into()
     ));
 }
 
-#[autodefault]
 #[inline(always)]
 pub(crate) fn control_buttons_layout(
     builder: &mut ChildBuilder,
@@ -99,14 +98,15 @@ pub(crate) fn control_buttons_layout(
             align_items: AlignItems::Center,
             flex_direction: FlexDirection::Column,
             margin: UiRect::vertical(Val::Px(40.)),
-            row_gap: Val::Px(25.)
+            row_gap: Val::Px(25.),
+            ..default()
         },
-        focus_policy: FocusPolicy::Pass
+        focus_policy: FocusPolicy::Pass,
+        ..default()
     }).with_children(spawn_builder);
 }
 
 #[inline(always)]
-#[autodefault]
 pub(crate) fn control_button(
     builder: &mut ChildBuilder,
     text_style: TextStyle,

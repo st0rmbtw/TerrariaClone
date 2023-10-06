@@ -8,8 +8,8 @@ pub(crate) mod components;
 pub(crate) mod resources;
 mod systems;
 
-pub(crate) const MIN_CAMERA_ZOOM: f32 = 0.5;
-pub(crate) const MAX_CAMERA_ZOOM: f32 = 1.;
+const MIN_CAMERA_ZOOM: f32 = 0.5;
+const MAX_CAMERA_ZOOM: f32 = 1.;
 const CAMERA_ZOOM_STEP: f32 = 1.;
 
 #[cfg(feature = "debug")]
@@ -28,7 +28,8 @@ pub(crate) struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
-            OnExit(GameState::WorldLoading), (systems::setup_main_camera, systems::setup_world_camera)
+            OnExit(GameState::WorldLoading),
+            (systems::setup_main_camera, systems::setup_world_camera)
         );
 
         app.add_systems(Update, systems::zoom.in_set(InGameSystemSet::Update));

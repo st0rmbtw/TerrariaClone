@@ -1,13 +1,12 @@
 use std::time::Duration;
 
-use autodefault::autodefault;
 use bevy::{
     prelude::{
         Res, Commands, Vec3, Color, NodeBundle, default, TextBundle, Name, ImageBundle, Transform, Query, With, Visibility, 
         BuildChildren, Without
     }, 
     ui::{
-        Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Val, AlignSelf, ZIndex, FlexDirection, UiImage, Display
+        Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Val, AlignSelf, ZIndex, FlexDirection, UiImage
     }, 
     text::{Text, TextStyle}, 
     sprite::{SpriteBundle, Sprite}, ecs::query::Has
@@ -181,7 +180,6 @@ pub(super) fn setup(
         });
 }
 
-#[autodefault]
 pub(super) fn spawn_tile_grid(
     mut commands: Commands, 
     ui_assets: Res<UiAssets>
@@ -193,10 +191,12 @@ pub(super) fn spawn_tile_grid(
         SpriteBundle {
             sprite: Sprite {
                 color: Color::WHITE.with_a(MAX_TILE_GRID_OPACITY),
+                ..default()
             },
             texture: ui_assets.radial.clone_weak(),
             transform: Transform::from_xyz(0., 0., 5.),
-            visibility: Visibility::Hidden
+            visibility: Visibility::Hidden,
+            ..default()
         }
     ));
 }
@@ -247,13 +247,13 @@ pub(super) fn update_tile_grid_opacity(
         MAX_TILE_GRID_OPACITY
     };
 
-    sprite.color = *sprite.color.set_a(opacity.clamp(0., MAX_TILE_GRID_OPACITY));
+    sprite.color.set_a(opacity.clamp(0., MAX_TILE_GRID_OPACITY));
 }
 
 pub(super) fn update_cursor_info(
     inventory: Res<Inventory>,
     language_content: Res<LanguageContent>,
-    query_hoverable: Query<(&Hoverable, Has<MouseOver>)>,
+    mut query_hoverable: Query<(&mut Hoverable, Has<MouseOver>)>,
     mut query_info: Query<(&mut Text, &mut Visibility), With<CursorInfoMarker>>,
 ) {
     let (mut text, mut visibility) = query_info.single_mut();
@@ -262,10 +262,10 @@ pub(super) fn update_cursor_info(
 
     if inventory.item_exists(Slot::MouseItem) { return; }
     
-    for (hoverable, mouse_over) in &query_hoverable {
-        if let (Hoverable::SimpleText(info), true) = (hoverable, mouse_over) {
-            text.sections[0].value = info.format(&language_content);
-            *visibility = Visibility::Visible;
+    for (mut hoverable, mouse_over) in &mut query_hoverable {
+        if let (Hoverable::SimpleText(info), true) = (hoverable.as_mut(), mouse_over) {
+            text.sections[0].value = info.text(&language_content);
+            *visibility = Visibility::Inherited;
             return;
         }
     }
@@ -274,25 +274,25 @@ pub(super) fn update_cursor_info(
 pub(super) fn update_cursor_item(
     inventory: Res<Inventory>,
     item_assets: Res<ItemAssets>,
-    mut query_cursor_item_container: Query<&mut Style, With<CursorItemContainer>>,
+    mut query_cursor_item_container: Query<&mut Visibility, With<CursorItemContainer>>,
     mut query_cursor_item_image: Query<&mut UiImage, With<CursorItemImage>>,
     mut query_cursor_item_stack: Query<(&mut Text, &mut Visibility), (With<CursorItemStack>, Without<CursorItemContainer>)>,
 ) {
-    let mut style = query_cursor_item_container.single_mut();
+    let mut visibility = query_cursor_item_container.single_mut();
     let mut image = query_cursor_item_image.single_mut();
     let (mut text, mut text_visibility) = query_cursor_item_stack.single_mut();
     
-    if let Some(item_stack) = inventory.get_item(Slot::MouseItem) {
-        if item_stack.stack > 1 {
-            text.sections[0].value = item_stack.stack.to_string();
-            *text_visibility = Visibility::Visible;
-        } else {
-            *text_visibility = Visibility::Hidden;
-        }
+    *visibility = Visibility::Hidden;
 
-        image.texture = item_assets.get_by_item(item_stack.item);
-        style.display = Display::Flex;
+    let Some(mouse_item) = inventory.get_item(Slot::MouseItem) else { return; };
+
+    *visibility = Visibility::Inherited;
+    image.texture = item_assets.get_by_item(mouse_item.item);
+
+    if mouse_item.stack > 1 {
+        text.sections[0].value = mouse_item.stack.to_string();
+        *text_visibility = Visibility::Inherited;
     } else {
-        style.display = Display::None;
+        *text_visibility = Visibility::Hidden;
     }
 }

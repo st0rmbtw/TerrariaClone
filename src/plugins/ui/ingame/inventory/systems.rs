@@ -1,5 +1,5 @@
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Name, NodeBundle, BuildChildren, TextBundle, Color, Entity, ImageBundle, default, ChildBuilder, Handle, Image, Visibility, With, Res, Query, DetectChanges, Changed, ResMut, DetectChangesMut, Without}, ui::{Style, FlexDirection, UiRect, Val, AlignSelf, AlignItems, JustifyContent, Interaction, BackgroundColor, FocusPolicy, AlignContent, PositionType, UiImage, widget::UiImageSize}, text::{Text, TextStyle, TextAlignment}};
+use bevy::{prelude::{Commands, Name, NodeBundle, BuildChildren, TextBundle, Color, Entity, ImageBundle, default, ChildBuilder, Handle, Image, Visibility, With, Res, Query, DetectChanges, Changed, ResMut, DetectChangesMut, Without, Ref}, ui::{Style, FlexDirection, UiRect, Val, AlignSelf, AlignItems, JustifyContent, Interaction, BackgroundColor, FocusPolicy, AlignContent, PositionType, UiImage, widget::UiImageSize}, text::{Text, TextStyle, TextAlignment}};
 
 use crate::{plugins::{assets::{UiAssets, FontAssets, ItemAssets}, cursor::components::Hoverable, inventory::{Inventory, Slot}, ui::{InventoryUiVisibility, components::PreviousInteraction}, audio::{AudioCommandsExt, SoundType}}, language::{keys::{LanguageStringKey, UIStringKey, ItemStringKey}, LocalizedText, args}, common::{extensions::EntityCommandsExtensions, BoolValue, helpers}};
 
@@ -232,23 +232,30 @@ pub(super) fn update_slot_size(
     inventory: Res<Inventory>,
     visibility: Res<InventoryUiVisibility>,
     mut hotbar_slots: Query<(&SlotIndex, &mut Style), (With<HotbarSlot>, Without<SlotItemImage>)>,
-    mut item_images: Query<(&SlotIndex, &UiImageSize, &mut Style), (Without<HotbarSlot>, With<SlotItemImage>)>
+    mut item_images: Query<(&SlotIndex, Ref<UiImageSize>, &mut Style), (Without<HotbarSlot>, With<SlotItemImage>)>
 ) {
-    for (slot_index, mut style) in &mut hotbar_slots {
-        let selected = slot_index.0 == inventory.selected_slot;
-        if visibility.value() {
-            style.width = Val::Px(INVENTORY_SLOT_SIZE);
-            style.height = Val::Px(INVENTORY_SLOT_SIZE);
-        } else if selected {
-            style.width = Val::Px(HOTBAR_SLOT_SIZE_SELECTED);
-            style.height = Val::Px(HOTBAR_SLOT_SIZE_SELECTED);
-        } else {
-            style.width = Val::Px(HOTBAR_SLOT_SIZE);
-            style.height = Val::Px(HOTBAR_SLOT_SIZE);
+    let visibility_changed = visibility.is_changed();
+    let selected_slot_changed = inventory.selected_slot != inventory.previous_selected_slot;
+
+    if visibility_changed || selected_slot_changed {
+        for (slot_index, mut style) in &mut hotbar_slots {
+            let selected = slot_index.0 == inventory.selected_slot;
+            if visibility.value() {
+                style.width = Val::Px(INVENTORY_SLOT_SIZE);
+                style.height = Val::Px(INVENTORY_SLOT_SIZE);
+            } else if selected {
+                style.width = Val::Px(HOTBAR_SLOT_SIZE_SELECTED);
+                style.height = Val::Px(HOTBAR_SLOT_SIZE_SELECTED);
+            } else {
+                style.width = Val::Px(HOTBAR_SLOT_SIZE);
+                style.height = Val::Px(HOTBAR_SLOT_SIZE);
+            }
         }
     }
 
     for (slot_index, image_size, mut style) in &mut item_images {
+        if !visibility_changed && !selected_slot_changed && !image_size.is_changed() { continue; }
+
         let selected = slot_index.0 == inventory.selected_slot;
         let image_size = image_size.size();
 
@@ -350,7 +357,7 @@ pub(super) fn update_selected_item_name_text(
 
     let mut localized_text = query_selected_item_name.single_mut();
 
-    localized_text.key = if visibility.value() {
+    let key = if visibility.value() {
         UIStringKey::Inventory.into()
     } else {
         inventory.get_item(Slot::Index(inventory.selected_slot))
@@ -359,7 +366,9 @@ pub(super) fn update_selected_item_name_text(
             .map(ItemStringKey::get_by_item)
             .map(LanguageStringKey::Items)
             .unwrap_or(UIStringKey::Items.into())
-    }
+    };
+
+    *localized_text = LocalizedText::default(key);
 }
 
 pub(super) fn update_slot_item_image(

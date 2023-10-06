@@ -1,4 +1,3 @@
-use autodefault::autodefault;
 use bevy::{prelude::{Component, Commands, Res, ResMut, Query, With, Local, Entity, Plugin, App, OnEnter, OnExit,IntoSystemConfigs, in_state, Update, EventWriter, DetectChanges}, text::TextStyle, window::{Window, WindowResolution}};
 
 use crate::{
@@ -49,7 +48,6 @@ struct FullScreenResolutionButton;
 #[derive(Component, Clone)]
 struct FullScreenButton;
 
-#[autodefault]
 fn setup_resolution_menu(
     mut commands: Commands,
     fonts: Res<FontAssets>,

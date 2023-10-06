@@ -31,12 +31,18 @@ pub(crate) enum Slot {
 pub(crate) struct Inventory {
     pub(crate) slots: [Option<ItemStack>; 50],
     pub(crate) selected_slot: usize,
-    mouse_item: Option<ItemStack>
+    pub(crate) previous_selected_slot: usize,
+    mouse_item: Option<ItemStack>,
 }
 
 impl Default for Inventory {
     fn default() -> Self {
-        Self { slots: [None; 50], selected_slot: 0, mouse_item: None }
+        Self {
+            slots: [None; 50],
+            selected_slot: 0,
+            previous_selected_slot: 0,
+            mouse_item: None
+        }
     }
 }
 
@@ -59,9 +65,7 @@ impl Inventory {
                 debug_assert!((0..50).contains(&index));
                 self.slots[index].as_mut()
             },
-            Slot::MouseItem => {
-                self.mouse_item.as_mut()
-            },
+            Slot::MouseItem => self.mouse_item.as_mut(),
         }
     }
 
@@ -98,6 +102,7 @@ impl Inventory {
     /// Returns `true` if the `slot` is less than [`CELL_COUNT_IN_ROW`] and is not the same as the selected_slot
     pub fn select_item(&mut self, slot: usize) -> bool {
         if slot < SLOT_COUNT_IN_ROW && slot != self.selected_slot {
+            self.previous_selected_slot = self.selected_slot;
             self.selected_slot = slot;
             return true;
         }

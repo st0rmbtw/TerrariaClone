@@ -28,10 +28,10 @@ impl Plugin for InventoryUiPlugin {
                 systems::trigger_inventory_changed.run_if(resource_exists_and_changed::<InventoryUiVisibility>()),
                 systems::update_selected_item_name_alignment,
                 systems::update_selected_item_name_text,
+                systems::update_slot_size,
                 (
-                    systems::update_slot_size,
-                    systems::update_slot_background_image,
                     systems::update_hoverable,
+                    systems::update_slot_background_image,
                     systems::update_slot_index_text,
 
                     (

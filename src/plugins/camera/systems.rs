@@ -2,12 +2,12 @@ use bevy::{
     prelude::{
         Commands, Camera2dBundle, OrthographicProjection, Transform, Res, KeyCode, Query, 
         With, Input,
-        Without, Camera2d, Name, Mut, UiCameraConfig, default, ResMut, Camera,
+        Without, Camera2d, Name, Mut, UiCameraConfig, default, ResMut, Camera, Vec2,
     }, 
     time::Time, core_pipeline::{clear_color::ClearColorConfig, tonemapping::Tonemapping}
 };
 
-use crate::{plugins::{world::{constants::TILE_SIZE, WORLD_RENDER_LAYER}, DespawnOnGameExit}, common::{helpers::tile_to_world_pos, math::map_range_f32}, world::WorldData};
+use crate::{plugins::{world::{constants::TILE_SIZE, WORLD_RENDER_LAYER}, DespawnOnGameExit}, common::{helpers::tile_to_world_pos, math::map_range_f32, components::EntityRect}, world::WorldData};
 
 use crate::plugins::player::Player;
 
@@ -103,7 +103,7 @@ pub(super) fn zoom(
 
 pub(super) fn move_camera(
     mut query_move_camera: Query<&mut Transform, With<MoveCamera>>,
-    query_player: Query<&Transform, (With<Player>, Without<MoveCamera>)>,
+    query_player: Query<&EntityRect, (With<Player>, Without<MoveCamera>)>,
     #[cfg(feature = "debug")]
     time: Res<Time>,
     #[cfg(feature = "debug")]
@@ -113,8 +113,8 @@ pub(super) fn move_camera(
 ) {
     query_move_camera.for_each_mut(|camera_transform| {
         #[cfg(not(feature = "debug"))] {
-            if let Ok(player_transform) = query_player.get_single() {
-                follow_player(player_transform, camera_transform);
+            if let Ok(player_rect) = query_player.get_single() {
+                follow_player(player_rect.center(), camera_transform);
             }
         }
 
@@ -122,8 +122,8 @@ pub(super) fn move_camera(
             if debug_config.free_camera {
                 free_camera(&time, &input, camera_transform);
             } else {
-                if let Ok(player_transform) = query_player.get_single() {
-                    follow_player(player_transform, camera_transform);
+                if let Ok(player_rect) = query_player.get_single() {
+                    follow_player(player_rect.center(), camera_transform);
                 }
             }
         }
@@ -131,10 +131,9 @@ pub(super) fn move_camera(
 }
 
 pub(super) fn follow_player(
-    player_transform: &Transform,
+    player_pos: Vec2,
     mut camera_transform: Mut<Transform>,
 ) {
-    let player_pos = player_transform.translation.truncate();
     let new_x = camera_transform.translation.x + (player_pos.x - camera_transform.translation.x) * 0.5;
     let new_y = camera_transform.translation.y + (player_pos.y - camera_transform.translation.y) * 0.5;
 
@@ -148,8 +147,6 @@ pub(super) fn free_camera(
     input: &Res<bevy::prelude::Input<KeyCode>>,
     mut camera_transform: Mut<Transform>,
 ) {
-    use bevy::prelude::Vec2;
-
     use super::{CAMERA_MOVE_SPEED, CAMERA_MOVE_SPEED_SLOWER, CAMERA_MOVE_SPEED_FASTER};
 
     let camera_speed = if input.pressed(KeyCode::ShiftLeft) {

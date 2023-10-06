@@ -19,10 +19,10 @@ pub(crate) enum ItemStringKey {
 }
 
 impl ItemStringKey {
-    pub(crate) fn get_by_item(item: Item) -> Self {
+    pub(crate) const fn get_by_item(item: Item) -> Self {
         match item {
             Item::Tool(tool) => match tool {
-                ItemTool::Pickaxe(pickaxe) =>  match pickaxe {
+                ItemTool::Pickaxe(pickaxe) => match pickaxe {
                     Pickaxe::CopperPickaxe => ItemStringKey::CopperPickaxe,
                 },
                 ItemTool::Axe(axe) => match axe {

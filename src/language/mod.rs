@@ -183,14 +183,19 @@ impl Localize for u16 {
 
 #[derive(Component)]
 pub(crate) struct LocalizedText {
-    pub(crate) key: LanguageStringKey,
-    pub(crate) format: Option<String>,
-    pub(crate) args: Option<Arc<[Box<dyn Localize>]>>
+    key: LanguageStringKey,
+    format: Option<String>,
+    args: Option<Arc<[Box<dyn Localize>]>>,
+    cached_text: Option<String>
 }
 
 impl LocalizedText {
+    pub(crate) const fn default(key: LanguageStringKey) -> Self {
+        Self { key, format: None, args: None, cached_text: None }
+    }
+
     pub(crate) fn new(key: impl Into<LanguageStringKey>, format: impl Into<String>, args: Arc<[Box<dyn Localize>]>) -> Self {
-        Self { key: key.into(), format: Some(format.into()), args: Some(args) }
+        Self { key: key.into(), format: Some(format.into()), args: Some(args), cached_text: None }
     }
 
     pub(super) fn format(&self, language_content: &LanguageContent) -> String {
@@ -211,26 +216,34 @@ impl LocalizedText {
             _ => key_str.to_string()
         }
     }
+
+    pub(crate) fn text(&mut self, language_content: &LanguageContent) -> String {
+        if self.cached_text.is_none() {
+            self.cached_text = Some(self.format(language_content));
+        }
+
+        return self.cached_text.clone().unwrap();
+    }
 }
 
 impl From<LanguageStringKey> for LocalizedText {
     #[inline(always)]
     fn from(key: LanguageStringKey) -> Self {
-        Self { key, format: None, args: None }       
+        Self::default(key)
     }
 }
 
 impl From<UIStringKey> for LocalizedText {
     #[inline(always)]
     fn from(key: UIStringKey) -> Self {
-        Self { key: key.into(), format: None, args: None }       
+        Self::default(key.into())
     }
 }
 
 impl From<ItemStringKey> for LocalizedText {
     #[inline(always)]
     fn from(key: ItemStringKey) -> Self {
-        Self { key: key.into(), format: None, args: None }       
+        Self::default(key.into())
     }
 }
 
