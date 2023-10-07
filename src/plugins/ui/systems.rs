@@ -123,12 +123,5 @@ pub(super) fn update_mouse_over_ui(
     mut mouse_over_ui: ResMut<MouseOverUi>,
     query: Query<&Interaction, With<Node>>
 ) {
-    mouse_over_ui.0 = false;
-
-    for interaction in &query {
-        if matches!(interaction, Interaction::Hovered | Interaction::Pressed) {
-            mouse_over_ui.0 = true;
-            return;
-        }
-    }
+    mouse_over_ui.0 = query.iter().any(|&interaction| interaction != Interaction::None);
 }
