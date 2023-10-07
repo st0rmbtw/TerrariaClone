@@ -1,4 +1,3 @@
-use autodefault::autodefault;
 use bevy::{prelude::{Commands, Res, With, Query, Component, Entity, Plugin, App, OnEnter, OnExit, IntoSystemConfigs, Update, in_state}, text::TextStyle};
 
 use crate::{
@@ -38,7 +37,6 @@ impl Plugin for InterfaceMenuPlugin {
 #[derive(Component)]
 struct InterfaceMenu;
 
-#[autodefault]
 fn setup_interface_menu(
     mut commands: Commands,
     fonts: Res<FontAssets>,

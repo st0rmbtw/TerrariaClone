@@ -1,6 +1,5 @@
 mod resolution;
 
-use autodefault::autodefault;
 use bevy::{prelude::{Commands, Res, ResMut, Query, With, Entity, Plugin, OnEnter, OnExit, IntoSystemConfigs, App, in_state, Update, Component, DetectChanges, Local}, text::TextStyle, window::Window};
 
 use crate::{
@@ -57,7 +56,6 @@ pub(super) struct VSyncButton;
 #[derive(Component, Clone)]
 pub(super) struct LightSmoothnessButton;
 
-#[autodefault]
 fn setup_video_menu(
     mut commands: Commands,
     fonts: Res<FontAssets>,

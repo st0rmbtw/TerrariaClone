@@ -5,7 +5,7 @@ pub(crate) mod ingame;
 pub(crate) mod menu;
 pub(crate) use resources::*;
 
-use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Color, TextBundle, Condition, Button, resource_exists_and_equals, not, Component, OnEnter, PostUpdate}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, PositionType}, text::{TextAlignment, Text, TextStyle, TextSection}};
+use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Color, TextBundle, Condition, Button, resource_exists_and_equals, not, Component, OnEnter, PostUpdate, Resource, PreUpdate}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, PositionType}, text::{TextAlignment, Text, TextStyle, TextSection}};
 use crate::common::{state::GameState, systems::{set_visibility, despawn_with, toggle_resource, animate_button_scale, play_sound}, conditions::on_click};
 
 use self::{
@@ -21,12 +21,16 @@ use super::{InGameSystemSet, DespawnOnGameExit, slider::Slider, audio::SoundType
 #[derive(Component)]
 pub(crate) struct FpsText;
 
+#[derive(Resource, Default)]
+pub(crate) struct MouseOverUi(pub(crate) bool);
+
 pub(crate) struct UiPlugin;
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((InventoryUiPlugin, InGameSettingsUiPlugin, MenuPlugin));
 
         app.init_resource::<UiVisibility>();
+        app.init_resource::<MouseOverUi>();
 
         app.add_systems(OnEnter(GameState::InGame), setup);
         app.add_systems(OnExit(GameState::InGame), cleanup);
@@ -75,6 +79,15 @@ impl Plugin for UiPlugin {
         );
 
         app.add_systems(PostUpdate, update_previous_interaction);
+
+        app.add_systems(
+            PreUpdate,
+            (
+                systems::update_mouse_over_ui,
+                systems::update_world_mouse_over,
+                systems::update_ui_mouse_over
+            )
+        );
     }
 }
 

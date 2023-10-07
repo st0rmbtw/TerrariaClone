@@ -3,11 +3,11 @@ mod resources;
 mod systems;
 mod util;
 
-use bevy::{prelude::{Plugin, App, IntoSystemConfigs, Update, FixedUpdate, OnExit, Commands, resource_exists_and_changed, resource_exists_and_equals, Vec2}, math::vec2};
+use bevy::{prelude::{Plugin, App, IntoSystemConfigs, Update, FixedUpdate, OnExit, Commands, resource_exists_and_changed, resource_exists_and_equals, Vec2, not}, math::vec2};
 pub(crate) use components::*;
 pub(crate) use resources::*;
 
-use crate::{common::state::GameState, items::{ItemStack, Tool, Axe, Pickaxe, Seed}, world::block::BlockType};
+use crate::{common::{state::GameState, conditions::mouse_over_ui}, items::{ItemStack, ItemTool, Axe, Pickaxe, ItemSeed, ItemBlock}};
 
 use super::{InGameSystemSet, ui::InventoryUiVisibility};
 
@@ -52,17 +52,20 @@ impl Plugin for PlayerInventoryPlugin {
             Update,
             (
                 (
-                    systems::update_player_using_item,
+                    systems::update_player_using_item
+                        .run_if(not(mouse_over_ui)),
                     systems::start_swing_animation
                 ).chain(),
                 (
-                    systems::scroll_select_inventory_item.run_if(resource_exists_and_equals(InventoryUiVisibility::HIDDEN)),
+                    systems::scroll_select_inventory_item
+                        .run_if(resource_exists_and_equals(InventoryUiVisibility::HIDDEN)),
                     systems::select_inventory_cell,
                     systems::set_selected_item.run_if(resource_exists_and_changed::<Inventory>())
                 )
                 .chain(),
-                systems::set_using_item_image.run_if(resource_exists_and_changed::<SelectedItem>()),
-                systems::set_using_item_visibility(false)
+                systems::set_using_item_visibility(false),
+
+                systems::drop_item_stack,
             )
             .in_set(InGameSystemSet::Update)
         );
@@ -78,11 +81,12 @@ fn setup(mut commands: Commands) {
     commands.insert_resource(SwingAnimation(false));
     
     let mut inventory = Inventory::default();
-    inventory.add_item(ItemStack::new_tool(Tool::Pickaxe(Pickaxe::CopperPickaxe)));
-    inventory.add_item(ItemStack::new_tool(Tool::Axe(Axe::CopperAxe)));
-    inventory.add_item(ItemStack::new_block(BlockType::Dirt).with_max_stack());
-    inventory.add_item(ItemStack::new_block(BlockType::Stone).with_max_stack());
-    inventory.add_item(ItemStack::new_seed(Seed::Grass).with_max_stack());
+    inventory.add_item_stack(ItemStack::new_tool(ItemTool::Pickaxe(Pickaxe::CopperPickaxe)));
+    inventory.add_item_stack(ItemStack::new_tool(ItemTool::Axe(Axe::CopperAxe)));
+    inventory.add_item_stack(ItemStack::new_block(ItemBlock::Dirt).with_max_stack());
+    inventory.add_item_stack(ItemStack::new_block(ItemBlock::Stone).with_max_stack());
+    inventory.add_item_stack(ItemStack::new_block(ItemBlock::Wood).with_max_stack());
+    inventory.add_item_stack(ItemStack::new_seed(ItemSeed::Grass).with_max_stack());
 
     commands.insert_resource(inventory);
 }

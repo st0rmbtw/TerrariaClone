@@ -63,7 +63,8 @@
 		"StoneBlock": "Stone Block",
 		"DirtWall": "Dirt Wall",
 		"StoneWall": "Stone Wall",
-		"GrassSeed": "Grass Seeds"
+		"GrassSeed": "Grass Seeds",
+		"Wood": "Wood"
 	},
 	"UI": {
 		"Inventory": "Inventory",

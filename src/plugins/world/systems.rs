@@ -4,9 +4,9 @@ use bevy::{
     prelude::{
         EventReader, ResMut, Query, Commands, EventWriter, Entity, BuildChildren, Transform, 
         default, SpatialBundle, DespawnRecursiveExt, OrthographicProjection, Changed, 
-        GlobalTransform, With, Res, UVec2, NextState, Name,
+        GlobalTransform, With, Res, UVec2, NextState, Name, Vec2,
     }, 
-    math::Vec3Swizzles
+    math::Vec3Swizzles, render::view::NoFrustumCulling
 };
 use bevy_ecs_tilemap::{
     tiles::{
@@ -20,7 +20,7 @@ use bevy_ecs_tilemap::{
 };
 use rand::{thread_rng, Rng};
 
-use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::components::MainCamera, audio::{SoundType, AudioCommandsExt}, DespawnOnGameExit}, common::{state::GameState, TextureAtlasPos, math::map_range_i32}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}, WALL_LAYER, TILES_LAYER};
+use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::components::MainCamera, audio::{SoundType, AudioCommandsExt}, DespawnOnGameExit, item::ItemCommandsExt}, common::{state::GameState, TextureAtlasPos, math::map_range_i32, helpers::{tile_to_world_pos, random_point_cone}}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}, WALL_LAYER, TILES_LAYER, items::ItemStack};
 
 use super::{
     utils::{get_chunk_pos, get_camera_fov, get_chunk_tile_pos, get_chunk_range_by_camera_fov, self}, 
@@ -65,13 +65,16 @@ pub(super) fn spawn_block(
     index: u32
 ) -> Entity {
     commands
-        .spawn(TileBundle {
-            position: tile_pos,
-            tilemap_id: TilemapId(tilemap_entity),
-            texture_index: TileTextureIndex(index),
-            ..default()
-        })
-        .insert(block)
+        .spawn((
+            Name::new(format!("{:#?}", block.block_type)),
+            block,
+            TileBundle {
+                position: tile_pos,
+                tilemap_id: TilemapId(tilemap_entity),
+                texture_index: TileTextureIndex(index),
+                ..default()
+            }
+        ))
         .id()
 }
 
@@ -264,6 +267,7 @@ pub(super) fn spawn_chunk(
     commands
         .entity(tilemap_entity)
         .insert((
+            Name::new("TileMap"),
             Chunk::new(chunk_pos, ChunkType::Tile),
             WORLD_RENDER_LAYER,
             TilemapBundle {
@@ -290,8 +294,10 @@ pub(super) fn spawn_chunk(
     commands
         .entity(tile_crack_map_entity)
         .insert((
+            Name::new("TileCracksMap"),
             Chunk::new(chunk_pos, ChunkType::Cracks),
             WORLD_RENDER_LAYER,
+            NoFrustumCulling,
             TilemapBundle {
                 grid_size: TilemapGridSize {
                     x: TILE_SIZE,
@@ -312,8 +318,10 @@ pub(super) fn spawn_chunk(
     commands
         .entity(wallmap_entity)
         .insert((
+            Name::new("WallMap"),
             Chunk::new(chunk_pos, ChunkType::Wall),
             WORLD_RENDER_LAYER,
+            NoFrustumCulling,
             TilemapBundle {
                 grid_size: TilemapGridSize {
                     x: TILE_SIZE,
@@ -334,8 +342,10 @@ pub(super) fn spawn_chunk(
     commands
         .entity(treemap_entity)
         .insert((
+            Name::new("TreeMap"),
             Chunk::new(chunk_pos, ChunkType::Tree),
             WORLD_RENDER_LAYER,
+            NoFrustumCulling,
             TilemapBundle {
                 grid_size: TilemapGridSize {
                     x: TILE_SIZE,
@@ -357,8 +367,10 @@ pub(super) fn spawn_chunk(
     commands
         .entity(tree_branches_map_entity)
         .insert((
+            Name::new("TreeBranchesMap"),
             Chunk::new(chunk_pos, ChunkType::TreeBranch),
             WORLD_RENDER_LAYER,
+            NoFrustumCulling,
             TilemapBundle {
                 grid_size: TilemapGridSize {
                     x: TILE_SIZE,
@@ -380,8 +392,10 @@ pub(super) fn spawn_chunk(
     commands
         .entity(tree_tops_map_entity)
         .insert((
+            Name::new("TreeTopsMap"),
             Chunk::new(chunk_pos, ChunkType::TreeTop),
             WORLD_RENDER_LAYER,
+            NoFrustumCulling,
             TilemapBundle {
                 grid_size: TilemapGridSize {
                     x: TILE_SIZE,
@@ -410,6 +424,8 @@ pub(super) fn handle_break_block_event(
     mut break_block: EventReader<BreakBlockEvent>,
     mut update_neighbors: EventWriter<UpdateNeighborsEvent>,
 ) {
+    let mut rng = thread_rng();
+
     for &BreakBlockEvent { tile_pos } in break_block.iter() {
         if let Some(&block) = world_data.get_block(tile_pos) {
             if let BlockType::Tree(_) = block.block_type {
@@ -420,6 +436,12 @@ pub(super) fn handle_break_block_event(
                 ChunkManager::remove(&mut commands, &mut query_chunk, tile_pos, ChunkType::from(block.block_type));
                 ChunkManager::remove(&mut commands, &mut query_chunk, tile_pos, ChunkType::Cracks);
                 utils::spawn_particles_on_break(&mut commands, block.block_type, tile_pos);
+                commands.spawn_dropped_item(
+                    tile_to_world_pos(tile_pos),
+                    Vec2::new(rng.gen_range(-0.5f32..0.5f32), rng.gen_range(0.5f32..1.0f32)) * 3.,
+                    ItemStack::new_block(block.block_type.into()),
+                    None
+                );
             }
 
             commands.play_sound(SoundType::BlockHit(block.block_type));
@@ -591,6 +613,13 @@ fn break_tree(
             ChunkManager::remove(commands, chunks, pos, ChunkType::from(block.block_type));
             ChunkManager::remove(commands, chunks, pos, ChunkType::Cracks);
             utils::spawn_particles_on_break(commands, block.block_type, pos);
+
+            commands.spawn_dropped_item(
+                tile_to_world_pos(pos),
+                random_point_cone(Vec2::Y, 150.0, 1.) * 4.,
+                ItemStack::new_block(block.block_type.into()),
+                None
+            );
 
             if tree.frame_type.is_trunk() || tree_falling {
                 break_tree(commands, world_data, chunks, TilePos::new(pos.x + 1, pos.y), true);

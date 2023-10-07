@@ -4,16 +4,16 @@ use bevy::prelude::{Vec2, OrthographicProjection, UVec2, Commands};
 use bevy_ecs_tilemap::tiles::TilePos;
 use rand::{thread_rng, Rng};
 
-use crate::{world::{chunk::ChunkPos, Size, block::BlockType}, common::helpers::{random_point_circle, tile_pos_to_world_coords}, plugins::particles::{PARTICLE_SIZE, Particle, ParticleCommandsExt, ParticleBuilder}};
+use crate::{world::{chunk::ChunkPos, Size, block::BlockType}, common::helpers::{random_point_circle, tile_to_world_pos}, plugins::particles::{PARTICLE_SIZE, Particle, ParticleCommandsExt, ParticleBuilder}};
 
 use super::{constants::{CHUNK_SIZE_U, CHUNK_SIZE, TILE_SIZE}, CameraFov, ChunkRange, WORLD_RENDER_LAYER};
 
-#[inline]
+#[inline(always)]
 pub(super) fn get_chunk_pos(pos: TilePos) -> ChunkPos {
     ChunkPos::from(pos) / CHUNK_SIZE_U
 }
 
-#[inline]
+#[inline(always)]
 pub(super) fn get_chunk_tile_pos(map_tile_pos: TilePos) -> TilePos {
     TilePos { 
         x: map_tile_pos.x % CHUNK_SIZE_U, 
@@ -21,7 +21,7 @@ pub(super) fn get_chunk_tile_pos(map_tile_pos: TilePos) -> TilePos {
     }
 }
 
-#[inline]
+#[inline(always)]
 pub(super) fn get_camera_fov(camera_pos: Vec2, projection: &OrthographicProjection) -> CameraFov {
     CameraFov {
         min: camera_pos + projection.area.min,
@@ -63,7 +63,7 @@ pub(super) fn spawn_particles_on_dig(commands: &mut Commands, block: BlockType, 
         let size = rng.gen_range(0.3..1.0) * PARTICLE_SIZE;
 
         commands.spawn_particle(
-            ParticleBuilder::new(particle, tile_pos_to_world_coords(tile_pos), velocity, 1.)
+            ParticleBuilder::new(particle, tile_to_world_pos(tile_pos), velocity, 1.)
                 .with_size(size)
                 .with_gravity(true)
                 .with_render_layer(WORLD_RENDER_LAYER)
@@ -83,7 +83,7 @@ pub(super) fn spawn_particles_on_break(commands: &mut Commands, block: BlockType
         let size = rng.gen_range(0.3..1.0) * PARTICLE_SIZE;
 
         commands.spawn_particle(
-            ParticleBuilder::new(particle, tile_pos_to_world_coords(tile_pos), velocity, 1.5)
+            ParticleBuilder::new(particle, tile_to_world_pos(tile_pos), velocity, 1.5)
                 .with_size(size)
                 .with_gravity(true)
                 .with_render_layer(WORLD_RENDER_LAYER)

@@ -248,8 +248,10 @@ fn handle_back_event(
 ) {
     if !back_events.is_empty() {
         back_events.clear();
-        next_state.set(state.back());
-        commands.play_sound(SoundType::MenuClose);
+        if *state.get() != state.back() {
+            next_state.set(state.back());
+            commands.play_sound(SoundType::MenuClose);
+        }
     }
 }
 

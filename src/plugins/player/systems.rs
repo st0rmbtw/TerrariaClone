@@ -35,7 +35,7 @@ pub(super) fn horizontal_movement(
     } else {
         velocity.x = move_towards(velocity.x, 0., SLOWDOWN);
     }
-    velocity.x = velocity.x.clamp(-MAX_RUN_SPEED, MAX_RUN_SPEED);
+    velocity.x = velocity.x.clamp(-MAX_WALK_SPEED, MAX_WALK_SPEED);
 }
 
 pub(super) fn update_jump(
@@ -93,8 +93,10 @@ pub(super) fn gravity(
 
     velocity.y += GRAVITY * DIRECTION;
 
-    if velocity.y.abs() > MAX_FALL_SPEED.abs() {
-        velocity.y = MAX_FALL_SPEED * DIRECTION;
+    if velocity.y > MAX_FALL_SPEED {
+        velocity.y = MAX_FALL_SPEED;
+    } else if velocity.y < -MAX_FALL_SPEED {
+        velocity.y = -MAX_FALL_SPEED;
     }
 }
 
@@ -246,7 +248,6 @@ pub(super) fn update_player_rect(
     const max_y: f32 = -PLAYER_HALF_HEIGHT - TILE_SIZE / 2.;
 
     let new_position = (player_rect.center() + velocity.0)
-        .floor()
         .clamp(vec2(min_x, min_y), vec2(max_x, max_y));
 
     player_rect.centerx = new_position.x;
@@ -258,7 +259,8 @@ pub(super) fn move_player(
 ) {
     let Ok((mut transform, player_rect)) = query_player.get_single_mut() else { return; };
 
-    transform.set_if_neq(transform.with_translation(player_rect.center().extend(transform.translation.z)));
+    transform.translation.x = player_rect.centerx;
+    transform.translation.y = player_rect.centery;
 }
 
 pub(super) fn update_movement_state(
@@ -376,6 +378,8 @@ pub(super) fn update_input_axis(
     #[cfg(feature = "debug")]
     let ctx = egui.ctx_mut();
 
+    axis.x = 0.;
+
     #[cfg(feature = "debug")]
     if ctx.wants_keyboard_input() { return; }
     
@@ -485,11 +489,11 @@ pub(super) fn current_speed(
 
 #[cfg(feature = "debug")]
 pub(super) fn draw_hitbox(
-    query_player: Query<&Transform, With<Player>>,
+    query_player: Query<&EntityRect, With<Player>>,
     mut gizmos: Gizmos
 ) {
-    let transform = query_player.single();
-    let player_pos = transform.translation.truncate();
+    let player_rect = query_player.single();
+    let player_pos = player_rect.center();
 
     gizmos.rect_2d(player_pos, 0., vec2(PLAYER_WIDTH, PLAYER_HEIGHT), Color::RED);
 }

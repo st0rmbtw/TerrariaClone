@@ -1,5 +1,7 @@
 use bevy::prelude::{Component, Image, Handle};
 
+use crate::items::Stack;
+
 #[derive(Component)]
 pub(super) struct InventoryUi;
 
@@ -10,19 +12,22 @@ pub(super) struct InventoryUiContainer;
 pub(super) struct HotbarUi;
 
 #[derive(Component)]
-pub(super) struct HotbarCell;
+pub(super) struct HotbarSlot;
+
+#[derive(Component)]
+pub(super) struct InventorySlot;
 
 #[derive(Component)]
 pub(super) struct SelectedItemName;
 
 #[derive(Component)]
-pub(super) struct HotbarCellIndex;
+pub(super) struct HotbarSlotIndex;
 
 #[derive(Component)]
-pub(super) struct CellIndex(pub usize);
+pub(super) struct SlotIndex(pub usize);
 
-#[derive(Component, Default)]
-pub(super) struct CellItemImage(pub Handle<Image>);
+#[derive(Component, Default, PartialEq, Eq)]
+pub(super) struct SlotItemImage(pub Handle<Image>);
 
-#[derive(Component, Default)]
-pub(super) struct ItemAmount(pub u16);
+#[derive(Component, Default, PartialEq, Eq)]
+pub(super) struct ItemAmount(pub Stack);

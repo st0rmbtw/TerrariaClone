@@ -1,4 +1,4 @@
-use crate::{items::{Item, Tool, Seed, Axe, Pickaxe}, world::block::BlockType};
+use crate::items::{Item, ItemTool, ItemSeed, Axe, Pickaxe, ItemBlock};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) enum LanguageStringKey {
@@ -14,28 +14,28 @@ pub(crate) enum ItemStringKey {
     StoneBlock,
     DirtWall,
     StoneWall,
-    GrassSeeds
+    GrassSeeds,
+    Wood
 }
 
 impl ItemStringKey {
-    pub(crate) fn get_by_item(item: &Item) -> Self {
+    pub(crate) const fn get_by_item(item: Item) -> Self {
         match item {
             Item::Tool(tool) => match tool {
-                Tool::Pickaxe(pickaxe) =>  match pickaxe {
+                ItemTool::Pickaxe(pickaxe) => match pickaxe {
                     Pickaxe::CopperPickaxe => ItemStringKey::CopperPickaxe,
                 },
-                Tool::Axe(axe) => match axe {
+                ItemTool::Axe(axe) => match axe {
                     Axe::CopperAxe => ItemStringKey::CopperAxe,
                 },
             },
             Item::Block(block) => match block {
-                BlockType::Dirt => ItemStringKey::DirtBlock,
-                BlockType::Stone => ItemStringKey::StoneBlock,
-                BlockType::Grass => ItemStringKey::GrassSeeds,
-                BlockType::Tree(_) => unreachable!(),
+                ItemBlock::Dirt => ItemStringKey::DirtBlock,
+                ItemBlock::Stone => ItemStringKey::StoneBlock,
+                ItemBlock::Wood => ItemStringKey::Wood,
             },
             Item::Seed(seed) => match seed {
-                Seed::Grass => ItemStringKey::GrassSeeds,
+                ItemSeed::Grass => ItemStringKey::GrassSeeds,
             },
         }
     }

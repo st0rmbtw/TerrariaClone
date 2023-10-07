@@ -47,8 +47,8 @@ impl FRect {
     }
 
     #[inline]
-    pub(crate) fn contains(&self, point: (f32, f32)) -> bool {
-        point.0 > self.left() && point.0 < self.right() && point.1 > self.bottom() && point.1 < self.top()
+    pub(crate) fn contains(&self, point: Vec2) -> bool {
+        point.x > self.left() && point.x < self.right() && point.y > self.bottom() && point.y < self.top()
     }
 
     #[inline]
@@ -79,6 +79,16 @@ impl FRect {
     #[inline]
     pub(crate) fn width(&self) -> f32 {
         self.width
+    }
+
+    #[inline]
+    pub(crate) fn half_height(&self) -> f32 {
+        self.height / 2.
+    }
+
+    #[inline]
+    pub(crate) fn half_width(&self) -> f32 {
+        self.width / 2.
     }
 
     #[cfg(feature = "debug")]

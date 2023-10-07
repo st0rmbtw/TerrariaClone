@@ -1,6 +1,6 @@
 use bevy::{prelude::{Plugin, App, PostUpdate, IntoSystemConfigs, not, in_state, OnEnter, Commands, World, AudioBundle, PlaybackSettings}, ecs::system::Command, audio::Volume};
 
-use crate::{world::block::BlockType, items::Tool, common::state::GameState};
+use crate::{world::block::BlockType, items::ItemTool, common::state::GameState};
 
 mod systems;
 mod events;
@@ -48,7 +48,9 @@ pub(crate) enum SoundType {
     BlockHit(BlockType),
     BlockPlace(BlockType),
 
-    PlayerToolSwing(Tool)
+    PlayerToolSwing(ItemTool),
+
+    ItemGrab
 }
 
 #[derive(Clone, Copy)]

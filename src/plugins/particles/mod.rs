@@ -30,12 +30,8 @@ impl Plugin for ParticlePlugin {
 
         app.add_systems(
             Update,
-            (
-                systems::update_particle_over_lifetime,
-                // systems::try_spawn_particles
-                //     .run_if(input_pressed(KeyCode::P))
-            )
-            .in_set(InGameSystemSet::Update)
+            systems::update_particle_over_lifetime
+                .in_set(InGameSystemSet::Update)
         );
     }
 }
@@ -54,7 +50,7 @@ impl Particle {
             BlockType::Dirt => Some(Particle::Dirt),
             BlockType::Stone => Some(Particle::Stone),
             BlockType::Grass => Some(Particle::Grass),
-            BlockType::Tree(_) => Some(Particle::Wood)
+            BlockType::Tree(_) | BlockType::Wood => Some(Particle::Wood)
         }
     }
 }

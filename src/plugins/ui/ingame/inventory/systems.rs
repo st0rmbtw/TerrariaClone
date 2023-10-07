@@ -1,9 +1,9 @@
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Name, NodeBundle, BuildChildren, TextBundle, Color, Entity, ImageBundle, default, ChildBuilder, Handle, Image, Visibility, With, Res, Query, DetectChanges, Changed, ResMut, DetectChangesMut, Without}, ui::{Style, FlexDirection, UiRect, Val, AlignSelf, AlignItems, JustifyContent, Interaction, BackgroundColor, ZIndex, FocusPolicy, AlignContent, PositionType, UiImage, widget::UiImageSize}, text::{Text, TextStyle, TextAlignment}};
+use bevy::{prelude::{Commands, Name, NodeBundle, BuildChildren, TextBundle, Color, Entity, ImageBundle, default, ChildBuilder, Handle, Image, Visibility, With, Res, Query, DetectChanges, Changed, ResMut, DetectChangesMut, Without, Ref}, ui::{Style, FlexDirection, UiRect, Val, AlignSelf, AlignItems, JustifyContent, Interaction, BackgroundColor, FocusPolicy, AlignContent, PositionType, UiImage, widget::UiImageSize}, text::{Text, TextStyle, TextAlignment}};
 
-use crate::{plugins::{assets::{UiAssets, FontAssets, ItemAssets}, cursor::components::Hoverable, inventory::{Inventory, SelectedItem}, ui::InventoryUiVisibility}, language::{keys::{LanguageStringKey, UIStringKey, ItemStringKey}, LocalizedText, args}, common::{extensions::EntityCommandsExtensions, BoolValue, helpers}};
+use crate::{plugins::{assets::{UiAssets, FontAssets, ItemAssets}, cursor::components::Hoverable, inventory::{Inventory, Slot}, ui::{InventoryUiVisibility, components::PreviousInteraction}, audio::{AudioCommandsExt, SoundType}}, language::{keys::{LanguageStringKey, UIStringKey, ItemStringKey}, LocalizedText, args}, common::{extensions::EntityCommandsExtensions, BoolValue, helpers}};
 
-use super::{components::*, INVENTORY_ROWS, CELL_COUNT_IN_ROW, HOTBAR_CELL_SIZE, INVENTORY_CELL_SIZE, HOTBAR_CELL_SIZE_SELECTED};
+use super::{components::*, INVENTORY_ROWS, SLOT_COUNT_IN_ROW, HOTBAR_SLOT_SIZE, INVENTORY_SLOT_SIZE, HOTBAR_SLOT_SIZE_SELECTED};
 
 #[autodefault]
 pub(crate) fn spawn_inventory_ui(
@@ -51,6 +51,7 @@ pub(crate) fn spawn_inventory_ui(
                 .spawn((
                     Name::new("Hotbar"),
                     HotbarUi,
+                    Interaction::default(),
                     NodeBundle {
                         style: Style {
                             align_items: AlignItems::Center,
@@ -59,8 +60,8 @@ pub(crate) fn spawn_inventory_ui(
                     }
                 ))
                 .with_children(|children| {
-                    for i in 0..CELL_COUNT_IN_ROW {
-                        spawn_inventory_cell(
+                    for i in 0..SLOT_COUNT_IN_ROW {
+                        spawn_inventory_slot(
                             children,
                             ui_assets.inventory_background.clone_weak(),
                             true,
@@ -74,6 +75,7 @@ pub(crate) fn spawn_inventory_ui(
                 .spawn((
                     Name::new("Inventory"),
                     InventoryUi,
+                    Interaction::default(),
                     NodeBundle {
                         style: Style {
                             flex_direction: FlexDirection::Column,
@@ -100,10 +102,10 @@ pub(crate) fn spawn_inventory_ui(
                                 },
                             }
                         )).with_children(|children| {
-                            for i in 0..CELL_COUNT_IN_ROW {
-                                let index = (j * CELL_COUNT_IN_ROW) + i;
+                            for i in 0..SLOT_COUNT_IN_ROW {
+                                let index = (j * SLOT_COUNT_IN_ROW) + i;
 
-                                spawn_inventory_cell(
+                                spawn_inventory_slot(
                                     children,
                                     ui_assets.inventory_background.clone_weak(),
                                     false,
@@ -118,21 +120,23 @@ pub(crate) fn spawn_inventory_ui(
         .id()
 }
 
-fn spawn_inventory_cell(
+fn spawn_inventory_slot(
     children: &mut ChildBuilder<'_, '_, '_>,
-    cell_background: Handle<Image>,
-    hotbar_cell: bool,
+    slot_background: Handle<Image>,
+    hotbar_slot: bool,
     index: usize,
     fonts: &FontAssets,
 ) {
-    let size = if hotbar_cell { HOTBAR_CELL_SIZE } else { INVENTORY_CELL_SIZE };
+    let size = if hotbar_slot { HOTBAR_SLOT_SIZE } else { INVENTORY_SLOT_SIZE };
 
     children
         .spawn((
             Hoverable::None,
-            Name::new(format!("Cell #{}", index)),
-            CellIndex(index),
+            Name::new(format!("Slot #{}", index)),
+            SlotIndex(index),
             Interaction::default(),
+            PreviousInteraction::default(),
+            InventorySlot,
             ImageBundle {
                 style: Style {
                     margin: UiRect::horizontal(Val::Px(2.)),
@@ -144,44 +148,42 @@ fn spawn_inventory_cell(
                     padding: UiRect::all(Val::Px(8.)),
                     ..default()
                 },
-                image: cell_background.into(),
+                image: slot_background.into(),
                 background_color: BackgroundColor(Color::WHITE.with_a(0.8)),
                 ..default()
             }
         ))
-        .insert_if(HotbarCell, hotbar_cell)
+        .insert_if(HotbarSlot, hotbar_slot)
         .with_children(|c| {
             c.spawn((
-                CellIndex(index),
-                CellItemImage::default(),
+                SlotIndex(index),
+                SlotItemImage::default(),
                 ImageBundle {
                     focus_policy: FocusPolicy::Pass,
-                    z_index: ZIndex::Global(2),
                     ..default()
                 }
             ));
-
-            if hotbar_cell {
-                c.spawn(NodeBundle {
-                    style: Style {
-                        padding: UiRect::axes(Val::Px(5.), Val::Px(2.5)),
-                        width: Val::Percent(100.),
-                        height: Val::Percent(100.),
-                        position_type: PositionType::Absolute,
-                        flex_direction: FlexDirection::Column,
-                        justify_content: JustifyContent::SpaceBetween,
-                        align_items: AlignItems::FlexStart,
-                        align_content: AlignContent::FlexStart,
-                        ..default()
-                    },
-                    focus_policy: FocusPolicy::Pass,
-                    z_index: ZIndex::Global(3),
+            
+            c.spawn(NodeBundle {
+                style: Style {
+                    padding: UiRect::axes(Val::Px(5.), Val::Px(2.5)),
+                    width: Val::Percent(100.),
+                    height: Val::Percent(100.),
+                    position_type: PositionType::Absolute,
+                    flex_direction: FlexDirection::Column,
+                    justify_content: if hotbar_slot { JustifyContent::SpaceBetween } else { JustifyContent::End },
+                    align_items: AlignItems::FlexStart,
+                    align_content: AlignContent::FlexStart,
                     ..default()
-                }).with_children(|c| {
-                    // Hotbar cell index
+                },
+                focus_policy: FocusPolicy::Pass,
+                ..default()
+            }).with_children(|c| {
+                if hotbar_slot {
+                    // Hotbar slot index
                     c.spawn((
-                        CellIndex(index),
-                        HotbarCellIndex,
+                        SlotIndex(index),
+                        HotbarSlotIndex,
                         TextBundle {
                             style: Style {
                                 align_self: AlignSelf::FlexStart,
@@ -189,68 +191,75 @@ fn spawn_inventory_cell(
                             },
                             focus_policy: FocusPolicy::Pass,
                             text: Text::from_section(
-                                ((index + 1) % CELL_COUNT_IN_ROW).to_string(),
+                                ((index + 1) % SLOT_COUNT_IN_ROW).to_string(),
                                 TextStyle {
                                     font: fonts.andy_bold.clone_weak(),
                                     font_size: 16.,
                                     color: Color::rgb(0.9, 0.9, 0.9),
                                 },
                             ),
-                            z_index: ZIndex::Global(4),
                             ..default()
                         }
                     ));
+                }
 
-                    // Item stack
-                    c.spawn((
-                        CellIndex(index),
-                        ItemAmount::default(),
-                        TextBundle {
-                            style: Style {
-                                align_self: AlignSelf::Center,
-                                ..default()
-                            },
-                            focus_policy: FocusPolicy::Pass,
-                            text: Text::from_section(
-                                String::new(),
-                                TextStyle {
-                                    font: fonts.andy_regular.clone_weak(),
-                                    font_size: 16.,
-                                    color: Color::WHITE,
-                                },
-                            ),
-                            z_index: ZIndex::Global(4),
+                // Item stack
+                c.spawn((
+                    SlotIndex(index),
+                    ItemAmount::default(),
+                    TextBundle {
+                        style: Style {
+                            align_self: AlignSelf::Center,
                             ..default()
-                        }
-                    ));
-                });
-            }
+                        },
+                        focus_policy: FocusPolicy::Pass,
+                        text: Text::from_section(
+                            String::new(),
+                            TextStyle {
+                                font: fonts.andy_regular.clone_weak(),
+                                font_size: 16.,
+                                color: Color::WHITE,
+                            },
+                        ),
+                        ..default()
+                    }
+                ));
+            });
         });
 }
 
-pub(super) fn update_cell_size(
+pub(super) fn update_slot_size(
     inventory: Res<Inventory>,
     visibility: Res<InventoryUiVisibility>,
-    mut hotbar_cells: Query<(&CellIndex, &mut Style), (With<HotbarCell>, Without<CellItemImage>)>,
-    mut item_images: Query<(&CellIndex, &UiImageSize, &mut Style), (Without<HotbarCell>, With<CellItemImage>)>
+    mut hotbar_slots: Query<(&SlotIndex, &mut Style), (With<HotbarSlot>, Without<SlotItemImage>)>,
+    mut item_images: Query<(&SlotIndex, Ref<UiImageSize>, &mut Style), (Without<HotbarSlot>, With<SlotItemImage>)>
 ) {
-    for (cell_index, mut style) in &mut hotbar_cells {
-        let selected = cell_index.0 == inventory.selected_slot;
-        if visibility.value() {
-            style.width = Val::Px(INVENTORY_CELL_SIZE);
-            style.height = Val::Px(INVENTORY_CELL_SIZE);
-        } else if selected {
-            style.width = Val::Px(HOTBAR_CELL_SIZE_SELECTED);
-            style.height = Val::Px(HOTBAR_CELL_SIZE_SELECTED);
-        } else {
-            style.width = Val::Px(HOTBAR_CELL_SIZE);
-            style.height = Val::Px(HOTBAR_CELL_SIZE);
+    let visibility_changed = visibility.is_changed();
+    let selected_slot_changed = inventory.selected_slot != inventory.previous_selected_slot;
+
+    if visibility_changed || selected_slot_changed {
+        for (slot_index, mut style) in &mut hotbar_slots {
+            let selected = slot_index.0 == inventory.selected_slot;
+            if visibility.value() {
+                style.width = Val::Px(INVENTORY_SLOT_SIZE);
+                style.height = Val::Px(INVENTORY_SLOT_SIZE);
+            } else if selected {
+                style.width = Val::Px(HOTBAR_SLOT_SIZE_SELECTED);
+                style.height = Val::Px(HOTBAR_SLOT_SIZE_SELECTED);
+            } else {
+                style.width = Val::Px(HOTBAR_SLOT_SIZE);
+                style.height = Val::Px(HOTBAR_SLOT_SIZE);
+            }
         }
     }
 
-    for (cell_index, image_size, mut style) in &mut item_images {
-        let selected = cell_index.0 == inventory.selected_slot;
+    for (slot_index, image_size, mut style) in &mut item_images {
+        if !visibility_changed && !selected_slot_changed && !image_size.is_changed() { continue; }
+
+        let selected = slot_index.0 == inventory.selected_slot;
         let image_size = image_size.size();
+
+        if !(image_size.x > 0. && image_size.y > 0.) { continue; }
 
         if visibility.value() {
             style.width = Val::Px(image_size.x * 0.95);
@@ -265,14 +274,14 @@ pub(super) fn update_cell_size(
     }
 }
 
-pub(super) fn update_cell_index_text(
+pub(super) fn update_slot_index_text(
     inventory: Res<Inventory>,
     visibility: Res<InventoryUiVisibility>,
-    mut hotbar_cells: Query<(&CellIndex, &mut Text), With<HotbarCellIndex>>,
+    mut hotbar_slots: Query<(&SlotIndex, &mut Text), With<HotbarSlotIndex>>,
 ) {
-    for (cell_index, mut text) in &mut hotbar_cells {
+    for (slot_index, mut text) in &mut hotbar_slots {
         let (color, font_size) = if visibility.value() {
-            if inventory.selected_slot == cell_index.0 {
+            if inventory.selected_slot == slot_index.0 && !inventory.item_exists(Slot::MouseItem) {
                 (Color::WHITE, 18.)
             } else {
                 (Color::rgb(0.8, 0.8, 0.8), 16.)
@@ -286,14 +295,14 @@ pub(super) fn update_cell_index_text(
     }
 }
 
-pub(super) fn update_cell_background_image(
+pub(super) fn update_slot_background_image(
     inventory: Res<Inventory>,
     ui_assets: Res<UiAssets>,
     visibility: Res<InventoryUiVisibility>,
-    mut hotbar_cells: Query<(&CellIndex, &mut UiImage), With<HotbarCell>>,
+    mut hotbar_slots: Query<(&SlotIndex, &mut UiImage), With<HotbarSlot>>,
 ) {
-    for (cell_index, mut image) in &mut hotbar_cells {
-        let selected = cell_index.0 == inventory.selected_slot;
+    for (slot_index, mut image) in &mut hotbar_slots {
+        let selected = slot_index.0 == inventory.selected_slot;
         let texture = if selected && !visibility.value() {
             &ui_assets.selected_inventory_background
         } else {
@@ -306,11 +315,11 @@ pub(super) fn update_cell_background_image(
 
 pub(super) fn update_hoverable(
     inventory: Res<Inventory>,
-    mut hotbar_cells: Query<(&CellIndex, &mut Hoverable), With<HotbarCell>>
+    mut hotbar_slots: Query<(&SlotIndex, &mut Hoverable), With<InventorySlot>>
 ) {
-    for (cell_index, mut hoverable) in &mut hotbar_cells {
-        if let Some(item) = inventory.get_item(cell_index.0) {
-            let item_key = LanguageStringKey::Items(ItemStringKey::get_by_item(&item.item));
+    for (slot_index, mut hoverable) in &mut hotbar_slots {
+        if let Some(item) = inventory.get_item(Slot::Index(slot_index.0)) {
+            let item_key = LanguageStringKey::Items(ItemStringKey::get_by_item(item.item));
 
             let name = if item.stack > 1 {
                 LocalizedText::new(item_key, "{} ({})", args![item.stack])
@@ -340,57 +349,61 @@ pub(super) fn update_selected_item_name_alignment(
 }
 
 pub(super) fn update_selected_item_name_text(
-    current_item: Res<SelectedItem>,
+    inventory: Res<Inventory>,
     visibility: Res<InventoryUiVisibility>,
     mut query_selected_item_name: Query<&mut LocalizedText, With<SelectedItemName>>
 ) {
-    if !current_item.is_changed() && !visibility.is_changed() { return; } 
+    if !inventory.is_changed() && !visibility.is_changed() { return; } 
 
     let mut localized_text = query_selected_item_name.single_mut();
 
-    localized_text.key = if visibility.value() {
+    let key = if visibility.value() {
         UIStringKey::Inventory.into()
     } else {
-        current_item.0.as_ref()
-            .map(|item_stack| &item_stack.item)
+        inventory.get_item(Slot::Index(inventory.selected_slot))
+            .as_ref()
+            .map(|item_stack| item_stack.item)
             .map(ItemStringKey::get_by_item)
             .map(LanguageStringKey::Items)
             .unwrap_or(UIStringKey::Items.into())
-    }
+    };
+
+    *localized_text = LocalizedText::default(key);
 }
 
-pub(super) fn update_cell(
+pub(super) fn update_slot_item_image(
     inventory: Res<Inventory>,
     item_assets: Res<ItemAssets>,
-    mut item_images: Query<(&CellIndex, &mut CellItemImage)>,
+    mut item_images: Query<(&SlotIndex, &mut SlotItemImage)>,
 ) {
-    for (cell_index, mut cell_image) in &mut item_images {
-        cell_image.0 = inventory
-            .get_item(cell_index.0)
+    for (slot_index, mut slot_image) in &mut item_images {
+        let image = inventory
+            .get_item(Slot::Index(slot_index.0))
             .map(|item_stack| item_assets.get_by_item(item_stack.item))
             .unwrap_or_default();
+
+        slot_image.set_if_neq(SlotItemImage(image));
     }
 }
 
-pub(super) fn update_cell_item_image(
-    mut query: Query<(&mut UiImage, &CellItemImage), Changed<CellItemImage>>,
+pub(super) fn update_slot_image(
+    mut query: Query<(&mut UiImage, &SlotItemImage), Changed<SlotItemImage>>,
 ) {
     for (mut image, item_image) in &mut query {
-        image.texture = item_image.0.clone();
+        image.texture = item_image.0.clone_weak();
     }
 }
 
 pub(super) fn update_item_amount(
     inventory: Res<Inventory>,
-    mut query: Query<(&CellIndex, &mut ItemAmount)>,
+    mut query: Query<(&SlotIndex, &mut ItemAmount)>,
 ) {
-    for (cell_index, mut item_stack) in &mut query {
-        let stack = inventory.items.get(cell_index.0)
-            .and_then(|item| *item)
+    for (slot_index, mut item_stack) in &mut query {
+        let stack = inventory.get_item(Slot::Index(slot_index.0))
             .map(|item_stack| item_stack.stack)
             .unwrap_or(0);
 
-        item_stack.0 = stack;
+        item_stack.set_if_neq(ItemAmount(stack));
     }
 }
 
@@ -402,6 +415,60 @@ pub(super) fn update_item_amount_text(
         if item_stack.0 > 1 {
             text.sections[0].value = item_stack.0.to_string();
         }
+    }
+}
+
+pub(super) fn take_item(
+    mut commands: Commands,
+    mut inventory: ResMut<Inventory>,
+    query_slot: Query<(&Interaction, &PreviousInteraction, &SlotIndex)>
+) {
+    if inventory.is_changed() { return; }
+
+    if !inventory.item_exists(Slot::MouseItem) {
+        for (interaction, previous_interaction, index) in &query_slot {
+            if *interaction == Interaction::Pressed && previous_interaction.0 != Interaction::Pressed {
+                if let Some(item_stack) = inventory.remove_item(Slot::Index(index.0)) {
+                    inventory.set_item(Slot::MouseItem, item_stack);
+                    commands.play_sound(SoundType::ItemGrab);
+                }
+            }
+        }
+    }
+}
+
+pub(super) fn put_item(
+    mut commands: Commands,
+    mut inventory: ResMut<Inventory>,
+    query_slot: Query<(&Interaction, &PreviousInteraction, &SlotIndex)>
+) {
+    if inventory.is_changed() { return; }
+
+    if let Some(mouse_item) = inventory.get_item(Slot::MouseItem) {
+        for (interaction, previous_interaction, index) in &query_slot {
+            if *interaction == Interaction::Pressed && previous_interaction.0 != Interaction::Pressed {
+                if let Some(item) = inventory.get_item(Slot::Index(index.0)) {
+                    inventory.set_item(Slot::MouseItem, item);
+                } else {
+                    inventory.remove_item(Slot::MouseItem);
+                }
+                
+                inventory.set_item(Slot::Index(index.0), mouse_item);
+                commands.play_sound(SoundType::ItemGrab);
+            }
+        }
+    }
+}
+
+pub(super) fn return_mouse_item_back_to_inventory(
+    mut commands: Commands,
+    mut inventory: ResMut<Inventory>,
+    inventory_ui_visibility: Res<InventoryUiVisibility>
+) {
+    if !inventory_ui_visibility.value() && inventory.item_exists(Slot::MouseItem) {
+        let item = inventory.remove_item(Slot::MouseItem).unwrap();
+        inventory.add_item_stack(item);
+        commands.play_sound(SoundType::ItemGrab);
     }
 }
 

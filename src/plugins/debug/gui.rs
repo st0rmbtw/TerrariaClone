@@ -16,6 +16,8 @@ pub(super) fn debug_gui(
 
     let egui_context = contexts.ctx_mut();
 
+    let mut time_speed = time.relative_speed();
+
     egui::Window::new("Debug Menu")
         .anchor(Align2::RIGHT_TOP, (-10., 10.))
         .resizable(false)
@@ -35,7 +37,10 @@ pub(super) fn debug_gui(
                     columns[0].label("Pause:");
                     reflect_inspector::ui_for_value(str.field_mut("paused").unwrap(), &mut columns[1], &type_registry.0.read());
                     columns[0].label("Speed:");
-                    reflect_inspector::ui_for_value(str.field_mut("relative_speed").unwrap(), &mut columns[1], &type_registry.0.read());
+                    columns[1].add(DragValue::new(&mut time_speed)
+                        .max_decimals(4)
+                        .speed(0.01)
+                        .clamp_range(0.001..=1.0));
                 });
             }
 
@@ -54,6 +59,8 @@ pub(super) fn debug_gui(
                 reflect_inspector::ui_for_value_readonly(&chunk_count, &mut columns[1], &type_registry.0.read());
             });
         });
+
+    time.set_relative_speed(time_speed);
 }
 
 pub(super) fn block_gui(

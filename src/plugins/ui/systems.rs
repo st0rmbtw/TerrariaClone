@@ -1,8 +1,8 @@
-use bevy::{prelude::{EventWriter, Res, Resource, With, Changed, Query, Component, Color, DetectChanges, DetectChangesMut, Commands}, text::Text, ui::{Interaction, BackgroundColor}};
+use bevy::{prelude::{EventWriter, Res, Resource, With, Changed, Query, Component, Color, DetectChanges, DetectChangesMut, Commands, Entity, GlobalTransform, ResMut}, text::Text, ui::{Interaction, BackgroundColor, Node}};
 
-use crate::{plugins::{audio::{SoundType, UpdateMusicVolume, UpdateSoundVolume, AudioCommandsExt}, slider::Slider, config::ShowTileGrid}, common::BoolValue, language::{LocalizedText, keys::UIStringKey, args}};
+use crate::{plugins::{audio::{SoundType, UpdateMusicVolume, UpdateSoundVolume, AudioCommandsExt}, slider::Slider, config::ShowTileGrid, cursor::{components::Hoverable, position::CursorPosition}, camera::components::MainCamera}, common::{BoolValue, components::EntityRect}, language::{LocalizedText, keys::UIStringKey, args}};
 
-use super::components::{SoundVolumeSlider, MusicVolumeSlider, ToggleTileGridButton, PreviousInteraction};
+use super::{components::{SoundVolumeSlider, MusicVolumeSlider, ToggleTileGridButton, PreviousInteraction, MouseOver}, MouseOverUi};
 
 pub(super) fn play_sound_on_hover<B: Component>(
     mut commands: Commands,
@@ -88,5 +88,47 @@ pub(super) fn update_previous_interaction(
 ) {
     for (mut previous_interaction, interaction) in &mut query {
         previous_interaction.set_if_neq(PreviousInteraction(*interaction));
+    }
+}
+
+pub(super) fn update_world_mouse_over(
+    mut commands: Commands,
+    cursor_pos: Res<CursorPosition<MainCamera>>,
+    query: Query<(Entity, &EntityRect), With<Hoverable>>
+) {
+    query.for_each(|(entity, entity_rect)| {
+        if entity_rect.contains(cursor_pos.world) {
+            commands.entity(entity).insert(MouseOver);
+        } else {
+            commands.entity(entity).remove::<MouseOver>();
+        }
+    });
+}
+
+pub(super) fn update_ui_mouse_over(
+    mut commands: Commands,
+    cursor_pos: Res<CursorPosition<MainCamera>>,
+    query: Query<(Entity, &Node, &GlobalTransform), With<Hoverable>>
+) {
+    query.for_each(|(entity, node, global_transform)| {
+        if node.logical_rect(global_transform).contains(cursor_pos.screen) {
+            commands.entity(entity).insert(MouseOver);
+        } else {
+            commands.entity(entity).remove::<MouseOver>();
+        }
+    });
+}
+
+pub(super) fn update_mouse_over_ui(
+    mut mouse_over_ui: ResMut<MouseOverUi>,
+    query: Query<&Interaction, With<Node>>
+) {
+    mouse_over_ui.0 = false;
+
+    for interaction in &query {
+        if matches!(interaction, Interaction::Hovered | Interaction::Pressed) {
+            mouse_over_ui.0 = true;
+            return;
+        }
     }
 }

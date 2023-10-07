@@ -1,3 +1,5 @@
+use bevy::prelude::Vec2;
+
 pub(crate) fn map_range_usize(from_range: (usize, usize), to_range: (usize, usize), s: usize) -> usize {
     to_range.0 + (s - from_range.0) * (to_range.1 - to_range.0) / (from_range.1 - from_range.0)
 }
@@ -16,6 +18,13 @@ pub(crate) fn map_range_f64(in_min: f64, in_max: f64, out_min: f64, out_max: f64
 
 pub(crate) fn move_towards(current: f32, target: f32, max_delta: f32) -> f32 {
     if (target - current).abs() <= max_delta {
+        return target;
+    }
+    current + (target - current).signum() * max_delta
+}
+
+pub(crate) fn move_towards_vec2(current: Vec2, target: Vec2, max_delta: f32) -> Vec2 {
+    if target.distance(current) <= max_delta {
         return target;
     }
     current + (target - current).signum() * max_delta

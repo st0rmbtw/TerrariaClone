@@ -1,5 +1,4 @@
 use bevy::prelude::{Resource, AudioSource, OnExit};
-use bevy::utils::default;
 use bevy::{
     math::Vec2,
     prelude::{App, AssetServer, Assets, Handle, Image, Plugin, Res, ResMut},
@@ -11,7 +10,7 @@ use bevy_asset_loader::prelude::{AssetCollection, LoadingState, LoadingStateAppE
 use rand::{RngCore, thread_rng};
 use rand::seq::SliceRandom;
 
-use crate::items::{Item, Pickaxe, Tool, Axe, Seed};
+use crate::items::{Item, Pickaxe, ItemTool, Axe, ItemSeed, ItemBlock};
 use crate::common::state::GameState;
 use crate::world::block::BlockType;
 
@@ -90,7 +89,7 @@ fn setup(
 
 #[derive(Resource, AssetCollection)]
 pub(crate) struct BlockAssets {
-    #[asset(path = "sprites/tiles/Tiles2.png")]
+    #[asset(path = "sprites/tiles/Tiles.png")]
     pub(crate) tiles: Handle<Image>,
 
     #[asset(path = "sprites/tiles/TileCracks.png")]
@@ -203,6 +202,9 @@ pub(crate) struct ItemAssets {
 
     #[asset(path = "sprites/items/Item_3506.png")]
     pub(crate) copper_axe: Handle<Image>,
+
+    #[asset(path = "sprites/items/Item_9.png")]
+    pub(crate) wood: Handle<Image>,
 }
 
 impl ItemAssets {
@@ -210,14 +212,14 @@ impl ItemAssets {
         match item {
             Item::Block(block) => {
                 match block {
-                    BlockType::Dirt => self.dirt_block.clone_weak(),
-                    BlockType::Stone => self.stone_block.clone_weak(),
-                    _ => default()
+                    ItemBlock::Dirt => self.dirt_block.clone_weak(),
+                    ItemBlock::Stone => self.stone_block.clone_weak(),
+                    ItemBlock::Wood => self.wood.clone_weak(),
                 }
             }
-            Item::Tool(Tool::Pickaxe(Pickaxe::CopperPickaxe)) => self.copper_pickaxe.clone_weak(),
-            Item::Tool(Tool::Axe(Axe::CopperAxe)) => self.copper_axe.clone_weak(),
-            Item::Seed(Seed::Grass) => self.grass_seed.clone_weak()
+            Item::Tool(ItemTool::Pickaxe(Pickaxe::CopperPickaxe)) => self.copper_pickaxe.clone_weak(),
+            Item::Tool(ItemTool::Axe(Axe::CopperAxe)) => self.copper_axe.clone_weak(),
+            Item::Seed(ItemSeed::Grass) => self.grass_seed.clone_weak()
         }
     }
 }
@@ -365,6 +367,9 @@ pub(crate) struct SoundAssets {
 
     #[asset(paths("sounds/Tink_0.wav", "sounds/Tink_1.wav", "sounds/Tink_2.wav"), collection(typed))]
     pub(crate) tink: Vec<Handle<AudioSource>>,
+
+    #[asset(path = "sounds/Grab.wav")]
+    pub(crate) grab: Handle<AudioSource>
 }
 
 impl SoundAssets {
@@ -376,6 +381,7 @@ impl SoundAssets {
             SoundType::BlockHit(block_type) => self.get_by_block(block_type, &mut thread_rng()),
             SoundType::BlockPlace(block_type) => self.get_by_block(block_type, &mut thread_rng()),
             SoundType::PlayerToolSwing(_tool) => self.swing.choose(&mut thread_rng()).unwrap().clone_weak(),
+            SoundType::ItemGrab => self.grab.clone_weak()
         }
     }
     

@@ -9,7 +9,7 @@ use systems::*;
 pub(crate) use components::*;
 pub(crate) use body_sprites::*;
 
-use crate::{common::{state::{GameState, MovementState}, helpers::tile_pos_to_world_coords, systems::{component_equals, despawn_with}}, plugins::player::utils::simple_animation, world::WorldData};
+use crate::{common::{state::{GameState, MovementState}, helpers::tile_to_world_pos, systems::{component_equals, despawn_with}}, plugins::player::utils::simple_animation, world::WorldData};
 use std::time::Duration;
 use bevy::{prelude::*, time::{Timer, TimerMode, common_conditions::on_timer}, math::vec2, input::InputSystem};
 
@@ -19,8 +19,6 @@ use super::{assets::PlayerAssets, world::constants::TILE_SIZE, inventory::UseIte
 use crate::plugins::debug::DebugConfiguration;
 #[cfg(feature = "debug")]
 use bevy::input::common_conditions::input_just_pressed;
-#[cfg(feature = "debug")]
-use crate::common::systems::set_resource;
 
 const PLAYER_WIDTH: f32 = 22.;
 const PLAYER_HEIGHT: f32 = 42.;
@@ -37,7 +35,7 @@ const SLOWDOWN: f32 = 0.2;
 const JUMP_HEIGHT: i32 = 15;
 const JUMP_SPEED: f32 = 5.01;
 
-pub(crate) const MAX_RUN_SPEED: f32 = 3.;
+pub(crate) const MAX_WALK_SPEED: f32 = 3.;
 pub(crate) const MAX_FALL_SPEED: f32 = 10.;
 
 pub(crate) struct PlayerPlugin;
@@ -100,17 +98,13 @@ impl Plugin for PlayerPlugin {
                 gravity,
                 detect_collisions,
                 update_player_rect,
+                move_player
             )
             .chain()
             .in_set(InGameSystemSet::FixedUpdate)
         );
 
-        app.add_systems(Update, move_player.in_set(InGameSystemSet::Update));
-
         app.add_systems(PostUpdate, reset_fallstart.in_set(InGameSystemSet::PostUpdate));
-
-        #[cfg(feature = "debug")]
-        app.add_systems(PostUpdate, set_resource(InputAxis::default()).in_set(InGameSystemSet::PostUpdate));
 
         #[cfg(feature = "debug")]
         {
@@ -151,7 +145,7 @@ fn spawn_player(
     player_assets: Res<PlayerAssets>,
     world_data: Res<WorldData>
 ) {
-    let spawn_point = tile_pos_to_world_coords(world_data.spawn_point) 
+    let spawn_point = tile_to_world_pos(world_data.spawn_point) 
         + TILE_SIZE / 2.
         + vec2(PLAYER_HALF_WIDTH, PLAYER_HALF_HEIGHT);
 

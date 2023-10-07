@@ -1,10 +1,10 @@
-use std::ops::Deref;
+use std::{ops::Deref, fmt::Debug};
 
 use bevy::prelude::Component;
 use bevy_ecs_tilemap::helpers::square_grid::neighbors::Neighbors;
 use rand::{thread_rng, Rng};
 
-use crate::{common::{helpers::get_tile_start_index, TextureAtlasPos}, items::Tool};
+use crate::{common::{helpers::get_tile_start_index, TextureAtlasPos}, items::{ItemTool, ItemBlock}};
 
 use super::{tree::{Tree, TreeFrameType}, TerrariaFrame};
 
@@ -16,6 +16,7 @@ pub(crate) enum BlockType {
     Dirt,
     Stone,
     Grass,
+    Wood,
     Tree(Tree)
 }
 
@@ -25,7 +26,8 @@ impl BlockType {
             BlockType::Dirt => 0,
             BlockType::Stone => 1,
             BlockType::Grass => 2,
-            BlockType::Tree(_) => 5
+            BlockType::Tree(_) => 5,
+            BlockType::Wood => 30,
         }
     }
 
@@ -37,16 +39,17 @@ impl BlockType {
         match self {
             BlockType::Dirt | BlockType::Grass | BlockType::Tree(_) => false,
             BlockType::Stone => true,
+            BlockType::Wood => true,
         }
     }
 
-    pub(crate) const fn check_required_tool(&self, tool: Tool) -> bool {
+    pub(crate) const fn check_required_tool(&self, tool: ItemTool) -> bool {
         match self {
             BlockType::Tree(_) => {
-                matches!(tool, Tool::Axe(_))
+                matches!(tool, ItemTool::Axe(_))
             },
             _ => {
-                matches!(tool, Tool::Pickaxe(_))
+                matches!(tool, ItemTool::Pickaxe(_))
             }
         }
     }
@@ -54,7 +57,7 @@ impl BlockType {
     pub(crate) const fn max_hp(&self) -> i32 {
         match self {
             BlockType::Dirt | BlockType::Grass => 50,
-            BlockType::Stone => 100,
+            BlockType::Stone | BlockType::Wood => 100,
             BlockType::Tree(_) => 500,
         }
     }
@@ -79,6 +82,16 @@ impl BlockType {
                 _ => false
             },
             _ => true
+        }
+    }
+}
+
+impl From<ItemBlock> for BlockType {
+    fn from(item: ItemBlock) -> Self {
+        match item {
+            ItemBlock::Dirt => BlockType::Dirt,
+            ItemBlock::Stone => BlockType::Stone,
+            ItemBlock::Wood => BlockType::Wood
         }
     }
 }

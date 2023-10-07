@@ -144,9 +144,9 @@ pub(super) fn cursor_visibility(
     mut egui: EguiContexts
 ) {
     let Ok(mut window) = query_window.get_single_mut() else { return; };
-    let Ok(cursor_visibility) = query_cursor.get_single_mut() else { return; };
+    let Ok(visibility) = query_cursor.get_single_mut() else { return; };
 
     let ctx = egui.ctx_mut();
     window.cursor.visible = ctx.is_pointer_over_area();
-    helpers::set_visibility(cursor_visibility, !ctx.is_pointer_over_area());
+    helpers::set_visibility(visibility, !ctx.is_pointer_over_area());
 }
