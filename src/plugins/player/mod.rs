@@ -19,8 +19,6 @@ use super::{assets::PlayerAssets, world::constants::TILE_SIZE, inventory::UseIte
 use crate::plugins::debug::DebugConfiguration;
 #[cfg(feature = "debug")]
 use bevy::input::common_conditions::input_just_pressed;
-#[cfg(feature = "debug")]
-use crate::common::systems::set_resource;
 
 const PLAYER_WIDTH: f32 = 22.;
 const PLAYER_HEIGHT: f32 = 42.;
@@ -100,17 +98,13 @@ impl Plugin for PlayerPlugin {
                 gravity,
                 detect_collisions,
                 update_player_rect,
+                move_player
             )
             .chain()
             .in_set(InGameSystemSet::FixedUpdate)
         );
 
-        app.add_systems(Update, move_player.in_set(InGameSystemSet::Update));
-
         app.add_systems(PostUpdate, reset_fallstart.in_set(InGameSystemSet::PostUpdate));
-
-        #[cfg(feature = "debug")]
-        app.add_systems(PostUpdate, set_resource(InputAxis::default()).in_set(InGameSystemSet::PostUpdate));
 
         #[cfg(feature = "debug")]
         {

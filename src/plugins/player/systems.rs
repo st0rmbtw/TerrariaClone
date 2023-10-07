@@ -259,7 +259,8 @@ pub(super) fn move_player(
 ) {
     let Ok((mut transform, player_rect)) = query_player.get_single_mut() else { return; };
 
-    transform.set_if_neq(transform.with_translation(player_rect.center().extend(transform.translation.z)));
+    transform.translation.x = player_rect.centerx;
+    transform.translation.y = player_rect.centery;
 }
 
 pub(super) fn update_movement_state(
@@ -377,6 +378,8 @@ pub(super) fn update_input_axis(
     #[cfg(feature = "debug")]
     let ctx = egui.ctx_mut();
 
+    axis.x = 0.;
+
     #[cfg(feature = "debug")]
     if ctx.wants_keyboard_input() { return; }
     
@@ -486,11 +489,11 @@ pub(super) fn current_speed(
 
 #[cfg(feature = "debug")]
 pub(super) fn draw_hitbox(
-    query_player: Query<&Transform, With<Player>>,
+    query_player: Query<&EntityRect, With<Player>>,
     mut gizmos: Gizmos
 ) {
-    let transform = query_player.single();
-    let player_pos = transform.translation.truncate();
+    let player_rect = query_player.single();
+    let player_pos = player_rect.center();
 
     gizmos.rect_2d(player_pos, 0., vec2(PLAYER_WIDTH, PLAYER_HEIGHT), Color::RED);
 }
