@@ -162,9 +162,9 @@ pub(super) fn detect_collisions(
                         let is_bottom_tile = tile_rect.top() <= player_rect.bottom() + TILE_SIZE
                             && tile_rect.top() > player_rect.bottom();
 
-                        if is_enough_space && is_bottom_tile && f32::from(face_direction) == delta_x.signum() {
+                        if is_enough_space && is_bottom_tile && f32::from(face_direction) == delta_x.signum() && velocity.x.abs() > 0. {
                             new_collisions.bottom = true;
-                            velocity.y = (tile_rect.top() - player_rect.bottom()) * 0.1;
+                            velocity.y = 2.;
                             break 'outer;
                         }
 
@@ -173,7 +173,8 @@ pub(super) fn detect_collisions(
 
                             // If the player's left side is more to the left than the tile's right side then move the player right.
                             if player_rect.left() <= tile_rect.right() {
-                                velocity.x = tile_rect.right() - player_rect.left();
+                                velocity.x = 0.;
+                                player_rect.centerx += tile_rect.right() - player_rect.left();
                             }
 
                             #[cfg(feature = "debug")]
@@ -185,7 +186,8 @@ pub(super) fn detect_collisions(
 
                             // If the player's right side is more to the right than the tile's left side then move the player left.
                             if player_rect.right() >= tile_rect.left() {
-                                velocity.x = tile_rect.left() - player_rect.right();
+                                velocity.x = 0.;
+                                player_rect.centerx += tile_rect.left() - player_rect.right();
                             }
 
                             #[cfg(feature = "debug")]
@@ -201,7 +203,8 @@ pub(super) fn detect_collisions(
 
                                 // If the player's top side is higher than the tile's bottom side then move the player down.
                                 if player_rect.top() >= tile_rect.bottom() {
-                                    velocity.y = tile_rect.bottom() - player_rect.top();
+                                    velocity.y = 0.;
+                                    player_rect.centery = tile_rect.bottom() - player_rect.top();
                                 }
 
                                 #[cfg(feature = "debug")]
@@ -216,7 +219,7 @@ pub(super) fn detect_collisions(
                                 // If the player's bottom side is lower than the tile's top side then move the player up
                                 if player_rect.bottom() <= tile_rect.top() {
                                     velocity.y = 0.;
-                                    player_rect.centery = tile_rect.top() + PLAYER_HALF_HEIGHT;
+                                    player_rect.centery += tile_rect.top() - player_rect.bottom();
                                 }
 
                                 #[cfg(feature = "debug")]

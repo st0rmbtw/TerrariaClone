@@ -1,4 +1,4 @@
-use bevy::{prelude::{Plugin, App, SystemSet, PostUpdate, IntoSystemConfigs, OnExit, Update}, transform::TransformSystem};
+use bevy::{prelude::{Plugin, App, SystemSet, PostUpdate, IntoSystemConfigs, OnExit, Update, OnEnter}, transform::TransformSystem};
 
 use crate::common::state::GameState;
 
@@ -31,6 +31,8 @@ impl Plugin for CameraPlugin {
             OnExit(GameState::WorldLoading),
             (systems::setup_main_camera, systems::setup_world_camera)
         );
+
+        app.add_systems(OnEnter(GameState::InGame), systems::init_camera_position);
 
         app.add_systems(Update, systems::zoom.in_set(InGameSystemSet::Update));
         app.add_systems(PostUpdate, systems::update_camera_scale.in_set(InGameSystemSet::PostUpdate));

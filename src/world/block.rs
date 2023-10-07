@@ -152,10 +152,10 @@ impl Block {
             return get_tree_sprite_index(neighbors, tree, block.variant).to_2d_index_from_block_type(block.block_type);
         }
 
-        let mut index = Self::get_sprite_index_by_neighbors(neighbors, block.variant);
+        let mut index = get_sprite_index_by_neighbors(neighbors, block.variant);
 
         if block.dirt_mergable() {
-            if let Some(idx) = Self::get_sprite_index_by_dirt_connections(neighbors, block.variant) {
+            if let Some(idx) = get_sprite_index_by_dirt_connections(neighbors, block.variant) {
                 index = idx;
             }
         }
@@ -168,699 +168,693 @@ impl Block {
 
         (get_tile_start_index(block.block_type) + index).to_block_index()
     }
+}
 
-    fn get_sprite_index_by_dirt_connections(neighbors: &Neighbors<BlockType>, variant: u32) -> Option<TextureAtlasPos> {
-        match neighbors {
-            //  #
-            // #X#
-            //  #
-            Neighbors { 
-                north: Some(BlockType::Dirt | BlockType::Grass), 
-                south: Some(BlockType::Dirt), 
-                west: Some(BlockType::Dirt), 
-                east: Some(BlockType::Dirt),
-                .. 
-            }
-            => Some(TextureAtlasPos::new(6 + variant, 11)),
+fn get_sprite_index_by_dirt_connections(neighbors: &Neighbors<BlockType>, variant: u32) -> Option<TextureAtlasPos> {
+    match neighbors {
+        //  #
+        // #X#
+        //  #
+        Neighbors { 
+            north: Some(BlockType::Dirt | BlockType::Grass), 
+            south: Some(BlockType::Dirt), 
+            west: Some(BlockType::Dirt), 
+            east: Some(BlockType::Dirt),
+            .. 
+        } => Some(TextureAtlasPos::new(6 + variant, 11)),
 
-            //  #
-            // $X$
-            //  $
-            Neighbors {
-                north: Some(BlockType::Dirt | BlockType::Grass), 
-                south: Some(bb), 
-                west: Some(bl), 
-                east: Some(br),
-                ..
-            } if *bb != BlockType::Dirt && *bl != BlockType::Dirt && *br != BlockType::Dirt
-            => Some(TextureAtlasPos::new(8 + variant, 6)),
+        //  #
+        // $X$
+        //  $
+        Neighbors {
+            north: Some(BlockType::Dirt | BlockType::Grass), 
+            south: Some(bb), 
+            west: Some(bl), 
+            east: Some(br),
+            ..
+        } if *bb != BlockType::Dirt && *bl != BlockType::Dirt && *br != BlockType::Dirt
+        => Some(TextureAtlasPos::new(8 + variant, 6)),
 
-            //
-            // #X
-            //
-            Neighbors { 
-                north: None, 
-                south: None, 
-                west: Some(BlockType::Dirt), 
-                east: None,
-                .. 
-            }
-            => Some(TextureAtlasPos::new(variant, 13)),
+        //
+        // #X
+        //
+        Neighbors { 
+            north: None, 
+            south: None, 
+            west: Some(BlockType::Dirt), 
+            east: None,
+            .. 
+        } => Some(TextureAtlasPos::new(variant, 13)),
 
-            //
-            // X#
-            //
-            Neighbors { 
-                north: None, 
-                south: None, 
-                west: None, 
-                east: Some(BlockType::Dirt),
-                .. 
-            }
-            => Some(TextureAtlasPos::new(3 + variant, 13)),
+        //
+        // X#
+        //
+        Neighbors { 
+            north: None, 
+            south: None, 
+            west: None, 
+            east: Some(BlockType::Dirt),
+            .. 
+        } => Some(TextureAtlasPos::new(3 + variant, 13)),
 
-            //  $
-            // $X#
-            //  $
-            Neighbors { 
-                north: Some(bt),
-                south: Some(bb),
-                west: Some(bl),
-                east: Some(BlockType::Dirt),
-                .. 
-            } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *bl != BlockType::Dirt && *bb != BlockType::Dirt
-            => Some(TextureAtlasPos::new(8, 7 + variant)),
+        //  $
+        // $X#
+        //  $
+        Neighbors { 
+            north: Some(bt),
+            south: Some(bb),
+            west: Some(bl),
+            east: Some(BlockType::Dirt),
+            .. 
+        } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *bl != BlockType::Dirt && *bb != BlockType::Dirt
+        => Some(TextureAtlasPos::new(8, 7 + variant)),
 
-            //
-            // X
-            // #
-            Neighbors { 
-                north: None, 
-                south: Some(BlockType::Dirt), 
-                west: None,  
-                east: None,
-                .. 
-            }
-            => Some(TextureAtlasPos::new(6, 5 + variant)),
+        //
+        // X
+        // #
+        Neighbors { 
+            north: None, 
+            south: Some(BlockType::Dirt), 
+            west: None,  
+            east: None,
+            .. 
+        } => Some(TextureAtlasPos::new(6, 5 + variant)),
 
-            //  $
-            // $X
-            //  #
-            Neighbors { 
-                north: Some(bt),
-                south: Some(BlockType::Dirt),
-                west: Some(bl),
-                east: None,
-                .. 
-            } if *bl != BlockType::Dirt && *bt != BlockType::Dirt
-            => Some(TextureAtlasPos::new(5, 5 + variant)),
+        //  $
+        // $X
+        //  #
+        Neighbors { 
+            north: Some(bt),
+            south: Some(BlockType::Dirt),
+            west: Some(bl),
+            east: None,
+            .. 
+        } if *bl != BlockType::Dirt && *bt != BlockType::Dirt
+        => Some(TextureAtlasPos::new(5, 5 + variant)),
 
-            // #
-            // X$
-            // $
-            Neighbors { 
-                north: Some(BlockType::Dirt | BlockType::Grass),
-                south: Some(bb),
-                west: None,
-                east: Some(br),
-                ..
-            } if *br != BlockType::Dirt && *bb != BlockType::Dirt
-            => Some(TextureAtlasPos::new(4, 8 + variant)),
+        // #
+        // X$
+        // $
+        Neighbors { 
+            north: Some(BlockType::Dirt | BlockType::Grass),
+            south: Some(bb),
+            west: None,
+            east: Some(br),
+            ..
+        } if *br != BlockType::Dirt && *bb != BlockType::Dirt
+        => Some(TextureAtlasPos::new(4, 8 + variant)),
 
-            // $
-            // X$
-            // #
-            Neighbors { 
-                north: Some(bt),
-                south: Some(BlockType::Dirt),
-                west: None,
-                east: Some(br),
-                ..
-            } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *br != BlockType::Dirt
-            => Some(TextureAtlasPos::new(4, 5 + variant)),
+        // $
+        // X$
+        // #
+        Neighbors { 
+            north: Some(bt),
+            south: Some(BlockType::Dirt),
+            west: None,
+            east: Some(br),
+            ..
+        } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *br != BlockType::Dirt
+        => Some(TextureAtlasPos::new(4, 5 + variant)),
 
-            //  #
-            // $X
-            //  $
-            Neighbors { 
-                north: Some(BlockType::Dirt | BlockType::Grass),
-                south: Some(bb),
-                west: Some(bl),
-                east: None,
-                ..
-            } if *bb != BlockType::Dirt && *bl != BlockType::Dirt
-            => Some(TextureAtlasPos::new(5, 8 + variant)),
+        //  #
+        // $X
+        //  $
+        Neighbors { 
+            north: Some(BlockType::Dirt | BlockType::Grass),
+            south: Some(bb),
+            west: Some(bl),
+            east: None,
+            ..
+        } if *bb != BlockType::Dirt && *bl != BlockType::Dirt
+        => Some(TextureAtlasPos::new(5, 8 + variant)),
 
-            //  #
-            //  X
-            //
-            Neighbors {
-                north: Some(BlockType::Dirt | BlockType::Grass),
-                south: None, 
-                west: None, 
-                east: None,
-                ..
-            }
-            => Some(TextureAtlasPos::new(6, 8 + variant)),
+        //  #
+        //  X
+        //
+        Neighbors {
+            north: Some(BlockType::Dirt | BlockType::Grass),
+            south: None, 
+            west: None, 
+            east: None,
+            ..
+        } => Some(TextureAtlasPos::new(6, 8 + variant)),
 
-            //  #
-            // #X#
-            //  $
-            Neighbors { 
-                north: Some(BlockType::Dirt | BlockType::Grass), 
-                south: Some(bb),
-                west: Some(BlockType::Dirt),
-                east: Some(BlockType::Dirt),
-                ..
-            } if *bb != BlockType::Dirt
-            => Some(TextureAtlasPos::new(11, 5 + variant)),
+        //  #
+        // #X#
+        //  $
+        Neighbors { 
+            north: Some(BlockType::Dirt | BlockType::Grass), 
+            south: Some(bb),
+            west: Some(BlockType::Dirt),
+            east: Some(BlockType::Dirt),
+            ..
+        } if *bb != BlockType::Dirt
+        => Some(TextureAtlasPos::new(11, 5 + variant)),
 
-            //  $
-            // #X#
-            //  #
-            Neighbors { 
-                north: Some(bt), 
-                south: Some(BlockType::Dirt),
-                west: Some(BlockType::Dirt),
-                east: Some(BlockType::Dirt),
-                ..
-            } if (*bt != BlockType::Dirt && *bt != BlockType::Grass)
-            => Some(TextureAtlasPos::new(11, 8 + variant)),
+        //  $
+        // #X#
+        //  #
+        Neighbors { 
+            north: Some(bt), 
+            south: Some(BlockType::Dirt),
+            west: Some(BlockType::Dirt),
+            east: Some(BlockType::Dirt),
+            ..
+        } if (*bt != BlockType::Dirt && *bt != BlockType::Grass)
+        => Some(TextureAtlasPos::new(11, 8 + variant)),
 
-            // 
-            // #X#
-            //
-            Neighbors { 
-                north: None, 
-                south: None,
-                west: Some(BlockType::Dirt),
-                east: Some(BlockType::Dirt),
-                ..
-            }
-            => Some(TextureAtlasPos::new(9 + variant, 11)),
+        // 
+        // #X#
+        //
+        Neighbors { 
+            north: None, 
+            south: None,
+            west: Some(BlockType::Dirt),
+            east: Some(BlockType::Dirt),
+            ..
+        } => Some(TextureAtlasPos::new(9 + variant, 11)),
 
-            //  $
-            // #X$
-            //  #
-            Neighbors { 
-                north: Some(bt),
-                south: Some(BlockType::Dirt),
-                west: Some(BlockType::Dirt),
-                east: Some(br),
-                ..
-            } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *br != BlockType::Dirt
-            => Some(TextureAtlasPos::new(2, 6 + variant * 2)),
+        //  $
+        // #X$
+        //  #
+        Neighbors { 
+            north: Some(bt),
+            south: Some(BlockType::Dirt),
+            west: Some(BlockType::Dirt),
+            east: Some(br),
+            ..
+        } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *br != BlockType::Dirt
+        => Some(TextureAtlasPos::new(2, 6 + variant * 2)),
 
-            //  $
-            // $X# 
-            //  #
-            Neighbors { 
-                north: Some(bt),
-                south: Some(BlockType::Dirt),
-                west: Some(bl),
-                east: Some(BlockType::Dirt),
-                ..
-            } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *bl != BlockType::Dirt
-            => Some(TextureAtlasPos::new(3, 6 + variant * 2)),
+        //  $
+        // $X# 
+        //  #
+        Neighbors { 
+            north: Some(bt),
+            south: Some(BlockType::Dirt),
+            west: Some(bl),
+            east: Some(BlockType::Dirt),
+            ..
+        } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *bl != BlockType::Dirt
+        => Some(TextureAtlasPos::new(3, 6 + variant * 2)),
 
-            //  #
-            // $X#
-            //  $
-            Neighbors { 
-                north: Some(BlockType::Dirt | BlockType::Grass),
-                south: Some(bb),
-                west: Some(bl),
-                east: Some(BlockType::Dirt),
-                ..
-            } if *bb != BlockType::Dirt && *bl != BlockType::Dirt
-            => Some( TextureAtlasPos::new(3, 5 + variant * 2)),
+        //  #
+        // $X#
+        //  $
+        Neighbors { 
+            north: Some(BlockType::Dirt | BlockType::Grass),
+            south: Some(bb),
+            west: Some(bl),
+            east: Some(BlockType::Dirt),
+            ..
+        } if *bb != BlockType::Dirt && *bl != BlockType::Dirt
+        => Some( TextureAtlasPos::new(3, 5 + variant * 2)),
 
-            //  #
-            // #X$
-            //  $
-            Neighbors { 
-                north: Some(BlockType::Dirt | BlockType::Grass),
-                south: Some(bb),
-                west: Some(BlockType::Dirt),
-                east: Some(br),
-                ..
-            } if *bb != BlockType::Dirt && *br != BlockType::Dirt
-            => Some(TextureAtlasPos::new(2, 5 + variant * 2)),
+        //  #
+        // #X$
+        //  $
+        Neighbors { 
+            north: Some(BlockType::Dirt | BlockType::Grass),
+            south: Some(bb),
+            west: Some(BlockType::Dirt),
+            east: Some(br),
+            ..
+        } if *bb != BlockType::Dirt && *br != BlockType::Dirt
+        => Some(TextureAtlasPos::new(2, 5 + variant * 2)),
 
-            //  $
-            // $X$
-            //  #
-            Neighbors { 
-                north: Some(bt),
-                south: Some(BlockType::Dirt),
-                west: Some(bl),
-                east: Some(br),
-                ..
-            } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *bl != BlockType::Dirt && *br != BlockType::Dirt
-            => Some(TextureAtlasPos::new(8 + variant, 5)),
+        //  $
+        // $X$
+        //  #
+        Neighbors { 
+            north: Some(bt),
+            south: Some(BlockType::Dirt),
+            west: Some(bl),
+            east: Some(br),
+            ..
+        } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *bl != BlockType::Dirt && *br != BlockType::Dirt
+        => Some(TextureAtlasPos::new(8 + variant, 5)),
 
-            //  #
-            // $X$
-            //
-            Neighbors { 
-                north: Some(BlockType::Dirt | BlockType::Grass),
-                south: None,
-                west: Some(bl),
-                east: Some(br),
-                ..
-            } if *bl != BlockType::Dirt && *br != BlockType::Dirt
-            => Some(TextureAtlasPos::new(13 + variant, 1)),
+        //  #
+        // $X$
+        //
+        Neighbors { 
+            north: Some(BlockType::Dirt | BlockType::Grass),
+            south: None,
+            west: Some(bl),
+            east: Some(br),
+            ..
+        } if *bl != BlockType::Dirt && *br != BlockType::Dirt
+        => Some(TextureAtlasPos::new(13 + variant, 1)),
 
-            //  
-            // $X$
-            //  #
-            Neighbors { 
-                north: None,
-                south: Some(BlockType::Dirt),
-                west: Some(bl),
-                east: Some(br),
-                ..
-            } if *bl != BlockType::Dirt && *br != BlockType::Dirt
-            => Some(TextureAtlasPos::new(13 + variant, 0)),
+        //  
+        // $X$
+        //  #
+        Neighbors { 
+            north: None,
+            south: Some(BlockType::Dirt),
+            west: Some(bl),
+            east: Some(br),
+            ..
+        } if *bl != BlockType::Dirt && *br != BlockType::Dirt
+        => Some(TextureAtlasPos::new(13 + variant, 0)),
 
-            //  #
-            //  X
-            //  $
-            Neighbors { 
-                north: Some(BlockType::Dirt | BlockType::Grass),
-                south: Some(bb),
-                west: None,
-                east: None,
-                ..
-            } if *bb != BlockType::Dirt
-            => Some(TextureAtlasPos::new(7, 8 + variant)),
+        //  #
+        //  X
+        //  $
+        Neighbors { 
+            north: Some(BlockType::Dirt | BlockType::Grass),
+            south: Some(bb),
+            west: None,
+            east: None,
+            ..
+        } if *bb != BlockType::Dirt
+        => Some(TextureAtlasPos::new(7, 8 + variant)),
 
-            //  $
-            //  X
-            //  #
-            Neighbors { 
-                north: Some(bt),
-                south: Some(BlockType::Dirt),
-                west: None,
-                east: None,
-                ..
-            } if (*bt != BlockType::Dirt && *bt != BlockType::Grass)
-            => Some(TextureAtlasPos::new(7, 5 + variant)),
+        //  $
+        //  X
+        //  #
+        Neighbors { 
+            north: Some(bt),
+            south: Some(BlockType::Dirt),
+            west: None,
+            east: None,
+            ..
+        } if (*bt != BlockType::Dirt && *bt != BlockType::Grass)
+        => Some(TextureAtlasPos::new(7, 5 + variant)),
 
-            // 
-            // #X$
-            // 
-            Neighbors { 
-                north: None,
-                south: None,
-                west: Some(BlockType::Dirt),
-                east: Some(br),
-                ..
-            } if *br != BlockType::Dirt
-            => Some(TextureAtlasPos::new(variant, 14)),
+        // 
+        // #X$
+        // 
+        Neighbors { 
+            north: None,
+            south: None,
+            west: Some(BlockType::Dirt),
+            east: Some(br),
+            ..
+        } if *br != BlockType::Dirt
+        => Some(TextureAtlasPos::new(variant, 14)),
 
-            // 
-            // $X#
-            // 
-            Neighbors { 
-                north: None,
-                south: None,
-                west: Some(bl),
-                east: Some(BlockType::Dirt),
-                ..
-            } if *bl != BlockType::Dirt
-            => Some(TextureAtlasPos::new(3 + variant, 14)),
+        // 
+        // $X#
+        // 
+        Neighbors { 
+            north: None,
+            south: None,
+            west: Some(bl),
+            east: Some(BlockType::Dirt),
+            ..
+        } if *bl != BlockType::Dirt
+        => Some(TextureAtlasPos::new(3 + variant, 14)),
 
-            //  #
-            // $X$
-            //  #
-            Neighbors { 
-                north: Some(BlockType::Dirt | BlockType::Grass),
-                south: Some(BlockType::Dirt),
-                west: Some(bl),
-                east: Some(br),
-                ..
-            } if *bl != BlockType::Dirt && *br != BlockType::Dirt
-            => Some(TextureAtlasPos::new(8 + variant, 10)),
+        //  #
+        // $X$
+        //  #
+        Neighbors { 
+            north: Some(BlockType::Dirt | BlockType::Grass),
+            south: Some(BlockType::Dirt),
+            west: Some(bl),
+            east: Some(br),
+            ..
+        } if *bl != BlockType::Dirt && *br != BlockType::Dirt
+        => Some(TextureAtlasPos::new(8 + variant, 10)),
 
-            //  #
-            // #X$
-            //  #
-            Neighbors { 
-                north: Some(BlockType::Dirt | BlockType::Grass),
-                south: Some(BlockType::Dirt),
-                west: Some(BlockType::Dirt),
-                east: Some(br),
-                ..
-            } if *br != BlockType::Dirt
-            => Some(TextureAtlasPos::new(12, 5 + variant)),
+        //  #
+        // #X$
+        //  #
+        Neighbors { 
+            north: Some(BlockType::Dirt | BlockType::Grass),
+            south: Some(BlockType::Dirt),
+            west: Some(BlockType::Dirt),
+            east: Some(br),
+            ..
+        } if *br != BlockType::Dirt
+        => Some(TextureAtlasPos::new(12, 5 + variant)),
 
-            //  $
-            // #X$
-            //  $
-            Neighbors { 
-                north: Some(bt),
-                south: Some(bb),
-                west: Some(BlockType::Dirt),
-                east: Some(br),
-                ..
-            } if *bt != BlockType::Dirt && *bb != BlockType::Dirt && *br != BlockType::Dirt
-            => Some(TextureAtlasPos::new(9, 7 + variant)),
+        //  $
+        // #X$
+        //  $
+        Neighbors { 
+            north: Some(bt),
+            south: Some(bb),
+            west: Some(BlockType::Dirt),
+            east: Some(br),
+            ..
+        } if *bt != BlockType::Dirt && *bb != BlockType::Dirt && *br != BlockType::Dirt
+        => Some(TextureAtlasPos::new(9, 7 + variant)),
 
-            //  $
-            // $X#
-            //  $
-            Neighbors { 
-                north: Some(bt),
-                south: Some(bb),
-                west: Some(bl),
-                east: Some(BlockType::Dirt),
-                ..
-            } if *bt != BlockType::Dirt && *bb != BlockType::Dirt && *bl != BlockType::Dirt
-            => Some(TextureAtlasPos::new(8, 7 + variant)),
+        //  $
+        // $X#
+        //  $
+        Neighbors { 
+            north: Some(bt),
+            south: Some(bb),
+            west: Some(bl),
+            east: Some(BlockType::Dirt),
+            ..
+        } if *bt != BlockType::Dirt && *bb != BlockType::Dirt && *bl != BlockType::Dirt
+        => Some(TextureAtlasPos::new(8, 7 + variant)),
 
-            //  
-            // #X$
-            //  $
-            Neighbors { 
-                north: None,
-                south: Some(bb),
-                west: Some(BlockType::Dirt),
-                east: Some(br),
-                ..
-            } if *bb != BlockType::Dirt && *br != BlockType::Dirt
-            => Some(TextureAtlasPos::new(variant, 11)),
+        //  
+        // #X$
+        //  $
+        Neighbors { 
+            north: None,
+            south: Some(bb),
+            west: Some(BlockType::Dirt),
+            east: Some(br),
+            ..
+        } if *bb != BlockType::Dirt && *br != BlockType::Dirt
+        => Some(TextureAtlasPos::new(variant, 11)),
 
-            //  $
-            // #X
-            //  $
-            Neighbors { 
-                north: Some(bt),
-                south: Some(bb),
-                west: Some(BlockType::Dirt),
-                east: None,
-                ..
-            } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *bb != BlockType::Dirt
-            => Some(TextureAtlasPos::new(13 + variant, 3)),
+        //  $
+        // #X
+        //  $
+        Neighbors { 
+            north: Some(bt),
+            south: Some(bb),
+            west: Some(BlockType::Dirt),
+            east: None,
+            ..
+        } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *bb != BlockType::Dirt
+        => Some(TextureAtlasPos::new(13 + variant, 3)),
 
-            //  #
-            // $X#
-            //  #
-            Neighbors { 
-                north: Some(BlockType::Dirt),
-                south: Some(BlockType::Dirt),
-                west: Some(bl),
-                east: Some(BlockType::Dirt),
-                ..
-            } if *bl != BlockType::Dirt
-            => Some(TextureAtlasPos::new(12, 8 + variant)),
+        //  #
+        // $X#
+        //  #
+        Neighbors { 
+            north: Some(BlockType::Dirt),
+            south: Some(BlockType::Dirt),
+            west: Some(bl),
+            east: Some(BlockType::Dirt),
+            ..
+        } if *bl != BlockType::Dirt
+        => Some(TextureAtlasPos::new(12, 8 + variant)),
 
-            //  $
-            // $X$
-            //  $#
-            Neighbors {
-                north: Some(bt),
-                south: Some(bb),
-                west: Some(bl),
-                east: Some(br),
-                south_east: Some(BlockType::Dirt),
-                ..
-            } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *bb != BlockType::Dirt && *bl != BlockType::Dirt && *br != BlockType::Dirt
-            => Some(TextureAtlasPos::new(0, 5 + variant * 2)),
+        //  $
+        // $X$
+        //  $#
+        Neighbors {
+            north: Some(bt),
+            south: Some(bb),
+            west: Some(bl),
+            east: Some(br),
+            south_east: Some(BlockType::Dirt),
+            ..
+        } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *bb != BlockType::Dirt && *bl != BlockType::Dirt && *br != BlockType::Dirt
+        => Some(TextureAtlasPos::new(0, 5 + variant * 2)),
 
-            //  $#
-            // $X$
-            //  $
-            Neighbors {
-                north: Some(bt),
-                south: Some(bb),
-                west: Some(bl),
-                east: Some(br),
-                north_east: Some(BlockType::Dirt),
-                ..
-            } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *bb != BlockType::Dirt && *bl != BlockType::Dirt && *br != BlockType::Dirt
-            => Some(TextureAtlasPos::new(0, 6 + variant * 2)),
+        //  $#
+        // $X$
+        //  $
+        Neighbors {
+            north: Some(bt),
+            south: Some(bb),
+            west: Some(bl),
+            east: Some(br),
+            north_east: Some(BlockType::Dirt),
+            ..
+        } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *bb != BlockType::Dirt && *bl != BlockType::Dirt && *br != BlockType::Dirt
+        => Some(TextureAtlasPos::new(0, 6 + variant * 2)),
 
-            //  $
-            // $X$
-            // #$
-            Neighbors {
-                north: Some(bt),
-                south: Some(bb),
-                west: Some(bl),
-                east: Some(br),
-                south_west: Some(BlockType::Dirt),
-                ..
-            } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *bb != BlockType::Dirt && *bl != BlockType::Dirt && *br != BlockType::Dirt
-            => Some(TextureAtlasPos::new(1, 5 + variant * 2)),
+        //  $
+        // $X$
+        // #$
+        Neighbors {
+            north: Some(bt),
+            south: Some(bb),
+            west: Some(bl),
+            east: Some(br),
+            south_west: Some(BlockType::Dirt),
+            ..
+        } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *bb != BlockType::Dirt && *bl != BlockType::Dirt && *br != BlockType::Dirt
+        => Some(TextureAtlasPos::new(1, 5 + variant * 2)),
 
-            // #$
-            // $X$
-            //  $
-            Neighbors {
-                north: Some(bt),
-                south: Some(bb),
-                west: Some(bl),
-                east: Some(br),
-                north_west: Some(BlockType::Dirt),
-                ..
-            } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *bb != BlockType::Dirt && *bl != BlockType::Dirt && *br != BlockType::Dirt
-            => Some(TextureAtlasPos::new(1, 6 + variant * 2)),
+        // #$
+        // $X$
+        //  $
+        Neighbors {
+            north: Some(bt),
+            south: Some(bb),
+            west: Some(bl),
+            east: Some(br),
+            north_west: Some(BlockType::Dirt),
+            ..
+        } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *bb != BlockType::Dirt && *bl != BlockType::Dirt && *br != BlockType::Dirt
+        => Some(TextureAtlasPos::new(1, 6 + variant * 2)),
 
-            //  $
-            // $X#
-            //  
-            Neighbors {
-                north: Some(bt),
-                south: None,
-                west: Some(bl),
-                east: Some(BlockType::Dirt),
-                ..
-            } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *bl != BlockType::Dirt
-            => Some(TextureAtlasPos::new(3 + variant, 12)),
+        //  $
+        // $X#
+        //  
+        Neighbors {
+            north: Some(bt),
+            south: None,
+            west: Some(bl),
+            east: Some(BlockType::Dirt),
+            ..
+        } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *bl != BlockType::Dirt
+        => Some(TextureAtlasPos::new(3 + variant, 12)),
 
-            //  
-            // $X#
-            //  $
-            Neighbors {
-                north: None,
-                south: Some(bb),
-                west: Some(bl),
-                east: Some(BlockType::Dirt),
-                ..
-            } if *bb != BlockType::Dirt && *bl != BlockType::Dirt
-            => Some(TextureAtlasPos::new(3 + variant, 11)),
+        //  
+        // $X#
+        //  $
+        Neighbors {
+            north: None,
+            south: Some(bb),
+            west: Some(bl),
+            east: Some(BlockType::Dirt),
+            ..
+        } if *bb != BlockType::Dirt && *bl != BlockType::Dirt
+        => Some(TextureAtlasPos::new(3 + variant, 11)),
 
-            //  
-            // #X$
-            //  $
-            Neighbors {
-                north: None,
-                south: Some(bb),
-                west: Some(BlockType::Dirt),
-                east: Some(br),
-                ..
-            } if *bb != BlockType::Dirt && *br != BlockType::Dirt
-            => Some(TextureAtlasPos::new(variant, 11)),
+        //  
+        // #X$
+        //  $
+        Neighbors {
+            north: None,
+            south: Some(bb),
+            west: Some(BlockType::Dirt),
+            east: Some(br),
+            ..
+        } if *bb != BlockType::Dirt && *br != BlockType::Dirt
+        => Some(TextureAtlasPos::new(variant, 11)),
 
-            //  $
-            // #X$
-            //  
-            Neighbors {
-                north: Some(bt),
-                south: None,
-                west: Some(BlockType::Dirt),
-                east: Some(br),
-                ..
-            } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *br != BlockType::Dirt
-            => Some(TextureAtlasPos::new(variant, 12)),
+        //  $
+        // #X$
+        //  
+        Neighbors {
+            north: Some(bt),
+            south: None,
+            west: Some(BlockType::Dirt),
+            east: Some(br),
+            ..
+        } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *br != BlockType::Dirt
+        => Some(TextureAtlasPos::new(variant, 12)),
 
-            //  $
-            //  X#
-            //  $
-            Neighbors {
-                north: Some(bt),
-                south: Some(bb),
-                west: None,
-                east: Some(BlockType::Dirt),
-                ..
-            } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *bb != BlockType::Dirt
-            => Some(TextureAtlasPos::new(13 + variant, 2)),
+        //  $
+        //  X#
+        //  $
+        Neighbors {
+            north: Some(bt),
+            south: Some(bb),
+            west: None,
+            east: Some(BlockType::Dirt),
+            ..
+        } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *bb != BlockType::Dirt
+        => Some(TextureAtlasPos::new(13 + variant, 2)),
 
-            //  $
-            //  X#
-            //  $
-            Neighbors {
-                north: Some(bt),
-                south: Some(bb),
-                west: Some(BlockType::Dirt),
-                east: None,
-                ..
-            } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *bb != BlockType::Dirt
-            => Some(TextureAtlasPos::new(13 + variant, 3)),
+        //  $
+        //  X#
+        //  $
+        Neighbors {
+            north: Some(bt),
+            south: Some(bb),
+            west: Some(BlockType::Dirt),
+            east: None,
+            ..
+        } if (*bt != BlockType::Dirt && *bt != BlockType::Grass) && *bb != BlockType::Dirt
+        => Some(TextureAtlasPos::new(13 + variant, 3)),
 
-            _ => None
-        }
+        _ => None
     }
+}
 
-    fn get_sprite_index_by_neighbors(neighbors: &Neighbors<BlockType>, variant: u32) -> TextureAtlasPos {
-        match neighbors {
-            //  $
-            // $X$
-            //  $
-            Neighbors { 
-                north: Some(_), 
-                south: Some(_), 
-                west: Some(_), 
-                east: Some(_),
-                ..
-            } => TextureAtlasPos::new(1 + variant, 1),
-            
-            //
-            // X
-            //
-            Neighbors { 
-                north: None, 
-                south: None, 
-                west: None, 
-                east: None,
-                ..
-            } => TextureAtlasPos::new(9 + variant, 3),
+fn get_sprite_index_by_neighbors(neighbors: &Neighbors<BlockType>, variant: u32) -> TextureAtlasPos {
+    match neighbors {
+        //  $
+        // $X$
+        //  $
+        Neighbors { 
+            north: Some(_), 
+            south: Some(_), 
+            west: Some(_), 
+            east: Some(_),
+            ..
+        } => TextureAtlasPos::new(1 + variant, 1),
+        
+        //
+        // X
+        //
+        Neighbors { 
+            north: None, 
+            south: None, 
+            west: None, 
+            east: None,
+            ..
+        } => TextureAtlasPos::new(9 + variant, 3),
 
-            // $
-            // X
-            //
-            Neighbors { 
-                north: Some(_), 
-                south: None, 
-                west: None, 
-                east: None,
-                ..
-            } => TextureAtlasPos::new(6 + variant, 3),
+        // $
+        // X
+        //
+        Neighbors { 
+            north: Some(_), 
+            south: None, 
+            west: None, 
+            east: None,
+            ..
+        } => TextureAtlasPos::new(6 + variant, 3),
 
-            //
-            // X
-            // $
-            Neighbors { 
-                north: None, 
-                south: Some(_), 
-                west: None, 
-                east: None,
-                ..
-            } => TextureAtlasPos::new(6 + variant, 0),
+        //
+        // X
+        // $
+        Neighbors { 
+            north: None, 
+            south: Some(_), 
+            west: None, 
+            east: None,
+            ..
+        } => TextureAtlasPos::new(6 + variant, 0),
 
-            //
-            // $X
-            //
-            Neighbors { 
-                north: None, 
-                south: None, 
-                west: Some(_), 
-                east: None,
-                ..
-            } => TextureAtlasPos::new(12, variant),
+        //
+        // $X
+        //
+        Neighbors { 
+            north: None, 
+            south: None, 
+            west: Some(_), 
+            east: None,
+            ..
+        } => TextureAtlasPos::new(12, variant),
 
-            //
-            //  X$
-            //
-            Neighbors { 
-                north: None, 
-                south: None, 
-                west: None, 
-                east: Some(_),
-                ..
-            } => TextureAtlasPos::new(9, variant),
+        //
+        //  X$
+        //
+        Neighbors { 
+            north: None, 
+            south: None, 
+            west: None, 
+            east: Some(_),
+            ..
+        } => TextureAtlasPos::new(9, variant),
 
-            //  $
-            //  X
-            //  $
-            Neighbors { 
-                north: Some(_), 
-                south: Some(_), 
-                west: None, 
-                east: None,
-                ..
-            } => TextureAtlasPos::new(5, variant),
+        //  $
+        //  X
+        //  $
+        Neighbors { 
+            north: Some(_), 
+            south: Some(_), 
+            west: None, 
+            east: None,
+            ..
+        } => TextureAtlasPos::new(5, variant),
 
-            //  $
-            // $X$
-            //
-            Neighbors { 
-                north: Some(_), 
-                south: None,
-                west: Some(_),
-                east: Some(_),
-                ..
-            } => TextureAtlasPos::new(1 + variant, 2),
+        //  $
+        // $X$
+        //
+        Neighbors { 
+            north: Some(_), 
+            south: None,
+            west: Some(_),
+            east: Some(_),
+            ..
+        } => TextureAtlasPos::new(1 + variant, 2),
 
-            //  
-            // $X$
-            //  $
-            Neighbors { 
-                north: None, 
-                south: Some(_),
-                west: Some(_),
-                east: Some(_),
-                ..
-            } => TextureAtlasPos::new(1 + variant, 0),
+        //  
+        // $X$
+        //  $
+        Neighbors { 
+            north: None, 
+            south: Some(_),
+            west: Some(_),
+            east: Some(_),
+            ..
+        } => TextureAtlasPos::new(1 + variant, 0),
 
-            //  
-            // $X$
-            //
-            Neighbors { 
-                north: None, 
-                south: None,
-                west: Some(_),
-                east: Some(_),
-                ..
-            } => TextureAtlasPos::new(6 + variant, 4),
+        //  
+        // $X$
+        //
+        Neighbors { 
+            north: None, 
+            south: None,
+            west: Some(_),
+            east: Some(_),
+            ..
+        } => TextureAtlasPos::new(6 + variant, 4),
 
-            //  
-            // $X
-            //  $
-            Neighbors { 
-                north: None, 
-                south: Some(_),
-                west: Some(_),
-                east: None,
-                ..
-            } => TextureAtlasPos::new(1 + variant * 2, 3),
+        //  
+        // $X
+        //  $
+        Neighbors { 
+            north: None, 
+            south: Some(_),
+            west: Some(_),
+            east: None,
+            ..
+        } => TextureAtlasPos::new(1 + variant * 2, 3),
 
-            //  
-            //  X$
-            //  $
-            Neighbors { 
-                north: None, 
-                south: Some(_),
-                west: None,
-                east: Some(_),
-                ..
-            } => TextureAtlasPos::new(variant * 2, 3),
+        //  
+        //  X$
+        //  $
+        Neighbors { 
+            north: None, 
+            south: Some(_),
+            west: None,
+            east: Some(_),
+            ..
+        } => TextureAtlasPos::new(variant * 2, 3),
 
-            //  $
-            // $X
-            //
-            Neighbors { 
-                north: Some(_),
-                south: None,
-                west: Some(_),
-                east: None,
-                ..
-            } => TextureAtlasPos::new(1 + variant * 2, 4),
+        //  $
+        // $X
+        //
+        Neighbors { 
+            north: Some(_),
+            south: None,
+            west: Some(_),
+            east: None,
+            ..
+        } => TextureAtlasPos::new(1 + variant * 2, 4),
 
-            //  $
-            //  X$
-            //
-            Neighbors { 
-                north: Some(_),
-                south: None,
-                west: None,
-                east: Some(_),
-                ..
-            } => TextureAtlasPos::new(variant * 2, 4),
+        //  $
+        //  X$
+        //
+        Neighbors { 
+            north: Some(_),
+            south: None,
+            west: None,
+            east: Some(_),
+            ..
+        } => TextureAtlasPos::new(variant * 2, 4),
 
-            //  $
-            // $X
-            //  $
-            Neighbors { 
-                north: Some(_),
-                south: Some(_),
-                west: Some(_),
-                east: None,
-                ..
-            } => TextureAtlasPos::new(4, variant),
+        //  $
+        // $X
+        //  $
+        Neighbors { 
+            north: Some(_),
+            south: Some(_),
+            west: Some(_),
+            east: None,
+            ..
+        } => TextureAtlasPos::new(4, variant),
 
-            //  $
-            //  X$
-            //  $
-            Neighbors { 
-                north: Some(_),
-                south: Some(_),
-                west: None,
-                east: Some(_),
-                ..
-            } => TextureAtlasPos::new(0, variant),
-        }
+        //  $
+        //  X$
+        //  $
+        Neighbors { 
+            north: Some(_),
+            south: Some(_),
+            west: None,
+            east: Some(_),
+            ..
+        } => TextureAtlasPos::new(0, variant),
     }
 }
 
@@ -977,9 +971,7 @@ fn get_grass_sprite_index_by_dirt_connections(neighbors: &Neighbors<BlockType>, 
             north: Some(BlockType::Grass),
             south: Some(BlockType::Grass),
             ..
-        } => {
-            Some(TextureAtlasPos::new(11, variant))
-        },
+        } => Some(TextureAtlasPos::new(11, variant)),
         
 
         //  $

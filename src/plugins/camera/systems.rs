@@ -15,11 +15,8 @@ use super::{CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, components::{Mai
 
 pub(super) fn setup_main_camera(
     mut commands: Commands,
-    world_data: Res<WorldData>,
     zoom: Res<Zoom>
 ) {
-    let player_spawn_point = tile_to_world_pos(world_data.spawn_point);
-
     commands
         .spawn((
             Name::new("MainCamera"),
@@ -27,7 +24,7 @@ pub(super) fn setup_main_camera(
             MainCamera,
             ZoomableCamera,
             MoveCamera,
-            UiCameraConfig { show_ui: true },
+            UiCameraConfig::default(),
             Camera2dBundle {
                 projection: OrthographicProjection {
                     scale: zoom.get(),
@@ -38,7 +35,7 @@ pub(super) fn setup_main_camera(
                     msaa_writeback: false,
                     ..default()
                 },
-                transform: Transform::from_xyz(player_spawn_point.x, player_spawn_point.y, 500.),
+                transform: Transform::from_xyz(0., 0., 500.),
                 camera_2d: Camera2d {
                     clear_color: ClearColorConfig::None
                 },
@@ -50,11 +47,8 @@ pub(super) fn setup_main_camera(
 
 pub(super) fn setup_world_camera(
     mut commands: Commands,
-    world_data: Res<WorldData>,
     zoom: Res<Zoom>
 ) {
-    let player_spawn_point = tile_to_world_pos(world_data.spawn_point);
-
     commands.spawn((
         Name::new("WorldCamera"),
         DespawnOnGameExit,
@@ -72,7 +66,7 @@ pub(super) fn setup_world_camera(
                 msaa_writeback: false,
                 ..default()
             },
-            transform: Transform::from_xyz(player_spawn_point.x, player_spawn_point.y, 500.),
+            transform: Transform::from_xyz(0., 0., 500.),
             camera_2d: Camera2d {
                 clear_color: ClearColorConfig::None
             },
@@ -81,6 +75,18 @@ pub(super) fn setup_world_camera(
         },
         WORLD_RENDER_LAYER
     ));
+}
+
+pub(super) fn init_camera_position(
+    world_data: Res<WorldData>,
+    mut query_move_camera: Query<&mut Transform, With<MoveCamera>>,
+) {
+    let player_spawn_point = tile_to_world_pos(world_data.spawn_point);
+
+    query_move_camera.for_each_mut(|mut transform| {
+        transform.translation.x = player_spawn_point.x;
+        transform.translation.y = player_spawn_point.y;
+    });
 }
 
 pub(super) fn zoom(
