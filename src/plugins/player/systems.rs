@@ -153,19 +153,22 @@ pub(super) fn detect_collisions(
                     };
 
                     if delta_x.abs() > delta_y.abs() {
-                        // Check if there is a space of 3 blocks to move the player up
-                        let is_enough_space = !world_data.solid_block_exists((x, y - 1))
-                            && !world_data.solid_block_exists((x, y - 2))
-                            && !world_data.solid_block_exists((x, y - 3));
+                        // Step up
+                        {
+                            // Check if there is a space of 3 blocks to move the player up
+                            let is_enough_space = !world_data.solid_block_exists((x, y - 1))
+                                && !world_data.solid_block_exists((x, y - 2))
+                                && !world_data.solid_block_exists((x, y - 3));
 
-                        // Check if the tile is on the same level as player's legs
-                        let is_bottom_tile = tile_rect.top() <= player_rect.bottom() + TILE_SIZE
-                            && tile_rect.top() > player_rect.bottom();
+                            // Check if the tile is on the same level as player's legs
+                            let is_bottom_tile = tile_rect.top() <= player_rect.bottom() + TILE_SIZE
+                                && tile_rect.top() > player_rect.bottom();
 
-                        if is_enough_space && is_bottom_tile && f32::from(face_direction) == delta_x.signum() && velocity.x.abs() > 0. {
-                            new_collisions.bottom = true;
-                            velocity.y = 2.;
-                            break 'outer;
+                            if is_enough_space && is_bottom_tile && f32::from(face_direction) == delta_x.signum() && velocity.x.abs() > 0. {
+                                new_collisions.bottom = true;
+                                velocity.y = 2.;
+                                break 'outer;
+                            }
                         }
 
                         if delta_x < 0. {
@@ -204,7 +207,7 @@ pub(super) fn detect_collisions(
                                 // If the player's top side is higher than the tile's bottom side then move the player down.
                                 if player_rect.top() >= tile_rect.bottom() {
                                     velocity.y = 0.;
-                                    player_rect.centery = tile_rect.bottom() - player_rect.top();
+                                    player_rect.centery += tile_rect.bottom() - player_rect.top();
                                 }
 
                                 #[cfg(feature = "debug")]

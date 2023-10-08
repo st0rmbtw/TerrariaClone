@@ -30,10 +30,10 @@ pub(super) fn get_camera_fov(camera_pos: Vec2, projection: &OrthographicProjecti
 }
 
 pub(super) fn get_chunk_range_by_camera_fov(camera_fov: CameraFov, world_size: Size) -> ChunkRange {
-    let left = (camera_fov.min.x / (CHUNK_SIZE * TILE_SIZE)).floor() as u32;
-    let mut right = (camera_fov.max.x / (CHUNK_SIZE * TILE_SIZE)).ceil() as u32;
-    let top = (camera_fov.max.y / (CHUNK_SIZE * TILE_SIZE)).ceil().abs() as u32;
-    let mut bottom = (camera_fov.min.y / (CHUNK_SIZE * TILE_SIZE)).floor().abs() as u32;
+    let left = ((camera_fov.min.x / TILE_SIZE - 1.) / CHUNK_SIZE).floor() as u32;
+    let mut right = ((camera_fov.max.x / TILE_SIZE + 1.) / CHUNK_SIZE).ceil() as u32;
+    let top = ((camera_fov.max.y / TILE_SIZE + 1.) / CHUNK_SIZE).ceil().abs() as u32;
+    let mut bottom = ((camera_fov.min.y / TILE_SIZE - 1.) / CHUNK_SIZE).floor().abs() as u32;
 
     let max_chunk_x = world_size.width as u32 / CHUNK_SIZE_U;
     let max_chunk_y = world_size.height as u32 / CHUNK_SIZE_U;
