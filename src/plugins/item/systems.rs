@@ -1,6 +1,6 @@
-use bevy::{prelude::{Query, With, Res, Commands, Entity, Transform, Changed, DetectChangesMut, Without, ResMut, Local, FixedTime, Vec3, Vec2}, math::vec2, ecs::query::Has};
+use bevy::{prelude::{Query, With, Res, Commands, Entity, Transform, Changed, Without, ResMut, Local, FixedTime, Vec3, Vec2}, ecs::query::Has};
 
-use crate::{common::{components::{Velocity, EntityRect}, rect::FRect}, plugins::{item::{GRAVITY, MAX_VERTICAL_SPEED}, world::constants::TILE_SIZE, cursor::components::Hoverable, inventory::Inventory, player::Player, audio::{AudioCommandsExt, SoundType}}, world::WorldData};
+use crate::{common::rect::FRect, plugins::{item::{GRAVITY, MAX_VERTICAL_SPEED}, world::constants::TILE_SIZE, cursor::components::Hoverable, inventory::Inventory, player::Player, audio::{AudioCommandsExt, SoundType}, entity::components::{EntityRect, Velocity}}, world::WorldData};
 
 use super::{STACK_RANGE, item_hoverable_text, GRAB_RANGE, MAX_HORIZONTAL_SPEED};
 use super::components::*;
@@ -119,25 +119,6 @@ pub(super) fn detect_collisions(
     }
 }
 
-pub(super) fn update_item_rect(
-    world_data: Res<WorldData>,
-    mut query: Query<(&Velocity, &mut EntityRect), With<DroppedItem>>
-) {
-    for (velocity, mut item_rect) in &mut query {
-        let min_x: f32 = item_rect.half_width() - TILE_SIZE / 2.;
-        let min_y: f32 = -(world_data.size.height as f32) * TILE_SIZE;
-
-        let max_x = world_data.size.width as f32 * TILE_SIZE - item_rect.half_width() - TILE_SIZE / 2.;
-        let max_y: f32 = -item_rect.half_height() - TILE_SIZE / 2.;
-
-        let new_position = (item_rect.center() + velocity.0)
-            .clamp(vec2(min_x, min_y), vec2(max_x, max_y));
-
-        item_rect.centerx = new_position.x;
-        item_rect.centery = new_position.y;
-    }
-}
-
 pub(super) fn stack_items(
     mut commands: Commands,
     mut query: Query<(Entity, &mut EntityRect, &mut Velocity, &mut DroppedItem), Without<Following>>,
@@ -181,14 +162,6 @@ pub(super) fn stack_items(
         }
 
         stacked.push(other_entity);
-    }
-}
-
-pub(super) fn move_item(
-    mut query: Query<(&mut Transform, &EntityRect), With<DroppedItem>>
-) {
-    for (mut transform, entity_rect) in &mut query {
-        transform.set_if_neq(transform.with_translation(entity_rect.center().extend(transform.translation.z)));
     }
 }
 

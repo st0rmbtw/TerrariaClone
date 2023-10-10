@@ -6,9 +6,9 @@ use rand::{thread_rng, Rng};
 use crate::{
     plugins::{
         world::{constants::TILE_SIZE, WORLD_RENDER_LAYER},
-        inventory::{ItemInHand, SwingAnimation}, particles::{ParticleCommandsExt, Particle, PARTICLE_SIZE, ParticleBuilder},
+        inventory::{ItemInHand, SwingAnimation}, particles::{ParticleCommandsExt, Particle, PARTICLE_SIZE, ParticleBuilder}, entity::components::{EntityRect, Velocity},
     },
-    common::{math::{move_towards, map_range_usize}, state::MovementState, rect::FRect, components::{Velocity, EntityRect}, helpers::{random_point_cone, random_point_circle}}, world::WorldData,
+    common::{math::{move_towards, map_range_usize}, state::MovementState, rect::FRect, helpers::{random_point_cone, random_point_circle}}, world::WorldData,
 };
 
 #[cfg(feature = "debug")]
@@ -164,9 +164,12 @@ pub(super) fn detect_collisions(
                             let is_bottom_tile = tile_rect.top() <= player_rect.bottom() + TILE_SIZE
                                 && tile_rect.top() > player_rect.bottom();
 
-                            if is_enough_space && is_bottom_tile && f32::from(face_direction) == delta_x.signum() && velocity.x.abs() > 0. {
+                            let direction = f32::from(face_direction);
+
+                            if is_enough_space && is_bottom_tile && direction == delta_x.signum() && velocity.x.abs() > 0. {
                                 new_collisions.bottom = true;
-                                velocity.y = 2.;
+                                velocity.y = 1.;
+                                velocity.x = velocity.x.abs().max(0.5) * direction;
                                 break 'outer;
                             }
                         }
@@ -238,35 +241,6 @@ pub(super) fn detect_collisions(
     }
 
     *collisions = new_collisions;
-}
-
-#[allow(non_upper_case_globals)]
-pub(super) fn update_player_rect(
-    world_data: Res<WorldData>,
-    mut query_player: Query<(&mut EntityRect, &Velocity), With<Player>>,
-) {
-    let Ok((mut player_rect, velocity)) = query_player.get_single_mut() else { return; };
-
-    const min_x: f32 = PLAYER_HALF_WIDTH - TILE_SIZE / 2.;
-    let min_y: f32 = -(world_data.size.height as f32) * TILE_SIZE;
-
-    let max_x = world_data.size.width as f32 * TILE_SIZE - PLAYER_HALF_WIDTH - TILE_SIZE / 2.;
-    const max_y: f32 = -PLAYER_HALF_HEIGHT - TILE_SIZE / 2.;
-
-    let new_position = (player_rect.center() + velocity.0)
-        .clamp(vec2(min_x, min_y), vec2(max_x, max_y));
-
-    player_rect.centerx = new_position.x;
-    player_rect.centery = new_position.y;
-}
-
-pub(super) fn move_player(
-    mut query_player: Query<(&mut Transform, &EntityRect), With<Player>>,
-) {
-    let Ok((mut transform, player_rect)) = query_player.get_single_mut() else { return; };
-
-    transform.translation.x = player_rect.centerx;
-    transform.translation.y = player_rect.centery;
 }
 
 pub(super) fn update_movement_state(
@@ -424,34 +398,30 @@ pub(super) fn flip_player(
     query_player: Query<&FaceDirection, (With<Player>, Changed<FaceDirection>)>,
     mut query_sprite: Query<&mut TextureAtlasSprite, With<ChangeFlip>>,
 ) {
-    let direction = query_player.get_single();
+    let Ok(direction) = query_player.get_single() else { return; };
 
-    if let Ok(direction) = direction {
-        query_sprite.for_each_mut(|mut sprite| {
-            sprite.flip_x = direction.is_left();
-        });
-    }
+    query_sprite.for_each_mut(|mut sprite| {
+        sprite.flip_x = direction.is_left();
+    });
 }
 
 pub(super) fn flip_using_item(
     query_player: Query<&FaceDirection, (With<Player>, Changed<FaceDirection>)>,
     mut query_sprite: Query<&mut Sprite, With<ItemInHand>>,
 ) {
-    let direction = query_player.get_single();
+    let Ok(direction) = query_player.get_single() else { return; };
+    
+    let mut sprite = query_sprite.single_mut();
 
-    if let Ok(direction) = direction {
-        let mut sprite = query_sprite.single_mut();
-
-        match direction {
-            FaceDirection::Left => {
-                sprite.flip_x = true;
-                sprite.anchor = Anchor::BottomRight;
-            },
-            FaceDirection::Right => {
-                sprite.flip_x = false;
-                sprite.anchor = Anchor::BottomLeft;
-            },
-        }
+    match direction {
+        FaceDirection::Left => {
+            sprite.flip_x = true;
+            sprite.anchor = Anchor::BottomRight;
+        },
+        FaceDirection::Right => {
+            sprite.flip_x = false;
+            sprite.anchor = Anchor::BottomLeft;
+        },
     }
 }
 
@@ -512,9 +482,9 @@ pub(super) fn teleport_player(
     cursor_position: Res<CursorPosition<MainCamera>>,
     mut query_player: Query<(&mut EntityRect, &mut Velocity), With<Player>>,
 ) {
-    if let Ok((mut player_rect, mut velocity)) = query_player.get_single_mut() {
-        player_rect.centerx = cursor_position.world.x;
-        player_rect.centery = cursor_position.world.y;
-        velocity.0 = Vec2::ZERO;
-    }
+    let Ok((mut player_rect, mut velocity)) = query_player.get_single_mut() else { return; };
+    
+    player_rect.centerx = cursor_position.world.x;
+    player_rect.centery = cursor_position.world.y;
+    velocity.0 = Vec2::ZERO;
 }

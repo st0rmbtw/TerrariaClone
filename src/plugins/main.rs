@@ -5,7 +5,7 @@ use bevy_ecs_tilemap::prelude::TilemapRenderSettings;
 
 use crate::{common::{systems::despawn_with, state::{GameState, MenuState}}, lighting::LightingPlugin, parallax::ParallaxPlugin, animation::TweeningPlugin, language::plugin::LanguagePlugin};
 
-use super::{InGameSystemSet, MenuSystemSet, DespawnOnGameExit, audio::AudioPlugin, cursor::CursorPlugin, camera::CameraPlugin, background::BackgroundPlugin, ui::UiPlugin, world::WorldPlugin, inventory::PlayerInventoryPlugin, fps::FpsPlugin, player::PlayerPlugin, slider::SliderPlugin, assets::AssetsPlugin};
+use super::{InGameSystemSet, MenuSystemSet, DespawnOnGameExit, audio::AudioPlugin, cursor::CursorPlugin, camera::CameraPlugin, background::BackgroundPlugin, ui::UiPlugin, world::WorldPlugin, inventory::PlayerInventoryPlugin, fps::FpsPlugin, player::PlayerPlugin, slider::SliderPlugin, assets::AssetsPlugin, entity::EntityPlugin};
 
 pub(crate) struct MainPlugin;
 impl Plugin for MainPlugin {
@@ -18,6 +18,7 @@ impl Plugin for MainPlugin {
         ));
 
         app.add_plugins((
+            EntityPlugin,
             LanguagePlugin,
             LightingPlugin,
             AudioPlugin,

@@ -1,6 +1,6 @@
 use bevy::{prelude::{Query, Transform, With, Commands, Res, Vec2, Entity}, sprite::TextureAtlasSprite, time::Time};
 
-use crate::{common::{components::Velocity, math::map_range_f64}, lighting::types::LightSource};
+use crate::{common::math::map_range_f64, lighting::types::LightSource, plugins::entity::components::Velocity};
 
 use super::{components::ParticleData, PARTICLE_SIZE};
 

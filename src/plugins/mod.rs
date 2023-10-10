@@ -15,6 +15,7 @@ pub(crate) mod audio;
 pub(crate) mod slider;
 pub(crate) mod particles;
 pub(crate) mod item;
+pub(crate) mod entity;
 
 #[cfg(feature = "debug")]
 pub(crate) mod debug;

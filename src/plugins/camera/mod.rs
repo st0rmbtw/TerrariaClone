@@ -4,6 +4,11 @@ use crate::common::state::GameState;
 
 use super::InGameSystemSet;
 
+#[cfg(feature = "debug")]
+use super::debug::DebugConfiguration;
+#[cfg(feature = "debug")]
+use bevy::prelude::Res;
+
 pub(crate) mod components;
 pub(crate) mod resources;
 mod systems;
@@ -37,13 +42,26 @@ impl Plugin for CameraPlugin {
         app.add_systems(Update, systems::zoom.in_set(InGameSystemSet::Update));
         app.add_systems(PostUpdate, systems::update_camera_scale.in_set(InGameSystemSet::PostUpdate));
 
+        #[cfg(not(feature = "debug"))]
+        let follow_player = systems::follow_player;
+
+        #[cfg(feature = "debug")]
+        let follow_player = systems::follow_player.run_if(|config: Res<DebugConfiguration>| !config.free_camera);
+
+        #[cfg(feature = "debug")]
+        app.add_systems(
+            Update,
+            systems::free_camera
+                .run_if(|config: Res<DebugConfiguration>| config.free_camera)
+        );
+
         app.add_systems(
             PostUpdate,
             (
-                systems::move_camera,
+                follow_player,
                 systems::keep_camera_inside_world_bounds
+
             )
-            .chain()
             .before(TransformSystem::TransformPropagate)
             .in_set(CameraSet::MoveCamera)
             .in_set(InGameSystemSet::PostUpdate)

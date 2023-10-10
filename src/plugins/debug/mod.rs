@@ -2,11 +2,11 @@ use bevy::{prelude::{Plugin, App, OnEnter, Update, IntoSystemConfigs, PreUpdate}
 use bevy_ecs_tilemap::{tiles::TilePos, helpers::square_grid::neighbors::Neighbors};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
-use crate::common::{components::EntityRect, state::GameState};
+use crate::common::state::GameState;
 
 use self::resources::HoverBlockData;
 
-use super::{inventory::{UseItemAnimationIndex, UseItemAnimationData}, player::FaceDirection, InGameSystemSet};
+use super::{inventory::{UseItemAnimationIndex, UseItemAnimationData}, player::FaceDirection, InGameSystemSet, entity::components::EntityRect};
 
 mod components;
 mod gui;

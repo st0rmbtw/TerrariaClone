@@ -4,11 +4,11 @@ pub(crate) mod components;
 use bevy::{prelude::{Plugin, App, FixedUpdate, Vec2, World, Transform, GlobalTransform, Visibility, ComputedVisibility, Commands, IntoSystemConfigs, Update, UVec2, Vec4}, ecs::system::Command, utils::default, sprite::TextureAtlasSprite, time::Time, render::view::RenderLayers};
 use rand::{thread_rng, Rng};
 
-use crate::{common::components::Velocity, lighting::types::LightSource, world::block::BlockType};
+use crate::{lighting::types::LightSource, world::block::BlockType};
 
 use self::components::{ParticleBundle, ParticleData};
 
-use super::{assets::ParticleAssets, InGameSystemSet};
+use super::{assets::ParticleAssets, InGameSystemSet, entity::components::Velocity};
 
 pub(crate) const PARTICLE_SIZE: f32 = 8.;
 

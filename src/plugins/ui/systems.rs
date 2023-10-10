@@ -1,6 +1,6 @@
 use bevy::{prelude::{EventWriter, Res, Resource, With, Changed, Query, Component, Color, DetectChanges, DetectChangesMut, Commands, Entity, GlobalTransform, ResMut}, text::Text, ui::{Interaction, BackgroundColor, Node}};
 
-use crate::{plugins::{audio::{SoundType, UpdateMusicVolume, UpdateSoundVolume, AudioCommandsExt}, slider::Slider, config::ShowTileGrid, cursor::{components::Hoverable, position::CursorPosition}, camera::components::MainCamera}, common::{BoolValue, components::EntityRect}, language::{LocalizedText, keys::UIStringKey, args}};
+use crate::{plugins::{audio::{SoundType, UpdateMusicVolume, UpdateSoundVolume, AudioCommandsExt}, slider::Slider, config::ShowTileGrid, cursor::{components::Hoverable, position::CursorPosition}, camera::components::MainCamera, entity::components::EntityRect}, common::BoolValue, language::{LocalizedText, keys::UIStringKey, args}};
 
 use super::{components::{SoundVolumeSlider, MusicVolumeSlider, ToggleTileGridButton, PreviousInteraction, MouseOver}, MouseOverUi};
 

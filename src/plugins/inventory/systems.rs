@@ -5,7 +5,7 @@ use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, With, Query, Visi
 #[cfg(feature = "debug")]
 use bevy_inspector_egui::bevy_egui::EguiContexts;
 
-use crate::{plugins::{ui::ingame::inventory::SLOT_COUNT_IN_ROW, assets::ItemAssets, cursor::position::CursorPosition, world::{events::{DigBlockEvent, PlaceBlockEvent, SeedEvent, BreakBlockEvent}, constants::TILE_SIZE}, player::{FaceDirection, Player, PlayerSpriteBody}, audio::{SoundType, AudioCommandsExt}, camera::components::MainCamera, item::ItemCommandsExt}, common::{helpers::{self, tile_to_world_pos}, components::{EntityRect, Velocity}, rect::FRect}, items::Item, world::{WorldData, block::BlockType}};
+use crate::{plugins::{ui::ingame::inventory::SLOT_COUNT_IN_ROW, assets::ItemAssets, cursor::position::CursorPosition, world::{events::{DigBlockEvent, PlaceBlockEvent, SeedEvent, BreakBlockEvent}, constants::TILE_SIZE}, player::{FaceDirection, Player, PlayerSpriteBody}, audio::{SoundType, AudioCommandsExt}, camera::components::MainCamera, item::ItemCommandsExt, entity::components::{EntityRect, Velocity}}, common::{helpers::{self, tile_to_world_pos}, rect::FRect}, items::Item, world::{WorldData, block::BlockType}};
 
 use super::{Inventory, SelectedItem, util::keycode_to_digit, SwingItemCooldown, ItemInHand, UseItemAnimationIndex, PlayerUsingItem, UseItemAnimationData, SwingItemCooldownMax, ITEM_ROTATION, SwingAnimation, ITEM_ANIMATION_POINTS};
 

@@ -1,10 +1,10 @@
 use bevy::{prelude::{Plugin, App, World, default, Vec2, Transform, Update, IntoSystemConfigs, FixedUpdate, Commands, apply_deferred, Assets, Image}, ecs::system::Command, sprite::SpriteBundle, ui::Interaction, time::Timer};
 
-use crate::{items::ItemStack, common::{components::{EntityRect, Velocity}, rect::FRect}, language::{LocalizedText, keys::ItemStringKey, args}};
+use crate::{items::ItemStack, common::rect::FRect, language::{LocalizedText, keys::ItemStringKey, args}};
 
 use self::components::{DroppedItem, GrabTimer};
 
-use super::{assets::ItemAssets, world::{constants::TILE_SIZE, WORLD_RENDER_LAYER}, InGameSystemSet, cursor::components::Hoverable};
+use super::{assets::ItemAssets, world::{constants::TILE_SIZE, WORLD_RENDER_LAYER}, InGameSystemSet, cursor::components::Hoverable, entity::{EntitySet, components::{EntityRect, Velocity}}};
 
 mod systems;
 mod components;
@@ -26,9 +26,9 @@ impl Plugin for ItemPlugin {
                     systems::air_resistance,
                 ),
                 systems::detect_collisions,
-                systems::update_item_rect,
             )
             .chain()
+            .before(EntitySet::UpdateEntityRect)
             .in_set(InGameSystemSet::FixedUpdate)
         );
 
@@ -36,7 +36,6 @@ impl Plugin for ItemPlugin {
             Update,
             (
                 systems::rotate_item,
-                systems::move_item,
                 systems::update_item_hoverable_info
             )
             .in_set(InGameSystemSet::Update)

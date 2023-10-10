@@ -2,16 +2,19 @@ use bevy::{
     prelude::{
         Commands, Camera2dBundle, OrthographicProjection, Transform, Res, KeyCode, Query, 
         With, Input,
-        Without, Camera2d, Name, Mut, UiCameraConfig, default, ResMut, Camera, Vec2, Changed,
+        Without, Camera2d, Name, UiCameraConfig, default, ResMut, Camera
     }, 
     time::Time, core_pipeline::{clear_color::ClearColorConfig, tonemapping::Tonemapping}, math::Vec3Swizzles
 };
 
-use crate::{plugins::{world::{constants::TILE_SIZE, WORLD_RENDER_LAYER}, DespawnOnGameExit}, common::{helpers::tile_to_world_pos, math::map_range_f32, components::EntityRect}, world::WorldData};
+use crate::{plugins::{world::{constants::TILE_SIZE, WORLD_RENDER_LAYER}, DespawnOnGameExit, entity::components::EntityRect}, common::{helpers::tile_to_world_pos, math::map_range_f32}, world::WorldData};
 
 use crate::plugins::player::Player;
 
 use super::{CAMERA_ZOOM_STEP, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, components::{MainCamera, WorldCamera, ZoomableCamera, MoveCamera}, resources::Zoom};
+
+#[cfg(feature = "debug")]
+use bevy::prelude::Vec2;
 
 pub(super) fn setup_main_camera(
     mut commands: Commands,
@@ -107,61 +110,32 @@ pub(super) fn zoom(
     }
 }
 
-pub(super) fn move_camera(
-    mut query_move_camera: Query<&mut Transform, With<MoveCamera>>,
-    query_player: Query<&EntityRect, (With<Player>, Changed<EntityRect>, Without<MoveCamera>)>,
-    #[cfg(feature = "debug")]
-    time: Res<Time>,
-    #[cfg(feature = "debug")]
-    input: Res<Input<KeyCode>>,
-    #[cfg(feature = "debug")]
-    debug_config: Res<crate::plugins::debug::DebugConfiguration>
-) {
-    #[cfg(not(feature = "debug"))] {
-        let Ok(player_rect) = query_player.get_single() else { return; };
-        let player_pos = player_rect.center();
-
-        query_move_camera.for_each_mut(|camera_transform| {
-            follow_player(player_pos, camera_transform);
-        });
-    }
-
-    #[cfg(feature = "debug")] {
-        if debug_config.free_camera {
-            query_move_camera.for_each_mut(|camera_transform| {
-                free_camera(&time, &input, camera_transform);
-            });
-        } else {
-            let Ok(player_rect) = query_player.get_single() else { return; };
-            let player_pos = player_rect.center();
-
-            query_move_camera.for_each_mut(|camera_transform| {
-                follow_player(player_pos, camera_transform);
-            });
-        }
-    }
-}
-
-#[inline(always)]
 pub(super) fn follow_player(
-    player_pos: Vec2,
-    mut camera_transform: Mut<Transform>,
+    mut query_move_camera: Query<&mut Transform, With<MoveCamera>>,
+    query_player: Query<&EntityRect, (With<Player>, Without<MoveCamera>)>,
 ) {
-    let camera_pos = camera_transform.translation.xy();
+    let Ok(player_rect) = query_player.get_single() else { return; };
+    let player_pos = player_rect.center();
 
-    let new_pos = camera_pos.lerp(player_pos, 0.4);
+    query_move_camera.for_each_mut(|mut camera_transform| {
+        let camera_pos = camera_transform.translation.xy();
 
-    camera_transform.translation.x = new_pos.x;
-    camera_transform.translation.y = new_pos.y;
+        let new_pos = camera_pos.lerp(player_pos, 0.4);
+
+        camera_transform.translation.x = new_pos.x;
+        camera_transform.translation.y = new_pos.y;
+    });
 }
 
 #[cfg(feature = "debug")]
 pub(super) fn free_camera(
-    time: &Res<Time>,
-    input: &Res<bevy::prelude::Input<KeyCode>>,
-    mut camera_transform: Mut<Transform>,
+    time: Res<Time>,
+    input: Res<Input<KeyCode>>,
+    mut query_move_camera: Query<&mut Transform, With<MoveCamera>>,
 ) {
     use super::{CAMERA_MOVE_SPEED, CAMERA_MOVE_SPEED_SLOWER, CAMERA_MOVE_SPEED_FASTER};
+
+    let mut move_direction = Vec2::new(0., 0.);
 
     let camera_speed = if input.pressed(KeyCode::ShiftLeft) {
         CAMERA_MOVE_SPEED_FASTER
@@ -170,8 +144,6 @@ pub(super) fn free_camera(
     } else {
         CAMERA_MOVE_SPEED
     };
-
-    let mut move_direction = Vec2::new(0., 0.);
 
     if input.pressed(KeyCode::A) {
         move_direction.x = -1.;
@@ -188,8 +160,10 @@ pub(super) fn free_camera(
 
     let velocity = move_direction * camera_speed * time.delta_seconds();
 
-    camera_transform.translation.x += velocity.x;
-    camera_transform.translation.y += velocity.y;
+    query_move_camera.for_each_mut(|mut camera_transform| {
+        camera_transform.translation.x += velocity.x;
+        camera_transform.translation.y += velocity.y;
+    });
 }
 
 pub(super) fn keep_camera_inside_world_bounds(

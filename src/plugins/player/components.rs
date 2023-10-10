@@ -1,6 +1,6 @@
 use bevy::{prelude::{Name, SpatialBundle, Transform, Component, Bundle}, utils::default};
 
-use crate::{common::{state::MovementState, rect::FRect, components::{Velocity, EntityRect}}, PLAYER_LAYER};
+use crate::{common::{state::MovementState, rect::FRect}, PLAYER_LAYER, plugins::entity::components::{EntityRect, Velocity}};
 
 use super::{InputAxis, WALKING_ANIMATION_MAX_INDEX, PLAYER_HEIGHT, PLAYER_WIDTH};
 

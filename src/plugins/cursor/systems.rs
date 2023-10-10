@@ -17,10 +17,10 @@ use crate::{
     plugins::{
         assets::{FontAssets, CursorAssets, UiAssets, ItemAssets}, 
         camera::components::MainCamera, 
-        world::constants::TILE_SIZE, config::{CursorColor, ShowTileGrid}, DespawnOnGameExit, player::Player, ui::{UiVisibility, components::MouseOver}, inventory::{Inventory, Slot}
+        world::constants::TILE_SIZE, config::{CursorColor, ShowTileGrid}, DespawnOnGameExit, player::Player, ui::{UiVisibility, components::MouseOver}, inventory::{Inventory, Slot}, entity::components::Velocity
     }, 
     animation::{Tween, lens::TransformScaleLens, Animator, RepeatStrategy, RepeatCount}, 
-    common::{lens::BackgroundColorLens, components::Velocity, helpers, BoolValue}, language::LanguageContent,
+    common::{lens::BackgroundColorLens, helpers, BoolValue}, language::LanguageContent,
 };
 
 use crate::plugins::player::{MAX_WALK_SPEED, MAX_FALL_SPEED};

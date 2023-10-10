@@ -13,7 +13,7 @@ use crate::{common::{state::{GameState, MovementState}, helpers::tile_to_world_p
 use std::time::Duration;
 use bevy::{prelude::*, time::{Timer, TimerMode, common_conditions::on_timer}, math::vec2, input::InputSystem};
 
-use super::{assets::PlayerAssets, world::constants::TILE_SIZE, inventory::UseItemAnimationData, InGameSystemSet};
+use super::{assets::PlayerAssets, world::constants::TILE_SIZE, inventory::UseItemAnimationData, InGameSystemSet, entity::EntitySet};
 
 #[cfg(feature = "debug")]
 use crate::plugins::debug::DebugConfiguration;
@@ -83,6 +83,7 @@ impl Plugin for PlayerPlugin {
                 .in_set(InGameSystemSet::PreUpdate)
         );
 
+        #[cfg(not(feature = "debug"))]
         let update_jump = update_jump;
         
         #[cfg(feature = "debug")]
@@ -97,10 +98,9 @@ impl Plugin for PlayerPlugin {
                 ),
                 gravity,
                 detect_collisions,
-                update_player_rect,
-                move_player
             )
             .chain()
+            .before(EntitySet::UpdateEntityRect)
             .in_set(InGameSystemSet::FixedUpdate)
         );
 

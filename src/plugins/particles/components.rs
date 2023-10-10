@@ -1,6 +1,6 @@
 use bevy::{prelude::{Component, Bundle, Transform, GlobalTransform, Visibility, ComputedVisibility, Handle}, sprite::{TextureAtlasSprite, TextureAtlas}, render::view::RenderLayers};
 
-use crate::common::components::Velocity;
+use crate::plugins::entity::components::Velocity;
 
 #[derive(Component)]
 pub(crate) struct ParticleData {
