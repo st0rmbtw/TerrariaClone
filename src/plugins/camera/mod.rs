@@ -42,26 +42,22 @@ impl Plugin for CameraPlugin {
         app.add_systems(Update, systems::zoom.in_set(InGameSystemSet::Update));
         app.add_systems(PostUpdate, systems::update_camera_scale.in_set(InGameSystemSet::PostUpdate));
 
-        #[cfg(not(feature = "debug"))]
-        let follow_player = systems::follow_player;
-
         #[cfg(feature = "debug")]
-        let follow_player = systems::follow_player.run_if(|config: Res<DebugConfiguration>| !config.free_camera);
-
-        #[cfg(feature = "debug")]
-        app.add_systems(
-            Update,
-            systems::free_camera
-                .run_if(|config: Res<DebugConfiguration>| config.free_camera)
+        let move_camera = (
+            systems::follow_player.run_if(|config: Res<DebugConfiguration>| !config.free_camera),
+            systems::free_camera.run_if(|config: Res<DebugConfiguration>| config.free_camera)
         );
+
+        #[cfg(not(feature = "debug"))]
+        let move_camera = systems::follow_player;
 
         app.add_systems(
             PostUpdate,
             (
-                follow_player,
+                move_camera,
                 systems::keep_camera_inside_world_bounds
-
             )
+            .chain()
             .before(TransformSystem::TransformPropagate)
             .in_set(CameraSet::MoveCamera)
             .in_set(InGameSystemSet::PostUpdate)
