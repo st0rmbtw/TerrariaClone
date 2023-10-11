@@ -23,6 +23,7 @@ impl Plugin for EntityPlugin {
                 EntitySet::UpdateEntityRect,
                 EntitySet::MoveEntity
             )
+            .chain()
             .in_set(InGameSystemSet::FixedUpdate)
         );
 
@@ -30,7 +31,7 @@ impl Plugin for EntityPlugin {
             FixedUpdate,
             (
                 update_entity_rect.in_set(EntitySet::UpdateEntityRect),
-                move_entity.in_set(EntitySet::MoveEntity)
+                move_entity.in_set(EntitySet::MoveEntity),
             )
             .chain()
         );
@@ -42,11 +43,11 @@ fn update_entity_rect(
     mut query: Query<(&mut EntityRect, &Velocity)>
 ) {
     for (mut entity_rect, velocity) in &mut query {
-        let min_x: f32 = entity_rect.half_width() - TILE_SIZE / 2.;
+        let min_x: f32 = entity_rect.half_width();
         let min_y: f32 = -(world_data.size.height as f32) * TILE_SIZE;
 
-        let max_x = world_data.size.width as f32 * TILE_SIZE - entity_rect.half_width() - TILE_SIZE / 2.;
-        let max_y: f32 = -entity_rect.half_height() - TILE_SIZE / 2.;
+        let max_x = world_data.size.width as f32 * TILE_SIZE - entity_rect.half_width();
+        let max_y: f32 = -entity_rect.half_height();
 
         let new_position = (entity_rect.center() + velocity.0)
             .clamp(vec2(min_x, min_y), vec2(max_x, max_y));

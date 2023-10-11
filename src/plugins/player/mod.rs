@@ -18,7 +18,7 @@ use super::{assets::PlayerAssets, world::constants::TILE_SIZE, inventory::UseIte
 #[cfg(feature = "debug")]
 use crate::plugins::debug::DebugConfiguration;
 #[cfg(feature = "debug")]
-use bevy::input::common_conditions::input_just_pressed;
+use bevy::input::common_conditions::input_pressed;
 
 const PLAYER_WIDTH: f32 = 22.;
 const PLAYER_HEIGHT: f32 = 42.;
@@ -72,19 +72,12 @@ impl Plugin for PlayerPlugin {
             .in_set(InGameSystemSet::Update)
         );
 
-        let update_input_axis = update_input_axis;
-        #[cfg(feature = "debug")]
-        let update_input_axis = update_input_axis.run_if(|config: Res<DebugConfiguration>| !config.free_camera);
-
         app.add_systems(
             PreUpdate,
             update_input_axis
                 .after(InputSystem)
                 .in_set(InGameSystemSet::PreUpdate)
         );
-
-        #[cfg(not(feature = "debug"))]
-        let update_jump = update_jump;
         
         #[cfg(feature = "debug")]
         let update_jump = update_jump.run_if(|config: Res<DebugConfiguration>| !config.free_camera);
@@ -113,10 +106,13 @@ impl Plugin for PlayerPlugin {
                 (
                     current_speed,
                     draw_hitbox.run_if(|config: Res<DebugConfiguration>| config.show_hitboxes),
-                    teleport_player.run_if(
-                        (|config: Res<DebugConfiguration>| config.free_camera)
-                            .and_then(input_just_pressed(MouseButton::Right))
-                    )
+                    teleport_player
+                        .before(EntitySet::UpdateEntityRect)
+                        .run_if(
+                            (|config: Res<DebugConfiguration>| config.free_camera).and_then(
+                                input_pressed(MouseButton::Right)
+                            )
+                        )
                 )
                 .in_set(InGameSystemSet::Update)
             );

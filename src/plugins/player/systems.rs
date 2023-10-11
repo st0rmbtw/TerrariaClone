@@ -353,15 +353,16 @@ pub(super) fn update_face_direction(axis: Res<InputAxis>, mut query: Query<&mut 
 pub(super) fn update_input_axis(
     input: Res<Input<KeyCode>>,
     mut axis: ResMut<InputAxis>,
-    #[cfg(feature = "debug")] mut egui: EguiContexts
+    #[cfg(feature = "debug")] mut egui: EguiContexts,
+    #[cfg(feature = "debug")] debug_config: Res<DebugConfiguration>
 ) {
-    #[cfg(feature = "debug")]
-    let ctx = egui.ctx_mut();
-
     axis.x = 0.;
 
     #[cfg(feature = "debug")]
-    if ctx.wants_keyboard_input() { return; }
+    let ctx = egui.ctx_mut();
+
+    #[cfg(feature = "debug")]
+    if ctx.wants_keyboard_input() || debug_config.free_camera { return; }
     
     let left = input.pressed(KeyCode::A);
     let right = input.pressed(KeyCode::D);
