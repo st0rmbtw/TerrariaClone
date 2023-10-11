@@ -170,17 +170,23 @@ pub(super) fn keep_camera_inside_world_bounds(
     world_data: Res<WorldData>,
     mut query_camera: Query<(&mut Transform, &OrthographicProjection), With<MoveCamera>>,
 ) {
+    let playable_area_min_x = world_data.playable_area.min.x as f32 * TILE_SIZE;
+    let playable_area_max_x = world_data.playable_area.max.x as f32 * TILE_SIZE;
+
+    let playable_area_min_y = world_data.playable_area.min.y as f32 * TILE_SIZE;
+    let playable_area_max_y = world_data.playable_area.max.y as f32 * TILE_SIZE;
+
     query_camera.for_each_mut(|(mut camera_transform, projection)| {
         let proj_left = projection.area.min.x;
         let proj_right = projection.area.max.x;
         let proj_top = projection.area.max.y;
         let proj_bottom = projection.area.min.y;
 
-        let x_min = proj_left.abs();
-        let x_max = (world_data.size.width as f32 * TILE_SIZE) - proj_right;
+        let x_min = playable_area_min_x + proj_left.abs();
+        let x_max = playable_area_max_x - proj_right;
 
-        let y_min = -(world_data.size.height as f32 * TILE_SIZE) - proj_bottom;
-        let y_max = -proj_top;
+        let y_min = -(playable_area_max_y + proj_bottom);
+        let y_max = -(playable_area_min_y + proj_top);
 
         camera_transform.translation.x = camera_transform.translation.x.clamp(x_min, x_max);
         camera_transform.translation.y = camera_transform.translation.y.clamp(y_min, y_max);

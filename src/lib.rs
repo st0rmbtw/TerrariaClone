@@ -120,8 +120,8 @@ pub fn generate_world_image(world_size: WorldSize, seed: u32, draw_layers: bool)
     }
 
     // Draw background
-    for y in world_data.layer.underground..world_data.size.height {
-        for x in 0..world_data.size.width {
+    for y in world_data.layer.underground..world_data.height() {
+        for x in 0..world_data.width() {
             let color = WALL_COLORS[Wall::Dirt.id() as usize];
             image.put_pixel(x as u32, y as u32, image::Rgb(color));
         }
@@ -142,7 +142,7 @@ pub fn generate_world_image(world_size: WorldSize, seed: u32, draw_layers: bool)
         let underground_layer = world_data.layer.underground;
         let cavern_layer = world_data.layer.cavern;
 
-        for x in 0..world_data.size.width {
+        for x in 0..world_data.width() {
             image.put_pixel(x as u32, surface_layer as u32, image::Rgb([255, 0, 0]));
             image.put_pixel(x as u32, underground_layer as u32, image::Rgb([255, 0, 0]));
             image.put_pixel(x as u32, cavern_layer as u32, image::Rgb([255, 0, 0]));

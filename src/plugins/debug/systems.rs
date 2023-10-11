@@ -129,7 +129,7 @@ pub(super) fn block_hover(
     world_data: Res<WorldData>,
     mut block_data: ResMut<HoverBlockData>
 ) {
-    let tile_pos = helpers::get_tile_pos_from_world_coords(world_data.size, cursor.world);
+    let tile_pos = helpers::get_tile_pos_from_world_coords(world_data.area.size(), cursor.world);
     let block_type = world_data.get_block(tile_pos).map(|b| *b);
     let neighbors = world_data.get_block_neighbors(tile_pos, true);
 

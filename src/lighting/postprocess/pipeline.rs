@@ -1,6 +1,6 @@
-use bevy::{render::{render_resource::{BindGroupLayout, CachedRenderPipelineId, PipelineCache, RenderPipelineDescriptor, PrimitiveState, MultisampleState, FragmentState, ColorTargetState, ColorWrites, BindGroupLayoutDescriptor, BindGroupLayoutEntry, ShaderStages, BindingType, BufferBindingType, ShaderType, TextureSampleType, TextureViewDimension, SamplerBindingType, BindGroupDescriptor, BindGroupEntry, BindingResource, BindGroup}, render_asset::RenderAssets, renderer::RenderDevice, texture::BevyDefault}, prelude::{Commands, Image, Res, Resource, FromWorld, World, AssetServer}, core_pipeline::fullscreen_vertex_shader::fullscreen_shader_vertex_state};
+use bevy::{render::{render_resource::{BindGroupLayout, CachedRenderPipelineId, PipelineCache, RenderPipelineDescriptor, PrimitiveState, MultisampleState, FragmentState, ColorTargetState, ColorWrites, BindGroupLayoutDescriptor, BindGroupLayoutEntry, ShaderStages, BindingType, BufferBindingType, ShaderType, TextureSampleType, TextureViewDimension, SamplerBindingType, BindGroupDescriptor, BindGroupEntry, BindingResource, BindGroup, ShaderDefVal}, render_asset::RenderAssets, renderer::RenderDevice, texture::BevyDefault}, prelude::{Commands, Image, Res, Resource, FromWorld, World, AssetServer}, core_pipeline::fullscreen_vertex_shader::fullscreen_shader_vertex_state};
 
-use crate::lighting::{BackgroundTexture, InGameBackgroundTexture, WorldTexture, MainTexture, LightMapTexture, gpu_types::GpuCameraParams};
+use crate::{lighting::{BackgroundTexture, InGameBackgroundTexture, WorldTexture, MainTexture, LightMapTexture, gpu_types::GpuCameraParams}, plugins::world::WorldSize};
 
 use super::assets::PostProcessPipelineAssets;
 
@@ -97,6 +97,7 @@ pub(crate) fn queue_postprocess_bind_groups(
 impl FromWorld for PostProcessPipeline {
     fn from_world(world: &mut World) -> Self {
         let render_device = world.resource::<RenderDevice>();
+        let world_size = *world.resource::<WorldSize>();
 
         let layout = render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
                 label: Some("post_process_group_layout"),
@@ -210,7 +211,10 @@ impl FromWorld for PostProcessPipeline {
             vertex: fullscreen_shader_vertex_state(),
             fragment: Some(FragmentState {
                 shader,
-                shader_defs: vec![],
+                shader_defs: vec![
+                    ShaderDefVal::UInt("WORLD_WIDTH".into(), world_size.x),
+                    ShaderDefVal::UInt("WORLD_HEIGHT".into(), world_size.y),
+                ],
                 entry_point: "fragment".into(),
                 targets: vec![Some(ColorTargetState {
                     format: BevyDefault::bevy_default(),

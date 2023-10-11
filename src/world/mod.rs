@@ -5,7 +5,7 @@ pub(crate) mod chunk;
 pub(crate) mod generator;
 pub(crate) mod save_as;
 
-use bevy::prelude::Resource;
+use bevy::{prelude::Resource, math::URect};
 use bevy_ecs_tilemap::{tiles::TilePos, prelude::TilemapSize, helpers::square_grid::neighbors::{SquareDirection, Neighbors}};
 use ndarray::Array2;
 
@@ -28,12 +28,6 @@ pub(crate) struct Size {
     pub(crate) height: usize
 }
 
-impl Size {
-    pub(crate) fn as_tilemap_size(&self) -> TilemapSize {
-        TilemapSize { x: self.width as u32, y: self.height as u32 }
-    }
-}
-
 #[derive(Clone, Copy)]
 pub enum WorldSize {
     Tiny,
@@ -53,8 +47,9 @@ impl WorldSize {
 
 #[derive(Resource)]
 pub(crate) struct WorldData {
-    pub(crate) size: Size,
+    pub(crate) area: URect,
     pub(crate) layer: Layer,
+    pub(crate) playable_area: URect,
     pub(crate) spawn_point: TilePos,
     pub(crate) blocks: Array2<Option<Block>>,
     pub(crate) walls: Array2<Option<Wall>>,
@@ -104,6 +99,16 @@ impl AsWorldPos for (u32, u32) {
 }
 
 impl WorldData {
+    #[inline(always)]
+    pub(crate) fn width(&self) -> usize {
+        self.area.width() as usize
+    }
+
+    #[inline(always)]
+    pub(crate) fn height(&self) -> usize {
+        self.area.height() as usize
+    }
+
     #[inline]
     pub(crate) fn get_block<Pos: AsWorldPos>(&self, world_pos: Pos) -> Option<&Block> {
         self.blocks.get(world_pos.yx()).and_then(|b| b.as_ref())
@@ -202,7 +207,7 @@ impl WorldData {
 
     pub(crate) fn get_block_neighbors<Pos: AsWorldPos + Copy>(&self, world_pos: Pos, solid: bool) -> Neighbors<&Block> {
         let tile_pos = world_pos.as_tile_pos();
-        let tilemap_size = &self.size.as_tilemap_size();
+        let tilemap_size = &TilemapSize::from(self.area.size());
 
         let get_block = move |pos: TilePos| -> Option<&Block> {
             if solid {
@@ -226,7 +231,7 @@ impl WorldData {
 
     pub(crate) fn get_wall_neighbors<Pos: AsWorldPos>(&self, world_pos: Pos) -> Neighbors<&Wall> {
         let tile_pos = world_pos.as_tile_pos();
-        let tilemap_size = &self.size.as_tilemap_size();
+        let tilemap_size = &TilemapSize::from(self.area.size());
 
         Neighbors {
             west:       tile_pos.square_offset(&SquareDirection::West,      tilemap_size).and_then(|pos| self.get_wall(pos)),

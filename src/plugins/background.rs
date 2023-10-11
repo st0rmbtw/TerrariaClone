@@ -212,7 +212,7 @@ fn spawn_ingame_background(
     images: Res<Assets<Image>>
 ) {
     let underground_level = world_data.layer.underground as f32 * TILE_SIZE;
-    let world_height = world_data.size.height as f32 * TILE_SIZE;
+    let world_height = world_data.height() as f32 * TILE_SIZE;
 
     let image = images.get(&backgrounds.background_78).unwrap();
     let image_height = image.size().y;

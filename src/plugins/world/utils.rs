@@ -4,7 +4,7 @@ use bevy::prelude::{Vec2, OrthographicProjection, UVec2, Commands};
 use bevy_ecs_tilemap::tiles::TilePos;
 use rand::{thread_rng, Rng};
 
-use crate::{world::{chunk::ChunkPos, Size, block::BlockType}, common::helpers::{random_point_circle, tile_to_world_pos}, plugins::particles::{PARTICLE_SIZE, Particle, ParticleCommandsExt, ParticleBuilder}};
+use crate::{world::{chunk::ChunkPos, block::BlockType}, common::helpers::{random_point_circle, tile_to_world_pos}, plugins::particles::{PARTICLE_SIZE, Particle, ParticleCommandsExt, ParticleBuilder}};
 
 use super::{constants::{CHUNK_SIZE_U, CHUNK_SIZE, TILE_SIZE}, CameraFov, ChunkRange, WORLD_RENDER_LAYER};
 
@@ -29,14 +29,14 @@ pub(super) fn get_camera_fov(camera_pos: Vec2, projection: &OrthographicProjecti
     }
 }
 
-pub(super) fn get_chunk_range_by_camera_fov(camera_fov: CameraFov, world_size: Size) -> ChunkRange {
+pub(super) fn get_chunk_range_by_camera_fov(camera_fov: CameraFov, world_size: UVec2) -> ChunkRange {
     let left = ((camera_fov.min.x / TILE_SIZE - 1.) / CHUNK_SIZE).floor() as u32;
     let mut right = ((camera_fov.max.x / TILE_SIZE + 1.) / CHUNK_SIZE).ceil() as u32;
     let top = ((camera_fov.max.y / TILE_SIZE + 1.) / CHUNK_SIZE).ceil().min(0.).abs() as u32;
     let mut bottom = ((camera_fov.min.y / TILE_SIZE - 1.) / CHUNK_SIZE).floor().abs() as u32;
 
-    let max_chunk_x = world_size.width as u32 / CHUNK_SIZE_U;
-    let max_chunk_y = world_size.height as u32 / CHUNK_SIZE_U;
+    let max_chunk_x = world_size.x / CHUNK_SIZE_U;
+    let max_chunk_y = world_size.y / CHUNK_SIZE_U;
 
     if right > max_chunk_x {
         right = max_chunk_x;

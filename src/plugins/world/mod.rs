@@ -15,7 +15,7 @@ pub(crate) const WORLD_RENDER_LAYER: RenderLayers = RenderLayers::layer(26);
 pub(super) type CameraFov = Rect;
 pub(super) type ChunkRange = URect;
 
-#[derive(Resource, Deref)]
+#[derive(Resource, Deref, Clone, Copy)]
 pub(crate) struct WorldSize(UVec2);
 
 pub(crate) struct WorldPlugin;

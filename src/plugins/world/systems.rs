@@ -47,7 +47,7 @@ pub(super) fn spawn_terrain(mut commands: Commands) {
     let world_data = generate_world(seed, WorldSize::Tiny);
 
     commands.insert_resource(WorldUndergroundLevel(world_data.layer.underground as u32));
-    commands.insert_resource(super::WorldSize(UVec2::new(world_data.size.width as u32, world_data.size.height as u32)));
+    commands.insert_resource(super::WorldSize(world_data.area.size()));
     commands.insert_resource(world_data);
     commands.insert_resource(NextState(Some(GameState::InGame)));
 }
@@ -122,7 +122,7 @@ pub(super) fn spawn_chunks(
 ) {
     if let Ok((camera_transform, projection)) = query_camera.get_single() {
         let camera_fov = get_camera_fov(camera_transform.translation().xy(), projection);
-        let chunk_range = get_chunk_range_by_camera_fov(camera_fov, world_data.size);
+        let chunk_range = get_chunk_range_by_camera_fov(camera_fov, world_data.area.size());
 
         for y in chunk_range.min.y..=chunk_range.max.y {
             for x in chunk_range.min.x..=chunk_range.max.x {
@@ -147,7 +147,7 @@ pub(super) fn despawn_chunks(
 ) {
     if let Ok((camera_transform, projection)) = query_camera.get_single() {
         let camera_fov = get_camera_fov(camera_transform.translation().xy(), projection);
-        let chunk_range = get_chunk_range_by_camera_fov(camera_fov, world_data.size);
+        let chunk_range = get_chunk_range_by_camera_fov(camera_fov, world_data.area.size());
 
         chunks.for_each(|(entity, ChunkContainer { pos })| {
             if !chunk_range.contains(*pos) {
@@ -522,10 +522,7 @@ pub(super) fn handle_update_neighbors_event(
     mut update_block_events: EventWriter<UpdateBlockEvent>
 ) {
     for UpdateNeighborsEvent { tile_pos } in events.iter() {
-        let map_size = TilemapSize {
-            x: world_data.size.width as u32,
-            y: world_data.size.height as u32,
-        };
+        let map_size = TilemapSize::from(world_data.area.size());
         
         let neighbor_positions = Neighbors::get_square_neighboring_positions(tile_pos, &map_size, true);
 

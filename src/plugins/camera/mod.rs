@@ -39,8 +39,15 @@ impl Plugin for CameraPlugin {
 
         app.add_systems(OnEnter(GameState::InGame), systems::init_camera_position);
 
-        app.add_systems(Update, systems::zoom.in_set(InGameSystemSet::Update));
-        app.add_systems(PostUpdate, systems::update_camera_scale.in_set(InGameSystemSet::PostUpdate));
+        app.add_systems(
+            Update,
+            (
+                systems::zoom,
+                systems::update_camera_scale
+            )
+            .chain()
+            .in_set(InGameSystemSet::Update)
+        );
 
         #[cfg(feature = "debug")]
         let move_camera = (

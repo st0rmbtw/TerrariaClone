@@ -29,13 +29,13 @@ pub(crate) fn init_tiles_texture(
     world_data: Res<WorldData>,
     mut images: ResMut<Assets<Image>>,
 ) {
-    let mut bytes = vec![1u8; world_data.size.width * world_data.size.height];
+    let mut bytes = vec![1u8; world_data.width() * world_data.height()];
 
-    for y in 0..world_data.size.height {
-        for x in 0..world_data.size.width {
+    for y in 0..world_data.height() {
+        for x in 0..world_data.width() {
             let block_exists = world_data.solid_block_exists((x, y));
             let wall_exists = world_data.wall_exists((x, y));
-            let index = (y * world_data.size.width) + x;
+            let index = (y * world_data.width()) + x;
 
             if block_exists {
                 bytes[index] = 1;
@@ -49,8 +49,8 @@ pub(crate) fn init_tiles_texture(
 
     let mut image = Image::new_fill(
         Extent3d {
-            width: world_data.size.width as u32,
-            height: world_data.size.height as u32,
+            width: world_data.area.width(),
+            height: world_data.area.height(),
             ..default()
         },
         TextureDimension::D2,
@@ -69,13 +69,12 @@ pub(crate) fn init_light_map_texture(
     light_smoothness: Res<LightSmoothness>,
     mut images: ResMut<Assets<Image>>,
 ) {
-    let width = world_data.size.width as u32 * light_smoothness.subdivision();
-    let height = world_data.size.height as u32 * light_smoothness.subdivision();
+    let size = world_data.area.size() * light_smoothness.subdivision();
 
     let mut texture = Image::new_fill(
         Extent3d {
-            width,
-            height,
+            width: size.x,
+            height: size.y,
             ..Default::default()
         },
         TextureDimension::D2,
@@ -109,7 +108,7 @@ pub(crate) fn handle_update_tiles_texture_event(
         let x = event.tile_pos.x as usize;
         let y = event.tile_pos.y as usize;
 
-        let index = y * world_data.size.width + x;
+        let index = y * world_data.width() + x;
 
         if wall_exists || y >= world_data.layer.underground {
             image.data[index] = 2;
@@ -124,7 +123,7 @@ pub(crate) fn handle_update_tiles_texture_event(
         let x = event.tile_pos.x as usize;
         let y = event.tile_pos.y as usize;
 
-        let index = y * world_data.size.width + x;
+        let index = y * world_data.width() + x;
 
         image.data[index] = 1;
     }

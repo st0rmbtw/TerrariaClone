@@ -1,6 +1,6 @@
 use bevy::{prelude::{Commands, State, Res, DetectChanges, ResMut}, render::Extract};
 
-use crate::{common::state::GameState, plugins::{config::LightSmoothness, world::resources::WorldUndergroundLevel}};
+use crate::{common::state::GameState, plugins::{config::LightSmoothness, world::{resources::WorldUndergroundLevel, WorldSize}}};
 
 use super::{BackgroundTexture, InGameBackgroundTexture, WorldTexture, MainTexture, TileTexture, LightMapTexture, lightmap::assets::BlurArea};
 
@@ -37,6 +37,17 @@ pub(super) fn extract_world_underground_level(
 
     if underground_level.is_changed() {
         commands.insert_resource(**underground_level);
+    }
+}
+
+pub(super) fn extract_world_size(
+    mut commands: Commands,
+    res_world_size: Extract<Option<Res<WorldSize>>>,
+) {
+    let Some(world_size) = res_world_size.as_ref() else { return; };
+
+    if world_size.is_changed() {
+        commands.insert_resource(**world_size);
     }
 }
 

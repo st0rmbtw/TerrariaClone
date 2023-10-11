@@ -47,19 +47,19 @@ impl WorldData {
         write_i32(0, world_writer)?;
 
         // Right world
-        write_i32((self.size.width * 16) as i32, world_writer)?;
+        write_i32((self.width() * 16) as i32, world_writer)?;
 
         // Top world
         write_i32(0, world_writer)?;
 
         // Bottom world
-        write_i32((self.size.height * 16) as i32, world_writer)?;
+        write_i32((self.height() * 16) as i32, world_writer)?;
 
         // World height
-        write_i32(self.size.height as i32, world_writer)?;
+        write_i32(self.height() as i32, world_writer)?;
 
         // World width
-        write_i32(self.size.width as i32, world_writer)?;
+        write_i32(self.width() as i32, world_writer)?;
 
         // Moon type
         write_i8(1, world_writer)?;
@@ -76,9 +76,9 @@ impl WorldData {
         write_i32(0, world_writer)?;
 
         // Caveback x
-        write_i32((self.size.width / 2) as i32, world_writer)?;
-        write_i32(self.size.width as i32, world_writer)?;
-        write_i32(self.size.width as i32, world_writer)?;
+        write_i32((self.width() / 2) as i32, world_writer)?;
+        write_i32(self.width() as i32, world_writer)?;
+        write_i32(self.width() as i32, world_writer)?;
 
         // Tree style
         write_i32(0, world_writer)?;
@@ -262,8 +262,8 @@ impl WorldData {
     }
 
     fn save_world_tiles<W: Write>(&self, writer: &mut BufWriter<W>) -> std::io::Result<()> {
-        for x in 0..self.size.width {
-            for y in 0..self.size.height {
+        for x in 0..self.width() {
+            for y in 0..self.height() {
                 let block = self.blocks[(y, x)];
                 let wall = self.walls[(y, x)];
 

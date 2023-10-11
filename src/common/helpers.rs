@@ -1,10 +1,10 @@
 use std::f32::consts::PI;
 
-use bevy::{prelude::{Visibility, Vec2, Mut}, math::vec2};
+use bevy::{prelude::{Visibility, Vec2, Mut, UVec2}, math::vec2};
 use bevy_ecs_tilemap::tiles::TilePos;
 use rand::{thread_rng, Rng};
 
-use crate::{plugins::world::constants::TILE_SIZE, world::{block::BlockType, wall::Wall, Size}};
+use crate::{plugins::world::constants::TILE_SIZE, world::{block::BlockType, wall::Wall}};
 
 use super::TextureAtlasPos;
 
@@ -34,9 +34,11 @@ pub(crate) fn set_visibility(mut visibility: Mut<Visibility>, visible: bool) {
     }
 }
 
-pub(crate) fn get_tile_pos_from_world_coords(world_size: Size, world_coords: Vec2) -> TilePos {
+pub(crate) fn get_tile_pos_from_world_coords(world_size: UVec2, world_coords: Vec2) -> TilePos {
+    let world_size = world_size - UVec2::ONE;
+
     let tile_pos = (vec2(world_coords.x, world_coords.y.abs()) / TILE_SIZE)
-        .min(vec2(world_size.width as f32, world_size.height as f32));
+        .min(world_size.as_vec2());
 
     TilePos::new(tile_pos.x as u32, tile_pos.y as u32)
 }

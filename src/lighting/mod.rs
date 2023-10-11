@@ -90,6 +90,7 @@ impl Plugin for LightingPlugin {
                 (
                     extract::extract_textures,
                     extract::extract_world_underground_level,
+                    extract::extract_world_size,
                     extract::extract_state,
                     (
                         extract::extract_light_smoothness,

@@ -123,7 +123,7 @@ pub(super) fn use_item(
         let selected_item_index = inventory.selected_slot();
 
         if let Some(item_stack) = inventory.selected_item() {
-            let tile_pos = helpers::get_tile_pos_from_world_coords(world_data.size, cursor_position.world);
+            let tile_pos = helpers::get_tile_pos_from_world_coords(world_data.area.size(), cursor_position.world);
 
             match item_stack.item {
                 Item::Tool(tool) => {

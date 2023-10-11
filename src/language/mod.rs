@@ -222,7 +222,7 @@ impl LocalizedText {
             self.cached_text = Some(self.format(language_content));
         }
 
-        return self.cached_text.clone().unwrap();
+        self.cached_text.clone().unwrap()
     }
 }
 
