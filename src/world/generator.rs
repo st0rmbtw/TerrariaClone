@@ -60,15 +60,17 @@ pub(crate) fn generate_world(seed: u32, world_size: WorldSize) -> WorldData {
 
     spawn_terrain(&mut world);
 
-    make_hills(&mut world, seed);
+    make_hills(&mut world, seed);   
 
     generate_walls(&mut world);
 
     generate_big_caves(&mut world, seed);
 
-    generate_small_caves(&mut world, seed);   
+    generate_small_caves(&mut world, seed);
 
     generate_dirt_in_rocks(&mut world, seed);
+
+    extend_terrain(&mut world);
 
     grassify(&mut world);
 
@@ -88,7 +90,13 @@ pub(crate) fn generate_world(seed: u32, world_size: WorldSize) -> WorldData {
 fn spawn_terrain(world: &mut WorldData) {
     println!("Generating terrain...");
 
-    for ((y, _), block) in world.blocks.indexed_iter_mut() {
+    let playable_area_min_x = world.playable_area.min.x as usize;
+    let playable_area_max_x = world.playable_area.max.x as usize;
+
+    for ((y, _), block) in world.blocks
+        .slice_mut(s![.., playable_area_min_x..playable_area_max_x])
+        .indexed_iter_mut() 
+    {
         if y >= world.layer.surface {
             *block = None;
         }
@@ -110,23 +118,25 @@ fn make_hills(world: &mut WorldData, seed: u32) {
 
     let level = world.layer.underground - world.layer.dirt_height;
     
-    let fbm = NoiseBuilder::fbm_1d(world.width())
+    let fbm = NoiseBuilder::fbm_1d(world.playable_width())
         .with_seed(rng.gen())
         .with_freq(0.005)
         .with_octaves(3)
         .generate_scaled(0., 1.);
 
-    let gradient = NoiseBuilder::gradient_1d(world.width())
+    let gradient = NoiseBuilder::gradient_1d(world.playable_width())
         .with_seed(rng.gen())
         .with_freq(0.01)
         .generate_scaled(0., 1.);
 
-    for i in 0..world.width() {
-        let block_x = i;
-        let noise_value = fbm[i] * gradient[i];
+    let playable_area_min_x = world.playable_area.min.x as usize;
+    let playable_area_max_x = world.playable_area.max.x as usize;
+
+    for x in playable_area_min_x..playable_area_max_x {
+        let noise_value = fbm[x - playable_area_min_x] * gradient[x - playable_area_min_x];
 
         let hill_height = level - (noise_value * DIRT_HILL_HEIGHT as f32) as usize;
-        world.blocks.slice_mut(s![hill_height..level, block_x]).fill(Some(BlockType::Dirt.into()));
+        world.blocks.slice_mut(s![hill_height..level, x]).fill(Some(BlockType::Dirt.into()));
     }
 }
 
@@ -135,32 +145,37 @@ fn rough_cavern_layer_border(world: &mut WorldData, seed: u32) {
 
     let level = world.layer.underground;
     
-    let noise = NoiseBuilder::gradient_1d(world.width())
+    let noise = NoiseBuilder::gradient_1d(world.playable_width())
         .with_seed(rng.gen())
         .with_freq(0.1)
         .generate_scaled(-1., 0.);
 
     const ROUGHNESS: f32 = 20.;
 
-    for (block_x, noise_value) in noise.iter().enumerate() {
+    let playable_area_min_x = world.playable_area.min.x as usize;
+    let playable_area_max_x = world.playable_area.max.x as usize;
+
+    for x in playable_area_min_x..playable_area_max_x {
+        let noise_value = noise[x - playable_area_min_x];
+
         let x_offset = {
             let offset = rng.gen_range(-5f32..5f32);
 
-            ((block_x as f32 + offset) as usize).clamp(0, world.width() - 1)
+            ((x as f32 + offset) as usize).clamp(0, world.width() - 1)
         };
 
-        let x_range = if block_x < x_offset {
-            block_x..=x_offset
+        let x_range = if x < x_offset {
+            x..=x_offset
         } else {
-            x_offset..=block_x
+            x_offset..=x
         };
 
         let hill_height = level - (noise_value.abs() * ROUGHNESS) as usize;
         
-        if block_x != x_offset {
+        if x != x_offset {
             world.blocks.slice_mut(s![level..hill_height, x_range]).fill(Some(BlockType::Dirt.into()));
         } else {
-            world.blocks.slice_mut(s![level..hill_height, block_x]).fill(Some(BlockType::Dirt.into()));
+            world.blocks.slice_mut(s![level..hill_height, x]).fill(Some(BlockType::Dirt.into()));
         }
     }
 }
@@ -204,9 +219,13 @@ fn generate_dirt_in_rocks(world: &mut WorldData, seed: u32) {
 }
 
 fn generate_dirt(world: &mut WorldData, seed: u32, from: usize, to: usize, freq: f32, min_prevalence: f32, max_prevalence: f32) {
-    let world_width = world.width();
+    let world_width = world.playable_width();
 
-    let mut slice = world.blocks.slice_mut(s![from..to, ..]);
+    let playable_area_min_x = world.playable_area.min.x as usize;
+    let playable_area_max_x = world.playable_area.max.x as usize;
+
+    let mut slice = world.blocks
+        .slice_mut(s![from..to, playable_area_min_x..playable_area_max_x]);
 
     let height = slice.nrows();
 
@@ -237,14 +256,18 @@ fn generate_rocks_in_dirt(world: &mut WorldData, seed: u32) {
     let dirt_level = world.layer.underground - world.layer.dirt_height - DIRT_HILL_HEIGHT;
     let underground_level = world.layer.underground;
 
-    let noise = NoiseBuilder::fbm_2d(world.width(), underground_level - dirt_level)
+    let noise = NoiseBuilder::fbm_2d(world.playable_width(), underground_level - dirt_level)
         .with_seed(seed as i32)
         .with_freq(0.15)
         .generate_scaled(-1., 1.);
 
-    let world_width = world.width();
+    let world_width = world.playable_width();
 
-    let mut slice = world.blocks.slice_mut(s![dirt_level..underground_level, ..]);
+    let playable_area_min_x = world.playable_area.min.x as usize;
+    let playable_area_max_x = world.playable_area.max.x as usize;
+
+    let mut slice = world.blocks
+        .slice_mut(s![dirt_level..underground_level, playable_area_min_x..playable_area_max_x]);
 
     for ((y, x), block) in slice.indexed_iter_mut() {
         let index = (y * world_width) + x;
@@ -294,12 +317,15 @@ fn generate_small_caves(world: &mut WorldData, seed: u32) {
         .set_frequency(1.5);
 
     let noise_map = PlaneMapBuilder::<_, 2>::new(noise)
-        .set_size(world.width(), world.height() - underground_level + 10)
+        .set_size(world.playable_width(), world.height() - underground_level + 10)
         .set_x_bounds(-60., 60.)
         .set_y_bounds(-30., 30.)
         .build();
 
-    for ((y, x), block) in world.blocks.slice_mut(s![underground_level..world.height() - 10, ..]).indexed_iter_mut() {
+    let playable_area_min_x = world.playable_area.min.x as usize;
+    let playable_area_max_x = world.playable_area.max.x as usize;        
+
+    for ((y, x), block) in world.blocks.slice_mut(s![underground_level..world.height() - 10, playable_area_min_x..playable_area_max_x]).indexed_iter_mut() {
         let noise_value = noise_map.get_value(x, y);
 
         if noise_value < -0.3 {
@@ -596,7 +622,10 @@ fn grow_trees(world: &mut WorldData, seed: u32) {
 
     let mut rng = StdRng::seed_from_u64(seed as u64);
 
-    for x in 0..world.width() {
+    let playable_area_min_x = world.playable_area.min.x as usize;
+    let playable_area_max_x = world.playable_area.max.x as usize;
+
+    for x in playable_area_min_x..playable_area_max_x {
         let y = get_surface_block_y(world, x);
 
         let grow = rng.gen_bool(1. / 5.);
@@ -613,6 +642,19 @@ fn grow_trees(world: &mut WorldData, seed: u32) {
         }
     }
 
+}
+
+fn extend_terrain(world: &mut WorldData) {
+    let playable_area_min_x = world.playable_area.min.x as usize;
+    let playable_area_max_x = world.playable_area.max.x as usize;
+
+    for y in 0..world.height() {
+        let block_start = world.get_block((playable_area_min_x, y)).copied();
+        let block_end = world.get_block((playable_area_max_x - 1, y)).copied();
+
+        world.blocks.slice_mut(s![y, 0..playable_area_min_x]).fill(block_start);
+        world.blocks.slice_mut(s![y, playable_area_max_x..world.width()]).fill(block_end);
+    }
 }
 
 fn get_surface_block_y(world: &WorldData, x: usize) -> usize {

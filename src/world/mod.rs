@@ -98,6 +98,7 @@ impl AsWorldPos for (u32, u32) {
     fn y(&self) -> usize { self.1 as usize }
 }
 
+#[allow(dead_code)]
 impl WorldData {
     #[inline(always)]
     pub(crate) fn width(&self) -> usize {
@@ -107,6 +108,16 @@ impl WorldData {
     #[inline(always)]
     pub(crate) fn height(&self) -> usize {
         self.area.height() as usize
+    }
+
+    #[inline(always)]
+    pub(crate) fn playable_width(&self) -> usize {
+        self.playable_area.width() as usize
+    }
+
+    #[inline(always)]
+    pub(crate) fn playable_height(&self) -> usize {
+        self.playable_area.height() as usize
     }
 
     #[inline]

@@ -248,12 +248,8 @@ impl From<ItemStringKey> for LocalizedText {
 }
 
 macro_rules! args {
-    [] => {
-        std::sync::Arc::new([])
-    };
-
-    [$($i:expr),+] => {
-        std::sync::Arc::new([$(std::boxed::Box::new($i)),+])
+    [$($i:expr),*] => {
+        std::sync::Arc::new([$(std::boxed::Box::new($i)),*])
     };
 }
 
