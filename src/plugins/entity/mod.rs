@@ -42,12 +42,18 @@ fn update_entity_rect(
     world_data: Res<WorldData>,
     mut query: Query<(&mut EntityRect, &Velocity)>
 ) {
-    for (mut entity_rect, velocity) in &mut query {
-        let min_x: f32 = entity_rect.half_width() + world_data.playable_area.min.x as f32 * TILE_SIZE;
-        let min_y: f32 = -(world_data.playable_area.height() as f32) * TILE_SIZE;
+    let playable_min_x = world_data.playable_area.min.x as f32 * TILE_SIZE;
+    let playable_max_x = world_data.playable_area.max.x as f32 * TILE_SIZE;
 
-        let max_x = world_data.playable_area.max.x as f32 * TILE_SIZE - entity_rect.half_width();
-        let max_y: f32 = -entity_rect.half_height();
+    let playable_min_y = world_data.playable_area.min.y as f32 * TILE_SIZE;
+    let playable_max_y = world_data.playable_area.max.y as f32 * TILE_SIZE;
+
+    for (mut entity_rect, velocity) in &mut query {
+        let min_x = playable_min_x + entity_rect.half_width();
+        let max_x = playable_max_x - entity_rect.half_width();
+
+        let min_y = -playable_max_y + entity_rect.half_height();
+        let max_y = -playable_min_y - entity_rect.half_height();
 
         let new_position = (entity_rect.center() + velocity.0)
             .clamp(vec2(min_x, min_y), vec2(max_x, max_y));

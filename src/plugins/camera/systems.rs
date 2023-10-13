@@ -120,7 +120,7 @@ pub(super) fn follow_player(
     query_move_camera.for_each_mut(|mut camera_transform| {
         let camera_pos = camera_transform.translation.xy();
 
-        let new_pos = camera_pos.lerp(player_pos, 0.4);
+        let new_pos = camera_pos.lerp(player_pos, 0.8);
 
         camera_transform.translation.x = new_pos.x;
         camera_transform.translation.y = new_pos.y;

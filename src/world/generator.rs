@@ -186,25 +186,7 @@ fn generate_walls(world: &mut WorldData) {
     let dirt_level = world.layer.underground - world.layer.dirt_height - DIRT_HILL_HEIGHT;
     let underground_level = world.layer.underground;
 
-    let world_width = world.width();
-
-    for ((y, x), wall) in world.walls.slice_mut(s![dirt_level..underground_level, ..]).indexed_iter_mut() {
-        let block_not_exists = |y: usize, x: usize| -> bool {
-            world.blocks.get((y, x)).and_then(|b| b.as_ref()).is_none()
-        };
-
-        let prev_x = x.saturating_sub(1);
-        let next_x = (x + 1).clamp(0, world_width);
-
-        if block_not_exists(dirt_level + y - 1, x) { continue; }
-        if block_not_exists(dirt_level + y + 1, x) { continue; }
-        if block_not_exists(dirt_level + y, prev_x) { continue; }
-        if block_not_exists(dirt_level + y, next_x) { continue; }
-        if block_not_exists(dirt_level + y - 1, prev_x) { continue; }
-        if block_not_exists(dirt_level + y + 1, prev_x) { continue; }
-        if block_not_exists(dirt_level + y + 1, next_x) { continue; }
-        if block_not_exists(dirt_level + y - 1, next_x) { continue; }
-
+    for wall in world.walls.slice_mut(s![dirt_level..underground_level, ..]).iter_mut() {
         *wall = Some(Wall::Dirt);
     }
 }
@@ -323,13 +305,13 @@ fn generate_small_caves(world: &mut WorldData, seed: u32) {
         .build();
 
     let playable_area_min_x = world.playable_area.min.x as usize;
-    let playable_area_max_x = world.playable_area.max.x as usize;        
+    let playable_area_max_x = world.playable_area.max.x as usize;    
 
     for ((y, x), block) in world.blocks.slice_mut(s![underground_level..world.height() - 10, playable_area_min_x..playable_area_max_x]).indexed_iter_mut() {
         let noise_value = noise_map.get_value(x, y);
 
         if noise_value < -0.3 {
-            *block = None; 
+            *block = None;
         }
     }
 }
@@ -652,8 +634,14 @@ fn extend_terrain(world: &mut WorldData) {
         let block_start = world.get_block((playable_area_min_x, y)).copied();
         let block_end = world.get_block((playable_area_max_x - 1, y)).copied();
 
+        let wall_start = world.get_wall((playable_area_min_x + 1 + 1, y)).copied();
+        let wall_end = world.get_wall((playable_area_max_x - 1 - 1, y)).copied();
+
         world.blocks.slice_mut(s![y, 0..playable_area_min_x]).fill(block_start);
         world.blocks.slice_mut(s![y, playable_area_max_x..world.width()]).fill(block_end);
+
+        world.walls.slice_mut(s![y, 0..playable_area_min_x + 1]).fill(wall_start);
+        world.walls.slice_mut(s![y, (playable_area_max_x - 1)..world.width()]).fill(wall_end);
     }
 }
 
@@ -686,7 +674,7 @@ fn get_surface_wall_y(world: &WorldData, x: usize) -> usize {
 }
 
 fn set_spawn_point(world: &mut WorldData) {
-    let x = world.playable_area.width() as usize / 2;
+    let x = world.area.width() as usize / 2;
     let y = get_surface_block_y(world, x - 1).min(get_surface_block_y(world, x));
 
     world.spawn_point = TilePos::new(x as u32, y as u32);
