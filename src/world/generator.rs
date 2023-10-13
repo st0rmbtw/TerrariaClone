@@ -32,8 +32,8 @@ pub(crate) fn generate_world(seed: u32, world_size: WorldSize) -> WorldData {
 
     let world_size = world_size.size();
 
-    let area = URect::from_corners(UVec2::ZERO, UVec2::new(world_size.width as u32, world_size.height as u32) + UVec2::new(16, 0));
-    let playable_area = URect::from_corners(area.min + UVec2::new(8, 0), area.max - UVec2::new(8, 0));
+    let area = URect::from_corners(UVec2::ZERO, UVec2::new(world_size.width as u32, world_size.height as u32) + UVec2::new(16, 1));
+    let playable_area = URect::from_corners(area.min + UVec2::new(8, 0), area.max - UVec2::new(8, 1));
 
     let blocks = BlockArray::default((area.height() as usize, area.width() as usize));
     let walls = WallArray::default((area.height() as usize, area.width() as usize));
@@ -93,8 +93,11 @@ fn spawn_terrain(world: &mut WorldData) {
     let playable_area_min_x = world.playable_area.min.x as usize;
     let playable_area_max_x = world.playable_area.max.x as usize;
 
+    let playable_area_min_y = world.playable_area.min.y as usize;
+    let playable_area_max_y = world.playable_area.max.y as usize;
+
     for ((y, _), block) in world.blocks
-        .slice_mut(s![.., playable_area_min_x..playable_area_max_x])
+        .slice_mut(s![playable_area_min_y..playable_area_max_y, playable_area_min_x..playable_area_max_x])
         .indexed_iter_mut() 
     {
         if y >= world.layer.surface {
@@ -307,7 +310,7 @@ fn generate_small_caves(world: &mut WorldData, seed: u32) {
     let playable_area_min_x = world.playable_area.min.x as usize;
     let playable_area_max_x = world.playable_area.max.x as usize;    
 
-    for ((y, x), block) in world.blocks.slice_mut(s![underground_level..world.height() - 10, playable_area_min_x..playable_area_max_x]).indexed_iter_mut() {
+    for ((y, x), block) in world.blocks.slice_mut(s![underground_level..world.playable_height() - 10, playable_area_min_x..playable_area_max_x]).indexed_iter_mut() {
         let noise_value = noise_map.get_value(x, y);
 
         if noise_value < -0.3 {
@@ -630,7 +633,10 @@ fn extend_terrain(world: &mut WorldData) {
     let playable_area_min_x = world.playable_area.min.x as usize;
     let playable_area_max_x = world.playable_area.max.x as usize;
 
-    for y in 0..world.height() {
+    let playable_area_min_y = world.playable_area.min.y as usize;
+    let playable_area_max_y = world.playable_area.max.y as usize;
+
+    for y in playable_area_min_y..playable_area_max_y {
         let block_start = world.get_block((playable_area_min_x, y)).copied();
         let block_end = world.get_block((playable_area_max_x - 1, y)).copied();
 
@@ -642,6 +648,12 @@ fn extend_terrain(world: &mut WorldData) {
 
         world.walls.slice_mut(s![y, 0..playable_area_min_x + 1]).fill(wall_start);
         world.walls.slice_mut(s![y, (playable_area_max_x - 1)..world.width()]).fill(wall_end);
+    }
+
+    for x in playable_area_min_x..playable_area_max_x {
+        let block_bottom = world.get_block((x, playable_area_max_y - 1)).copied();
+
+        world.blocks.slice_mut(s![playable_area_max_y..world.height(), x]).fill(block_bottom);
     }
 }
 

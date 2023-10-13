@@ -136,7 +136,7 @@ pub(super) fn detect_collisions(
 
     'outer: for x in left_u32..right_u32 {
         for y in top_u32..bottom_u32 {
-            if y >= world_data.area.height() || world_data.solid_block_exists((x, y)) {
+            if y >= world_data.playable_area.max.y || world_data.solid_block_exists((x, y)) {
                 let tile_rect = FRect::new_center(
                     x as f32 * TILE_SIZE + TILE_SIZE / 2.,
                     -(y as f32 * TILE_SIZE + TILE_SIZE / 2.),
