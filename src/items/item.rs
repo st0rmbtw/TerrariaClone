@@ -1,4 +1,4 @@
-use super::{ItemTool, ItemSeed, ItemBlock};
+use super::{ItemTool, ItemSeed, ItemBlock, ItemWall};
 
 pub(crate) type Stack = u16;
 
@@ -6,7 +6,8 @@ pub(crate) type Stack = u16;
 pub(crate) enum Item {
     Tool(ItemTool),
     Block(ItemBlock),
-    Seed(ItemSeed)
+    Seed(ItemSeed),
+    Wall(ItemWall)
 }
 
 impl Item {
@@ -27,7 +28,7 @@ impl Item {
     pub(crate) const fn swing_cooldown(&self) -> u32 {
         match self {
             Item::Tool(tool) => tool.swing_cooldown(),
-            Item::Block(_) | Item::Seed(_) => 15,
+            Item::Block(_) | Item::Seed(_) | Item::Wall(_) => 15,
         }
     }
 }
@@ -49,6 +50,10 @@ impl ItemStack {
 
     pub(crate) const fn new_seed(seed: ItemSeed) -> Self {
         ItemStack { item: Item::Seed(seed), stack: 1 }
+    }
+
+    pub(crate) const fn new_wall(wall: ItemWall) -> Self {
+        ItemStack { item: Item::Wall(wall), stack: 1 }
     }
 
     pub(crate) fn with_stack(mut self, stack: Stack) -> Self {

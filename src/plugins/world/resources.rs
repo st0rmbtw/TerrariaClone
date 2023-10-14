@@ -3,7 +3,7 @@ use bevy_ecs_tilemap::tiles::{TilePos, TileStorage, TileTextureIndex};
 
 use crate::world::{chunk::{ChunkPos, Chunk, ChunkType}, block::{BlockType, Block}};
 
-use super::{systems::{spawn_block, spawn_cracks}, utils::{get_chunk_pos, get_chunk_tile_pos}};
+use super::{systems::{spawn_block, spawn_cracks, spawn_wall}, utils::{get_chunk_pos, get_chunk_tile_pos}};
 
 #[derive(Resource, Clone, Copy, Default)]
 pub(crate) struct WorldUndergroundLevel(pub(crate) u32);
@@ -28,6 +28,20 @@ impl ChunkManager {
             .iter()
             .find(|(chunk, _)| {
                 ChunkManager::filter_chunk(chunk, chunk_pos, block_type)
+            });
+
+        filtered_chunk.and_then(|(_, storage)| storage.get(&chunk_tile_pos))
+    }
+
+    pub(super) fn get_wall_entity(
+        query_chunk: &Query<(&Chunk, &TileStorage)>,
+        chunk_pos: UVec2,
+        chunk_tile_pos: TilePos,
+    ) -> Option<Entity> {
+        let filtered_chunk = query_chunk
+            .iter()
+            .find(|(chunk, _)| {
+                chunk.pos == chunk_pos && chunk.chunk_type == ChunkType::Wall
             });
 
         filtered_chunk.and_then(|(_, storage)| storage.get(&chunk_tile_pos))
@@ -74,6 +88,28 @@ impl ChunkManager {
 
         if let Some((_, mut tile_storage, tilemap_entity)) = filtered_chunk {
             let tile_entity = spawn_block(commands, *block, chunk_tile_pos, tilemap_entity, index);
+            commands.entity(tilemap_entity).add_child(tile_entity);
+            tile_storage.set(&chunk_tile_pos, tile_entity);
+        }
+    }
+
+    pub(super) fn spawn_wall(
+        commands: &mut Commands,
+        query_chunk: &mut Query<(&Chunk, &mut TileStorage, Entity)>,
+        tile_pos: TilePos,
+        index: u32,
+    ) {
+        let chunk_pos = get_chunk_pos(tile_pos);
+        let chunk_tile_pos = get_chunk_tile_pos(tile_pos);
+
+        let filtered_chunk = query_chunk
+            .iter_mut()
+            .find(|(chunk, _, _)| {
+                chunk.pos == chunk_pos && chunk.chunk_type == ChunkType::Wall
+            });
+
+        if let Some((_, mut tile_storage, tilemap_entity)) = filtered_chunk {
+            let tile_entity = spawn_wall(commands, chunk_tile_pos, tilemap_entity, index);
             commands.entity(tilemap_entity).add_child(tile_entity);
             tile_storage.set(&chunk_tile_pos, tile_entity);
         }

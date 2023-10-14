@@ -5,7 +5,7 @@ use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, With, Query, Visi
 #[cfg(feature = "debug")]
 use bevy_inspector_egui::bevy_egui::EguiContexts;
 
-use crate::{plugins::{ui::ingame::inventory::SLOT_COUNT_IN_ROW, assets::ItemAssets, cursor::position::CursorPosition, world::{events::{DigBlockEvent, PlaceBlockEvent, SeedEvent, BreakBlockEvent}, constants::TILE_SIZE}, player::{FaceDirection, Player, PlayerSpriteBody}, audio::{SoundType, AudioCommandsExt}, camera::components::MainCamera, item::ItemCommandsExt, entity::components::{EntityRect, Velocity}}, common::{helpers::{self, tile_to_world_pos}, rect::FRect}, items::Item, world::{WorldData, block::BlockType}};
+use crate::{plugins::{ui::ingame::inventory::SLOT_COUNT_IN_ROW, assets::ItemAssets, cursor::position::CursorPosition, world::{events::{DigBlockEvent, PlaceBlockEvent, SeedEvent, BreakBlockEvent, BreakWallEvent, DigWallEvent, PlaceWallEvent}, constants::TILE_SIZE}, player::{FaceDirection, Player, PlayerSpriteBody}, audio::{SoundType, AudioCommandsExt}, camera::components::MainCamera, item::ItemCommandsExt, entity::components::{EntityRect, Velocity}}, common::{helpers::{self, tile_to_world_pos}, rect::FRect}, items::{Item, ItemTool}, world::{WorldData, block::BlockType, wall::WallType}};
 
 use super::{Inventory, SelectedItem, util::keycode_to_digit, SwingItemCooldown, ItemInHand, UseItemAnimationIndex, PlayerUsingItem, UseItemAnimationData, SwingItemCooldownMax, ITEM_ROTATION, SwingAnimation, ITEM_ANIMATION_POINTS};
 
@@ -102,8 +102,11 @@ pub(super) fn use_item(
     debug_config: Res<crate::plugins::debug::DebugConfiguration>,
     query_player: Query<&EntityRect, With<Player>>,
     mut dig_block_events: EventWriter<DigBlockEvent>,
+    mut dig_wall_events: EventWriter<DigWallEvent>,
     mut break_block_events: EventWriter<BreakBlockEvent>,
+    mut break_wall_events: EventWriter<BreakWallEvent>,
     mut place_block_events: EventWriter<PlaceBlockEvent>,
+    mut place_wall_events: EventWriter<PlaceWallEvent>,
     mut seed_events: EventWriter<SeedEvent>,
     mut use_cooldown: Local<u32>,
 ) {
@@ -128,21 +131,33 @@ pub(super) fn use_item(
             match item_stack.item {
                 Item::Tool(tool) => {
                     *use_cooldown = tool.use_cooldown();
-                    if !world_data.get_block(tile_pos).is_some_and(|b| b.check_required_tool(tool)) {
-                        return;
-                    }
                     
-                    // Don't break a block if there is a non solid block above it
-                    if tile_pos.y > 0 {
-                        if world_data.solid_block_exists(tile_pos) && world_data.get_block((tile_pos.x, tile_pos.y - 1)).is_some_and(|b| !b.is_solid()) {
-                            return;
-                        }
-                    }
-                    
-                    if instant_break {
-                        break_block_events.send(BreakBlockEvent { tile_pos });    
-                    } else {
-                        dig_block_events.send(DigBlockEvent { tile_pos, tool });
+                    match tool {
+                        ItemTool::Pickaxe(_) | ItemTool::Axe(_) => {
+                            if !world_data.get_block(tile_pos).is_some_and(|b| b.check_required_tool(tool)) {
+                                return;
+                            }
+                            
+                            // Don't break a block if there is a non solid block above it
+                            if tile_pos.y > 0 {
+                                if world_data.solid_block_exists(tile_pos) && world_data.get_block((tile_pos.x, tile_pos.y - 1)).is_some_and(|b| !b.is_solid()) {
+                                    return;
+                                }
+                            }
+                            
+                            if instant_break {
+                                break_block_events.send(BreakBlockEvent { tile_pos });    
+                            } else {
+                                dig_block_events.send(DigBlockEvent { tile_pos, tool });
+                            }
+                        },
+                        ItemTool::Hammer(_) => {
+                            if instant_break {
+                                break_wall_events.send(BreakWallEvent { tile_pos });
+                            } else {
+                                dig_wall_events.send(DigWallEvent { tile_pos, tool });
+                            }
+                        },
                     }
                 },
                 Item::Block(item_block) => {
@@ -160,6 +175,15 @@ pub(super) fn use_item(
                     place_block_events.send(PlaceBlockEvent { tile_pos, block_type });
                     inventory.consume_item(selected_item_index);
                 },
+                Item::Wall(item_wall) => {
+                    if world_data.wall_exists(tile_pos) { return; }
+
+                    let wall_type = WallType::from(item_wall);
+
+                    place_wall_events.send(PlaceWallEvent { tile_pos, wall_type });
+                    inventory.consume_item(selected_item_index);
+
+                }
                 Item::Seed(seed) => {
                     if !world_data.block_exists_with_type(tile_pos, BlockType::Dirt) { return; }
 

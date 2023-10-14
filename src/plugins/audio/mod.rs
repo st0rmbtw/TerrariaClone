@@ -46,6 +46,7 @@ pub(crate) enum SoundType {
     MenuClose,
 
     BlockHit(BlockType),
+    WallHit,
     BlockPlace(BlockType),
 
     PlayerToolSwing(ItemTool),

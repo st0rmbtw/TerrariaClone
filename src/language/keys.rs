@@ -1,4 +1,4 @@
-use crate::items::{Item, ItemTool, ItemSeed, Axe, Pickaxe, ItemBlock};
+use crate::items::{Item, ItemTool, ItemSeed, Axe, Pickaxe, ItemBlock, Hammer, ItemWall};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) enum LanguageStringKey {
@@ -10,6 +10,7 @@ pub(crate) enum LanguageStringKey {
 pub(crate) enum ItemStringKey {
     CopperPickaxe,
     CopperAxe,
+    CopperHammer,
     DirtBlock,
     StoneBlock,
     DirtWall,
@@ -28,12 +29,19 @@ impl ItemStringKey {
                 ItemTool::Axe(axe) => match axe {
                     Axe::CopperAxe => ItemStringKey::CopperAxe,
                 },
+                ItemTool::Hammer(hammer) => match hammer {
+                    Hammer::CopperHammer => ItemStringKey::CopperHammer,
+                }
             },
             Item::Block(block) => match block {
                 ItemBlock::Dirt => ItemStringKey::DirtBlock,
                 ItemBlock::Stone => ItemStringKey::StoneBlock,
                 ItemBlock::Wood => ItemStringKey::Wood,
             },
+            Item::Wall(wall) => match wall {
+                ItemWall::Dirt => ItemStringKey::DirtWall,
+                ItemWall::Stone => ItemStringKey::StoneWall,
+            }
             Item::Seed(seed) => match seed {
                 ItemSeed::Grass => ItemStringKey::GrassSeeds,
             },

@@ -4,7 +4,7 @@ use bevy::{prelude::{Visibility, Vec2, Mut, UVec2}, math::vec2};
 use bevy_ecs_tilemap::tiles::TilePos;
 use rand::{thread_rng, Rng};
 
-use crate::{plugins::world::constants::TILE_SIZE, world::{block::BlockType, wall::Wall}};
+use crate::{plugins::world::constants::TILE_SIZE, world::{block::BlockType, wall::WallType}};
 
 use super::TextureAtlasPos;
 
@@ -18,10 +18,10 @@ pub(crate) const fn get_tile_start_index(block: BlockType) -> TextureAtlasPos {
     }
 }
 
-pub(crate) const fn get_wall_start_index(wall: Wall) -> TextureAtlasPos {
+pub(crate) const fn get_wall_start_index(wall: WallType) -> TextureAtlasPos {
     match wall {
-        Wall::Stone => TextureAtlasPos::ZERO,
-        Wall::Dirt => TextureAtlasPos::new(0, 5),
+        WallType::Stone => TextureAtlasPos::ZERO,
+        WallType::Dirt => TextureAtlasPos::new(0, 5),
     }
 }
 

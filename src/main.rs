@@ -3,7 +3,7 @@
 use std::error::Error;
 
 #[cfg(any(feature = "terraria_world", feature = "world_image"))]
-use game::world::{WorldSize, generator, wall::Wall};
+use game::world::{WorldSize, generator, wall::WallType};
 
 #[cfg(not(any(feature = "world_image", feature = "terraria_world")))]
 fn main() -> Result<(), Box<dyn Error>> {
@@ -72,7 +72,7 @@ pub fn generate_world_image(world_size: WorldSize, seed: u32, draw_layers: bool)
     let playable_area_min_y = world_data.playable_area.min.y as usize;
 
     println!("Saving as image...");
-    
+
     let sky_image = image::io::Reader::open("assets/sprites/backgrounds/Background_0.png")?.decode()?;
     let sky_image_height = sky_image.height() as usize;
     let mut image: RgbImage = ImageBuffer::new(world_data.playable_area.width(), world_data.playable_area.height());
@@ -98,7 +98,7 @@ pub fn generate_world_image(world_size: WorldSize, seed: u32, draw_layers: bool)
     // Draw background
     for y in world_data.layer.underground..world_data.playable_height() {
         for x in 0..world_data.playable_width() {
-            let color = WALL_COLORS[Wall::Dirt.id() as usize];
+            let color = WALL_COLORS[WallType::Dirt.id() as usize];
             image.put_pixel(x as u32, y as u32, image::Rgb(color));
         }
     }

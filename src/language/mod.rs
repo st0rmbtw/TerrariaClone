@@ -72,6 +72,7 @@ struct UI {
 struct Items {
     copper_pickaxe: String,
     copper_axe: String,
+    copper_hammer: String,
     dirt_block: String,
     stone_block: String,
     dirt_wall: String,
@@ -129,6 +130,7 @@ impl LanguageContent {
             LanguageStringKey::Items(item_key) => match item_key {
                 keys::ItemStringKey::CopperPickaxe => &self.items.copper_pickaxe,
                 keys::ItemStringKey::CopperAxe => &self.items.copper_axe,
+                keys::ItemStringKey::CopperHammer => &self.items.copper_hammer,
                 keys::ItemStringKey::DirtBlock => &self.items.dirt_block,
                 keys::ItemStringKey::StoneBlock => &self.items.stone_block,
                 keys::ItemStringKey::DirtWall => &self.items.dirt_wall,

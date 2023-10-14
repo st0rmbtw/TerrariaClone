@@ -4,7 +4,7 @@ pub(crate) mod components;
 use bevy::{prelude::{Plugin, App, FixedUpdate, Vec2, World, Transform, GlobalTransform, Visibility, ComputedVisibility, Commands, IntoSystemConfigs, Update, UVec2, Vec4}, ecs::system::Command, utils::default, sprite::TextureAtlasSprite, time::Time, render::view::RenderLayers};
 use rand::{thread_rng, Rng};
 
-use crate::{lighting::types::LightSource, world::block::BlockType};
+use crate::{lighting::types::LightSource, world::{block::BlockType, wall::WallType}};
 
 use self::components::{ParticleBundle, ParticleData};
 
@@ -51,6 +51,13 @@ impl Particle {
             BlockType::Stone => Some(Particle::Stone),
             BlockType::Grass => Some(Particle::Grass),
             BlockType::Tree(_) | BlockType::Wood => Some(Particle::Wood)
+        }
+    }
+
+    pub(crate) const fn get_by_wall(wall_type: WallType) -> Option<Self> {
+        match wall_type {
+            WallType::Dirt => Some(Particle::Dirt),
+            WallType::Stone => Some(Particle::Stone),
         }
     }
 }

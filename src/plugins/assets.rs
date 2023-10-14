@@ -10,7 +10,7 @@ use bevy_asset_loader::prelude::{AssetCollection, LoadingState, LoadingStateAppE
 use rand::{RngCore, thread_rng};
 use rand::seq::SliceRandom;
 
-use crate::items::{Item, Pickaxe, ItemTool, Axe, ItemSeed, ItemBlock};
+use crate::items::{Item, Pickaxe, ItemTool, Axe, ItemSeed, ItemBlock, Hammer, ItemWall};
 use crate::common::state::GameState;
 use crate::world::block::BlockType;
 
@@ -194,6 +194,12 @@ pub(crate) struct ItemAssets {
     #[asset(path = "sprites/items/Item_3.png")]
     pub(crate) stone_block: Handle<Image>,
 
+    #[asset(path = "sprites/items/Item_30.png")]
+    pub(crate) dirt_wall: Handle<Image>,
+
+    #[asset(path = "sprites/items/Item_26.png")]
+    pub(crate) stone_wall: Handle<Image>,
+
     #[asset(path = "sprites/items/Item_62.png")]
     pub(crate) grass_seed: Handle<Image>,
 
@@ -202,6 +208,9 @@ pub(crate) struct ItemAssets {
 
     #[asset(path = "sprites/items/Item_3506.png")]
     pub(crate) copper_axe: Handle<Image>,
+
+    #[asset(path = "sprites/items/Item_3505.png")]
+    pub(crate) copper_hammer: Handle<Image>,
 
     #[asset(path = "sprites/items/Item_9.png")]
     pub(crate) wood: Handle<Image>,
@@ -217,8 +226,15 @@ impl ItemAssets {
                     ItemBlock::Wood => self.wood.clone_weak(),
                 }
             }
-            Item::Tool(ItemTool::Pickaxe(Pickaxe::CopperPickaxe)) => self.copper_pickaxe.clone_weak(),
-            Item::Tool(ItemTool::Axe(Axe::CopperAxe)) => self.copper_axe.clone_weak(),
+            Item::Wall(wall) => match wall {
+                ItemWall::Dirt => self.dirt_wall.clone_weak(),
+                ItemWall::Stone => self.stone_wall.clone_weak(),
+            }
+            Item::Tool(tool) => match tool {
+                ItemTool::Pickaxe(Pickaxe::CopperPickaxe) => self.copper_pickaxe.clone_weak(),
+                ItemTool::Axe(Axe::CopperAxe) => self.copper_axe.clone_weak(),
+                ItemTool::Hammer(Hammer::CopperHammer) => self.copper_hammer.clone_weak(),
+            }
             Item::Seed(ItemSeed::Grass) => self.grass_seed.clone_weak()
         }
     }
@@ -381,7 +397,8 @@ impl SoundAssets {
             SoundType::BlockHit(block_type) => self.get_by_block(block_type, &mut thread_rng()),
             SoundType::BlockPlace(block_type) => self.get_by_block(block_type, &mut thread_rng()),
             SoundType::PlayerToolSwing(_tool) => self.swing.choose(&mut thread_rng()).unwrap().clone_weak(),
-            SoundType::ItemGrab => self.grab.clone_weak()
+            SoundType::ItemGrab => self.grab.clone_weak(),
+            SoundType::WallHit => self.dig.choose(&mut thread_rng()).unwrap().clone_weak(),
         }
     }
     

@@ -15,7 +15,7 @@ use crate::common::math::map_range_f32;
 use crate::world::block::BlockType;
 
 use super::block::Block;
-use super::wall::Wall;
+use super::wall::WallType;
 use super::tree::{TreeType, TreeFrameType};
 use super::{WorldSize, WorldData, Layer, BlockArray, WallArray, AsWorldPos};
 
@@ -207,7 +207,7 @@ fn generate_walls(world: &mut WorldData) {
         if block_not_exists(dirt_level + y + 1, next_x) { continue; }
         if block_not_exists(dirt_level + y - 1, next_x) { continue; }
 
-        *wall = Some(Wall::Dirt);
+        *wall = Some(WallType::Dirt.into());
     }
 }
 

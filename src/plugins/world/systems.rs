@@ -20,11 +20,11 @@ use bevy_ecs_tilemap::{
 };
 use rand::{thread_rng, Rng};
 
-use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::components::MainCamera, audio::{SoundType, AudioCommandsExt}, DespawnOnGameExit, item::ItemCommandsExt}, common::{state::GameState, TextureAtlasPos, math::map_range_i32, helpers::{tile_to_world_pos, random_point_cone}}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}, WALL_LAYER, TILES_LAYER, items::ItemStack};
+use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::components::MainCamera, audio::{SoundType, AudioCommandsExt}, DespawnOnGameExit, item::ItemCommandsExt, particles::Particle}, common::{state::GameState, TextureAtlasPos, math::map_range_i32, helpers::{tile_to_world_pos, random_point_cone}}, world::{WorldSize, chunk::{Chunk, ChunkType, ChunkContainer, ChunkPos}, WorldData, block::{BlockType, Block}, wall::Wall, tree::TreeFrameType, generator::generate_world}, WALL_LAYER, TILES_LAYER, items::ItemStack};
 
 use super::{
     utils::{get_chunk_pos, get_camera_fov, get_chunk_tile_pos, get_chunk_range_by_camera_fov, self}, 
-    events::{UpdateNeighborsEvent, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent, UpdateBlockEvent, SeedEvent, UpdateCracksEvent},
+    events::{UpdateNeighborsEvent, BreakBlockEvent, DigBlockEvent, PlaceBlockEvent, UpdateBlockEvent, SeedEvent, UpdateCracksEvent, UpdateWallEvent, BreakWallEvent, DigWallEvent, PlaceWallEvent},
     resources::{ChunkManager, WorldUndergroundLevel}, 
     constants::{CHUNK_SIZE_U, WALL_SIZE, CHUNKMAP_SIZE, TREE_SIZE, TREE_BRANCHES_SIZE, TREE_TOPS_SIZE, CHUNK_SIZE, TILE_SIZE}, WORLD_RENDER_LAYER
 };
@@ -252,8 +252,8 @@ pub(super) fn spawn_chunk(
 
             if let Some(wall) = world_data.get_wall(map_tile_pos) {
                 let index = Wall::get_sprite_index(
-                    world_data.get_wall_neighbors(map_tile_pos).map_ref(|w| **w),
-                    *wall
+                    &world_data.get_wall_neighbors(map_tile_pos).map_ref(|w| w.wall_type),
+                    wall.wall_type
                 ).to_wall_index();
 
                 let wall_entity = spawn_wall(commands, chunk_tile_pos, wallmap_entity, index);
@@ -435,7 +435,11 @@ pub(super) fn handle_break_block_event(
 
                 ChunkManager::remove(&mut commands, &mut query_chunk, tile_pos, ChunkType::from(block.block_type));
                 ChunkManager::remove(&mut commands, &mut query_chunk, tile_pos, ChunkType::Cracks);
-                utils::spawn_particles_on_break(&mut commands, block.block_type, tile_pos);
+
+                if let Some(particle) = Particle::get_by_block(block.block_type) {
+                    utils::spawn_particles_on_break(&mut commands, particle, tile_pos);
+                }
+
                 commands.spawn_dropped_item(
                     tile_to_world_pos(tile_pos),
                     Vec2::new(rng.gen_range(-0.5f32..0.5f32), rng.gen_range(0.5f32..1.0f32)) * 3.,
@@ -468,7 +472,9 @@ pub(super) fn handle_dig_block_event(
             if block.hp <= 0 {
                 break_block_events.send(BreakBlockEvent { tile_pos });
             } else {
-                utils::spawn_particles_on_dig(&mut commands, block.block_type, tile_pos);
+                if let Some(particle) = Particle::get_by_block(block.block_type) {
+                    utils::spawn_particles_on_dig(&mut commands, particle, tile_pos);
+                }
 
                 if block.block_type == BlockType::Grass {
                     block.block_type = BlockType::Dirt;
@@ -482,6 +488,67 @@ pub(super) fn handle_dig_block_event(
 
                 commands.play_sound(SoundType::BlockHit(block.block_type));
                 update_block_events.send(UpdateBlockEvent { tile_pos, block: *block });
+                update_neighbors_events.send(UpdateNeighborsEvent { tile_pos });
+                update_cracks_events.send(UpdateCracksEvent { tile_pos, index });
+            }
+        }
+    }
+}
+
+pub(super) fn handle_break_wall_event(
+    mut commands: Commands,
+    mut query_chunk: Query<(&Chunk, &mut TileStorage)>,
+    mut world_data: ResMut<WorldData>,
+    mut break_wall: EventReader<BreakWallEvent>,
+    mut update_neighbors: EventWriter<UpdateNeighborsEvent>,
+) {
+    for &BreakWallEvent { tile_pos } in break_wall.iter() {
+        if let Some(&wall) = world_data.get_wall(tile_pos) {
+            world_data.remove_wall(tile_pos);
+
+            ChunkManager::remove(&mut commands, &mut query_chunk, tile_pos, ChunkType::Wall);
+            ChunkManager::remove(&mut commands, &mut query_chunk, tile_pos, ChunkType::Cracks);
+
+            if let Some(particle) = Particle::get_by_wall(wall.wall_type) {
+                utils::spawn_particles_on_break(&mut commands, particle, tile_pos);
+            }
+
+            commands.play_sound(SoundType::WallHit);
+            update_neighbors.send(UpdateNeighborsEvent { tile_pos });
+        }
+    }
+}
+
+pub(super) fn handle_dig_wall_event(
+    mut commands: Commands,
+    mut world_data: ResMut<WorldData>,
+    mut break_wall_events: EventWriter<BreakWallEvent>,
+    mut update_wall_events: EventWriter<UpdateWallEvent>,
+    mut update_cracks_events: EventWriter<UpdateCracksEvent>,
+    mut update_neighbors_events: EventWriter<UpdateNeighborsEvent>,
+    mut dig_wall_events: EventReader<DigWallEvent>,
+) {
+    let mut rng = thread_rng();
+
+    for &DigWallEvent { tile_pos, tool } in dig_wall_events.iter() {
+        if let Some(wall) = world_data.get_wall_mut(tile_pos) {
+            wall.hp -= tool.power();
+
+            if wall.hp <= 0 {
+                break_wall_events.send(BreakWallEvent { tile_pos });
+            } else {
+                if let Some(particle) = Particle::get_by_wall(wall.wall_type) {
+                    utils::spawn_particles_on_dig(&mut commands, particle, tile_pos);
+                }
+
+                let x = rng.gen_range(0..6);
+                let y = map_range_i32(wall.max_hp(), 0, 0, 3, wall.hp) as u32;
+                let index = TextureAtlasPos::new(x, y).to_2d_index(6);
+
+                wall.cracks_index = Some(index);
+
+                commands.play_sound(SoundType::WallHit);
+                update_wall_events.send(UpdateWallEvent { tile_pos, wall: *wall });
                 update_neighbors_events.send(UpdateNeighborsEvent { tile_pos });
                 update_cracks_events.send(UpdateCracksEvent { tile_pos, index });
             }
@@ -513,6 +580,33 @@ pub(super) fn handle_place_block_event(
 
         update_neighbors.send(UpdateNeighborsEvent { tile_pos });
         commands.play_sound(SoundType::BlockHit(block_type));
+    }
+}
+
+pub(super) fn handle_place_wall_event(
+    mut commands: Commands,
+    mut query_chunk: Query<(&Chunk, &mut TileStorage, Entity)>,
+    mut world_data: ResMut<WorldData>,
+    mut place_wall: EventReader<PlaceWallEvent>,
+    mut update_neighbors: EventWriter<UpdateNeighborsEvent>,
+) {
+    for &PlaceWallEvent { tile_pos, wall_type } in place_wall.iter() {
+        if world_data.wall_exists(tile_pos) { continue; }
+
+        let new_wall = Wall::from(wall_type);
+        
+        world_data.set_wall(tile_pos, new_wall);
+
+        let neighbors = world_data
+            .get_wall_neighbors(tile_pos)
+            .map_ref(|w| w.wall_type);
+        
+        let index = Wall::get_sprite_index(&neighbors, wall_type).to_wall_index();
+
+        ChunkManager::spawn_wall(&mut commands, &mut query_chunk, tile_pos, index);
+
+        update_neighbors.send(UpdateNeighborsEvent { tile_pos });
+        commands.play_sound(SoundType::WallHit);
     }
 }
 
@@ -554,6 +648,28 @@ pub(super) fn handle_update_block_event(
         if let Some(block_entity) = ChunkManager::get_block_entity(&query_chunk, chunk_pos, chunk_tile_pos, block.block_type) {
             if let Ok(mut tile_texture) = query_tile.get_mut(block_entity) {
                 tile_texture.0 = Block::get_sprite_index(&neighbors, &block);
+            }
+        }
+    }
+}
+
+pub(super) fn handle_update_wall_event(
+    mut update_wall_events: EventReader<UpdateWallEvent>,
+    mut query_tile: Query<&mut TileTextureIndex>,
+    query_chunk: Query<(&Chunk, &TileStorage)>,
+    world_data: Res<WorldData>
+) {
+    for &UpdateWallEvent { tile_pos, wall } in update_wall_events.iter() {
+        let neighbors = world_data
+            .get_wall_neighbors(tile_pos)
+            .map_ref(|b| b.wall_type);
+
+        let chunk_pos = get_chunk_pos(tile_pos);
+        let chunk_tile_pos = get_chunk_tile_pos(tile_pos);
+
+        if let Some(wall_entity) = ChunkManager::get_wall_entity(&query_chunk, chunk_pos, chunk_tile_pos) {
+            if let Ok(mut tile_texture) = query_tile.get_mut(wall_entity) {
+                tile_texture.0 = Wall::get_sprite_index(&neighbors, wall.wall_type).to_wall_index();
             }
         }
     }
@@ -609,7 +725,7 @@ fn break_tree(
 
             ChunkManager::remove(commands, chunks, pos, ChunkType::from(block.block_type));
             ChunkManager::remove(commands, chunks, pos, ChunkType::Cracks);
-            utils::spawn_particles_on_break(commands, block.block_type, pos);
+            utils::spawn_particles_on_break(commands, Particle::Wood, pos);
 
             commands.spawn_dropped_item(
                 tile_to_world_pos(pos),

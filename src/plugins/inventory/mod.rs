@@ -7,7 +7,7 @@ use bevy::{prelude::{Plugin, App, IntoSystemConfigs, Update, FixedUpdate, OnExit
 pub(crate) use components::*;
 pub(crate) use resources::*;
 
-use crate::{common::{state::GameState, conditions::mouse_over_ui}, items::{ItemStack, ItemTool, Axe, Pickaxe, ItemSeed, ItemBlock}};
+use crate::{common::{state::GameState, conditions::mouse_over_ui}, items::{ItemStack, ItemTool, Axe, Pickaxe, ItemSeed, ItemBlock, Hammer, ItemWall}};
 
 use super::{InGameSystemSet, ui::InventoryUiVisibility};
 
@@ -83,10 +83,13 @@ fn setup(mut commands: Commands) {
     let mut inventory = Inventory::default();
     inventory.add_item_stack(ItemStack::new_tool(ItemTool::Pickaxe(Pickaxe::CopperPickaxe)));
     inventory.add_item_stack(ItemStack::new_tool(ItemTool::Axe(Axe::CopperAxe)));
+    inventory.add_item_stack(ItemStack::new_tool(ItemTool::Hammer(Hammer::CopperHammer)));
     inventory.add_item_stack(ItemStack::new_block(ItemBlock::Dirt).with_max_stack());
     inventory.add_item_stack(ItemStack::new_block(ItemBlock::Stone).with_max_stack());
     inventory.add_item_stack(ItemStack::new_block(ItemBlock::Wood).with_max_stack());
     inventory.add_item_stack(ItemStack::new_seed(ItemSeed::Grass).with_max_stack());
+    inventory.add_item_stack(ItemStack::new_wall(ItemWall::Dirt).with_max_stack());
+    inventory.add_item_stack(ItemStack::new_wall(ItemWall::Stone).with_max_stack());
 
     commands.insert_resource(inventory);
 }
