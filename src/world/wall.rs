@@ -15,7 +15,7 @@ pub enum WallType {
 
 impl WallType {
     pub fn max_hp(&self) -> i32 {
-        100
+        70
     }
 
     pub fn id(&self) -> WallId {

@@ -260,6 +260,12 @@ pub(super) fn spawn_chunk(
 
                 commands.entity(wallmap_entity).add_child(wall_entity);
                 wall_storage.set(&chunk_tile_pos, wall_entity);
+
+                if let Some(index) = wall.cracks_index {
+                    let cracks_entity = spawn_cracks(commands, chunk_tile_pos, tilemap_entity, index);
+                    commands.entity(tilemap_entity).add_child(cracks_entity);
+                    tile_storage.set(&chunk_tile_pos, cracks_entity);
+                }
             }
         }
     }
@@ -480,7 +486,7 @@ pub(super) fn handle_dig_block_event(
                     block.block_type = BlockType::Dirt;
                 }
 
-                let x = rng.gen_range(0..6);
+                let x = block.cracks_index.map(|index| index / 6).unwrap_or_else(|| rng.gen_range(0..6));
                 let y = map_range_i32(block.max_hp(), 0, 0, 3, block.hp) as u32;
                 let index = TextureAtlasPos::new(x, y).to_2d_index(6);
 
@@ -541,7 +547,7 @@ pub(super) fn handle_dig_wall_event(
                     utils::spawn_particles_on_dig(&mut commands, particle, tile_pos);
                 }
 
-                let x = rng.gen_range(0..6);
+                let x = wall.cracks_index.map(|index| index / 6).unwrap_or_else(|| rng.gen_range(0..6));
                 let y = map_range_i32(wall.max_hp(), 0, 0, 3, wall.hp) as u32;
                 let index = TextureAtlasPos::new(x, y).to_2d_index(6);
 
@@ -713,10 +719,9 @@ pub(super) fn handle_update_cracks_event(
     mut query_chunk: Query<(&Chunk, &mut TileStorage, Entity)>,
 ) {
     for &UpdateCracksEvent { tile_pos, index } in update_cracks_events.iter() {
-        let block = world_data.get_block(tile_pos).unwrap();
-        if !block.cracks() { continue; }
-
-        ChunkManager::update_tile_cracks(&mut commands, &mut query_chunk, &mut query_tile, tile_pos, index);
+        if world_data.get_block(tile_pos).is_some_and(|b| b.cracks()) || world_data.wall_exists(tile_pos) {
+            ChunkManager::update_tile_cracks(&mut commands, &mut query_chunk, &mut query_tile, tile_pos, index);
+        }
     }
 }
 
