@@ -4,7 +4,7 @@ use super::TerrariaFrame;
 
 #[cfg_attr(feature = "debug", derive(bevy::reflect::Reflect))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq,)]
-pub(crate) enum TreeFrameType {
+pub enum TreeFrameType {
     // A trunk
     TrunkPlain,
     // A left base
@@ -96,13 +96,13 @@ impl TreeFrameType {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "debug", derive(bevy::reflect::Reflect))]
-pub(crate) enum TreeType {
+pub enum TreeType {
     Forest
 }
 
 #[derive(Debug, Clone, Copy, Eq)]
 #[cfg_attr(feature = "debug", derive(bevy::reflect::Reflect))]
-pub(crate) struct Tree {
+pub struct Tree {
     pub(crate) tree_type: TreeType,
     pub(crate) frame_type: TreeFrameType,
 }

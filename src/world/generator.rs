@@ -27,7 +27,7 @@ macro_rules! tree {
     };
 }
 
-pub(crate) fn generate_world(seed: u32, world_size: WorldSize) -> WorldData {
+pub fn generate_world(seed: u32, world_size: WorldSize) -> WorldData {
     println!("Generating world...");
 
     let world_size = world_size.size();
@@ -38,9 +38,9 @@ pub(crate) fn generate_world(seed: u32, world_size: WorldSize) -> WorldData {
     let blocks = BlockArray::default((area.height() as usize, area.width() as usize));
     let walls = WallArray::default((area.height() as usize, area.width() as usize));
 
-    let surface = world_size.height / 10;
-    let underground = (world_size.height as f32 / 3.) as usize;
-    let cavern = (world_size.height as f32 / 2.) as usize;
+    let surface = (playable_area.min.y + playable_area.height() / 10) as usize;
+    let underground = playable_area.min.y as usize + (playable_area.height() as f32 / 3.) as usize;
+    let cavern = playable_area.min.y as usize + (playable_area.height() as f32 / 2.) as usize;
 
     let layer = Layer {
         surface,
@@ -64,13 +64,12 @@ pub(crate) fn generate_world(seed: u32, world_size: WorldSize) -> WorldData {
 
     generate_walls(&mut world);
 
-    generate_big_caves(&mut world, seed);
+    extend_terrain(&mut world);
 
+    generate_big_caves(&mut world, seed);
     generate_small_caves(&mut world, seed);
 
     generate_dirt_in_rocks(&mut world, seed);
-
-    extend_terrain(&mut world);
 
     grassify(&mut world);
 
@@ -189,7 +188,25 @@ fn generate_walls(world: &mut WorldData) {
     let dirt_level = world.layer.underground - world.layer.dirt_height - DIRT_HILL_HEIGHT;
     let underground_level = world.layer.underground;
 
-    for wall in world.walls.slice_mut(s![dirt_level..underground_level, ..]).iter_mut() {
+    let world_width = world.width();
+
+    for ((y, x), wall) in world.walls.slice_mut(s![dirt_level..underground_level, ..]).indexed_iter_mut() {
+        let block_not_exists = |y: usize, x: usize| -> bool {
+            world.blocks.get((y, x)).and_then(|b| b.as_ref()).is_none()
+        };
+
+        let prev_x = x.saturating_sub(1);
+        let next_x = (x + 1).clamp(0, world_width);
+
+        if block_not_exists(dirt_level + y - 1, x) { continue; }
+        if block_not_exists(dirt_level + y + 1, x) { continue; }
+        if block_not_exists(dirt_level + y, prev_x) { continue; }
+        if block_not_exists(dirt_level + y, next_x) { continue; }
+        if block_not_exists(dirt_level + y - 1, prev_x) { continue; }
+        if block_not_exists(dirt_level + y + 1, prev_x) { continue; }
+        if block_not_exists(dirt_level + y + 1, next_x) { continue; }
+        if block_not_exists(dirt_level + y - 1, next_x) { continue; }
+
         *wall = Some(Wall::Dirt);
     }
 }
@@ -273,17 +290,24 @@ fn generate_big_caves(world: &mut WorldData, seed: u32) {
 
     let dirt_level = world.layer.underground - world.layer.dirt_height - DIRT_HILL_HEIGHT;
 
-    let height = world.height() - dirt_level;
+    let height = world.playable_height() - dirt_level;
 
     let noise = Fbm::<Perlin>::new(seed);
 
     let noise_map = PlaneMapBuilder::<_, 2>::new(noise)
-        .set_size(world.width(), height)
+        .set_size(world.playable_width(), height)
         .set_x_bounds(-30., 30.)
         .set_y_bounds(-15., 15.)
         .build();
 
-    for ((y, x), block) in world.blocks.slice_mut(s![dirt_level.., ..]).indexed_iter_mut() {
+    let playable_area_min_x = world.playable_area.min.x as usize;
+    let playable_area_max_x = world.playable_area.max.x as usize;
+    
+    let playable_area_max_y = world.playable_area.max.y as usize;
+
+    let mut slice = world.blocks.slice_mut(s![dirt_level..playable_area_max_y, playable_area_min_x..playable_area_max_x]);
+
+    for ((y, x), block) in slice.indexed_iter_mut() {
         let noise_value = noise_map.get_value(x, y) as f32;
 
         if noise_value < -0.5 {
@@ -308,9 +332,11 @@ fn generate_small_caves(world: &mut WorldData, seed: u32) {
         .build();
 
     let playable_area_min_x = world.playable_area.min.x as usize;
-    let playable_area_max_x = world.playable_area.max.x as usize;    
+    let playable_area_max_x = world.playable_area.max.x as usize;
 
-    for ((y, x), block) in world.blocks.slice_mut(s![underground_level..world.playable_height() - 10, playable_area_min_x..playable_area_max_x]).indexed_iter_mut() {
+    let mut slice = world.blocks.slice_mut(s![underground_level..world.playable_height() - 10, playable_area_min_x..playable_area_max_x]);
+
+    for ((y, x), block) in slice.indexed_iter_mut() {
         let noise_value = noise_map.get_value(x, y);
 
         if noise_value < -0.3 {
@@ -337,8 +363,7 @@ fn grassify(world: &mut WorldData) {
         world.set_block((x, y), BlockType::Grass);
     
         while !queue.is_empty() {
-            let (x, y) = queue[queue.len() - 1];
-            queue.pop_back();
+            let (x, y) = queue.pop_back().unwrap();
 
             let prev_x = x.saturating_sub(1);
 
@@ -402,7 +427,10 @@ fn grassify(world: &mut WorldData) {
 }
 
 fn remove_walls_from_surface(world: &mut WorldData) {
-    fn is_valid(world: &mut WorldData, x: usize, y: usize) -> bool {
+    fn is_valid(world: &mut WorldData, pos: (usize, usize)) -> bool {
+        let x = pos.0;
+        let y = pos.1;
+
         if x >= world.width() { return false; }
         if y >= world.height() { return false; }
 
@@ -422,40 +450,51 @@ fn remove_walls_from_surface(world: &mut WorldData) {
         world.remove_wall((x, y));
     
         while !queue.is_empty() {
-            let ((x, y), (depth_x, depth_y)) = queue[queue.len() - 1];
-            queue.pop_back();
-
-            if depth_x.abs() >= depth_y / 2 + 5 { continue; }
+            let ((x, y), (depth_x, depth_y)) = queue.pop_back().unwrap();
 
             let prev_x = x.saturating_sub(1);
 
-            if is_valid(world, x + 1, y) {
-                let pos = (x + 1, y);
-                world.remove_wall(pos);
-                queue.push_back((pos, (depth_x + 1, depth_y)));
+            if depth_x.abs() >= depth_y / 2 + 5 { continue; }
+
+            {
+                let next_pos = (x + 1, y);
+                let next_depth = (depth_x + 1, depth_y);
+                if is_valid(world, next_pos) {
+                    world.remove_wall(next_pos);
+                    queue.push_back((next_pos, next_depth));
+                }
             }
-    
-            if is_valid(world, prev_x, y) {
-                let pos = (prev_x, y);
-                world.remove_wall(pos);
-                queue.push_back((pos, (depth_x - 1, depth_y)));
+            {
+                let next_pos = (prev_x, y);
+                let next_depth = (depth_x - 1, depth_y);
+                if is_valid(world, next_pos) {
+                    world.remove_wall(next_pos);
+                    queue.push_back((next_pos, next_depth));
+                }
             }
-    
-            if is_valid(world, x, y + 1) {
-                let pos = (x, y + 1);
-                world.remove_wall(pos);
-                queue.push_back((pos, (depth_x, depth_y + 1)));
+            {
+                let next_pos = (x, y + 1);
+                let next_depth = (depth_x, depth_y + 1);
+                if is_valid(world, next_pos) {
+                    world.remove_wall(next_pos);
+                    queue.push_back((next_pos, next_depth));
+                }
             }
-    
-            if is_valid(world, x, y - 1) {
-                let pos = (x, y - 1);
-                world.remove_wall(pos);
-                queue.push_back((pos, (depth_x, depth_y - 1)));
+            {    
+                let next_pos = (x, y - 1);
+                let next_depth = (depth_x, depth_y - 1);
+                if is_valid(world, next_pos) {
+                    world.remove_wall(next_pos);
+                    queue.push_back((next_pos, next_depth));
+                }
             }
         }
     }
 
-    for x in 0..world.width() {
+    let playable_area_min_x = world.playable_area.min.x as usize;
+    let playable_area_max_x = world.playable_area.max.x as usize;
+
+    for x in playable_area_min_x..playable_area_max_x {
         let y = get_surface_wall_y(world, x);
 
         if world.solid_block_exists((x, y)) { continue; }
@@ -617,11 +656,11 @@ fn grow_trees(world: &mut WorldData, seed: u32) {
 
         if grow {
             // Trees can only grow on dirt or grass
-            let appropriate_block = world.get_block((x, y))
+            let is_valid_block = world.get_block((x, y))
                 .filter(|b| matches!(b.block_type, BlockType::Dirt | BlockType::Grass))
                 .is_some();
 
-            if appropriate_block {
+            if is_valid_block {
                 grow_tree(world, &mut rng, (x, y - 1))
             }
         }

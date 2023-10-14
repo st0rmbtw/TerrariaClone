@@ -1,8 +1,8 @@
-pub(crate) mod block;
-pub(crate) mod tree;
-pub(crate) mod wall;
+pub mod block;
+pub mod tree;
+pub mod wall;
 pub(crate) mod chunk;
-pub(crate) mod generator;
+pub mod generator;
 pub(crate) mod save_as;
 
 use bevy::{prelude::Resource, math::URect};
@@ -16,16 +16,16 @@ pub(crate) type WallArray = Array2<Option<Wall>>;
 
 #[derive(Clone, Copy)]
 pub struct Layer {
-    pub(crate) surface: usize,
-    pub(crate) underground: usize,
-    pub(crate) cavern: usize,
-    pub(crate) dirt_height: usize
+    pub surface: usize,
+    pub underground: usize,
+    pub cavern: usize,
+    pub dirt_height: usize
 }
 
 #[derive(Clone, Copy)]
-pub(crate) struct Size {
-    pub(crate) width: usize,
-    pub(crate) height: usize
+pub struct Size {
+    pub width: usize,
+    pub height: usize
 }
 
 #[derive(Clone, Copy)]
@@ -36,7 +36,7 @@ pub enum WorldSize {
 }
 
 impl WorldSize {
-    pub(crate) const fn size(&self) -> Size {
+    pub const fn size(&self) -> Size {
         match self {
             WorldSize::Tiny => Size { width: 1750, height: 900 },
             WorldSize::Medium => Size { width: 6400, height: 1800 },
@@ -46,13 +46,13 @@ impl WorldSize {
 }
 
 #[derive(Resource)]
-pub(crate) struct WorldData {
-    pub(crate) area: URect,
-    pub(crate) layer: Layer,
-    pub(crate) playable_area: URect,
-    pub(crate) spawn_point: TilePos,
-    pub(crate) blocks: Array2<Option<Block>>,
-    pub(crate) walls: Array2<Option<Wall>>,
+pub struct WorldData {
+    pub area: URect,
+    pub layer: Layer,
+    pub playable_area: URect,
+    pub spawn_point: TilePos,
+    pub blocks: Array2<Option<Block>>,
+    pub walls: Array2<Option<Wall>>,
 }
 
 pub trait AsWorldPos {
@@ -101,27 +101,27 @@ impl AsWorldPos for (u32, u32) {
 #[allow(dead_code)]
 impl WorldData {
     #[inline(always)]
-    pub(crate) fn width(&self) -> usize {
+    pub fn width(&self) -> usize {
         self.area.width() as usize
     }
 
     #[inline(always)]
-    pub(crate) fn height(&self) -> usize {
+    pub fn height(&self) -> usize {
         self.area.height() as usize
     }
 
     #[inline(always)]
-    pub(crate) fn playable_width(&self) -> usize {
+    pub fn playable_width(&self) -> usize {
         self.playable_area.width() as usize
     }
 
     #[inline(always)]
-    pub(crate) fn playable_height(&self) -> usize {
+    pub fn playable_height(&self) -> usize {
         self.playable_area.height() as usize
     }
 
     #[inline]
-    pub(crate) fn get_block<Pos: AsWorldPos>(&self, world_pos: Pos) -> Option<&Block> {
+    pub fn get_block<Pos: AsWorldPos>(&self, world_pos: Pos) -> Option<&Block> {
         self.blocks.get(world_pos.yx()).and_then(|b| b.as_ref())
     }
 
@@ -155,7 +155,7 @@ impl WorldData {
     }
 
     #[inline(always)]
-    pub(crate) fn get_wall<Pos: AsWorldPos>(&self, world_pos: Pos) -> Option<&Wall> {
+    pub fn get_wall<Pos: AsWorldPos>(&self, world_pos: Pos) -> Option<&Wall> {
         self.walls.get(world_pos.yx()).and_then(|w| w.as_ref())
     }
 
@@ -229,8 +229,8 @@ impl WorldData {
         };
 
         Neighbors {
-            west:       tile_pos.square_offset(&SquareDirection::West,      tilemap_size).map_or_else(|| self.get_solid_block(world_pos), get_block),
-            east:       tile_pos.square_offset(&SquareDirection::East,      tilemap_size).map_or_else(|| self.get_solid_block(world_pos), get_block),
+            west:       tile_pos.square_offset(&SquareDirection::West,      tilemap_size).and_then(get_block),
+            east:       tile_pos.square_offset(&SquareDirection::East,      tilemap_size).and_then(get_block),
             north:      tile_pos.square_offset(&SquareDirection::South,     tilemap_size).and_then(get_block),
             south:      tile_pos.square_offset(&SquareDirection::North,     tilemap_size).and_then(get_block),
             north_west: tile_pos.square_offset(&SquareDirection::SouthWest, tilemap_size).and_then(get_block),

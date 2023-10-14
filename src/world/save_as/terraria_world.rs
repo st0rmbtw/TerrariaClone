@@ -6,7 +6,7 @@ use crate::world::WorldData;
 
 impl WorldData {
     #[allow(unused)]
-    pub(crate) fn save_as_terraria_world(&self, world_name: &str) -> std::io::Result<()> {
+    pub fn save_as_terraria_world(&self, world_name: &str) -> std::io::Result<()> {
         println!("Saving as Terraria world...");
 
         let world_file = File::create(format!("{}.wld", world_name))?;

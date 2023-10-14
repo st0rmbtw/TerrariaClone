@@ -6,13 +6,13 @@ use crate::common::{helpers::get_wall_start_index, TextureAtlasPos};
 pub(crate) type WallId = u8;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Wall {
+pub enum Wall {
     Stone,
     Dirt,
 }
 
 impl Wall {
-    pub(crate) fn id(&self) -> WallId {
+    pub fn id(&self) -> WallId {
         match self {
             Wall::Stone => 1,
             Wall::Dirt => 2,

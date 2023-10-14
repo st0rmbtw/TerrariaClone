@@ -12,7 +12,7 @@ pub(crate) type BlockId = u8;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "debug", derive(bevy::reflect::Reflect))]
-pub(crate) enum BlockType {
+pub enum BlockType {
     Dirt,
     Stone,
     Grass,
@@ -21,7 +21,7 @@ pub(crate) enum BlockType {
 }
 
 impl BlockType {
-    pub(crate) const fn id(&self) -> BlockId {
+    pub const fn id(&self) -> BlockId {
         match self {
             BlockType::Dirt => 0,
             BlockType::Stone => 1,
@@ -97,7 +97,7 @@ impl From<ItemBlock> for BlockType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Component)]
-pub(crate) struct Block {
+pub struct Block {
     pub(crate) block_type: BlockType,
     pub(crate) hp: i32,
     pub(crate) variant: u32,
