@@ -39,12 +39,14 @@ impl From<ItemWall> for WallType {
 pub struct Wall {
     pub wall_type: WallType,
     pub hp: i32,
-    pub cracks_index: Option<u32>
+    pub cracks_index: Option<u32>,
+    pub variant: u32
 }
 
 impl From<WallType> for Wall {
     fn from(block_type: WallType) -> Self {
-        Wall::new(block_type)
+        let mut rng = thread_rng();
+        Wall::new(block_type, rng.gen_range(0..3))
     }
 }
 
@@ -58,9 +60,10 @@ impl Deref for Wall {
 
 impl Wall {
     #[inline(always)]
-    pub(crate) fn new(wall_type: WallType) -> Wall {
+    pub(crate) fn new(wall_type: WallType, variant: u32) -> Wall {
         Self {
             wall_type,
+            variant,
             hp: wall_type.max_hp(),
             cracks_index: None
         }
@@ -68,20 +71,20 @@ impl Wall {
 }
 
 impl Wall {
-    pub(crate) fn get_sprite_index(neighbors: &Neighbors<WallType>, wall: WallType) -> TextureAtlasPos {
-        let rand: u32 = thread_rng().gen_range(0..3);
+    pub(crate) fn get_sprite_index(neighbors: &Neighbors<WallType>, wall: &Wall) -> TextureAtlasPos {
+        let variant = wall.variant;
 
-        get_wall_start_index(wall) + match *neighbors {
+        get_wall_start_index(wall.wall_type) + match *neighbors {
             //  #
             // #X#
             //  #
             Neighbors {
-                north: Some(bt),
-                south: Some(bb),
-                west: Some(bl),
-                east: Some(br),
+                north: Some(_),
+                south: Some(_),
+                west: Some(_),
+                east: Some(_),
                 ..
-            } if bt == wall && bb == wall && bl == wall && br == wall => TextureAtlasPos::new(1 + rand, 1),
+            } => TextureAtlasPos::new(1 + variant, 1),
             
             //
             // X
@@ -92,29 +95,29 @@ impl Wall {
                 west: None,
                 east: None,
                 ..
-            } => TextureAtlasPos::new(9 + rand, 3),
+            } => TextureAtlasPos::new(9 + variant, 3),
 
             // #
             // X
             //
             Neighbors {
-                north: Some(b),
+                north: Some(_),
                 south: None,
                 west: None,
                 east: None,
                 ..
-            } if b == wall => TextureAtlasPos::new(1 + rand, 2),
+            } => TextureAtlasPos::new(6 + variant, 3),
 
             //
             // X
             // #
             Neighbors {
                 north: None,
-                south: Some(b),
+                south: Some(_),
                 west: None,
                 east: None,
                 ..
-            } if b == wall => TextureAtlasPos::new(6 + rand, 0),
+            } => TextureAtlasPos::new(6 + variant, 0),
 
             //
             // #X
@@ -122,10 +125,10 @@ impl Wall {
             Neighbors {
                 north: None,
                 south: None,
-                west: Some(b),
+                west: Some(_),
                 east: None,
                 ..
-            } if b == wall => TextureAtlasPos::new(13, rand),
+            } => TextureAtlasPos::new(12, variant),
 
             //
             // X#
@@ -134,42 +137,42 @@ impl Wall {
                 north: None,
                 south: None,
                 west: None,
-                east: Some(b),
+                east: Some(_),
                 ..
-            } if b == wall => TextureAtlasPos::new(10, rand),
+            } => TextureAtlasPos::new(9, variant),
 
             //  #
             //  X
             //  #
             Neighbors {
-                north: Some(bt),
-                south: Some(bb),
+                north: Some(_),
+                south: Some(_),
                 west: None,
                 east: None,
                 ..
-            } if bt == wall && bb == wall => TextureAtlasPos::new(6, rand),
+            } => TextureAtlasPos::new(5, variant),
 
             //  #
             // #X#
             //
             Neighbors {
-                north: Some(bt),
+                north: Some(_),
                 south: None,
-                west: Some(bl),
-                east: Some(br),
+                west: Some(_),
+                east: Some(_),
                 ..
-            } if bt == wall && bl == wall && br == wall => TextureAtlasPos::new(1 + rand, 2),
+            } => TextureAtlasPos::new(1 + variant, 2),
 
             //  
             // #X#
             //  #
             Neighbors {
                 north: None,
-                south: Some(bb),
-                west: Some(bl),
-                east: Some(br),
+                south: Some(_),
+                west: Some(_),
+                east: Some(_),
                 ..
-            } if bb == wall && bl == wall && br == wall => TextureAtlasPos::new(1 + rand, 0),
+            } => TextureAtlasPos::new(1 + variant, 0),
 
             //  
             // #X#
@@ -177,82 +180,76 @@ impl Wall {
             Neighbors { 
                 north: None, 
                 south: None,
-                west: Some(bl),
-                east: Some(br),
+                west: Some(_),
+                east: Some(_),
                 ..
-            } if bl == wall && br == wall => TextureAtlasPos::new(6 + rand, 4),
+            } => TextureAtlasPos::new(6 + variant, 4),
 
             //  
             // #X
             //  #
             Neighbors { 
                 north: None, 
-                south: Some(bb),
-                west: Some(bl),
+                south: Some(_),
+                west: Some(_),
                 east: None,
                 ..
-            } if bb == wall && bl == wall => TextureAtlasPos::new(1 + rand * 2, 3),
+            } => TextureAtlasPos::new(1 + variant * 2, 3),
 
             //  
             //  X#
             //  #
             Neighbors { 
                 north: None, 
-                south: Some(bb),
+                south: Some(_),
                 west: None,
-                east: Some(br),
+                east: Some(_),
                 ..
-            } if bb == wall && br == wall => TextureAtlasPos::new(rand * 2, 3),
+            } => TextureAtlasPos::new(variant * 2, 3),
 
             //  #
             // #X
             //
             Neighbors { 
-                north: Some(bt),
+                north: Some(_),
                 south: None,
-                west: Some(bl),
+                west: Some(_),
                 east: None,
                 ..
-            } if bt == wall && bl == wall => TextureAtlasPos::new(1 + rand * 2, 4),
+            } => TextureAtlasPos::new(1 + variant * 2, 4),
 
             //  #
             //  X#
             //
             Neighbors { 
-                north: Some(bt),
+                north: Some(_),
                 south: None,
                 west: None,
-                east: Some(br),
+                east: Some(_),
                 ..
-            } if bt == wall && br == wall => TextureAtlasPos::new(rand * 2, 4),
+            } => TextureAtlasPos::new(variant * 2, 4),
 
             //  #
             // #X
             //  #
             Neighbors { 
-                north: Some(bt),
-                south: Some(bb),
-                west: Some(bl),
+                north: Some(_),
+                south: Some(_),
+                west: Some(_),
                 east: None,
                 ..
-            } if bt == wall && bb == wall && bl == wall => TextureAtlasPos::new(4, rand),
+            } => TextureAtlasPos::new(4, variant),
 
             //  #
             //  X#
             //  #
             Neighbors { 
-                north: Some(bt),
-                south: Some(bb),
+                north: Some(_),
+                south: Some(_),
                 west: None,
-                east: Some(br),
+                east: Some(_),
                 ..
-            } if bt == wall && bb == wall && br == wall => TextureAtlasPos::new(0, rand),
-
-            _ => {
-                println!("Neighbors = {:#?}", neighbors);
-                println!("Wall = {:#?}", wall);
-                panic!();
-            }
+            } => TextureAtlasPos::new(0, variant),
         }
     }
 }

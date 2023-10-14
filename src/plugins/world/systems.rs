@@ -253,7 +253,7 @@ pub(super) fn spawn_chunk(
             if let Some(wall) = world_data.get_wall(map_tile_pos) {
                 let index = Wall::get_sprite_index(
                     &world_data.get_wall_neighbors(map_tile_pos).map_ref(|w| w.wall_type),
-                    wall.wall_type
+                    wall
                 ).to_wall_index();
 
                 let wall_entity = spawn_wall(commands, chunk_tile_pos, wallmap_entity, index);
@@ -601,7 +601,7 @@ pub(super) fn handle_place_wall_event(
             .get_wall_neighbors(tile_pos)
             .map_ref(|w| w.wall_type);
         
-        let index = Wall::get_sprite_index(&neighbors, wall_type).to_wall_index();
+        let index = Wall::get_sprite_index(&neighbors, &new_wall).to_wall_index();
 
         ChunkManager::spawn_wall(&mut commands, &mut query_chunk, tile_pos, index);
 
@@ -613,7 +613,8 @@ pub(super) fn handle_place_wall_event(
 pub(super) fn handle_update_neighbors_event(
     world_data: Res<WorldData>,
     mut events: EventReader<UpdateNeighborsEvent>,
-    mut update_block_events: EventWriter<UpdateBlockEvent>
+    mut update_block_events: EventWriter<UpdateBlockEvent>,
+    mut update_wall_events: EventWriter<UpdateWallEvent>,
 ) {
     for UpdateNeighborsEvent { tile_pos } in events.iter() {
         let map_size = TilemapSize::from(world_data.area.size());
@@ -625,6 +626,13 @@ pub(super) fn handle_update_neighbors_event(
                 update_block_events.send(UpdateBlockEvent { 
                     tile_pos: *pos,
                     block: *block,
+                });
+            }
+
+            if let Some(wall) = world_data.get_wall(*pos) {
+                update_wall_events.send(UpdateWallEvent { 
+                    tile_pos: *pos,
+                    wall: *wall,
                 });
             }
         }
@@ -669,7 +677,7 @@ pub(super) fn handle_update_wall_event(
 
         if let Some(wall_entity) = ChunkManager::get_wall_entity(&query_chunk, chunk_pos, chunk_tile_pos) {
             if let Ok(mut tile_texture) = query_tile.get_mut(wall_entity) {
-                tile_texture.0 = Wall::get_sprite_index(&neighbors, wall.wall_type).to_wall_index();
+                tile_texture.0 = Wall::get_sprite_index(&neighbors, &wall).to_wall_index();
             }
         }
     }
