@@ -73,11 +73,8 @@ impl Plugin for PlayerPlugin {
 
         app.add_systems(
             PreUpdate,
-            (
-                update_input_axis.after(InputSystem),
-                update_movement_state,
-            )
-            .in_set(InGameSystemSet::PreUpdate)
+            update_input_axis.after(InputSystem)
+                .in_set(InGameSystemSet::PreUpdate)
         );
         
         #[cfg(feature = "debug")]
@@ -102,7 +99,14 @@ impl Plugin for PlayerPlugin {
             .in_set(InGameSystemSet::FixedUpdate)
         );
 
-        app.add_systems(PostUpdate, reset_fallstart.in_set(InGameSystemSet::PostUpdate));
+        app.add_systems(
+            PostUpdate,
+            (
+                reset_fallstart,
+                update_movement_state
+            )
+            .in_set(InGameSystemSet::PostUpdate)
+        );
 
         #[cfg(feature = "debug")]
         {
