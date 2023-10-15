@@ -33,7 +33,6 @@ impl Plugin for EntityPlugin {
                 update_entity_rect.in_set(EntitySet::UpdateEntityRect),
                 move_entity.in_set(EntitySet::MoveEntity),
             )
-            .chain()
         );
     }
 }

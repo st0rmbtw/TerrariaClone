@@ -175,11 +175,11 @@ pub(super) fn detect_collisions(
                         }
 
                         if delta_x < 0. {
-                            new_collisions.left = true;
-
-                            // If the player's left side is more to the left than the tile's right side then move the player right.
                             if player_rect.left() <= tile_rect.right() {
+                                new_collisions.left = true;
+
                                 velocity.x = 0.;
+                                // If the player's left side is more to the left than the tile's right side then move the player right.
                                 player_rect.centerx += tile_rect.right() - player_rect.left();
                             }
 
@@ -188,11 +188,11 @@ pub(super) fn detect_collisions(
                                 tile_rect.draw_right_side(&mut gizmos, Color::BLUE);
                             }
                         } else {
-                            new_collisions.right = true;
-
-                            // If the player's right side is more to the right than the tile's left side then move the player left.
                             if player_rect.right() >= tile_rect.left() {
+                                new_collisions.right = true;
+
                                 velocity.x = 0.;
+                                // If the player's right side is more to the right than the tile's left side then move the player left.
                                 player_rect.centerx += tile_rect.left() - player_rect.right();
                             }
 
@@ -205,11 +205,11 @@ pub(super) fn detect_collisions(
                         // Checking for collisions again with an offset to workaround the bug when the player stuck in a wall.
                         if FRect::new(next_rect.left() + 2.0, next_rect.top(), PLAYER_WIDTH - 4.0, PLAYER_HEIGHT).intersects(&tile_rect) {
                             if delta_y > 0. {
-                                new_collisions.top = true;
-
-                                // If the player's top side is higher than the tile's bottom side then move the player down.
                                 if player_rect.top() >= tile_rect.bottom() {
+                                    new_collisions.top = true;
+                                    
                                     velocity.y = 0.;
+                                    // If the player's top side is higher than the tile's bottom side then move the player down.
                                     player_rect.centery += tile_rect.bottom() - player_rect.top();
                                 }
 
@@ -218,13 +218,13 @@ pub(super) fn detect_collisions(
                                     tile_rect.draw_bottom_side(&mut gizmos, Color::YELLOW);
                                 }
                             } else {
-                                new_collisions.bottom = true;
-                                player_data.jumping = false;
-                                player_data.ground = world_data.get_block((x, y)).map(|b| b.block_type);
-                                
-                                // If the player's bottom side is lower than the tile's top side then move the player up
                                 if player_rect.bottom() <= tile_rect.top() {
+                                    new_collisions.bottom = true;
+                                    player_data.jumping = false;
+                                    player_data.ground = world_data.get_block((x, y)).map(|b| b.block_type);
+
                                     velocity.y = 0.;
+                                    // If the player's bottom side is lower than the tile's top side then move the player up
                                     player_rect.centery += tile_rect.top() - player_rect.bottom();
                                 }
 

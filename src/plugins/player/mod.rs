@@ -58,7 +58,6 @@ impl Plugin for PlayerPlugin {
             Update,
             (
                 flip_player_systems,
-                update_movement_state,
                 (
                     update_movement_animation_timer,
                     update_movement_animation_index,
@@ -74,9 +73,11 @@ impl Plugin for PlayerPlugin {
 
         app.add_systems(
             PreUpdate,
-            update_input_axis
-                .after(InputSystem)
-                .in_set(InGameSystemSet::PreUpdate)
+            (
+                update_input_axis.after(InputSystem),
+                update_movement_state,
+            )
+            .in_set(InGameSystemSet::PreUpdate)
         );
         
         #[cfg(feature = "debug")]
@@ -87,13 +88,17 @@ impl Plugin for PlayerPlugin {
             (
                 (
                     horizontal_movement,
-                    update_jump.ambiguous_with(horizontal_movement),
-                ),
-                gravity,
-                detect_collisions,
+                    (
+                        update_jump,
+                        gravity,
+                    ).chain()
+                )
+                .before(EntitySet::UpdateEntityRect),
+
+                detect_collisions
+                    .after(EntitySet::UpdateEntityRect)
+                    .before(EntitySet::MoveEntity),
             )
-            .chain()
-            .before(EntitySet::UpdateEntityRect)
             .in_set(InGameSystemSet::FixedUpdate)
         );
 
