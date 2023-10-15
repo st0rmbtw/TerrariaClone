@@ -161,8 +161,8 @@ pub(super) fn detect_collisions(
                                 && !world_data.solid_block_exists((x, y - 3));
 
                             // Check if the tile is on the same level as player's legs
-                            let is_bottom_tile = tile_rect.top() <= player_rect.bottom() + TILE_SIZE
-                                && tile_rect.top() > player_rect.bottom();
+                            let is_bottom_tile = tile_rect.top() <= player_rect.bottom() + TILE_SIZE + GRAVITY
+                                && tile_rect.top() > player_rect.bottom() + GRAVITY;
 
                             let direction = f32::from(face_direction);
 
