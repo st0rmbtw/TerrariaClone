@@ -1,4 +1,4 @@
-use bevy::{prelude::{Component, Query, Children, With, App, Plugin, Update, IntoSystemConfigs, Bundle, Transform, GlobalTransform, Visibility, ComputedVisibility}, ui::{RelativeCursorPosition, Node, Interaction, Val, Style, BackgroundColor, UiImage, FocusPolicy}};
+use bevy::{prelude::{Component, Query, Children, With, App, Plugin, IntoSystemConfigs, Bundle, Transform, GlobalTransform, Visibility, ComputedVisibility, PostUpdate}, ui::{RelativeCursorPosition, Node, Interaction, Val, Style, BackgroundColor, UiImage, FocusPolicy}};
 
 use super::ui::components::PreviousInteraction;
 
@@ -258,7 +258,7 @@ pub(crate) struct SliderPlugin;
 impl Plugin for SliderPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
-            Update,
+            PostUpdate,
             (
                 update_slider_value,
                 update_slider_handle
