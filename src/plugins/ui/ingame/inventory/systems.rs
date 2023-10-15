@@ -1,7 +1,7 @@
 use autodefault::autodefault;
-use bevy::{prelude::{Commands, Name, NodeBundle, BuildChildren, TextBundle, Color, Entity, ImageBundle, default, ChildBuilder, Handle, Image, Visibility, With, Res, Query, DetectChanges, Changed, ResMut, DetectChangesMut, Without, Ref}, ui::{Style, FlexDirection, UiRect, Val, AlignSelf, AlignItems, JustifyContent, Interaction, BackgroundColor, FocusPolicy, AlignContent, PositionType, UiImage, widget::UiImageSize}, text::{Text, TextStyle, TextAlignment}};
+use bevy::{prelude::{Commands, Name, NodeBundle, BuildChildren, TextBundle, Color, Entity, ImageBundle, default, ChildBuilder, Handle, Image, Visibility, With, Res, Query, DetectChanges, Changed, ResMut, DetectChangesMut, Without, Ref, Vec2}, ui::{Style, FlexDirection, UiRect, Val, AlignSelf, AlignItems, JustifyContent, Interaction, BackgroundColor, FocusPolicy, AlignContent, PositionType, UiImage, widget::UiImageSize}, text::{Text, TextStyle, TextAlignment}};
 
-use crate::{plugins::{assets::{UiAssets, FontAssets, ItemAssets}, cursor::components::Hoverable, inventory::{Inventory, Slot}, ui::{InventoryUiVisibility, components::PreviousInteraction}, audio::{AudioCommandsExt, SoundType}}, language::{keys::{LanguageStringKey, UIStringKey, ItemStringKey}, LocalizedText, args}, common::{extensions::EntityCommandsExtensions, BoolValue, helpers}};
+use crate::{plugins::{assets::{UiAssets, FontAssets, InventoryItemAssets}, cursor::components::Hoverable, inventory::{Inventory, Slot}, ui::{InventoryUiVisibility, components::PreviousInteraction}, audio::{AudioCommandsExt, SoundType}}, language::{keys::{LanguageStringKey, UIStringKey, ItemStringKey}, LocalizedText, args}, common::{extensions::EntityCommandsExtensions, BoolValue, helpers}};
 
 use super::{components::*, INVENTORY_ROWS, SLOT_COUNT_IN_ROW, HOTBAR_SLOT_SIZE, INVENTORY_SLOT_SIZE, HOTBAR_SLOT_SIZE_SELECTED};
 
@@ -257,8 +257,8 @@ pub(super) fn update_slot_size(
         if !visibility_changed && !selected_slot_changed && !image_size.is_changed() { continue; }
 
         let selected = slot_index.0 == inventory.selected_slot;
-        let image_size = image_size.size();
-
+        let image_size = image_size.size().min(Vec2::splat(32.));
+        // The maximum size of an item image is 32px
         if !(image_size.x > 0. && image_size.y > 0.) { continue; }
 
         if visibility.value() {
@@ -373,7 +373,7 @@ pub(super) fn update_selected_item_name_text(
 
 pub(super) fn update_slot_item_image(
     inventory: Res<Inventory>,
-    item_assets: Res<ItemAssets>,
+    item_assets: Res<InventoryItemAssets>,
     mut item_images: Query<(&SlotIndex, &mut SlotItemImage)>,
 ) {
     for (slot_index, mut slot_image) in &mut item_images {

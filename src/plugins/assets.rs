@@ -45,6 +45,35 @@ macro_rules! handles {
     }
 }
 
+macro_rules! handles_mut {
+    (
+     $field_type:ty,
+     // meta data about struct
+     $(#[$meta:meta])*
+     $vis:vis struct $struct_name:ident {
+        $(
+        // meta data about field
+        $(#[$field_meta:meta])*
+        $field_vis:vis $field_name:ident : $field_t:ty
+        ),*$(,)+
+    }
+    ) => {
+        $(#[$meta])*
+        pub struct $struct_name {
+            $(
+            $(#[$field_meta])*
+            pub $field_name : $field_type,
+            )*
+        }
+
+        impl $struct_name {
+            fn handles_mut(&mut self) -> Vec<&mut $field_type> {
+                vec![$(&mut self.$field_name),*]
+            }
+        }
+    }
+}
+
 pub struct AssetsPlugin;
 impl Plugin for AssetsPlugin {
     fn build(&self, app: &mut App) {
@@ -65,6 +94,7 @@ impl Plugin for AssetsPlugin {
         app.add_collection_to_loading_state::<_, BackgroundAssets>(GameState::AssetLoading);
         app.add_collection_to_loading_state::<_, CelestialBodyAssets>(GameState::AssetLoading);
         app.add_collection_to_loading_state::<_, ParticleAssets>(GameState::AssetLoading);
+        app.add_collection_to_loading_state::<_, InventoryItemAssets>(GameState::AssetLoading);
         
         app.add_systems(OnExit(GameState::AssetLoading), setup);
     }
@@ -75,15 +105,22 @@ fn setup(
     ui_assets: Res<UiAssets>,
     cursor_assets: Res<CursorAssets>,
     background_assets: Res<BackgroundAssets>,
+    mut inventory_item_assets: ResMut<InventoryItemAssets>,
 ) {
     let mut handles = ui_assets.handles();
     handles.append(&mut cursor_assets.handles());
     handles.append(&mut background_assets.handles());
 
-    for handle in handles.iter() {
-        let image = images.get_mut(handle).unwrap();
-
+    for handle in handles {
+        let image = images.get_mut(&handle).unwrap();
         image.sampler_descriptor = ImageSampler::linear();
+    }
+
+    for handle in inventory_item_assets.handles_mut() {
+        let mut image = images.get(handle).unwrap().clone();
+        image.sampler_descriptor = ImageSampler::linear();
+
+        *handle = images.add(image);
     }
 }
 
@@ -217,6 +254,63 @@ pub(crate) struct ItemAssets {
 }
 
 impl ItemAssets {
+    pub(crate) fn get_by_item(&self, item: Item) -> Handle<Image> {
+        match item {
+            Item::Block(block) => {
+                match block {
+                    ItemBlock::Dirt => self.dirt_block.clone_weak(),
+                    ItemBlock::Stone => self.stone_block.clone_weak(),
+                    ItemBlock::Wood => self.wood.clone_weak(),
+                }
+            }
+            Item::Wall(wall) => match wall {
+                ItemWall::Dirt => self.dirt_wall.clone_weak(),
+                ItemWall::Stone => self.stone_wall.clone_weak(),
+            }
+            Item::Tool(tool) => match tool {
+                ItemTool::Pickaxe(Pickaxe::CopperPickaxe) => self.copper_pickaxe.clone_weak(),
+                ItemTool::Axe(Axe::CopperAxe) => self.copper_axe.clone_weak(),
+                ItemTool::Hammer(Hammer::CopperHammer) => self.copper_hammer.clone_weak(),
+            }
+            Item::Seed(ItemSeed::Grass) => self.grass_seed.clone_weak()
+        }
+    }
+}
+
+handles_mut! {
+    Handle<Image>,
+    #[derive(Resource, AssetCollection)]
+    pub(crate) struct InventoryItemAssets {
+        #[asset(path = "sprites/items/Item_2.png")]
+        pub(crate) dirt_block: Handle<Image>,
+
+        #[asset(path = "sprites/items/Item_3.png")]
+        pub(crate) stone_block: Handle<Image>,
+
+        #[asset(path = "sprites/items/Item_30.png")]
+        pub(crate) dirt_wall: Handle<Image>,
+
+        #[asset(path = "sprites/items/Item_26.png")]
+        pub(crate) stone_wall: Handle<Image>,
+
+        #[asset(path = "sprites/items/Item_62.png")]
+        pub(crate) grass_seed: Handle<Image>,
+
+        #[asset(path = "sprites/items/Item_3509.png")]
+        pub(crate) copper_pickaxe: Handle<Image>,
+
+        #[asset(path = "sprites/items/Item_3506.png")]
+        pub(crate) copper_axe: Handle<Image>,
+
+        #[asset(path = "sprites/items/Item_3505.png")]
+        pub(crate) copper_hammer: Handle<Image>,
+
+        #[asset(path = "sprites/items/Item_9.png")]
+        pub(crate) wood: Handle<Image>,
+    }
+}
+
+impl InventoryItemAssets {
     pub(crate) fn get_by_item(&self, item: Item) -> Handle<Image> {
         match item {
             Item::Block(block) => {
