@@ -127,18 +127,12 @@ impl WorldData {
 
     #[inline]
     pub(crate) fn get_block_with_type<Pos: AsWorldPos>(&self, world_pos: Pos, block_type: BlockType) -> Option<&Block> {
-        self.blocks
-            .get(world_pos.yx())
-            .and_then(|b| b.as_ref())
-            .filter(|b| b.block_type == block_type)
+        self.get_block(world_pos).filter(|b| b.block_type == block_type)
     }
 
     #[inline]
     pub(crate) fn get_solid_block<Pos: AsWorldPos>(&self, world_pos: Pos) -> Option<&Block> {
-        self.blocks
-            .get(world_pos.yx())
-            .and_then(|b| b.as_ref())
-            .filter(|b| b.is_solid())
+        self.get_block(world_pos).filter(|b| b.is_solid())
     }
 
     #[inline(always)]
@@ -148,10 +142,7 @@ impl WorldData {
 
     #[inline]
     pub(crate) fn get_block_with_type_mut<Pos: AsWorldPos>(&mut self, world_pos: Pos, block_type: BlockType) -> Option<&mut Block> {
-        self.blocks
-            .get_mut(world_pos.yx())
-            .and_then(|b| b.as_mut())
-            .filter(|b| b.block_type == block_type)
+        self.get_block_mut(world_pos).filter(|b| b.block_type == block_type)
     }
 
     #[inline(always)]

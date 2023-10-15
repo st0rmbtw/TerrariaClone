@@ -46,9 +46,15 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .as_millis() as u32
         });
 
-    println!("The seed of the world is {}", seed);
+    let draw_layers = std::env::args()
+        .nth(2)
+        .and_then(|draw_layers| draw_layers.parse::<bool>().ok())
+        .unwrap_or(false);
 
-    generate_world_image(WorldSize::Tiny, seed, false)
+    println!("The seed of the world is {}", seed);
+    println!("Draw world layers: {}", if draw_layers { "Enabled" } else { "Disabled" });
+
+    generate_world_image(WorldSize::Tiny, seed, draw_layers)
 }
 
 #[cfg(feature = "terraria_world")]
