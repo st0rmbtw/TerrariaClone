@@ -488,6 +488,38 @@ fn remove_walls_from_surface(world: &mut WorldData) {
                     queue.push_back((next_pos, next_depth));
                 }
             }
+            {    
+                let next_pos = (x - 1, y - 1);
+                let next_depth = (depth_x - 1, depth_y - 1);
+                if is_valid(world, next_pos) {
+                    world.remove_wall(next_pos);
+                    queue.push_back((next_pos, next_depth));
+                }
+            }
+            {    
+                let next_pos = (x + 1, y + 1);
+                let next_depth = (depth_x + 1, depth_y + 1);
+                if is_valid(world, next_pos) {
+                    world.remove_wall(next_pos);
+                    queue.push_back((next_pos, next_depth));
+                }
+            }
+            {    
+                let next_pos = (x + 1, y - 1);
+                let next_depth = (depth_x + 1, depth_y - 1);
+                if is_valid(world, next_pos) {
+                    world.remove_wall(next_pos);
+                    queue.push_back((next_pos, next_depth));
+                }
+            }
+            {    
+                let next_pos = (x - 1, y + 1);
+                let next_depth = (depth_x - 1, depth_y + 1);
+                if is_valid(world, next_pos) {
+                    world.remove_wall(next_pos);
+                    queue.push_back((next_pos, next_depth));
+                }
+            }
         }
     }
 
