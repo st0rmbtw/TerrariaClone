@@ -8,7 +8,7 @@ use bevy::render::{RenderApp, Render, RenderSet, ExtractSchedule};
 use bevy::transform::TransformSystem;
 use crate::common::state::GameState;
 use crate::plugins::InGameSystemSet;
-use crate::plugins::world::events::{BreakBlockEvent, PlaceBlockEvent};
+use crate::plugins::world::events::{BreakTileEvent, PlaceTileEvent};
 
 use self::lightmap::LightMapNode;
 use self::lightmap::assets::{BlurArea, LightMapPipelineAssets, LightSourceCount};
@@ -33,10 +33,7 @@ pub(crate) struct InGameBackgroundTexture(Handle<Image>);
 #[derive(Resource, ExtractResource, Clone)]
 pub(crate) struct WorldTexture(Handle<Image>);
 
-#[derive(Resource, ExtractResource, Clone)]
-pub(crate) struct MainTexture(Handle<Image>);
-
-#[derive(Resource, ExtractResource, Clone)]
+#[derive(Resource, ExtractResource, Clone, Deref)]
 pub(crate) struct TileTexture(Handle<Image>);
 
 #[derive(Resource, ExtractResource, Clone, Deref)]
@@ -70,7 +67,7 @@ impl Plugin for LightingPlugin {
             Update,
             (
                 lightmap::assets::handle_update_tiles_texture_event
-                    .run_if(on_event::<BreakBlockEvent>().or_else(on_event::<PlaceBlockEvent>())),
+                    .run_if(on_event::<BreakTileEvent>().or_else(on_event::<PlaceTileEvent>())),
                 compositing::update_image_to_window_size,
             ).in_set(InGameSystemSet::Update)
         );

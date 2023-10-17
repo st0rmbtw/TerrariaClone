@@ -24,6 +24,13 @@ impl WallType {
             WallType::Dirt => 2,
         }
     }
+
+    pub fn color(&self) -> [u8; 3] {
+        match self {
+            WallType::Stone => [52, 52, 52],
+            WallType::Dirt => [88, 61, 46],
+        }
+    }
 }
 
 impl From<ItemWall> for WallType {

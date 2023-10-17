@@ -84,6 +84,16 @@ impl BlockType {
             _ => true
         }
     }
+
+    pub(crate) const fn color(&self) -> [u8; 3] {
+        match self {
+            BlockType::Dirt =>  [151, 107, 75],
+            BlockType::Stone => [128, 128, 128],
+            BlockType::Grass => [28, 216, 94],
+            BlockType::Wood => [170, 120, 84],
+            BlockType::Tree(_) => [151, 107, 75],
+        }
+    }
 }
 
 impl From<ItemBlock> for BlockType {

@@ -16,6 +16,7 @@ pub(crate) mod slider;
 pub(crate) mod particles;
 pub(crate) mod item;
 pub(crate) mod entity;
+pub(crate) mod world_map_view;
 
 #[cfg(feature = "debug")]
 pub(crate) mod debug;

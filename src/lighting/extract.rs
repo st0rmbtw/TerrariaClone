@@ -2,7 +2,7 @@ use bevy::{prelude::{Commands, State, Res, DetectChanges, ResMut}, render::Extra
 
 use crate::{common::state::GameState, plugins::{config::LightSmoothness, world::{resources::WorldUndergroundLevel, WorldSize}}};
 
-use super::{BackgroundTexture, InGameBackgroundTexture, WorldTexture, MainTexture, TileTexture, LightMapTexture, lightmap::assets::BlurArea};
+use super::{BackgroundTexture, InGameBackgroundTexture, WorldTexture, TileTexture, LightMapTexture, lightmap::assets::BlurArea};
 
 pub(super) fn extract_state(
     mut commands: Commands,
@@ -56,14 +56,12 @@ pub(super) fn extract_textures(
     background_texture: Extract<Option<Res<BackgroundTexture>>>,
     ingame_background_texture: Extract<Option<Res<InGameBackgroundTexture>>>,
     world_texture: Extract<Option<Res<WorldTexture>>>,
-    main_texture: Extract<Option<Res<MainTexture>>>,
     tile_texture: Extract<Option<Res<TileTexture>>>,
     lightmap_texture: Extract<Option<Res<LightMapTexture>>>,
 ) {
     let Some(background_texture) = background_texture.as_ref() else { return; };
     let Some(ingame_background_texture) = ingame_background_texture.as_ref() else { return; };
     let Some(world_texture) = world_texture.as_ref() else { return; };
-    let Some(main_texture) = main_texture.as_ref() else { return; };
     let Some(tile_texture) = tile_texture.as_ref() else { return; };
     let Some(lightmap_texture) = lightmap_texture.as_ref() else { return; };
 
@@ -77,10 +75,6 @@ pub(super) fn extract_textures(
 
     if world_texture.is_changed() {
         commands.insert_resource((**world_texture).clone());
-    }
-
-    if main_texture.is_changed() {
-        commands.insert_resource((**main_texture).clone());
     }
 
     if lightmap_texture.is_changed() {

@@ -3,13 +3,13 @@ mod resources;
 mod systems;
 mod util;
 
-use bevy::{prelude::{Plugin, App, IntoSystemConfigs, Update, FixedUpdate, OnExit, Commands, resource_exists_and_changed, resource_exists_and_equals, Vec2, not}, math::vec2};
+use bevy::{prelude::{Plugin, App, IntoSystemConfigs, Update, FixedUpdate, OnExit, Commands, resource_exists_and_changed, resource_exists_and_equals, Vec2, not, resource_equals}, math::vec2};
 pub(crate) use components::*;
 pub(crate) use resources::*;
 
 use crate::{common::{state::GameState, conditions::mouse_over_ui}, items::{ItemStack, ItemTool, Axe, Pickaxe, ItemSeed, ItemBlock, Hammer, ItemWall}};
 
-use super::{InGameSystemSet, ui::InventoryUiVisibility};
+use super::{InGameSystemSet, ui::InventoryUiVisibility, world_map_view::MapViewStatus};
 
 const ITEM_ROTATION: f32 = 1.7;
 
@@ -53,7 +53,8 @@ impl Plugin for PlayerInventoryPlugin {
             (
                 (
                     systems::update_player_using_item
-                        .run_if(not(mouse_over_ui)),
+                        .run_if(not(mouse_over_ui))
+                        .run_if(resource_equals(MapViewStatus::Closed)),
                     systems::start_swing_animation
                 ).chain(),
                 (
@@ -62,7 +63,8 @@ impl Plugin for PlayerInventoryPlugin {
                     systems::select_inventory_cell,
                     systems::set_selected_item.run_if(resource_exists_and_changed::<Inventory>())
                 )
-                .chain(),
+                .chain()
+                .run_if(resource_equals(MapViewStatus::Closed)),
                 systems::set_using_item_visibility(false),
 
                 systems::drop_item_stack,
