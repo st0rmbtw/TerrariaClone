@@ -10,7 +10,7 @@ use crate::common::{state::GameState, systems::{bind_visibility_to, despawn_with
 use self::{
     components::{MainUiContainer, MusicVolumeSliderOutput, SoundVolumeSliderOutput, MusicVolumeSlider, SoundVolumeSlider},
     ingame::{inventory::{systems::spawn_inventory_ui, InventoryUiPlugin, components::InventoryUi}, settings::{systems::spawn_ingame_settings_button, InGameSettingsUiPlugin}},
-    menu::MenuPlugin, systems::{play_sound_on_hover, update_previous_interaction}, resources::{Visible, SettingsMenu, Ui, Cursor},
+    menu::MenuPlugin, systems::{play_sound_on_hover, update_previous_interaction, reset_mouse_over}, resources::{Visible, SettingsMenu, Ui, Cursor},
 };
 
 use crate::plugins::assets::{FontAssets, UiAssets};
@@ -37,6 +37,8 @@ impl Plugin for UiPlugin {
         app.add_systems(OnExit(GameState::WorldLoading), spawn_ui_container);
         app.add_systems(OnExit(GameState::WorldLoading), spawn_fps_text);
         app.add_systems(OnExit(GameState::InGame), despawn_with::<MainUiContainer>);
+
+        app.add_systems(PreUpdate, reset_mouse_over);
 
         app.add_systems(
             Update,
@@ -83,14 +85,12 @@ impl Plugin for UiPlugin {
         app.add_systems(PostUpdate, update_previous_interaction);
 
         app.add_systems(
-            PreUpdate,
+            Update,
             (
                 systems::update_mouse_over_ui,
+                systems::update_ui_mouse_over,
                 systems::update_world_mouse_over_rect::<MainCamera>,
-                systems::update_world_mouse_over_bounds::<MainCamera>,
-                systems::update_ui_mouse_over
-            )
-            .run_if(resource_equals(MapViewStatus::Closed))
+            ).run_if(resource_equals(MapViewStatus::Closed)),
         );
     }
 }

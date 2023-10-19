@@ -2,7 +2,7 @@ pub(crate) mod components;
 pub(crate) mod position;
 mod systems;
 
-use bevy::{prelude::{Plugin, App, OnExit, OnEnter, IntoSystemConfigs, not, resource_equals, in_state, Update, Condition}, ui::BackgroundColor};
+use bevy::{prelude::{Plugin, App, OnExit, OnEnter, IntoSystemConfigs, not, resource_equals, in_state, Update, Condition, PostUpdate}, ui::BackgroundColor};
 use crate::{common::{state::GameState, systems::bind_visibility_to, conditions::is_visible}, animation::{AnimationSystemSet, component_animator_system}};
 use self::position::CursorPositionPlugin;
 
@@ -31,13 +31,13 @@ impl Plugin for CursorPlugin {
         app.add_systems(OnEnter(GameState::InGame), systems::spawn_tile_grid);
 
         app.add_systems(
-            Update,
+            PostUpdate,
             (
                 (
                     systems::update_cursor_info,
                     systems::update_cursor_item,
                 )
-                .in_set(InGameSystemSet::Update),
+                .in_set(InGameSystemSet::PostUpdate),
             ).run_if(not(in_state(GameState::AssetLoading)))
         );
 

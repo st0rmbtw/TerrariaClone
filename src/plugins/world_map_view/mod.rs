@@ -26,8 +26,16 @@ impl Plugin for WorldMapViewPlugin {
             (
                 systems::toggle_world_map_view.run_if(input_just_pressed(KeyCode::M)),
                 systems::update_world_map_texture,
+            )
+            .in_set(InGameSystemSet::Update)
+        );
+
+        app.add_systems(
+            Update,
+            (
                 update_world_mouse_over_bounds::<WorldMapViewCamera>,
             )
+            .run_if(resource_equals(MapViewStatus::Opened))
             .in_set(InGameSystemSet::Update)
         );
 
@@ -67,7 +75,7 @@ pub(crate) enum MapViewStatus {
 }
 
 impl MapViewStatus {
-    fn is_opened(&self) -> bool {
+    pub(crate) fn is_opened(&self) -> bool {
         *self == MapViewStatus::Opened
     }
 
