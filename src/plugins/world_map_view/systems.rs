@@ -1,16 +1,19 @@
-use bevy::{prelude::{Commands, Res, Assets, Mesh, ResMut, UiCameraConfig, Camera2dBundle, default, shape::Quad, Color, Visibility, Camera, Query, Without, With, Input, MouseButton, EventReader, Transform, Vec3, Image, Handle, AssetEvent, EventWriter}, sprite::{ColorMaterial, MaterialMesh2dBundle}, core_pipeline::tonemapping::Tonemapping, input::mouse::{MouseWheel, MouseMotion}, math::Vec3Swizzles, render::render_resource::{TextureDimension, TextureFormat, Extent3d}};
+use bevy::{prelude::{Commands, Res, Assets, Mesh, ResMut, UiCameraConfig, Camera2dBundle, default, shape::Quad, Color, Visibility, Camera, Query, Without, With, Input, MouseButton, EventReader, Transform, Vec3, Image, Handle, AssetEvent, EventWriter, Vec2}, sprite::{ColorMaterial, MaterialMesh2dBundle, SpriteBundle}, core_pipeline::tonemapping::Tonemapping, input::mouse::{MouseWheel, MouseMotion}, math::Vec3Swizzles, render::render_resource::{TextureDimension, TextureFormat, Extent3d}};
 
-use crate::{world::{WorldData, wall::WallType}, plugins::{DespawnOnGameExit, ui::resources::{Visible, Ui}, camera::components::MainCamera, assets::BackgroundAssets, world::{events::{PlaceTileEvent, BreakTileEvent}, TileType}}, common::math::map_range_usize};
+use crate::{world::{WorldData, wall::WallType}, plugins::{DespawnOnGameExit, ui::resources::{Visible, Ui}, camera::components::MainCamera, assets::{BackgroundAssets, UiAssets}, world::{events::{PlaceTileEvent, BreakTileEvent}, TileType}, cursor::components::Hoverable}, common::{math::map_range_usize, components::Bounds}, language::{LocalizedText, keys::UIStringKey}};
 
-use super::{WorldMapTexture, WORLD_MAP_VIEW_RENDER_LAYER, WorldMapViewCamera, WorldMapView, MapViewStatus};
+use super::{WorldMapTexture, WORLD_MAP_VIEW_RENDER_LAYER, WorldMapViewCamera, WorldMapView, MapViewStatus, SpawnPointIcon};
 
 pub(super) fn setup(
     mut commands: Commands,
     world_map_texture: Res<WorldMapTexture>,
     world_data: Res<WorldData>,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    ui_assets: Res<UiAssets>
 ) {
+    let map_size = world_data.playable_area.size().as_vec2();
+
     commands.spawn((
         WorldMapViewCamera,
         DespawnOnGameExit,
@@ -25,7 +28,7 @@ pub(super) fn setup(
     commands.spawn((
         WorldMapView,
         MaterialMesh2dBundle {
-            mesh: meshes.add(Quad::new(world_data.playable_area.size().as_vec2()).into()).into(),
+            mesh: meshes.add(Quad::new(map_size).into()).into(),
             material: materials.add(ColorMaterial {
                 color: Color::WHITE,
                 texture: Some(world_map_texture.clone_weak()),
@@ -33,6 +36,18 @@ pub(super) fn setup(
             visibility: Visibility::Hidden,
             ..default()
         },
+        WORLD_MAP_VIEW_RENDER_LAYER
+    ));
+
+    commands.spawn((
+        SpawnPointIcon,
+        SpriteBundle {
+            texture: ui_assets.spawn_point.clone_weak(),
+            transform: Transform::from_xyz(0., 0., 10.),
+            ..default()
+        },
+        Bounds::new(22., 24.),
+        Hoverable::SimpleText(LocalizedText::from(UIStringKey::SpawnPoint)),
         WORLD_MAP_VIEW_RENDER_LAYER
     ));
 }
@@ -69,30 +84,43 @@ pub(super) fn update_map_view(
     mut mouse_wheel: EventReader<MouseWheel>,
     mut mouse_motion: EventReader<MouseMotion>,
     mut query_map_view: Query<&mut Transform, With<WorldMapView>>,
+    mut query_spawn_point_icon: Query<&mut Transform, (With<SpawnPointIcon>, Without<WorldMapView>)>,
 ) {
-    let mut transform = query_map_view.single_mut();
+    let mut map_transform = query_map_view.single_mut();
+    let mut spawn_icon_transform = query_spawn_point_icon.single_mut();
     
     let map_default_size = world_data.playable_area.size().as_vec2();
 
     for event in mouse_wheel.iter() {
-        let old_normalized = transform.translation.xy() / (map_default_size * transform.scale.xy());
+        let scale = map_transform.scale.xy();
+        let old_normalized = map_transform.translation.xy() / (map_default_size * scale);
 
-        let new_scale = transform.scale + transform.scale * Vec3::splat(event.y / 6.);
-        transform.scale = new_scale.clamp(Vec3::splat(0.5), Vec3::splat(20.));
+        let new_scale = (scale + scale * Vec2::splat(event.y / 6.))
+            .clamp(Vec2::splat(0.5), Vec2::splat(20.));
 
-        let new_normalized = transform.translation.xy() / (map_default_size * transform.scale.xy());
+        map_transform.scale.x = new_scale.x;
+        map_transform.scale.y = new_scale.y;
+
+        let new_normalized = map_transform.translation.xy() / (map_default_size * new_scale);
 
         let delta = old_normalized - new_normalized;
 
-        transform.translation.x += map_default_size.x * transform.scale.x * delta.x;
-        transform.translation.y += map_default_size.y * transform.scale.y * delta.y;
+        map_transform.translation.x += map_default_size.x * map_transform.scale.x * delta.x;
+        map_transform.translation.y += map_default_size.y * map_transform.scale.y * delta.y;
     }
 
     if mouse_input.pressed(MouseButton::Left) {
         for event in mouse_motion.iter() {
-            transform.translation += Vec3::new(event.delta.x, -event.delta.y, 0.);
+            map_transform.translation += Vec3::new(event.delta.x, -event.delta.y, 0.);
         }
     }
+
+    let map_size = map_default_size * map_transform.scale.xy();
+
+    let spawn_point = Vec2::from(world_data.spawn_point) - world_data.playable_area.min.as_vec2();
+
+    spawn_icon_transform.translation.x = map_transform.translation.x - map_size.x / 2. + spawn_point.x as f32 * map_transform.scale.x;
+    spawn_icon_transform.translation.y = map_transform.translation.y + map_size.y / 2. - spawn_point.y as f32 * map_transform.scale.y;
 }
 
 pub(super) fn clamp_map_view_position(

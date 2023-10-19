@@ -11,6 +11,7 @@ pub(crate) mod rect;
 pub(crate) mod state;
 pub(crate) mod systems;
 pub(crate) mod gradient;
+pub(crate) mod components;
 
 
 pub(crate) trait BoolValue {

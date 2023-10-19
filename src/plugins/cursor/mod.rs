@@ -21,7 +21,8 @@ pub struct CursorPlugin;
 impl Plugin for CursorPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
-            CursorPositionPlugin::<MainCamera>::default(),
+            CursorPositionPlugin::<MainCamera>::default()
+                .run_if(in_state(GameState::InGame).and_then(is_visible::<Ui>)),
             CursorPositionPlugin::<BackgroundCamera>::default()
                 .run_if(in_state(GameState::Menu))
         ));
@@ -37,7 +38,6 @@ impl Plugin for CursorPlugin {
                     systems::update_cursor_item,
                 )
                 .in_set(InGameSystemSet::Update),
-                systems::update_cursor_position,
             ).run_if(not(in_state(GameState::AssetLoading)))
         );
 

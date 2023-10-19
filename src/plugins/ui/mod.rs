@@ -1,10 +1,10 @@
 pub(crate) mod resources;
-mod systems;
+pub(crate) mod systems;
 pub(crate) mod components;
 pub(crate) mod ingame;
 pub(crate) mod menu;
 
-use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Color, TextBundle, Condition, Button, not, Component, OnEnter, PostUpdate, Resource, PreUpdate}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, PositionType}, text::{TextAlignment, Text, TextStyle, TextSection}};
+use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Color, TextBundle, Condition, Button, not, Component, OnEnter, PostUpdate, Resource, PreUpdate, resource_equals}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, PositionType}, text::{TextAlignment, Text, TextStyle, TextSection}};
 use crate::common::{state::GameState, systems::{bind_visibility_to, despawn_with, toggle_resource, animate_button_scale, play_sound}, conditions::{on_click, is_visible}};
 
 use self::{
@@ -15,7 +15,7 @@ use self::{
 
 use crate::plugins::assets::{FontAssets, UiAssets};
 
-use super::{InGameSystemSet, DespawnOnGameExit, slider::Slider, audio::SoundType};
+use super::{InGameSystemSet, DespawnOnGameExit, slider::Slider, audio::SoundType, camera::components::MainCamera, world_map_view::MapViewStatus};
 
 #[derive(Component)]
 pub(crate) struct FpsText;
@@ -86,9 +86,11 @@ impl Plugin for UiPlugin {
             PreUpdate,
             (
                 systems::update_mouse_over_ui,
-                systems::update_world_mouse_over,
+                systems::update_world_mouse_over_rect::<MainCamera>,
+                systems::update_world_mouse_over_bounds::<MainCamera>,
                 systems::update_ui_mouse_over
             )
+            .run_if(resource_equals(MapViewStatus::Closed))
         );
     }
 }

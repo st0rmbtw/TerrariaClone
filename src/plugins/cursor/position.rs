@@ -1,8 +1,10 @@
 use std::{marker::PhantomData, sync::Mutex};
 
-use bevy::{prelude::{Component, Plugin, App, Vec2, ResMut, Query, With, Camera, GlobalTransform, PreUpdate, IntoSystemConfigs, in_state, not, Resource, Condition, IntoSystem}, window::{Window, PrimaryWindow}, ecs::schedule::BoxedCondition};
+use bevy::{prelude::{Component, Plugin, App, Vec2, ResMut, Query, With, Camera, GlobalTransform, PreUpdate, IntoSystemConfigs, in_state, not, Resource, Condition, IntoSystem, Res}, window::{Window, PrimaryWindow}, ecs::schedule::BoxedCondition, ui::{Style, Val}};
 
 use crate::common::state::GameState;
+
+use super::components::CursorContainer;
 
 #[derive(Resource)]
 pub(crate) struct CursorPosition<CameraMarker: Component> {
@@ -47,14 +49,17 @@ impl<M: Component> Plugin for CursorPositionPlugin<M> {
     fn build(&self, app: &mut App) {
         app.init_resource::<CursorPosition<M>>();
 
-        let mut system = update_cursor_position::<M>
-            .run_if(not(in_state(GameState::AssetLoading)));
+        let mut systems = (
+            update_cursor_position::<M>,
+            update_cursor_sprite_position::<M>
+        )
+        .run_if(not(in_state(GameState::AssetLoading)));
 
         if let Some(condition) = self.condition.try_lock().unwrap().take() {
-            system.run_if_inner(condition);
+            systems.run_if_inner(condition);
         }
 
-        app.add_systems(PreUpdate, system);
+        app.add_systems(PreUpdate, systems);
     }
 }
 
@@ -71,5 +76,15 @@ fn update_cursor_position<CameraMarker: Component>(
 
         let Some(world_pos) = camera.viewport_to_world_2d(camera_transform, screen_pos) else { return; };
         cursor_pos.world = world_pos;
+    }
+}
+
+fn update_cursor_sprite_position<CameraMarker: Component>(
+    cursor_pos: Res<CursorPosition<CameraMarker>>,
+    mut query_cursor: Query<&mut Style, With<CursorContainer>>,
+) {
+    if let Ok(mut style) = query_cursor.get_single_mut() {
+        style.left = Val::Px(cursor_pos.screen.x);
+        style.top = Val::Px(cursor_pos.screen.y);
     }
 }

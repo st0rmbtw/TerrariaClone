@@ -1,14 +1,19 @@
 mod systems;
 
-use bevy::{prelude::{Plugin, App, OnEnter, Deref, Update, IntoSystemConfigs, KeyCode, Handle, Image, apply_deferred, resource_equals, Resource, Component}, render::{view::RenderLayers, render_resource::{ShaderRef, AsBindGroup}}, input::common_conditions::input_just_pressed, sprite::{Material2d, Material2dPlugin}, reflect::{TypeUuid, TypePath}};
+use bevy::{prelude::{Plugin, App, OnEnter, Deref, Update, IntoSystemConfigs, KeyCode, Handle, Image, apply_deferred, resource_equals, Resource, Component, resource_exists_and_equals}, render::{view::RenderLayers, render_resource::{ShaderRef, AsBindGroup}}, input::common_conditions::input_just_pressed, sprite::{Material2d, Material2dPlugin}, reflect::{TypeUuid, TypePath}};
 
 use crate::common::state::GameState;
 
-use super::InGameSystemSet;
+use super::{InGameSystemSet, ui::systems::update_world_mouse_over_bounds, cursor::position::CursorPositionPlugin};
 
 pub(crate) struct WorldMapViewPlugin;
 impl Plugin for WorldMapViewPlugin {
     fn build(&self, app: &mut App) {
+        app.add_plugins(
+            CursorPositionPlugin::<WorldMapViewCamera>::default()
+                .run_if(resource_exists_and_equals(MapViewStatus::Opened))
+        );
+
         app.add_plugins(Material2dPlugin::<WorldMapViewMaterial>::default());
 
         app.init_resource::<MapViewStatus>();
@@ -27,7 +32,8 @@ impl Plugin for WorldMapViewPlugin {
             Update,
             (
                 systems::update_map_view,
-                systems::clamp_map_view_position
+                systems::clamp_map_view_position,
+                update_world_mouse_over_bounds::<WorldMapViewCamera>
             )
             .chain()
             .in_set(InGameSystemSet::Update)
@@ -50,6 +56,9 @@ struct WorldMapViewCamera;
 
 #[derive(Component)]
 struct WorldMapView;
+
+#[derive(Component)]
+struct SpawnPointIcon;
 
 #[derive(Resource, Deref)]
 struct WorldMapTexture(Handle<Image>);

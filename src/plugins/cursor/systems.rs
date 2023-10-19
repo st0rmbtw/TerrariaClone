@@ -210,16 +210,6 @@ pub(super) fn update_tile_grid_visibility(
     helpers::set_visibility(visibility, ui_visible.value() && show_tile_grid.value());
 }
 
-pub(super) fn update_cursor_position(
-    cursor_pos: Res<CursorPosition<MainCamera>>,
-    mut query_cursor: Query<&mut Style, With<CursorContainer>>,
-) {
-    if let Ok(mut style) = query_cursor.get_single_mut() {
-        style.left = Val::Px(cursor_pos.screen.x);
-        style.top = Val::Px(cursor_pos.screen.y);
-    }
-}
-
 pub(super) fn update_tile_grid_position(
     cursor_pos: Res<CursorPosition<MainCamera>>,
     mut query: Query<&mut Transform, With<TileGrid>>,
@@ -253,20 +243,19 @@ pub(super) fn update_tile_grid_opacity(
 pub(super) fn update_cursor_info(
     inventory: Res<Inventory>,
     language_content: Res<LanguageContent>,
-    ui_visible: Res<Visible<Ui>>,
     mut query_hoverable: Query<(&mut Hoverable, Has<MouseOver>)>,
     mut query_info: Query<(&mut Text, &mut Visibility), With<CursorInfoMarker>>,
 ) {
-    let (mut text, mut visibility) = query_info.single_mut();
+    let (mut info_text, mut info_visibility) = query_info.single_mut();
 
-    *visibility = Visibility::Hidden;
+    *info_visibility = Visibility::Hidden;
 
-    if inventory.item_exists(Slot::MouseItem) || !*ui_visible { return; }
+    if inventory.item_exists(Slot::MouseItem) { return; }
     
     for (mut hoverable, mouse_over) in &mut query_hoverable {
         if let (Hoverable::SimpleText(info), true) = (hoverable.as_mut(), mouse_over) {
-            text.sections[0].value = info.text(&language_content);
-            *visibility = Visibility::Inherited;
+            info_text.sections[0].value = info.text(&language_content);
+            *info_visibility = Visibility::Inherited;
             return;
         }
     }

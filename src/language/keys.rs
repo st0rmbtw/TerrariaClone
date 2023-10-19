@@ -82,6 +82,7 @@ pub(crate) enum UIStringKey {
     Medium,
     High,
     Ultra,
+    SpawnPoint
 }
 
 impl From<UIStringKey> for LanguageStringKey {
