@@ -7,9 +7,9 @@ use bevy::{prelude::{Plugin, App, IntoSystemConfigs, Update, FixedUpdate, OnExit
 pub(crate) use components::*;
 pub(crate) use resources::*;
 
-use crate::{common::{state::GameState, conditions::mouse_over_ui}, items::{ItemStack, ItemTool, Axe, Pickaxe, ItemSeed, ItemBlock, Hammer, ItemWall}};
+use crate::{common::{state::GameState, conditions::{mouse_over_ui, is_visible}}, items::{ItemStack, ItemTool, Axe, Pickaxe, ItemSeed, ItemBlock, Hammer, ItemWall}};
 
-use super::{InGameSystemSet, ui::InventoryUiVisibility, world_map_view::MapViewStatus};
+use super::{InGameSystemSet, world_map_view::MapViewStatus, ui::resources::Ui};
 
 const ITEM_ROTATION: f32 = 1.7;
 
@@ -58,13 +58,12 @@ impl Plugin for PlayerInventoryPlugin {
                     systems::start_swing_animation
                 ).chain(),
                 (
-                    systems::scroll_select_inventory_item
-                        .run_if(resource_exists_and_equals(InventoryUiVisibility::HIDDEN)),
+                    systems::scroll_select_inventory_item,
                     systems::select_inventory_cell,
                     systems::set_selected_item.run_if(resource_exists_and_changed::<Inventory>())
                 )
                 .chain()
-                .run_if(resource_equals(MapViewStatus::Closed)),
+                .run_if(is_visible::<Ui>),
                 systems::set_using_item_visibility(false),
 
                 systems::drop_item_stack,

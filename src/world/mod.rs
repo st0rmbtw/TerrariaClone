@@ -126,6 +126,11 @@ impl WorldData {
     }
 
     #[inline]
+    pub fn get_block_color<Pos: AsWorldPos>(&self, world_pos: Pos) -> Option<[u8; 3]> {
+        self.get_block(world_pos).map(|b| b.color())
+    }
+
+    #[inline]
     pub(crate) fn get_block_with_type<Pos: AsWorldPos>(&self, world_pos: Pos, block_type: BlockType) -> Option<&Block> {
         self.get_block(world_pos).filter(|b| b.block_type == block_type)
     }
@@ -148,6 +153,11 @@ impl WorldData {
     #[inline(always)]
     pub fn get_wall<Pos: AsWorldPos>(&self, world_pos: Pos) -> Option<&Wall> {
         self.walls.get(world_pos.yx()).and_then(|w| w.as_ref())
+    }
+
+    #[inline]
+    pub fn get_wall_color<Pos: AsWorldPos>(&self, world_pos: Pos) -> Option<[u8; 3]> {
+        self.get_wall(world_pos).map(|b| b.color())
     }
 
     #[inline(always)]

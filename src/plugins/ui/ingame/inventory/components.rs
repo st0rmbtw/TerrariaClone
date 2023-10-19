@@ -1,9 +1,10 @@
 use bevy::prelude::{Component, Image, Handle};
 
-use crate::items::Stack;
+use crate::{items::Stack, plugins::ui::resources::VisibilityMarker};
 
-#[derive(Component)]
-pub(super) struct InventoryUi;
+#[derive(Component, Clone, Copy)]
+pub(crate) struct InventoryUi;
+impl VisibilityMarker for InventoryUi {}
 
 #[derive(Component)]
 pub(super) struct InventoryUiContainer;

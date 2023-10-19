@@ -1,13 +1,11 @@
 pub(in crate::plugins::ui) mod systems;
-mod components;
+pub(crate) mod components;
 
-use bevy::prelude::{Plugin, App, IntoSystemConfigs, resource_exists_and_changed, resource_added, Update, Condition, resource_exists_and_equals};
+use bevy::prelude::{Plugin, App, IntoSystemConfigs, resource_exists_and_changed, resource_added, Update, Condition};
 
-use crate::{common::systems::{set_visibility, set_visibility_negated}, plugins::{inventory::Inventory, InGameSystemSet, ui::SettingsMenuVisibility}};
+use crate::{common::{systems::{bind_visibility2_to, bind_not_visibility_to}, conditions::is_visible}, plugins::{inventory::Inventory, InGameSystemSet, ui::{resources::{Visible, Ui}, SettingsMenu}}};
 
-use crate::plugins::ui::InventoryUiVisibility;
-
-use self::systems::return_mouse_item_back_to_inventory;
+use self::{systems::return_mouse_item_back_to_inventory, components::InventoryUi};
 
 const INVENTORY_ROWS: usize = 5 - 1;
 
@@ -23,9 +21,10 @@ impl Plugin for InventoryUiPlugin {
         app.add_systems(
             Update,
             (
-                set_visibility::<components::InventoryUi, InventoryUiVisibility>,
-                set_visibility_negated::<components::InventoryUiContainer, SettingsMenuVisibility>,
-                systems::trigger_inventory_changed.run_if(resource_exists_and_changed::<InventoryUiVisibility>()),
+                
+                bind_visibility2_to::<InventoryUi, Ui, components::InventoryUi>,
+                bind_not_visibility_to::<SettingsMenu, components::InventoryUiContainer>,
+                systems::trigger_inventory_changed.run_if(resource_exists_and_changed::<Visible<InventoryUi>>()),
                 systems::update_selected_item_name_alignment,
                 systems::update_selected_item_name_text,
                 systems::update_slot_size,
@@ -51,7 +50,7 @@ impl Plugin for InventoryUiPlugin {
                     systems::take_item,
                     systems::put_item,
                 )
-                .run_if(resource_exists_and_equals(InventoryUiVisibility::VISIBLE)),
+                .run_if(is_visible::<InventoryUi>),
 
                 return_mouse_item_back_to_inventory
             )

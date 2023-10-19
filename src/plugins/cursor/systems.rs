@@ -17,7 +17,7 @@ use crate::{
     plugins::{
         assets::{FontAssets, CursorAssets, UiAssets, ItemAssets}, 
         camera::components::MainCamera, 
-        world::constants::TILE_SIZE, config::{CursorColor, ShowTileGrid}, DespawnOnGameExit, player::Player, ui::{UiVisibility, components::MouseOver}, inventory::{Inventory, Slot}, entity::components::Velocity
+        world::constants::TILE_SIZE, config::{CursorColor, ShowTileGrid}, DespawnOnGameExit, player::Player, ui::{components::MouseOver, resources::{Visible, Ui}}, inventory::{Inventory, Slot}, entity::components::Velocity
     }, 
     animation::{Tween, lens::TransformScaleLens, Animator, RepeatStrategy, RepeatCount}, 
     common::{lens::BackgroundColorLens, helpers, BoolValue}, language::LanguageContent,
@@ -202,12 +202,12 @@ pub(super) fn spawn_tile_grid(
 }
 
 pub(super) fn update_tile_grid_visibility(
-    ui_visibility: Res<UiVisibility>,
+    ui_visible: Res<Visible<Ui>>,
     show_tile_grid: Res<ShowTileGrid>,
     mut query: Query<&mut Visibility, With<TileGrid>>,
 ) {
     let Ok(visibility) = query.get_single_mut() else { return; };
-    helpers::set_visibility(visibility, ui_visibility.value() && show_tile_grid.value());
+    helpers::set_visibility(visibility, ui_visible.value() && show_tile_grid.value());
 }
 
 pub(super) fn update_cursor_position(
@@ -253,6 +253,7 @@ pub(super) fn update_tile_grid_opacity(
 pub(super) fn update_cursor_info(
     inventory: Res<Inventory>,
     language_content: Res<LanguageContent>,
+    ui_visible: Res<Visible<Ui>>,
     mut query_hoverable: Query<(&mut Hoverable, Has<MouseOver>)>,
     mut query_info: Query<(&mut Text, &mut Visibility), With<CursorInfoMarker>>,
 ) {
@@ -260,7 +261,7 @@ pub(super) fn update_cursor_info(
 
     *visibility = Visibility::Hidden;
 
-    if inventory.item_exists(Slot::MouseItem) { return; }
+    if inventory.item_exists(Slot::MouseItem) || !*ui_visible { return; }
     
     for (mut hoverable, mouse_over) in &mut query_hoverable {
         if let (Hoverable::SimpleText(info), true) = (hoverable.as_mut(), mouse_over) {
