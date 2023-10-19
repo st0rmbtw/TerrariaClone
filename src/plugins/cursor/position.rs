@@ -53,6 +53,7 @@ impl<M: Component> Plugin for CursorPositionPlugin<M> {
             update_cursor_position::<M>,
             update_cursor_sprite_position::<M>
         )
+        .chain()
         .run_if(not(in_state(GameState::AssetLoading)));
 
         if let Some(condition) = self.condition.try_lock().unwrap().take() {
@@ -68,23 +69,21 @@ fn update_cursor_position<CameraMarker: Component>(
     query_window: Query<&Window, With<PrimaryWindow>>,
     query_camera: Query<(&Camera, &GlobalTransform), With<CameraMarker>>,
 ) {
-    if let Ok((camera, camera_transform)) = query_camera.get_single() {
-        let window = query_window.single();
+    let Ok((camera, camera_transform)) = query_camera.get_single() else { return; };
+    let window = query_window.single();
 
-        let Some(screen_pos) = window.cursor_position() else { return; };
-        cursor_pos.screen = screen_pos;
+    let Some(screen_pos) = window.cursor_position() else { return; };
+    cursor_pos.screen = screen_pos;
 
-        let Some(world_pos) = camera.viewport_to_world_2d(camera_transform, screen_pos) else { return; };
-        cursor_pos.world = world_pos;
-    }
+    let Some(world_pos) = camera.viewport_to_world_2d(camera_transform, screen_pos) else { return; };
+    cursor_pos.world = world_pos;
 }
 
 fn update_cursor_sprite_position<CameraMarker: Component>(
     cursor_pos: Res<CursorPosition<CameraMarker>>,
     mut query_cursor: Query<&mut Style, With<CursorContainer>>,
 ) {
-    if let Ok(mut style) = query_cursor.get_single_mut() {
-        style.left = Val::Px(cursor_pos.screen.x);
-        style.top = Val::Px(cursor_pos.screen.y);
-    }
+    let Ok(mut style) = query_cursor.get_single_mut() else { return; };
+    style.left = Val::Px(cursor_pos.screen.x);
+    style.top = Val::Px(cursor_pos.screen.y);
 }

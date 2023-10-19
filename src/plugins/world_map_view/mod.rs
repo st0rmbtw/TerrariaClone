@@ -1,6 +1,6 @@
 mod systems;
 
-use bevy::{prelude::{Plugin, App, OnEnter, Deref, Update, IntoSystemConfigs, KeyCode, Handle, Image, apply_deferred, resource_equals, Resource, Component, resource_exists_and_equals}, render::{view::RenderLayers, render_resource::{ShaderRef, AsBindGroup}}, input::common_conditions::input_just_pressed, sprite::{Material2d, Material2dPlugin}, reflect::{TypeUuid, TypePath}};
+use bevy::{prelude::{Plugin, App, OnEnter, Deref, Update, IntoSystemConfigs, KeyCode, Handle, Image, apply_deferred, resource_equals, Resource, Component, resource_exists_and_equals}, render::view::RenderLayers, input::common_conditions::input_just_pressed};
 
 use crate::common::state::GameState;
 
@@ -14,8 +14,6 @@ impl Plugin for WorldMapViewPlugin {
                 .run_if(resource_exists_and_equals(MapViewStatus::Opened))
         );
 
-        app.add_plugins(Material2dPlugin::<WorldMapViewMaterial>::default());
-
         app.init_resource::<MapViewStatus>();
 
         app.add_systems(
@@ -25,26 +23,24 @@ impl Plugin for WorldMapViewPlugin {
 
         app.add_systems(
             Update,
-            systems::update_world_map_texture.in_set(InGameSystemSet::Update)
+            (
+                systems::toggle_world_map_view.run_if(input_just_pressed(KeyCode::M)),
+                systems::update_world_map_texture,
+                update_world_mouse_over_bounds::<WorldMapViewCamera>,
+            )
+            .in_set(InGameSystemSet::Update)
         );
 
         app.add_systems(
             Update,
             (
+                systems::drag_map_view,
                 systems::update_map_view,
                 systems::clamp_map_view_position,
-                update_world_mouse_over_bounds::<WorldMapViewCamera>
             )
             .chain()
             .in_set(InGameSystemSet::Update)
             .run_if(resource_equals(MapViewStatus::Opened))
-        );
-
-        app.add_systems(
-            Update,
-            systems::toggle_world_map_view
-                .in_set(InGameSystemSet::Update)
-                .run_if(input_just_pressed(KeyCode::M))
         );
     }
 }
@@ -80,19 +76,5 @@ impl MapViewStatus {
             true => *self = MapViewStatus::Opened,
             false => *self = MapViewStatus::Closed,
         }
-    }
-}
-
-#[derive(AsBindGroup, TypeUuid, TypePath, Debug, Clone)]
-#[uuid = "1b120582-0216-4a54-95d8-924071b88311"]
-struct WorldMapViewMaterial {
-    #[texture(0)]
-    #[sampler(1)]
-    tile_map: Handle<Image>
-}
-
-impl Material2d for WorldMapViewMaterial {
-    fn fragment_shader() -> ShaderRef {
-        "shaders/map_view.wgsl".into()
     }
 }

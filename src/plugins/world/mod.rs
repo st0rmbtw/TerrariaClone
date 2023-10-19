@@ -31,6 +31,8 @@ impl Plugin for WorldPlugin {
 
         app.add_event::<events::BreakTileEvent>();
 
+        app.add_event::<events::TileRemovedEvent>();
+
         app.add_event::<events::DigBlockEvent>();
         app.add_event::<events::DigWallEvent>();
 

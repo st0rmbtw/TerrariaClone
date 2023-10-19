@@ -24,7 +24,7 @@ use crate::{plugins::{assets::{BlockAssets, WallAssets}, camera::components::Mai
 
 use super::{
     utils::{get_chunk_pos, get_camera_fov, get_chunk_tile_pos, get_chunk_range_by_camera_fov, self}, 
-    events::{UpdateNeighborsEvent, DigBlockEvent, UpdateBlockEvent, SeedEvent, UpdateCracksEvent, UpdateWallEvent, DigWallEvent, BreakTileEvent, PlaceTileEvent},
+    events::{UpdateNeighborsEvent, DigBlockEvent, UpdateBlockEvent, SeedEvent, UpdateCracksEvent, UpdateWallEvent, DigWallEvent, BreakTileEvent, PlaceTileEvent, TileRemovedEvent},
     resources::{ChunkManager, WorldUndergroundLevel}, 
     constants::{CHUNK_SIZE_U, WALL_SIZE, CHUNKMAP_SIZE, TREE_SIZE, TREE_BRANCHES_SIZE, TREE_TOPS_SIZE, CHUNK_SIZE, TILE_SIZE}, WORLD_RENDER_LAYER, TileType
 };
@@ -429,6 +429,7 @@ pub(super) fn handle_break_tile_event(
     mut world_data: ResMut<WorldData>,
     mut break_tile: EventReader<BreakTileEvent>,
     mut update_neighbors: EventWriter<UpdateNeighborsEvent>,
+    mut tile_removed: EventWriter<TileRemovedEvent>,
 ) {
     let mut rng = thread_rng();
 
@@ -438,7 +439,7 @@ pub(super) fn handle_break_tile_event(
                 let Some(block_type) = world_data.get_block(tile_pos).map(|b| b.block_type) else { continue; };
 
                 if let BlockType::Tree(_) = block_type {
-                    break_tree(&mut commands, &mut world_data, &mut query_chunk, tile_pos, false);
+                    break_tree(&mut commands, &mut world_data, &mut query_chunk, &mut tile_removed, tile_pos, false);
                 } else {
                     world_data.remove_block(tile_pos);
 
@@ -476,6 +477,7 @@ pub(super) fn handle_break_tile_event(
                 update_neighbors.send(UpdateNeighborsEvent { tile_pos });
             },
         }
+        tile_removed.send(TileRemovedEvent { tile_pos, tile_type });
     }
 }
 
@@ -726,6 +728,7 @@ fn break_tree(
     commands: &mut Commands, 
     world_data: &mut ResMut<WorldData>,
     chunks: &mut Query<(&Chunk, &mut TileStorage)>,
+    tile_removed: &mut EventWriter<TileRemovedEvent>,
     pos: TilePos,
     tree_falling: bool
 ) {
@@ -744,10 +747,12 @@ fn break_tree(
                 None
             );
 
+            tile_removed.send(TileRemovedEvent { tile_pos: pos, tile_type: TileType::Block(Some(block.block_type)) });
+
             if tree.frame_type.is_trunk() || tree_falling {
-                break_tree(commands, world_data, chunks, TilePos::new(pos.x + 1, pos.y), true);
-                break_tree(commands, world_data, chunks, TilePos::new(pos.x - 1, pos.y), true);
-                break_tree(commands, world_data, chunks, TilePos::new(pos.x, pos.y - 1), true);
+                break_tree(commands, world_data, chunks, tile_removed, TilePos::new(pos.x + 1, pos.y), true);
+                break_tree(commands, world_data, chunks, tile_removed, TilePos::new(pos.x - 1, pos.y), true);
+                break_tree(commands, world_data, chunks, tile_removed, TilePos::new(pos.x, pos.y - 1), true);
             }
         }
     }

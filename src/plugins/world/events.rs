@@ -41,6 +41,12 @@ pub(crate) struct UpdateBlockEvent {
 }
 
 #[derive(Event)]
+pub(crate) struct TileRemovedEvent {
+    pub(crate) tile_pos: TilePos,
+    pub(crate) tile_type: TileType
+}
+
+#[derive(Event)]
 pub(crate) struct UpdateWallEvent {
     pub(crate) tile_pos: TilePos,
     pub(crate) wall: Wall,

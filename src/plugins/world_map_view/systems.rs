@@ -1,6 +1,6 @@
 use bevy::{prelude::{Commands, Res, Assets, Mesh, ResMut, UiCameraConfig, Camera2dBundle, default, shape::Quad, Color, Visibility, Camera, Query, Without, With, Input, MouseButton, EventReader, Transform, Vec3, Image, Handle, AssetEvent, EventWriter, Vec2}, sprite::{ColorMaterial, MaterialMesh2dBundle, SpriteBundle}, core_pipeline::tonemapping::Tonemapping, input::mouse::{MouseWheel, MouseMotion}, math::Vec3Swizzles, render::render_resource::{TextureDimension, TextureFormat, Extent3d}};
 
-use crate::{world::{WorldData, wall::WallType}, plugins::{DespawnOnGameExit, ui::resources::{Visible, Ui}, camera::components::MainCamera, assets::{BackgroundAssets, UiAssets}, world::{events::{PlaceTileEvent, BreakTileEvent}, TileType}, cursor::components::Hoverable}, common::{math::map_range_usize, components::Bounds}, language::{LocalizedText, keys::UIStringKey}};
+use crate::{world::{WorldData, wall::WallType}, plugins::{DespawnOnGameExit, ui::resources::{Visible, Ui}, camera::components::MainCamera, assets::{BackgroundAssets, UiAssets}, world::{events::{PlaceTileEvent, TileRemovedEvent}, TileType}, cursor::components::Hoverable}, common::{math::map_range_usize, components::Bounds}, language::{LocalizedText, keys::UIStringKey}};
 
 use super::{WorldMapTexture, WORLD_MAP_VIEW_RENDER_LAYER, WorldMapViewCamera, WorldMapView, MapViewStatus, SpawnPointIcon};
 
@@ -78,11 +78,23 @@ pub(super) fn toggle_world_map_view(
     }
 }
 
+pub(super) fn drag_map_view(
+    mouse_input: Res<Input<MouseButton>>,
+    mut mouse_motion: EventReader<MouseMotion>,
+    mut query_map_view: Query<&mut Transform, With<WorldMapView>>,
+) {
+    let mut map_transform = query_map_view.single_mut();
+
+    if mouse_input.pressed(MouseButton::Left) {
+        for event in mouse_motion.iter() {
+            map_transform.translation += Vec3::new(event.delta.x, -event.delta.y, 0.);
+        }
+    }
+}
+
 pub(super) fn update_map_view(
     world_data: Res<WorldData>,
-    mouse_input: Res<Input<MouseButton>>,
     mut mouse_wheel: EventReader<MouseWheel>,
-    mut mouse_motion: EventReader<MouseMotion>,
     mut query_map_view: Query<&mut Transform, With<WorldMapView>>,
     mut query_spawn_point_icon: Query<&mut Transform, (With<SpawnPointIcon>, Without<WorldMapView>)>,
 ) {
@@ -109,12 +121,6 @@ pub(super) fn update_map_view(
         map_transform.translation.y += map_default_size.y * map_transform.scale.y * delta.y;
     }
 
-    if mouse_input.pressed(MouseButton::Left) {
-        for event in mouse_motion.iter() {
-            map_transform.translation += Vec3::new(event.delta.x, -event.delta.y, 0.);
-        }
-    }
-
     let map_size = map_default_size * map_transform.scale.xy();
 
     let spawn_point = Vec2::from(world_data.spawn_point) - world_data.playable_area.min.as_vec2();
@@ -135,6 +141,14 @@ pub(super) fn clamp_map_view_position(
 
     transform.translation.x = clamped_pos.x;
     transform.translation.y = clamped_pos.y;
+}
+
+#[inline(always)]
+fn set_pixel(data: &mut [u8], index: usize, pixel: [u8; 3]) {
+    data[index] = pixel[0];
+    data[index + 1] = pixel[1];
+    data[index + 2] = pixel[2];
+    data[index + 3] = 255;
 }
 
 pub(super) fn init_world_map_texture(
@@ -158,37 +172,19 @@ pub(super) fn init_world_map_texture(
 
             let index = ((y * world_data.playable_width()) + x) * 4;
 
-            if let Some(block) = world_data.get_block(pos) {
-                let color = block.color();
+            let color = world_data.get_block_color(pos).or(world_data.get_wall_color(pos))
+                .unwrap_or_else(|| {
+                    if y >= world_data.layer.underground {
+                        WallType::Dirt.color()
+                    } else {
+                        let sky_y = map_range_usize((0, world_data.playable_height()), (0, sky_image_height), y);
+                        let index = (sky_y * sky_image_width) * 4;
 
-                bytes[index] = color[0];
-                bytes[index + 1] = color[1];
-                bytes[index + 2] = color[2];
-                bytes[index + 3] = 255;
-            } else if let Some(wall) = world_data.get_wall(pos) {
-                let color = wall.color();
+                        [sky_image.data[index], sky_image.data[index + 1], sky_image.data[index + 2]]
+                    }
+                });
 
-                bytes[index] = color[0];
-                bytes[index + 1] = color[1];
-                bytes[index + 2] = color[2];
-                bytes[index + 3] = 255;
-            } else {
-                if y >= world_data.layer.underground {
-                    let color = WallType::Dirt.color();
-
-                    bytes[index] = color[0];
-                    bytes[index + 1] = color[1];
-                    bytes[index + 2] = color[2];
-                    bytes[index + 3] = 255;
-                } else {
-                    let sky_y = map_range_usize((0, world_data.playable_height()), (0, sky_image_height), y);
-
-                    bytes[index] = sky_image.data[(sky_y * sky_image_width) * 4 + 0];
-                    bytes[index + 1] = sky_image.data[(sky_y * sky_image_width) * 4 + 1];
-                    bytes[index + 2] = sky_image.data[(sky_y * sky_image_width) * 4 + 2];
-                    bytes[index + 3] = 255;
-                }
-            }
+            set_pixel(&mut bytes, index, color);
         }
     }
 
@@ -206,25 +202,17 @@ pub(super) fn init_world_map_texture(
     commands.insert_resource(WorldMapTexture(images.add(image)));
 }
 
-#[inline(always)]
-fn set_pixel(image: &mut Image, index: usize, pixel: [u8; 3]) {
-    image.data[index] = pixel[0];
-    image.data[index + 1] = pixel[1];
-    image.data[index + 2] = pixel[2];
-    image.data[index + 3] = 255;
-}
-
 pub(super) fn update_world_map_texture(
     world_data: Res<WorldData>,
     world_map_texture: Res<WorldMapTexture>,
     mut images: ResMut<Assets<Image>>,
     mut place_tile_events: EventReader<PlaceTileEvent>,
-    mut break_tile_events: EventReader<BreakTileEvent>,
+    mut tile_removed_events: EventReader<TileRemovedEvent>,
     background_assets: Res<BackgroundAssets>,
     mut asset_events: EventWriter<AssetEvent<ColorMaterial>>,
     query_world_map: Query<&Handle<ColorMaterial>, With<WorldMapView>>
 ) {
-    if break_tile_events.is_empty() && place_tile_events.is_empty() { return; }
+    if tile_removed_events.is_empty() && place_tile_events.is_empty() { return; }
 
     let mut image = images.remove(world_map_texture.id()).unwrap();
 
@@ -239,10 +227,10 @@ pub(super) fn update_world_map_texture(
             _ => unreachable!()
         };
 
-        set_pixel(&mut image, index, color);
+        set_pixel(&mut image.data, index, color);
     }
 
-    for event in break_tile_events.iter() {
+    for event in tile_removed_events.iter() {
         let x = event.tile_pos.x as usize - world_data.playable_area.min.x as usize;
         let y = event.tile_pos.y as usize - world_data.playable_area.min.y as usize;
         let index = ((y * world_data.playable_width()) + x) * 4;
@@ -269,7 +257,7 @@ pub(super) fn update_world_map_texture(
                 }
             });
 
-        set_pixel(&mut image, index, color);
+        set_pixel(&mut image.data, index, color);
     }
 
     let _ = images.set(world_map_texture.id(), image);
