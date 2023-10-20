@@ -2,7 +2,7 @@ use bevy::{render::{render_graph::{RenderGraphContext, Node, NodeRunError}, rend
 
 use self::{pipeline::{LightMapPipelineBindGroups, LightMapPipeline}, assets::{BlurArea, LightSourceCount}};
 
-use super::WORKGROUP;
+use super::{WORKGROUP, DoLighting};
 
 pub(super) mod pipeline;
 pub(super) mod assets;
@@ -20,8 +20,9 @@ impl Node for LightMapNode {
             let pipeline = world.resource::<LightMapPipeline>();
             let blur_area = world.resource::<BlurArea>();
             let light_source_count = **world.resource::<LightSourceCount>();
+            let do_lighting = **world.resource::<DoLighting>();
 
-            if blur_area.width() > 0 && blur_area.height() > 0 {
+            if blur_area.width() > 0 && blur_area.height() > 0 && do_lighting {
                 if let (
                     Some(scan_pipeline),
                     Some(place_light_pipeline),

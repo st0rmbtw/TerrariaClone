@@ -6,6 +6,8 @@ use crate::common::state::GameState;
 
 use super::{InGameSystemSet, cursor::position::CursorPositionPlugin};
 
+const MOVE_SPEED: f32 = 1000.;
+
 pub(crate) struct WorldMapViewPlugin;
 impl Plugin for WorldMapViewPlugin {
     fn build(&self, app: &mut App) {
@@ -33,7 +35,10 @@ impl Plugin for WorldMapViewPlugin {
         app.add_systems(
             Update,
             (
-                systems::drag_map_view,
+                (
+                    systems::drag_map_view,
+                    systems::move_map_view
+                ),
                 systems::update_map_view,
                 systems::clamp_map_view_position,
                 systems::update_spawn_icon_position
@@ -67,6 +72,7 @@ pub(crate) enum MapViewStatus {
 }
 
 impl MapViewStatus {
+    #[inline]
     pub(crate) fn is_opened(&self) -> bool {
         *self == MapViewStatus::Opened
     }

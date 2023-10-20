@@ -1,8 +1,8 @@
-use bevy::{prelude::{Commands, Res, Assets, Mesh, ResMut, UiCameraConfig, Camera2dBundle, default, shape::Quad, Color, Visibility, Camera, Query, Without, With, Input, MouseButton, EventReader, Transform, Vec3, Image, Handle, AssetEvent, EventWriter, Vec2}, sprite::{ColorMaterial, MaterialMesh2dBundle, SpriteBundle}, core_pipeline::tonemapping::Tonemapping, input::mouse::{MouseWheel, MouseMotion}, math::Vec3Swizzles, render::render_resource::{TextureDimension, TextureFormat, Extent3d}};
+use bevy::{prelude::{Commands, Res, Assets, Mesh, ResMut, UiCameraConfig, Camera2dBundle, default, shape::Quad, Color, Visibility, Camera, Query, Without, With, Input, MouseButton, EventReader, Transform, Vec3, Image, Handle, AssetEvent, EventWriter, Vec2, KeyCode}, sprite::{ColorMaterial, MaterialMesh2dBundle, SpriteBundle}, core_pipeline::tonemapping::Tonemapping, input::mouse::{MouseWheel, MouseMotion}, math::Vec3Swizzles, render::render_resource::{TextureDimension, TextureFormat, Extent3d}, time::Time};
 
-use crate::{world::{WorldData, wall::WallType}, plugins::{DespawnOnGameExit, ui::resources::{Visible, Ui}, camera::components::MainCamera, assets::{BackgroundAssets, UiAssets}, world::{events::{PlaceTileEvent, TileRemovedEvent}, TileType}, cursor::components::Hoverable}, common::{math::map_range_usize, components::Bounds}, language::{LocalizedText, keys::UIStringKey}};
+use crate::{world::{WorldData, wall::WallType}, plugins::{DespawnOnGameExit, ui::resources::{Visible, Ui}, camera::components::MainCamera, assets::{BackgroundAssets, UiAssets}, world::{events::{PlaceTileEvent, TileRemovedEvent}, TileType}, cursor::components::Hoverable}, common::{math::map_range_usize, components::Bounds}, language::{LocalizedText, keys::UIStringKey}, lighting::DoLighting};
 
-use super::{WorldMapTexture, WORLD_MAP_VIEW_RENDER_LAYER, WorldMapViewCamera, WorldMapView, MapViewStatus, SpawnPointIcon};
+use super::{WorldMapTexture, WORLD_MAP_VIEW_RENDER_LAYER, WorldMapViewCamera, WorldMapView, MapViewStatus, SpawnPointIcon, MOVE_SPEED};
 
 pub(super) fn setup(
     mut commands: Commands,
@@ -60,6 +60,7 @@ pub(super) fn setup(
 pub(super) fn toggle_world_map_view(
     mut map_view_status: ResMut<MapViewStatus>,
     mut ui_visibility: ResMut<Visible<Ui>>,
+    mut do_lighting: ResMut<DoLighting>,
     mut query_camera: Query<&mut Camera, (Without<WorldMapViewCamera>, Without<MainCamera>)>,
     mut query_map_view_camera: Query<&mut Camera, With<WorldMapViewCamera>>,
     mut query_map_view: Query<&mut Visibility, With<WorldMapView>>,
@@ -72,6 +73,7 @@ pub(super) fn toggle_world_map_view(
     }
 
     **ui_visibility = !map_view_opened;
+    do_lighting.0 = !map_view_opened;
 
     let Ok(mut map_view_camera) = query_map_view_camera.get_single_mut() else { return; };
     let Ok(mut map_view_visibility) = query_map_view.get_single_mut() else { return; };
@@ -94,6 +96,30 @@ pub(super) fn drag_map_view(
         for event in mouse_motion.iter() {
             map_transform.translation += Vec3::new(event.delta.x, -event.delta.y, 0.);
         }
+    }
+}
+
+pub(super) fn move_map_view(
+    time: Res<Time>,
+    input: Res<Input<KeyCode>>,
+    mut query_map_view: Query<&mut Transform, With<WorldMapView>>,
+) {
+    let mut map_transform = query_map_view.single_mut();
+
+    if input.pressed(KeyCode::W) {
+        map_transform.translation.y -= MOVE_SPEED * time.delta_seconds();
+    }
+
+    if input.pressed(KeyCode::S) {
+        map_transform.translation.y += MOVE_SPEED * time.delta_seconds();
+    }
+
+    if input.pressed(KeyCode::A) {
+        map_transform.translation.x += MOVE_SPEED * time.delta_seconds();
+    }
+
+    if input.pressed(KeyCode::D) {
+        map_transform.translation.x -= MOVE_SPEED * time.delta_seconds();
     }
 }
 

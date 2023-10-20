@@ -1,14 +1,17 @@
 use bevy::core_pipeline::core_2d;
-use bevy::prelude::{Plugin, App, Update, IntoSystemConfigs, OnEnter, OnExit, PostUpdate, in_state, Handle, Image, Resource, Deref, not, Condition, Commands, state_changed, Component, on_event};
+use bevy::prelude::{Plugin, App, Update, IntoSystemConfigs, OnEnter, OnExit, PostUpdate, in_state, Handle, Image, Resource, Deref, not, Condition, Commands, state_changed, Component, on_event, ResMut, EventReader, Query, With};
 use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
 use bevy::render::extract_resource::ExtractResource;
 use bevy::render::render_graph::{RenderGraph, RenderGraphApp, ViewNodeRunner};
 use bevy::render::render_resource::TextureFormat;
 use bevy::render::{RenderApp, Render, RenderSet, ExtractSchedule};
 use bevy::transform::TransformSystem;
+use bevy::window::{WindowResized, PrimaryWindow};
 use crate::common::state::GameState;
 use crate::plugins::InGameSystemSet;
+use crate::plugins::world::WorldSize;
 use crate::plugins::world::events::{BreakTileEvent, PlaceTileEvent};
+use crate::plugins::world::resources::WorldUndergroundLevel;
 
 use self::lightmap::LightMapNode;
 use self::lightmap::assets::{BlurArea, LightMapPipelineAssets, LightSourceCount};
@@ -39,6 +42,9 @@ pub(crate) struct TileTexture(Handle<Image>);
 #[derive(Resource, ExtractResource, Clone, Deref)]
 pub(crate) struct LightMapTexture(Handle<Image>);
 
+#[derive(Resource, Clone, Copy, Deref)]
+pub(crate) struct DoLighting(pub(crate) bool);
+
 #[derive(Component, ExtractComponent, Clone)]
 struct PostProcessCamera;
 
@@ -52,6 +58,7 @@ impl Plugin for LightingPlugin {
         app.add_plugins(ExtractComponentPlugin::<PostProcessCamera>::default());
 
         app.init_resource::<BlurArea>();
+        app.insert_resource(DoLighting(true));
 
         app.add_systems(
             OnExit(GameState::WorldLoading),
@@ -66,10 +73,13 @@ impl Plugin for LightingPlugin {
         app.add_systems(
             Update,
             (
-                lightmap::assets::handle_update_tiles_texture_event
-                    .run_if(on_event::<BreakTileEvent>().or_else(on_event::<PlaceTileEvent>())),
-                compositing::update_image_to_window_size,
-            ).in_set(InGameSystemSet::Update)
+                toggle_do_lighting.run_if(on_event::<WindowResized>()),
+                (
+                    lightmap::assets::handle_update_tiles_texture_event
+                        .run_if(on_event::<BreakTileEvent>().or_else(on_event::<PlaceTileEvent>())),
+                    compositing::update_image_to_window_size,
+                ).in_set(InGameSystemSet::Update)
+            )
         );
 
         app.add_systems(
@@ -86,8 +96,9 @@ impl Plugin for LightingPlugin {
                 ExtractSchedule,
                 (
                     extract::extract_textures,
-                    extract::extract_world_underground_level,
-                    extract::extract_world_size,
+                    extract::extract_resource::<WorldUndergroundLevel>,
+                    extract::extract_resource::<WorldSize>,
+                    extract::extract_resource::<DoLighting>,
                     extract::extract_state,
                     (
                         extract::extract_light_smoothness,
@@ -161,4 +172,16 @@ fn remove_pipeline(mut commands: Commands) {
 
     commands.remove_resource::<PostProcessPipeline>();
     commands.remove_resource::<PostProcessPipelineBindGroups>();
+}
+
+fn toggle_do_lighting(
+    mut do_lighting: ResMut<DoLighting>,
+    mut events: EventReader<WindowResized>,
+    query_primary_window: Query<(), With<PrimaryWindow>>
+) {
+    if let Some(event) = events.iter().last() {
+        if query_primary_window.contains(event.window) {
+            do_lighting.0 = event.width > 0. && event.height > 0.;
+        }
+    }
 }
