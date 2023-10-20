@@ -40,6 +40,7 @@ pub(super) fn setup(
             visibility: Visibility::Hidden,
             ..default()
         },
+        Bounds::new(map_size.x, map_size.y),
         WORLD_MAP_VIEW_RENDER_LAYER
     ));
 
@@ -97,15 +98,12 @@ pub(super) fn drag_map_view(
 }
 
 pub(super) fn update_map_view(
-    world_data: Res<WorldData>,
     mut mouse_wheel: EventReader<MouseWheel>,
-    mut query_map_view: Query<&mut Transform, With<WorldMapView>>,
-    mut query_spawn_point_icon: Query<(&mut Transform, &Bounds), (With<SpawnPointIcon>, Without<WorldMapView>)>,
+    mut query_map_view: Query<(&mut Transform, &Bounds), With<WorldMapView>>,
 ) {
-    let mut map_transform = query_map_view.single_mut();
-    let (mut spawn_icon_transform, bounds) = query_spawn_point_icon.single_mut();
-    
-    let map_default_size = world_data.playable_area.size().as_vec2();
+    let (mut map_transform, map_bounds) = query_map_view.single_mut();
+
+    let map_default_size = map_bounds.as_vec2();
 
     for event in mouse_wheel.iter() {
         let scale = map_transform.scale.xy();
@@ -124,22 +122,32 @@ pub(super) fn update_map_view(
         map_transform.translation.x += map_default_size.x * map_transform.scale.x * delta.x;
         map_transform.translation.y += map_default_size.y * map_transform.scale.y * delta.y;
     }
+}
+
+pub(super) fn update_spawn_icon_position(
+    world_data: Res<WorldData>,
+    mut query_spawn_point_icon: Query<(&mut Transform, &Bounds), (With<SpawnPointIcon>, Without<WorldMapView>)>,
+    query_map_view: Query<(&Transform, &Bounds), With<WorldMapView>>,
+) {
+    let (map_transform, bounds) = query_map_view.single();
+    let (mut spawn_icon_transform, spaw_icon_size) = query_spawn_point_icon.single_mut();
+
+    let map_default_size = bounds.as_vec2();
 
     let map_size = map_default_size * map_transform.scale.xy();
 
-    let spawn_point = Vec2::from(world_data.spawn_point) - world_data.playable_area.min.as_vec2();
+    let spawn_point = (Vec2::from(world_data.spawn_point) - world_data.playable_area.min.as_vec2()) / world_data.playable_area.size().as_vec2();
 
-    spawn_icon_transform.translation.x = map_transform.translation.x - map_size.x / 2. + spawn_point.x as f32 * map_transform.scale.x;
-    spawn_icon_transform.translation.y = map_transform.translation.y + map_size.y / 2. - spawn_point.y as f32 * map_transform.scale.y + bounds.height / 2.;
+    spawn_icon_transform.translation.x = map_transform.translation.x - map_size.x / 2. + spawn_point.x * map_size.x;
+    spawn_icon_transform.translation.y = map_transform.translation.y + map_size.y / 2. - spawn_point.y * map_size.y + spaw_icon_size.height / 2.;
 }
 
 pub(super) fn clamp_map_view_position(
-    world_data: Res<WorldData>,
-    mut query_map_view: Query<&mut Transform, With<WorldMapView>>,
+    mut query_map_view: Query<(&mut Transform, &Bounds), With<WorldMapView>>,
 ) {
-    let mut transform = query_map_view.single_mut();
+    let (mut transform, bounds) = query_map_view.single_mut();
 
-    let map_size = world_data.playable_area.half_size().as_vec2() * transform.scale.xy();
+    let map_size = bounds.as_vec2() / 2. * transform.scale.xy();
 
     let clamped_pos = transform.translation.xy().clamp(-map_size, map_size);
 

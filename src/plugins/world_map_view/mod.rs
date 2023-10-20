@@ -36,6 +36,7 @@ impl Plugin for WorldMapViewPlugin {
                 systems::drag_map_view,
                 systems::update_map_view,
                 systems::clamp_map_view_position,
+                systems::update_spawn_icon_position
             )
             .chain()
             .in_set(InGameSystemSet::Update)
