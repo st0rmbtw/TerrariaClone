@@ -4,18 +4,18 @@ pub(crate) mod components;
 pub(crate) mod ingame;
 pub(crate) mod menu;
 
-use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Color, TextBundle, Condition, Button, not, Component, OnEnter, PostUpdate, Resource, PreUpdate, resource_equals}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, PositionType}, text::{TextAlignment, Text, TextStyle, TextSection}};
+use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Color, TextBundle, Condition, Button, not, Component, OnEnter, PostUpdate, Resource, resource_equals}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, PositionType}, text::{TextAlignment, Text, TextStyle, TextSection}};
 use crate::common::{state::GameState, systems::{bind_visibility_to, despawn_with, toggle_resource, animate_button_scale, play_sound}, conditions::{on_click, is_visible}};
 
 use self::{
     components::{MainUiContainer, MusicVolumeSliderOutput, SoundVolumeSliderOutput, MusicVolumeSlider, SoundVolumeSlider},
     ingame::{inventory::{systems::spawn_inventory_ui, InventoryUiPlugin, components::InventoryUi}, settings::{systems::spawn_ingame_settings_button, InGameSettingsUiPlugin}},
-    menu::MenuPlugin, systems::{play_sound_on_hover, update_previous_interaction, reset_mouse_over}, resources::{Visible, SettingsMenu, Ui, Cursor},
+    menu::MenuPlugin, systems::{play_sound_on_hover, update_previous_interaction}, resources::{Visible, SettingsMenu, Ui, Cursor},
 };
 
 use crate::plugins::assets::{FontAssets, UiAssets};
 
-use super::{InGameSystemSet, DespawnOnGameExit, slider::Slider, audio::SoundType, camera::components::MainCamera, world_map_view::MapViewStatus};
+use super::{InGameSystemSet, DespawnOnGameExit, slider::Slider, audio::SoundType, world_map_view::MapViewStatus};
 
 #[derive(Component)]
 pub(crate) struct FpsText;
@@ -37,8 +37,6 @@ impl Plugin for UiPlugin {
         app.add_systems(OnExit(GameState::WorldLoading), spawn_ui_container);
         app.add_systems(OnExit(GameState::WorldLoading), spawn_fps_text);
         app.add_systems(OnExit(GameState::InGame), despawn_with::<MainUiContainer>);
-
-        app.add_systems(PreUpdate, reset_mouse_over);
 
         app.add_systems(
             Update,
@@ -86,11 +84,8 @@ impl Plugin for UiPlugin {
 
         app.add_systems(
             Update,
-            (
-                systems::update_mouse_over_ui,
-                systems::update_ui_mouse_over,
-                systems::update_world_mouse_over_rect::<MainCamera>,
-            ).run_if(resource_equals(MapViewStatus::Closed)),
+            systems::update_mouse_over_ui
+                .run_if(resource_equals(MapViewStatus::Closed)),
         );
     }
 }

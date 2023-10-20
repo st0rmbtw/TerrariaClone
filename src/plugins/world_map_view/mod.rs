@@ -4,7 +4,7 @@ use bevy::{prelude::{Plugin, App, OnEnter, Deref, Update, IntoSystemConfigs, Key
 
 use crate::common::state::GameState;
 
-use super::{InGameSystemSet, ui::systems::update_world_mouse_over_bounds, cursor::position::CursorPositionPlugin};
+use super::{InGameSystemSet, cursor::position::CursorPositionPlugin};
 
 pub(crate) struct WorldMapViewPlugin;
 impl Plugin for WorldMapViewPlugin {
@@ -27,15 +27,6 @@ impl Plugin for WorldMapViewPlugin {
                 systems::toggle_world_map_view.run_if(input_just_pressed(KeyCode::M)),
                 systems::update_world_map_texture,
             )
-            .in_set(InGameSystemSet::Update)
-        );
-
-        app.add_systems(
-            Update,
-            (
-                update_world_mouse_over_bounds::<WorldMapViewCamera>,
-            )
-            .run_if(resource_equals(MapViewStatus::Opened))
             .in_set(InGameSystemSet::Update)
         );
 

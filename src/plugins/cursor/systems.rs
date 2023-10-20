@@ -3,10 +3,10 @@ use std::time::Duration;
 use bevy::{
     prelude::{
         Res, Commands, Vec3, Color, NodeBundle, default, TextBundle, Name, ImageBundle, Transform, Query, With, Visibility, 
-        BuildChildren, Without
+        BuildChildren, Without, Entity, GlobalTransform, ComputedVisibility, Camera
     }, 
     ui::{
-        Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Val, AlignSelf, ZIndex, FlexDirection, UiImage
+        Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Val, AlignSelf, ZIndex, FlexDirection, UiImage, Node
     }, 
     text::{Text, TextStyle}, 
     sprite::{SpriteBundle, Sprite}, ecs::query::Has
@@ -17,7 +17,7 @@ use crate::{
     plugins::{
         assets::{FontAssets, CursorAssets, UiAssets, ItemAssets}, 
         camera::components::MainCamera, 
-        world::constants::TILE_SIZE, config::{CursorColor, ShowTileGrid}, DespawnOnGameExit, player::Player, ui::{components::MouseOver, resources::{Visible, Ui}}, inventory::{Inventory, Slot}, entity::components::Velocity
+        world::constants::TILE_SIZE, config::{CursorColor, ShowTileGrid}, DespawnOnGameExit, player::Player, ui::resources::{Visible, Ui}, inventory::{Inventory, Slot}, entity::components::Velocity
     }, 
     animation::{Tween, lens::TransformScaleLens, Animator, RepeatStrategy, RepeatCount}, 
     common::{lens::BackgroundColorLens, helpers, BoolValue}, language::LanguageContent,
@@ -25,7 +25,7 @@ use crate::{
 
 use crate::plugins::player::{MAX_WALK_SPEED, MAX_FALL_SPEED};
 
-use super::{MAX_TILE_GRID_OPACITY, MIN_TILE_GRID_OPACITY, CURSOR_SIZE, components::{Hoverable, CursorBackground, CursorForeground, CursorInfoMarker, CursorContainer, TileGrid, CursorItemContainer, CursorItemStack, CursorItemImage}, position::CursorPosition};
+use super::{MAX_TILE_GRID_OPACITY, MIN_TILE_GRID_OPACITY, CURSOR_SIZE, components::{Hoverable, CursorBackground, CursorForeground, CursorInfoMarker, CursorContainer, TileGrid, CursorItemContainer, CursorItemStack, CursorItemImage, MouseOver}, position::CursorPosition};
 
 pub(super) fn setup(
     mut commands: Commands, 
@@ -285,4 +285,29 @@ pub(super) fn update_cursor_item(
     } else {
         *text_visibility = Visibility::Hidden;
     }
+}
+
+pub(super) fn update_ui_mouse_over(
+    mut commands: Commands,
+    cursor_pos: Res<CursorPosition<MainCamera>>,
+    query_hoverable: Query<(Entity, &Node, &GlobalTransform, &ComputedVisibility), With<Hoverable>>,
+    query_camera: Query<&Camera, With<MainCamera>>
+) {
+    let Ok(camera) = query_camera.get_single() else { return; };
+    if !camera.is_active { return; }
+
+    query_hoverable.for_each(|(entity, node, global_transform, visibility)| {
+        if node.logical_rect(global_transform).contains(cursor_pos.screen) && visibility.is_visible() {
+            commands.entity(entity).insert(MouseOver);
+        }
+    });
+}
+
+pub(super) fn reset_mouse_over(
+    mut commands: Commands,
+    query: Query<Entity, With<MouseOver>>
+) {
+    query.for_each(|entity| {
+        commands.entity(entity).remove::<MouseOver>();
+    });
 }

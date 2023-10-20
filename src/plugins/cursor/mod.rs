@@ -2,9 +2,9 @@ pub(crate) mod components;
 pub(crate) mod position;
 mod systems;
 
-use bevy::{prelude::{Plugin, App, OnExit, OnEnter, IntoSystemConfigs, not, resource_equals, in_state, Update, Condition, PostUpdate}, ui::BackgroundColor};
+use bevy::{prelude::{Plugin, App, OnExit, OnEnter, IntoSystemConfigs, not, resource_equals, in_state, Update, Condition, PostUpdate, PreUpdate}, ui::BackgroundColor};
 use crate::{common::{state::GameState, systems::bind_visibility_to, conditions::is_visible}, animation::{AnimationSystemSet, component_animator_system}};
-use self::position::CursorPositionPlugin;
+use self::{position::{CursorPositionPlugin, CursorSystems}, systems::{reset_mouse_over, update_ui_mouse_over}};
 
 use super::{ui::resources::{Ui, Cursor}, config::ShowTileGrid, camera::components::{MainCamera, BackgroundCamera}, InGameSystemSet};
 
@@ -29,6 +29,14 @@ impl Plugin for CursorPlugin {
 
         app.add_systems(OnExit(GameState::AssetLoading), systems::setup);
         app.add_systems(OnEnter(GameState::InGame), systems::spawn_tile_grid);
+
+        app.add_systems(
+            PreUpdate,
+            (
+                reset_mouse_over,
+                update_ui_mouse_over.after(CursorSystems::UpdateCursorPosition)
+            )
+        );
 
         app.add_systems(
             PostUpdate,

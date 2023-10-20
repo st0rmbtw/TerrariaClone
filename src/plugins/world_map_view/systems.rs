@@ -18,6 +18,10 @@ pub(super) fn setup(
         WorldMapViewCamera,
         DespawnOnGameExit,
         Camera2dBundle {
+            camera: Camera {
+                is_active: false,
+                ..default()
+            },
             tonemapping: Tonemapping::None,
             ..default()
         },
@@ -96,10 +100,10 @@ pub(super) fn update_map_view(
     world_data: Res<WorldData>,
     mut mouse_wheel: EventReader<MouseWheel>,
     mut query_map_view: Query<&mut Transform, With<WorldMapView>>,
-    mut query_spawn_point_icon: Query<&mut Transform, (With<SpawnPointIcon>, Without<WorldMapView>)>,
+    mut query_spawn_point_icon: Query<(&mut Transform, &Bounds), (With<SpawnPointIcon>, Without<WorldMapView>)>,
 ) {
     let mut map_transform = query_map_view.single_mut();
-    let mut spawn_icon_transform = query_spawn_point_icon.single_mut();
+    let (mut spawn_icon_transform, bounds) = query_spawn_point_icon.single_mut();
     
     let map_default_size = world_data.playable_area.size().as_vec2();
 
@@ -126,7 +130,7 @@ pub(super) fn update_map_view(
     let spawn_point = Vec2::from(world_data.spawn_point) - world_data.playable_area.min.as_vec2();
 
     spawn_icon_transform.translation.x = map_transform.translation.x - map_size.x / 2. + spawn_point.x as f32 * map_transform.scale.x;
-    spawn_icon_transform.translation.y = map_transform.translation.y + map_size.y / 2. - spawn_point.y as f32 * map_transform.scale.y;
+    spawn_icon_transform.translation.y = map_transform.translation.y + map_size.y / 2. - spawn_point.y as f32 * map_transform.scale.y + bounds.height / 2.;
 }
 
 pub(super) fn clamp_map_view_position(

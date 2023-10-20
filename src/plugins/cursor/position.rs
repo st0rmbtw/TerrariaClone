@@ -1,10 +1,10 @@
 use std::{marker::PhantomData, sync::Mutex};
 
-use bevy::{prelude::{Component, Plugin, App, Vec2, ResMut, Query, With, Camera, GlobalTransform, PreUpdate, IntoSystemConfigs, in_state, not, Resource, Condition, IntoSystem, Res}, window::{Window, PrimaryWindow}, ecs::schedule::BoxedCondition, ui::{Style, Val}};
+use bevy::{prelude::{Component, Plugin, App, Vec2, ResMut, Query, With, Camera, GlobalTransform, PreUpdate, IntoSystemConfigs, in_state, not, Resource, Condition, IntoSystem, Res, Commands, Entity, ComputedVisibility, Transform, Update, SystemSet}, window::{Window, PrimaryWindow}, ecs::schedule::BoxedCondition, ui::{Style, Val}};
 
-use crate::common::state::GameState;
+use crate::{common::{state::GameState, components::Bounds, rect::FRect}, plugins::entity::components::EntityRect};
 
-use super::components::CursorContainer;
+use super::components::{CursorContainer, Hoverable, MouseOver};
 
 #[derive(Resource)]
 pub(crate) struct CursorPosition<CameraMarker: Component> {
@@ -21,6 +21,11 @@ impl<M: Component> Default for CursorPosition<M> {
             marker: PhantomData
         }
     }
+}
+
+#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone, Copy)]
+pub(crate) enum CursorSystems {
+    UpdateCursorPosition
 }
 
 pub(crate) struct CursorPositionPlugin<CameraMarker: Component> {
@@ -49,18 +54,29 @@ impl<M: Component> Plugin for CursorPositionPlugin<M> {
     fn build(&self, app: &mut App) {
         app.init_resource::<CursorPosition<M>>();
 
-        let mut systems = (
-            update_cursor_position::<M>,
-            update_cursor_sprite_position::<M>
+        let mut systems_pre_update = (
+            update_cursor_position::<M>.in_set(CursorSystems::UpdateCursorPosition),
+            update_cursor_sprite_position::<M>,
         )
         .chain()
         .run_if(not(in_state(GameState::AssetLoading)));
 
+        let mut systems_update = (
+            update_world_mouse_over_bounds::<M>,
+            update_world_mouse_over_rect::<M>
+        )
+        .run_if(not(in_state(GameState::AssetLoading)));
+
         if let Some(condition) = self.condition.try_lock().unwrap().take() {
-            systems.run_if_inner(condition);
+            systems_pre_update.run_if_inner(condition);
         }
 
-        app.add_systems(PreUpdate, systems);
+        if let Some(condition) = self.condition.try_lock().unwrap().take() {
+            systems_update.run_if_inner(condition);
+        }
+
+        app.add_systems(PreUpdate, systems_pre_update);
+        app.add_systems(Update, systems_update);
     }
 }
 
@@ -86,4 +102,38 @@ fn update_cursor_sprite_position<CameraMarker: Component>(
     let Ok(mut style) = query_cursor.get_single_mut() else { return; };
     style.left = Val::Px(cursor_pos.screen.x);
     style.top = Val::Px(cursor_pos.screen.y);
+}
+
+pub(crate) fn update_world_mouse_over_bounds<M: Component>(
+    mut commands: Commands,
+    cursor_pos: Res<CursorPosition<M>>,
+    query_hoverable: Query<(Entity, &Transform, &Bounds, &ComputedVisibility), With<Hoverable>>,
+    query_camera: Query<&Camera, With<M>>
+) {
+    let Ok(camera) = query_camera.get_single() else { return; };
+    if !camera.is_active { return; }
+
+    query_hoverable.for_each(|(entity, transform, bounds, visibility)| {
+        let rect = FRect::new_center(transform.translation.x, transform.translation.y, bounds.width, bounds.height);
+
+        if rect.contains(cursor_pos.world) && visibility.is_visible() {
+            commands.entity(entity).insert(MouseOver);
+        }
+    });
+}
+
+pub(crate) fn update_world_mouse_over_rect<M: Component>(
+    mut commands: Commands,
+    cursor_pos: Res<CursorPosition<M>>,
+    query_hoverable: Query<(Entity, &EntityRect, &ComputedVisibility), With<Hoverable>>,
+    query_camera: Query<&Camera, With<M>>
+) {
+    let Ok(camera) = query_camera.get_single() else { return; };
+    if !camera.is_active { return; }
+
+    query_hoverable.for_each(|(entity, entity_rect, visibility)| {
+        if entity_rect.contains(cursor_pos.world) && visibility.is_visible() {
+            commands.entity(entity).insert(MouseOver);
+        }
+    });
 }
