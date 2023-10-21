@@ -1,6 +1,6 @@
 use bevy::{prelude::{Component, Changed, With, Query, Res}, ui::Interaction};
 
-use crate::plugins::ui::{MouseOverUi, resources::{Visible, VisibilityMarker}};
+use crate::plugins::ui::{MouseOverUi, resources::{IsVisible, VisibilityMarker}};
 
 pub(crate) fn on_click<B: Component>(
     query: Query<&Interaction, (Changed<Interaction>, With<B>)>,
@@ -21,7 +21,7 @@ pub(crate) fn mouse_over_ui(
 
 #[inline]
 pub(crate) fn is_visible<T: VisibilityMarker>(
-    res: Option<Res<Visible<T>>>
+    res: Option<Res<IsVisible<T>>>
 ) -> bool {
     res.is_some_and(|visible| **visible)
 }

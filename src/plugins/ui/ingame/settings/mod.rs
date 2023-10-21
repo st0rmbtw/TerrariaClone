@@ -4,7 +4,7 @@ mod menus;
 
 use bevy::{prelude::{Plugin, App, Update, IntoSystemConfigs, OnEnter, KeyCode, Condition, Commands, OnExit, resource_exists_and_equals, not, Component, Resource, apply_deferred, Color, resource_exists_and_changed}, input::common_conditions::input_just_pressed};
 
-use crate::{common::{systems::{bind_visibility_to, set_state, set_display, despawn_with, set_resource, animate_button_color, toggle_resource, play_sound}, state::GameState, conditions::{on_click, is_visible}}, plugins::{InGameSystemSet, ui::{systems::{play_sound_on_toggle, update_toggle_tile_grid_button_text, play_sound_on_hover}, menu::MENU_BUTTON_COLOR, components::ToggleTileGridButton, resources::Visible, InventoryUi, SettingsMenu}, config::ShowTileGrid, audio::SoundType}};
+use crate::{common::{systems::{bind_visibility_to, set_state, set_display, despawn_with, set_resource, animate_button_color, toggle_resource, play_sound}, state::GameState, conditions::{on_click, is_visible}}, plugins::{InGameSystemSet, ui::{systems::{play_sound_on_toggle, update_toggle_tile_grid_button_text, play_sound_on_hover}, menu::MENU_BUTTON_COLOR, components::ToggleTileGridButton, resources::IsVisible, InventoryUi, SettingsMenu}, config::ShowTileGrid, audio::SoundType}};
 
 use self::{components::{SettingsButton, buttons::SaveAndExitButton, buttons::{CloseMenuButton, GeneralButton, InterfaceButton}, TabMenu, TabButton, TabMenuButton}, systems::{spawn_general_menu, update_tab_buttons, bind_zoom_slider_to_output, update_zoom}};
 
@@ -31,13 +31,13 @@ impl Plugin for InGameSettingsUiPlugin {
                 play_sound(SoundType::MenuOpen).run_if(resource_exists_and_changed::<SelectedTab>()),
                 systems::animate_button_scale,
                 bind_visibility_to::<InventoryUi, components::SettingsButtonContainer>,
-                set_display::<components::MenuContainer, Visible<SettingsMenu>>,
+                set_display::<components::MenuContainer, IsVisible<SettingsMenu>>,
 
                 (
                     spawn_general_menu,
                     (
-                        toggle_resource::<Visible<SettingsMenu>>,
-                        play_sound_on_toggle::<Visible<SettingsMenu>>
+                        toggle_resource::<IsVisible<SettingsMenu>>,
+                        play_sound_on_toggle::<IsVisible<SettingsMenu>>
                     )
                     .chain()
                 )
@@ -45,7 +45,7 @@ impl Plugin for InGameSettingsUiPlugin {
 
                 (
                     (
-                        set_resource(Visible::<SettingsMenu>::hidden()),
+                        set_resource(IsVisible::<SettingsMenu>::hidden()),
                         play_sound(SoundType::MenuClose),
                     )
                     .run_if(input_just_pressed(KeyCode::Escape)),
@@ -89,8 +89,8 @@ impl Plugin for InGameSettingsUiPlugin {
                 .run_if(not(resource_exists_and_equals(SelectedTab::Interface)).and_then(on_click::<InterfaceButton>)),
 
                 (
-                    set_resource(Visible::<SettingsMenu>::hidden()),
-                    play_sound_on_toggle::<Visible<SettingsMenu>>
+                    set_resource(IsVisible::<SettingsMenu>::hidden()),
+                    play_sound_on_toggle::<IsVisible<SettingsMenu>>
                 ).run_if(on_click::<CloseMenuButton>),
 
                 set_state(GameState::Menu).run_if(on_click::<SaveAndExitButton>),
@@ -102,7 +102,7 @@ impl Plugin for InGameSettingsUiPlugin {
 }
 
 fn setup(mut commands: Commands) {
-    commands.insert_resource(Visible::<SettingsMenu>::hidden());
+    commands.insert_resource(IsVisible::<SettingsMenu>::hidden());
     commands.init_resource::<SelectedTab>();
 }
 

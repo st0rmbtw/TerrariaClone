@@ -3,7 +3,7 @@ pub(crate) mod components;
 
 use bevy::prelude::{Plugin, App, IntoSystemConfigs, resource_exists_and_changed, resource_added, Update, Condition};
 
-use crate::{common::{systems::{bind_visibility2_to, bind_not_visibility_to}, conditions::is_visible}, plugins::{inventory::Inventory, InGameSystemSet, ui::{resources::{Visible, Ui}, SettingsMenu}}};
+use crate::{common::{systems::{bind_visibility2_to, bind_not_visibility_to}, conditions::is_visible}, plugins::{inventory::Inventory, InGameSystemSet, ui::{resources::{IsVisible, Ui}, SettingsMenu}}};
 
 use self::{systems::return_mouse_item_back_to_inventory, components::InventoryUi};
 
@@ -24,7 +24,7 @@ impl Plugin for InventoryUiPlugin {
                 
                 bind_visibility2_to::<InventoryUi, Ui, components::InventoryUi>,
                 bind_not_visibility_to::<SettingsMenu, components::InventoryUiContainer>,
-                systems::trigger_inventory_changed.run_if(resource_exists_and_changed::<Visible<InventoryUi>>()),
+                systems::trigger_inventory_changed.run_if(resource_exists_and_changed::<IsVisible<InventoryUi>>()),
                 systems::update_selected_item_name_alignment,
                 systems::update_selected_item_name_text,
                 systems::update_slot_size,

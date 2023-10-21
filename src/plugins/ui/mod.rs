@@ -10,7 +10,7 @@ use crate::common::{state::GameState, systems::{bind_visibility_to, despawn_with
 use self::{
     components::{MainUiContainer, MusicVolumeSliderOutput, SoundVolumeSliderOutput, MusicVolumeSlider, SoundVolumeSlider},
     ingame::{inventory::{systems::spawn_inventory_ui, InventoryUiPlugin, components::InventoryUi}, settings::{systems::spawn_ingame_settings_button, InGameSettingsUiPlugin}},
-    menu::MenuPlugin, systems::{play_sound_on_hover, update_previous_interaction}, resources::{Visible, SettingsMenu, Ui, Cursor},
+    menu::MenuPlugin, systems::{play_sound_on_hover, update_previous_interaction}, resources::{IsVisible, SettingsMenu, Ui, Cursor},
 };
 
 use crate::plugins::assets::{FontAssets, UiAssets};
@@ -28,7 +28,7 @@ impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((InventoryUiPlugin, InGameSettingsUiPlugin, MenuPlugin));
 
-        app.insert_resource(Visible::<Ui>::visible());
+        app.insert_resource(IsVisible::<Ui>::visible());
         app.init_resource::<MouseOverUi>();
 
         app.add_systems(OnEnter(GameState::InGame), setup);
@@ -51,16 +51,16 @@ impl Plugin for UiPlugin {
             Update,
             (
                 (
-                    toggle_resource::<Visible<InventoryUi>>,
-                    systems::play_sound_on_toggle::<Visible<InventoryUi>>
+                    toggle_resource::<IsVisible<InventoryUi>>,
+                    systems::play_sound_on_toggle::<IsVisible<InventoryUi>>
                 )
                 .chain()
                 .run_if(
                     not(is_visible::<SettingsMenu>).and_then(input_just_pressed(KeyCode::Escape))
                 ),
                 (
-                    toggle_resource::<Visible<Ui>>,
-                    toggle_resource::<Visible<Cursor>>,
+                    toggle_resource::<IsVisible<Ui>>,
+                    toggle_resource::<IsVisible<Cursor>>,
                 )
                 .run_if(input_just_pressed(KeyCode::F11)),
                 bind_visibility_to::<Ui, MainUiContainer>,
@@ -91,11 +91,11 @@ impl Plugin for UiPlugin {
 }
 
 fn setup(mut commands: Commands) {
-    commands.insert_resource(Visible::<InventoryUi>::hidden());
+    commands.insert_resource(IsVisible::<InventoryUi>::hidden());
 }
 
 fn cleanup(mut commands: Commands) {
-    commands.remove_resource::<Visible::<InventoryUi>>();
+    commands.remove_resource::<IsVisible::<InventoryUi>>();
 }
 
 fn spawn_ui_container(

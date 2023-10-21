@@ -17,7 +17,7 @@ use crate::{
     plugins::{
         assets::{FontAssets, CursorAssets, UiAssets, ItemAssets}, 
         camera::components::MainCamera, 
-        world::constants::TILE_SIZE, config::{CursorColor, ShowTileGrid}, DespawnOnGameExit, player::Player, ui::resources::{Visible, Ui}, inventory::{Inventory, Slot}, entity::components::Velocity
+        world::constants::TILE_SIZE, config::{CursorColor, ShowTileGrid}, DespawnOnGameExit, player::Player, ui::resources::{IsVisible, Ui}, inventory::{Inventory, Slot}, entity::components::Velocity
     }, 
     animation::{Tween, lens::TransformScaleLens, Animator, RepeatStrategy, RepeatCount}, 
     common::{lens::BackgroundColorLens, helpers, BoolValue}, language::LanguageContent,
@@ -202,7 +202,7 @@ pub(super) fn spawn_tile_grid(
 }
 
 pub(super) fn update_tile_grid_visibility(
-    ui_visible: Res<Visible<Ui>>,
+    ui_visible: Res<IsVisible<Ui>>,
     show_tile_grid: Res<ShowTileGrid>,
     mut query: Query<&mut Visibility, With<TileGrid>>,
 ) {

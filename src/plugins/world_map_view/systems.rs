@@ -1,6 +1,6 @@
 use bevy::{prelude::{Commands, Res, Assets, Mesh, ResMut, UiCameraConfig, Camera2dBundle, default, shape::Quad, Color, Visibility, Camera, Query, Without, With, Input, MouseButton, EventReader, Transform, Vec3, Image, Handle, AssetEvent, EventWriter, Vec2, KeyCode, OrthographicProjection, BuildChildren, SpatialBundle}, sprite::{ColorMaterial, MaterialMesh2dBundle, SpriteBundle}, core_pipeline::tonemapping::Tonemapping, input::mouse::{MouseWheel, MouseMotion}, math::Vec3Swizzles, render::render_resource::{TextureDimension, TextureFormat, Extent3d}, time::Time, window::WindowResized};
 
-use crate::{world::{WorldData, wall::WallType}, plugins::{DespawnOnGameExit, ui::resources::{Visible, Ui}, camera::components::MainCamera, assets::{BackgroundAssets, UiAssets, PlayerAssets}, world::{events::{PlaceTileEvent, TileRemovedEvent}, TileType}, cursor::components::Hoverable, player::{body_sprites::{self, ChangeFlip}, Player, PLAYER_HALF_HEIGHT}}, common::{math::map_range_usize, components::Bounds}, language::{LocalizedText, keys::UIStringKey}, lighting::DoLighting};
+use crate::{world::{WorldData, wall::WallType}, plugins::{DespawnOnGameExit, ui::resources::{IsVisible, Ui}, camera::components::MainCamera, assets::{BackgroundAssets, UiAssets, PlayerAssets}, world::{events::{PlaceTileEvent, TileRemovedEvent}, TileType}, cursor::components::Hoverable, player::{body_sprites::{self, ChangeFlip}, Player, PLAYER_HALF_HEIGHT}}, common::{math::map_range_usize, components::Bounds}, language::{LocalizedText, keys::UIStringKey}, lighting::DoLighting};
 
 use super::{WorldMapTexture, WORLD_MAP_VIEW_RENDER_LAYER, WorldMapViewCamera, WorldMapView, MapViewStatus, SpawnPointIcon, MOVE_SPEED, PlayerIcon};
 
@@ -86,7 +86,7 @@ pub(super) fn setup(
 
 pub(super) fn toggle_world_map_view(
     mut map_view_status: ResMut<MapViewStatus>,
-    mut ui_visibility: ResMut<Visible<Ui>>,
+    mut ui_visibility: ResMut<IsVisible<Ui>>,
     mut do_lighting: ResMut<DoLighting>,
     mut query_camera: Query<&mut Camera, (Without<WorldMapViewCamera>, Without<MainCamera>)>,
     mut query_map_view_camera: Query<&mut Camera, With<WorldMapViewCamera>>,

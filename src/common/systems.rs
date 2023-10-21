@@ -1,12 +1,12 @@
 use bevy::{ui::{Interaction, Style, Display}, prelude::{Changed, Component, Query, With, EventWriter, Visibility, Resource, Res, DetectChanges, Event, Entity, Commands, DespawnRecursiveExt, States, ResMut, NextState, Color}, text::Text};
 
-use crate::{animation::{Animator, TweeningDirection, Tween, Tweenable}, plugins::{audio::{SoundType, AudioCommandsExt}, ui::resources::{VisibilityMarker, Visible}}};
+use crate::{animation::{Animator, TweeningDirection, Tween, Tweenable}, plugins::{audio::{SoundType, AudioCommandsExt}, ui::resources::{VisibilityMarker, IsVisible}}};
 
 use super::{helpers, BoolValue, Toggle};
 
 pub(crate) fn bind_visibility_to<M: VisibilityMarker, C: Component>(
     mut query_visibility: Query<&mut Visibility, With<C>>,
-    opt_res_visibility: Option<Res<Visible<M>>>
+    opt_res_visibility: Option<Res<IsVisible<M>>>
 ) {
     let Some(res_visibility) = opt_res_visibility else { return; };
 
@@ -19,7 +19,7 @@ pub(crate) fn bind_visibility_to<M: VisibilityMarker, C: Component>(
 
 pub(crate) fn bind_not_visibility_to<M: VisibilityMarker, C: Component>(
     mut query_visibility: Query<&mut Visibility, With<C>>,
-    opt_visible: Option<Res<Visible<M>>>
+    opt_visible: Option<Res<IsVisible<M>>>
 ) {
     let Some(visible) = opt_visible else { return; };
 
@@ -32,8 +32,8 @@ pub(crate) fn bind_not_visibility_to<M: VisibilityMarker, C: Component>(
 
 pub(crate) fn bind_visibility2_to<M1: VisibilityMarker, M2: VisibilityMarker, C: Component>(
     mut query_visibility: Query<&mut Visibility, With<C>>,
-    opt_visible1: Option<Res<Visible<M1>>>,
-    opt_visible2: Option<Res<Visible<M2>>>
+    opt_visible1: Option<Res<IsVisible<M1>>>,
+    opt_visible2: Option<Res<IsVisible<M2>>>
 ) {
     let Some(visible1) = opt_visible1 else { return; };
     let Some(visible2) = opt_visible2 else { return; };
