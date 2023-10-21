@@ -42,7 +42,10 @@ impl Plugin for WorldMapViewPlugin {
                 systems::update_min_scale,
                 systems::update_map_view,
                 systems::clamp_map_view_position,
-                systems::update_spawn_icon_position
+                (
+                    systems::update_spawn_icon_position,
+                    systems::update_player_icon_position
+                )
             )
             .chain()
             .in_set(InGameSystemSet::Update)
@@ -61,6 +64,9 @@ struct WorldMapView;
 
 #[derive(Component)]
 struct SpawnPointIcon;
+
+#[derive(Component)]
+struct PlayerIcon;
 
 #[derive(Resource, Deref)]
 struct WorldMapTexture(Handle<Image>);
