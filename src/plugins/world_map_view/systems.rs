@@ -1,4 +1,4 @@
-use bevy::{prelude::{Commands, Res, Assets, Mesh, ResMut, UiCameraConfig, Camera2dBundle, default, shape::Quad, Color, Visibility, Camera, Query, Without, With, Input, MouseButton, EventReader, Transform, Vec3, Image, Handle, AssetEvent, EventWriter, Vec2, KeyCode}, sprite::{ColorMaterial, MaterialMesh2dBundle, SpriteBundle}, core_pipeline::tonemapping::Tonemapping, input::mouse::{MouseWheel, MouseMotion}, math::Vec3Swizzles, render::render_resource::{TextureDimension, TextureFormat, Extent3d}, time::Time};
+use bevy::{prelude::{Commands, Res, Assets, Mesh, ResMut, UiCameraConfig, Camera2dBundle, default, shape::Quad, Color, Visibility, Camera, Query, Without, With, Input, MouseButton, EventReader, Transform, Vec3, Image, Handle, AssetEvent, EventWriter, Vec2, KeyCode, OrthographicProjection}, sprite::{ColorMaterial, MaterialMesh2dBundle, SpriteBundle}, core_pipeline::tonemapping::Tonemapping, input::mouse::{MouseWheel, MouseMotion}, math::Vec3Swizzles, render::render_resource::{TextureDimension, TextureFormat, Extent3d}, time::Time, window::WindowResized};
 
 use crate::{world::{WorldData, wall::WallType}, plugins::{DespawnOnGameExit, ui::resources::{Visible, Ui}, camera::components::MainCamera, assets::{BackgroundAssets, UiAssets}, world::{events::{PlaceTileEvent, TileRemovedEvent}, TileType}, cursor::components::Hoverable}, common::{math::map_range_usize, components::Bounds}, language::{LocalizedText, keys::UIStringKey}, lighting::DoLighting};
 
@@ -6,11 +6,11 @@ use super::{WorldMapTexture, WORLD_MAP_VIEW_RENDER_LAYER, WorldMapViewCamera, Wo
 
 pub(super) fn setup(
     mut commands: Commands,
-    world_map_texture: Res<WorldMapTexture>,
-    world_data: Res<WorldData>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    ui_assets: Res<UiAssets>
+    world_map_texture: Res<WorldMapTexture>,
+    world_data: Res<WorldData>,
+    ui_assets: Res<UiAssets>,
 ) {
     let map_size = world_data.playable_area.size().as_vec2();
 
@@ -40,7 +40,7 @@ pub(super) fn setup(
             visibility: Visibility::Hidden,
             ..default()
         },
-        Bounds::new(map_size.x, map_size.y),
+        Bounds::from(map_size),
         WORLD_MAP_VIEW_RENDER_LAYER
     ));
 
@@ -124,10 +124,13 @@ pub(super) fn move_map_view(
 }
 
 pub(super) fn update_map_view(
+    query_camera: Query<&OrthographicProjection, With<WorldMapViewCamera>>,
     mut mouse_wheel: EventReader<MouseWheel>,
     mut query_map_view: Query<(&mut Transform, &Bounds), With<WorldMapView>>,
 ) {
     let (mut map_transform, map_bounds) = query_map_view.single_mut();
+    let projection = query_camera.single();
+    let projection_size = projection.area.half_size();
 
     let map_default_size = map_bounds.as_vec2();
 
@@ -136,17 +139,35 @@ pub(super) fn update_map_view(
         let old_normalized = map_transform.translation.xy() / (map_default_size * scale);
 
         let new_scale = (scale + scale * Vec2::splat(event.y / 6.))
-            .clamp(Vec2::splat(0.5), Vec2::splat(20.));
+            .clamp(Vec2::splat(projection_size.y / map_default_size.y), Vec2::splat(20.));
+
+        let new_normalized = map_transform.translation.xy() / (map_default_size * new_scale);
+        
+        let delta = old_normalized - new_normalized;
 
         map_transform.scale.x = new_scale.x;
         map_transform.scale.y = new_scale.y;
 
-        let new_normalized = map_transform.translation.xy() / (map_default_size * new_scale);
+        map_transform.translation.x += map_default_size.x * new_scale.x * delta.x;
+        map_transform.translation.y += map_default_size.y * new_scale.y * delta.y;
+    }
+}
 
-        let delta = old_normalized - new_normalized;
+pub(super) fn update_min_scale(
+    mut window_resized: EventReader<WindowResized>,
+    mut query_map_view: Query<(&mut Transform, &Bounds), With<WorldMapView>>,
+) {
+    if let Some(event) = window_resized.iter().last() {
+        if event.height <= 0. { return; }
 
-        map_transform.translation.x += map_default_size.x * map_transform.scale.x * delta.x;
-        map_transform.translation.y += map_default_size.y * map_transform.scale.y * delta.y;
+        let (mut map_transform, map_bounds) = query_map_view.single_mut();
+
+        let map_default_size = map_bounds.as_vec2();
+
+        let min_scale = event.height / 2. / map_default_size.y;
+
+        map_transform.scale.x = map_transform.scale.x.max(min_scale);
+        map_transform.scale.y = map_transform.scale.y.max(min_scale);
     }
 }
 
@@ -158,14 +179,16 @@ pub(super) fn update_spawn_icon_position(
     let (map_transform, bounds) = query_map_view.single();
     let (mut spawn_icon_transform, spaw_icon_size) = query_spawn_point_icon.single_mut();
 
-    let map_default_size = bounds.as_vec2();
+    let map_position = map_transform.translation;
+    let map_scale = map_transform.scale;
 
-    let map_size = map_default_size * map_transform.scale.xy();
+    let map_default_size = bounds.as_vec2();
+    let map_size = map_default_size * map_scale.xy();
 
     let spawn_point = (Vec2::from(world_data.spawn_point) - world_data.playable_area.min.as_vec2()) / world_data.playable_area.size().as_vec2();
 
-    spawn_icon_transform.translation.x = map_transform.translation.x - map_size.x / 2. + spawn_point.x * map_size.x;
-    spawn_icon_transform.translation.y = map_transform.translation.y + map_size.y / 2. - spawn_point.y * map_size.y + spaw_icon_size.height / 2.;
+    spawn_icon_transform.translation.x = map_position.x - map_size.x / 2. + spawn_point.x * map_size.x;
+    spawn_icon_transform.translation.y = map_position.y + map_size.y / 2. - spawn_point.y * map_size.y + spaw_icon_size.height / 2.;
 }
 
 pub(super) fn clamp_map_view_position(
