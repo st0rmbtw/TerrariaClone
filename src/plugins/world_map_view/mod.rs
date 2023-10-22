@@ -4,7 +4,7 @@ use bevy::{prelude::{Plugin, App, OnEnter, Deref, Update, IntoSystemConfigs, Key
 
 use crate::common::state::GameState;
 
-use super::{InGameSystemSet, cursor::position::CursorPositionPlugin};
+use super::{InGameSystemSet, cursor::position::CursorPositionPlugin, entity::EntitySet};
 
 const MOVE_SPEED: f32 = 1000.;
 
@@ -44,12 +44,21 @@ impl Plugin for WorldMapViewPlugin {
                 systems::clamp_map_view_position,
                 (
                     systems::update_spawn_icon_position,
-                    systems::update_player_icon_position
+                    systems::update_player_icon_position.after(EntitySet::UpdateEntityRect)
                 )
             )
             .chain()
             .in_set(InGameSystemSet::Update)
             .run_if(resource_equals(MapViewStatus::Opened))
+        );
+
+        #[cfg(debug_assertions)]
+        app.add_systems(
+            Update,
+            systems::teleport_player
+                .after(EntitySet::UpdateEntityRect)
+                .in_set(InGameSystemSet::Update)
+                .run_if(resource_equals(MapViewStatus::Opened))
         );
     }
 }

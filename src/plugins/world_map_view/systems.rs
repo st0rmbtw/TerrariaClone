@@ -18,6 +18,8 @@ pub(super) fn setup(
     commands.spawn((
         WorldMapViewCamera,
         DespawnOnGameExit,
+        UiCameraConfig { show_ui: false },
+        WORLD_MAP_VIEW_RENDER_LAYER,
         Camera2dBundle {
             camera: Camera {
                 is_active: false,
@@ -26,12 +28,13 @@ pub(super) fn setup(
             tonemapping: Tonemapping::None,
             ..default()
         },
-        UiCameraConfig { show_ui: false },
-        WORLD_MAP_VIEW_RENDER_LAYER
     ));
 
     commands.spawn((
         WorldMapView,
+        DespawnOnGameExit,
+        Bounds::from(map_size),
+        WORLD_MAP_VIEW_RENDER_LAYER,
         MaterialMesh2dBundle {
             mesh: meshes.add(Quad::new(map_size).into()).into(),
             material: materials.add(ColorMaterial {
@@ -41,24 +44,24 @@ pub(super) fn setup(
             visibility: Visibility::Hidden,
             ..default()
         },
-        Bounds::from(map_size),
-        WORLD_MAP_VIEW_RENDER_LAYER
     ));
 
     commands.spawn((
         SpawnPointIcon,
+        DespawnOnGameExit,
+        Bounds::new(22., 24.),
+        Hoverable::SimpleText(LocalizedText::from(UIStringKey::SpawnPoint)),
+        WORLD_MAP_VIEW_RENDER_LAYER,
         SpriteBundle {
             texture: ui_assets.spawn_point.clone_weak(),
             transform: Transform::from_xyz(0., 0., 10.),
             ..default()
         },
-        Bounds::new(22., 24.),
-        Hoverable::SimpleText(LocalizedText::from(UIStringKey::SpawnPoint)),
-        WORLD_MAP_VIEW_RENDER_LAYER
     ));
 
     commands.spawn((
         PlayerIcon,
+        DespawnOnGameExit,
         SpatialBundle::from_transform(Transform::from_xyz(0., 0., 11.)),
     )).with_children(|parent| {
         parent.spawn((
@@ -219,15 +222,15 @@ pub(super) fn update_spawn_icon_position(
 
 pub(super) fn update_player_icon_position(
     world_data: Res<WorldData>,
-    query_player: Query<&mut Transform, With<Player>>,
+    query_player: Query<&EntityRect, With<Player>>,
     query_map_view: Query<(&Transform, &Bounds), (With<WorldMapView>, Without<Player>)>,
     mut query_player_icon: Query<&mut Transform, (With<PlayerIcon>, Without<WorldMapView>, Without<Player>)>,
 ) {
-    let player_transform = query_player.single();
+    let player_rect = query_player.single();
     let (map_transform, bounds) = query_map_view.single();
     let mut player_icon_transform = query_player_icon.single_mut();
 
-    let player_position = player_transform.translation.xy().abs() / 16.;
+    let player_position = player_rect.center().abs() / 16.;
 
     let map_default_size = bounds.as_vec2();
     let map_position = map_transform.translation;
@@ -376,4 +379,41 @@ pub(super) fn update_world_map_texture(
     let material_handle = query_world_map.single();
 
     asset_events.send(AssetEvent::Modified { handle: material_handle.clone_weak() });
+}
+
+#[cfg(debug_assertions)]
+use crate::plugins::{cursor::position::CursorPosition, entity::components::{EntityRect, Velocity}};
+
+#[cfg(debug_assertions)]
+pub(super) fn teleport_player(
+    world_data: Res<WorldData>,
+    input: Res<Input<MouseButton>>,
+    cursor_position: Res<CursorPosition<WorldMapViewCamera>>,
+    query_map_view: Query<(&Transform, &Bounds), With<WorldMapView>>,
+    mut query_player: Query<(&mut EntityRect, &mut Velocity), With<Player>>
+) {
+    use crate::plugins::world::constants::TILE_SIZE;
+
+    if input.pressed(MouseButton::Right) {
+        let (map_transform, map_bounds) = query_map_view.single();
+        let (mut player_rect, mut player_velocity) = query_player.single_mut();
+
+        let cursor_pos = cursor_position.world;
+        let map_pos = map_transform.translation.xy();
+        let map_scale = map_transform.scale.xy();
+        let map_size = map_bounds.as_vec2() * map_scale;
+
+        let mut cursor_map_pos = (cursor_pos - map_pos + map_size / 2.) / map_size;
+        cursor_map_pos.y = 1. - cursor_map_pos.y;
+
+        if (0.0..=1.0).contains(&cursor_map_pos.x) && (0.0..=1.0).contains(&cursor_map_pos.y) {
+            let new_player_pos = world_data.playable_area.min.as_vec2() + cursor_map_pos * world_data.playable_area.size().as_vec2();
+
+            player_rect.centerx = new_player_pos.x * TILE_SIZE;
+            player_rect.centery = -new_player_pos.y * TILE_SIZE;
+
+            player_velocity.x = 0.;
+            player_velocity.y = 0.;
+        }
+    }
 }
