@@ -166,7 +166,7 @@ pub(super) fn update_map_view(
         let old_normalized = map_transform.translation.xy() / (map_default_size * scale);
 
         let new_scale = (scale + scale * Vec2::splat(event.y / 6.))
-            .clamp(Vec2::splat(projection_size.y / map_default_size.y), Vec2::splat(20.));
+            .clamp(Vec2::splat(projection_size.y / map_default_size.y), Vec2::splat(32.));
 
         let new_normalized = map_transform.translation.xy() / (map_default_size * new_scale);
         
@@ -327,8 +327,8 @@ pub(super) fn update_world_map_texture(
     let mut image = images.remove(world_map_texture.id()).unwrap();
 
     for event in place_tile_events.iter() {
-        let x = event.tile_pos.x as usize - world_data.playable_area.min.x as usize;
-        let y = event.tile_pos.y as usize - world_data.playable_area.min.y as usize;
+        let x = (event.tile_pos.x - world_data.playable_area.min.x) as usize;
+        let y = (event.tile_pos.y - world_data.playable_area.min.y) as usize;
         let index = ((y * world_data.playable_width()) + x) * 4;
 
         let color = match event.tile_type {
@@ -340,25 +340,25 @@ pub(super) fn update_world_map_texture(
         set_pixel(&mut image.data, index, color);
     }
 
-    for event in tile_removed_events.iter() {
-        let x = event.tile_pos.x as usize - world_data.playable_area.min.x as usize;
-        let y = event.tile_pos.y as usize - world_data.playable_area.min.y as usize;
-        let index = ((y * world_data.playable_width()) + x) * 4;
+    if !tile_removed_events.is_empty() {
+        let sky_image = images.get(&background_assets.background_0).unwrap();
+        let sky_image_height = sky_image.texture_descriptor.size.height as usize;
+        let sky_image_width = sky_image.texture_descriptor.size.width as usize;
 
-        let color = match event.tile_type {
-            TileType::Block(_) => world_data.get_wall_color(event.tile_pos),
-            TileType::Wall(_) => world_data.get_block_color(event.tile_pos),
-        };
+        for event in tile_removed_events.iter() {
+            let x = (event.tile_pos.x - world_data.playable_area.min.x) as usize;
+            let y = (event.tile_pos.y - world_data.playable_area.min.y) as usize;
+            let index = ((y * world_data.playable_width()) + x) * 4;
 
-        let color = color
-            .unwrap_or_else(|| {
+            let color = match event.tile_type {
+                TileType::Block(_) => world_data.get_wall_color(event.tile_pos),
+                TileType::Wall(_) => world_data.get_block_color(event.tile_pos),
+            };
+
+            let color = color.unwrap_or_else(|| {
                 if y >= world_data.layer.underground {
                     WallType::Dirt.color()
                 } else {
-                    let sky_image = images.get(&background_assets.background_0).unwrap();
-                    let sky_image_height = sky_image.texture_descriptor.size.height as usize;
-                    let sky_image_width = sky_image.texture_descriptor.size.width as usize;
-
                     let sky_y = map_range_usize((0, world_data.playable_height()), (0, sky_image_height), y);
 
                     let index = (sky_y * sky_image_width) * 4;
@@ -367,7 +367,8 @@ pub(super) fn update_world_map_texture(
                 }
             });
 
-        set_pixel(&mut image.data, index, color);
+            set_pixel(&mut image.data, index, color);
+        }
     }
 
     let _ = images.set(world_map_texture.id(), image);

@@ -1,5 +1,5 @@
 use bevy::core_pipeline::core_2d;
-use bevy::prelude::{Plugin, App, Update, IntoSystemConfigs, OnEnter, OnExit, PostUpdate, in_state, Handle, Image, Resource, Deref, not, Condition, Commands, state_changed, Component, on_event, ResMut, EventReader, Query, With};
+use bevy::prelude::{Plugin, App, Update, IntoSystemConfigs, OnEnter, OnExit, PostUpdate, in_state, Handle, Image, Resource, Deref, not, Condition, Commands, state_changed, Component, on_event, ResMut, EventReader, Query, With, resource_equals};
 use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
 use bevy::render::extract_resource::ExtractResource;
 use bevy::render::render_graph::{RenderGraph, RenderGraphApp, ViewNodeRunner};
@@ -42,7 +42,7 @@ pub(crate) struct TileTexture(Handle<Image>);
 #[derive(Resource, ExtractResource, Clone, Deref)]
 pub(crate) struct LightMapTexture(Handle<Image>);
 
-#[derive(Resource, Clone, Copy, Deref)]
+#[derive(Resource, Clone, Copy, Deref, PartialEq, Eq)]
 pub(crate) struct DoLighting(pub(crate) bool);
 
 #[derive(Component, ExtractComponent, Clone)]
@@ -112,16 +112,19 @@ impl Plugin for LightingPlugin {
                 Render,
                 (
                     (
-                        init_pipeline
-                            .run_if(state_changed::<GameState>().and_then(in_state(GameState::InGame))),
-                        lightmap::assets::prepare_lightmap_pipeline_assets,
-                        postprocess::assets::prepare_postprocess_pipeline_assets,
+                        init_pipeline.run_if(state_changed::<GameState>().and_then(in_state(GameState::InGame))),
+                        (
+                            lightmap::assets::prepare_lightmap_pipeline_assets,
+                            postprocess::assets::prepare_postprocess_pipeline_assets
+                        )
+                        .run_if(resource_equals(DoLighting(true))),
                     ).in_set(RenderSet::Prepare),
 
                     (
                         lightmap::pipeline::queue_lightmap_bind_groups,
                         postprocess::pipeline::queue_postprocess_bind_groups
                     )
+                    .run_if(resource_equals(DoLighting(true)))
                     .run_if(in_state(GameState::InGame))
                     .in_set(RenderSet::Queue),
 
@@ -179,9 +182,9 @@ fn toggle_do_lighting(
     mut events: EventReader<WindowResized>,
     query_primary_window: Query<(), With<PrimaryWindow>>
 ) {
-    if let Some(event) = events.iter().last() {
-        if query_primary_window.contains(event.window) {
-            do_lighting.0 = event.width > 0. && event.height > 0.;
-        }
+    let Some(event) = events.iter().last() else { return; };
+    
+    if query_primary_window.contains(event.window) {
+        do_lighting.0 = event.width > 0. && event.height > 0.;
     }
 }
