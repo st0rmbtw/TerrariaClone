@@ -8,6 +8,7 @@ use bevy::render::{RenderApp, Render, RenderSet, ExtractSchedule};
 use bevy::transform::TransformSystem;
 use bevy::window::{WindowResized, PrimaryWindow};
 use crate::common::state::GameState;
+use crate::common::systems::set_resource;
 use crate::plugins::InGameSystemSet;
 use crate::plugins::world::WorldSize;
 use crate::plugins::world::events::{BreakTileEvent, PlaceTileEvent};
@@ -58,7 +59,7 @@ impl Plugin for LightingPlugin {
         app.add_plugins(ExtractComponentPlugin::<PostProcessCamera>::default());
 
         app.init_resource::<BlurArea>();
-        app.insert_resource(DoLighting(true));
+        app.insert_resource(DoLighting(false));
 
         app.add_systems(
             OnExit(GameState::WorldLoading),
@@ -95,7 +96,13 @@ impl Plugin for LightingPlugin {
             .add_systems(
                 ExtractSchedule,
                 (
-                    extract::extract_textures,
+                    (
+                        extract::extract_resource::<BackgroundTexture>,
+                        extract::extract_resource::<InGameBackgroundTexture>,
+                        extract::extract_resource::<WorldTexture>,
+                        extract::extract_resource::<TileTexture>,
+                        extract::extract_resource::<LightMapTexture>,
+                    ),
                     extract::extract_resource::<WorldUndergroundLevel>,
                     extract::extract_resource::<WorldSize>,
                     extract::extract_resource::<DoLighting>,
@@ -112,7 +119,11 @@ impl Plugin for LightingPlugin {
                 Render,
                 (
                     (
-                        init_pipeline.run_if(state_changed::<GameState>().and_then(in_state(GameState::InGame))),
+                        (
+                            init_pipeline,
+                            set_resource(DoLighting(true))
+                        )
+                        .run_if(state_changed::<GameState>().and_then(in_state(GameState::InGame))),
                         (
                             lightmap::assets::prepare_lightmap_pipeline_assets,
                             postprocess::assets::prepare_postprocess_pipeline_assets
@@ -128,9 +139,12 @@ impl Plugin for LightingPlugin {
                     .run_if(in_state(GameState::InGame))
                     .in_set(RenderSet::Queue),
 
-                    remove_pipeline
-                        .run_if(state_changed::<GameState>().and_then(not(in_state(GameState::InGame))))
-                        .in_set(RenderSet::Cleanup)
+                    (
+                        remove_pipeline,
+                        set_resource(DoLighting(false))
+                    )
+                    .run_if(state_changed::<GameState>().and_then(not(in_state(GameState::InGame))))
+                    .in_set(RenderSet::Cleanup)
                 ),
             );
 

@@ -1,6 +1,6 @@
 mod systems;
 
-use bevy::{prelude::{Plugin, App, OnEnter, Deref, Update, IntoSystemConfigs, KeyCode, Handle, Image, apply_deferred, resource_equals, Resource, Component, resource_exists_and_equals}, render::view::RenderLayers, input::common_conditions::input_just_pressed};
+use bevy::{prelude::{Plugin, App, Deref, Update, IntoSystemConfigs, KeyCode, Handle, Image, apply_deferred, resource_equals, Resource, Component, resource_exists_and_equals, OnExit}, render::view::RenderLayers, input::common_conditions::input_just_pressed};
 
 use crate::common::state::GameState;
 
@@ -19,7 +19,7 @@ impl Plugin for WorldMapViewPlugin {
         app.init_resource::<MapViewStatus>();
 
         app.add_systems(
-            OnEnter(GameState::InGame),
+            OnExit(GameState::WorldLoading),
             (systems::init_world_map_texture, apply_deferred, systems::setup).chain()
         );
 
