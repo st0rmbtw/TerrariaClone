@@ -1,7 +1,7 @@
 use autodefault::autodefault;
 use bevy::{prelude::{Commands, Name, NodeBundle, BuildChildren, TextBundle, Color, Entity, ImageBundle, default, ChildBuilder, Handle, Image, Visibility, With, Res, Query, DetectChanges, Changed, ResMut, DetectChangesMut, Without, Ref, Vec2}, ui::{Style, FlexDirection, UiRect, Val, AlignSelf, AlignItems, JustifyContent, Interaction, BackgroundColor, FocusPolicy, AlignContent, PositionType, UiImage, widget::UiImageSize}, text::{Text, TextStyle, TextAlignment}};
 
-use crate::{plugins::{assets::{UiAssets, FontAssets, InventoryItemAssets}, cursor::components::Hoverable, inventory::{Inventory, Slot}, ui::{InventoryUiVisibility, components::PreviousInteraction}, audio::{AudioCommandsExt, SoundType}}, language::{keys::{LanguageStringKey, UIStringKey, ItemStringKey}, LocalizedText, args}, common::{extensions::EntityCommandsExtensions, BoolValue, helpers}};
+use crate::{plugins::{assets::{UiAssets, FontAssets, InventoryItemAssets}, cursor::components::Hoverable, inventory::{Inventory, Slot}, ui::{components::PreviousInteraction, resources::IsVisible}, audio::{AudioCommandsExt, SoundType}}, language::{keys::{LanguageStringKey, UIStringKey, ItemStringKey}, LocalizedText, args}, common::{extensions::EntityCommandsExtensions, BoolValue, helpers}};
 
 use super::{components::*, INVENTORY_ROWS, SLOT_COUNT_IN_ROW, HOTBAR_SLOT_SIZE, INVENTORY_SLOT_SIZE, HOTBAR_SLOT_SIZE_SELECTED};
 
@@ -230,7 +230,7 @@ fn spawn_inventory_slot(
 
 pub(super) fn update_slot_size(
     inventory: Res<Inventory>,
-    visibility: Res<InventoryUiVisibility>,
+    visibility: Res<IsVisible<InventoryUi>>,
     mut hotbar_slots: Query<(&SlotIndex, &mut Style), (With<HotbarSlot>, Without<SlotItemImage>)>,
     mut item_images: Query<(&SlotIndex, Ref<UiImageSize>, &mut Style), (Without<HotbarSlot>, With<SlotItemImage>)>
 ) {
@@ -276,7 +276,7 @@ pub(super) fn update_slot_size(
 
 pub(super) fn update_slot_index_text(
     inventory: Res<Inventory>,
-    visibility: Res<InventoryUiVisibility>,
+    visibility: Res<IsVisible<InventoryUi>>,
     mut hotbar_slots: Query<(&SlotIndex, &mut Text), With<HotbarSlotIndex>>,
 ) {
     for (slot_index, mut text) in &mut hotbar_slots {
@@ -298,7 +298,7 @@ pub(super) fn update_slot_index_text(
 pub(super) fn update_slot_background_image(
     inventory: Res<Inventory>,
     ui_assets: Res<UiAssets>,
-    visibility: Res<InventoryUiVisibility>,
+    visibility: Res<IsVisible<InventoryUi>>,
     mut hotbar_slots: Query<(&SlotIndex, &mut UiImage), With<HotbarSlot>>,
 ) {
     for (slot_index, mut image) in &mut hotbar_slots {
@@ -335,7 +335,7 @@ pub(super) fn update_hoverable(
 }
 
 pub(super) fn update_selected_item_name_alignment(
-    visibility: Res<InventoryUiVisibility>,
+    visibility: Res<IsVisible<InventoryUi>>,
     mut query_selected_item_name: Query<&mut Style, With<SelectedItemName>>
 ) {
     if visibility.is_changed() {
@@ -350,14 +350,14 @@ pub(super) fn update_selected_item_name_alignment(
 
 pub(super) fn update_selected_item_name_text(
     inventory: Res<Inventory>,
-    visibility: Res<InventoryUiVisibility>,
+    inventory_visible: Res<IsVisible<InventoryUi>>,
     mut query_selected_item_name: Query<&mut LocalizedText, With<SelectedItemName>>
 ) {
-    if !inventory.is_changed() && !visibility.is_changed() { return; } 
+    if !inventory.is_changed() && !inventory_visible.is_changed() { return; } 
 
     let mut localized_text = query_selected_item_name.single_mut();
 
-    let key = if visibility.value() {
+    let key = if inventory_visible.value() {
         UIStringKey::Inventory.into()
     } else {
         inventory.get_item(Slot::Index(inventory.selected_slot))
@@ -463,9 +463,9 @@ pub(super) fn put_item(
 pub(super) fn return_mouse_item_back_to_inventory(
     mut commands: Commands,
     mut inventory: ResMut<Inventory>,
-    inventory_ui_visibility: Res<InventoryUiVisibility>
+    inventory_visible: Res<IsVisible<InventoryUi>>
 ) {
-    if !inventory_ui_visibility.value() && inventory.item_exists(Slot::MouseItem) {
+    if !*inventory_visible && inventory.item_exists(Slot::MouseItem) {
         let item = inventory.remove_item(Slot::MouseItem).unwrap();
         inventory.add_item_stack(item);
         commands.play_sound(SoundType::ItemGrab);

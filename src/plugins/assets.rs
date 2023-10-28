@@ -172,6 +172,9 @@ handles! {
 
         #[asset(path = "sprites/ui/SliderHandle.png")]
         pub(crate) slider_handle: Handle<Image>,
+
+        #[asset(path = "sprites/ui/SpawnPoint.png")]
+        pub(crate) spawn_point: Handle<Image>,
     }
 }
 

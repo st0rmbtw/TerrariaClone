@@ -8,7 +8,7 @@ use bevy::{
 
 use crate::plugins::{camera::components::{WorldCamera, MainCamera, BackgroundCamera, InGameBackgroundCamera}, DespawnOnGameExit};
 
-use super::{MainTexture, WorldTexture, BackgroundTexture, InGameBackgroundTexture, PostProcessCamera};
+use super::{WorldTexture, BackgroundTexture, InGameBackgroundTexture, PostProcessCamera};
 
 #[derive(Component, Deref)]
 pub(crate) struct FitToWindowSize(Handle<Image>);
@@ -43,12 +43,10 @@ pub(super) fn setup_post_processing_camera(
     mut images: ResMut<Assets<Image>>,
 
     query_window: Query<&Window, With<PrimaryWindow>>,
-    mut query_main_camera: Query<(&mut Camera, &mut Camera2d, &mut UiCameraConfig), With<MainCamera>>,
     mut query_world_camera: Query<(&mut Camera, &mut Camera2d), (With<WorldCamera>, Without<MainCamera>)>,
     mut query_background_camera: Query<&mut Camera, (With<BackgroundCamera>, Without<MainCamera>, Without<WorldCamera>)>,
     mut query_ingame_background_camera: Query<(&mut Camera, &mut Camera2d), (With<InGameBackgroundCamera>, Without<BackgroundCamera>, Without<MainCamera>, Without<WorldCamera>)>,
 ) {
-    let Ok((mut main_camera, mut main_camera_2d, mut ui_camera_config)) = query_main_camera.get_single_mut() else { return; };
     let Ok((mut world_camera, mut world_camera_2d)) = query_world_camera.get_single_mut() else { return; };
     let Ok(mut background_camera) = query_background_camera.get_single_mut() else { return; };
     let Ok((mut ingame_background_camera, mut ingame_background_camera_2d)) = query_ingame_background_camera.get_single_mut() else { return; };
@@ -94,26 +92,16 @@ pub(super) fn setup_post_processing_camera(
     background_texture.texture_descriptor.usage = TextureUsages::COPY_DST | TextureUsages::TEXTURE_BINDING | TextureUsages::RENDER_ATTACHMENT;
     ingame_background_texture.texture_descriptor.usage = TextureUsages::COPY_DST | TextureUsages::TEXTURE_BINDING | TextureUsages::RENDER_ATTACHMENT;
 
-    let main_texture_handle = images.add(main_texture);
     let world_texture_handle = images.add(world_texture);
     let background_texture_handle = images.add(background_texture);
     let ingame_background_texture_handle = images.add(ingame_background_texture);
 
-    main_camera.target = RenderTarget::Image(main_texture_handle.clone());
     world_camera.target = RenderTarget::Image(world_texture_handle.clone());
     background_camera.target = RenderTarget::Image(background_texture_handle.clone());
     ingame_background_camera.target = RenderTarget::Image(ingame_background_texture_handle.clone());
 
-    main_camera_2d.clear_color = ClearColorConfig::Custom(Color::NONE);
     world_camera_2d.clear_color = ClearColorConfig::Custom(Color::NONE);
     ingame_background_camera_2d.clear_color = ClearColorConfig::Custom(Color::NONE);
-
-    ui_camera_config.show_ui = false;
-
-    commands.spawn((
-        DespawnOnGameExit,
-        FitToWindowSize(main_texture_handle.clone())
-    ));
 
     commands.spawn((
         DespawnOnGameExit,
@@ -130,7 +118,6 @@ pub(super) fn setup_post_processing_camera(
         FitToWindowSize(ingame_background_texture_handle.clone())
     ));
 
-    commands.insert_resource(MainTexture(main_texture_handle));
     commands.insert_resource(WorldTexture(world_texture_handle));
     commands.insert_resource(BackgroundTexture(background_texture_handle));
     commands.insert_resource(InGameBackgroundTexture(ingame_background_texture_handle));
@@ -138,9 +125,10 @@ pub(super) fn setup_post_processing_camera(
     commands.spawn((
         DespawnOnGameExit,
         PostProcessCamera,
+        UiCameraConfig { show_ui: false },
         Camera2dBundle {
             camera: Camera {
-                order: 100,
+                order: 10,
                 msaa_writeback: false,
                 ..default()
             },

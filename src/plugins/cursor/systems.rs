@@ -3,10 +3,10 @@ use std::time::Duration;
 use bevy::{
     prelude::{
         Res, Commands, Vec3, Color, NodeBundle, default, TextBundle, Name, ImageBundle, Transform, Query, With, Visibility, 
-        BuildChildren, Without
+        BuildChildren, Without, Entity, GlobalTransform, ComputedVisibility, Camera
     }, 
     ui::{
-        Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Val, AlignSelf, ZIndex, FlexDirection, UiImage
+        Style, JustifyContent, AlignItems, PositionType, FocusPolicy, Val, AlignSelf, ZIndex, FlexDirection, UiImage, Node
     }, 
     text::{Text, TextStyle}, 
     sprite::{SpriteBundle, Sprite}, ecs::query::Has
@@ -17,7 +17,7 @@ use crate::{
     plugins::{
         assets::{FontAssets, CursorAssets, UiAssets, ItemAssets}, 
         camera::components::MainCamera, 
-        world::constants::TILE_SIZE, config::{CursorColor, ShowTileGrid}, DespawnOnGameExit, player::Player, ui::{UiVisibility, components::MouseOver}, inventory::{Inventory, Slot}, entity::components::Velocity
+        world::constants::TILE_SIZE, config::{CursorColor, ShowTileGrid}, DespawnOnGameExit, player::Player, ui::resources::{IsVisible, Ui}, inventory::{Inventory, Slot}, entity::components::Velocity
     }, 
     animation::{Tween, lens::TransformScaleLens, Animator, RepeatStrategy, RepeatCount}, 
     common::{lens::BackgroundColorLens, helpers, BoolValue}, language::LanguageContent,
@@ -25,7 +25,7 @@ use crate::{
 
 use crate::plugins::player::{MAX_WALK_SPEED, MAX_FALL_SPEED};
 
-use super::{MAX_TILE_GRID_OPACITY, MIN_TILE_GRID_OPACITY, CURSOR_SIZE, components::{Hoverable, CursorBackground, CursorForeground, CursorInfoMarker, CursorContainer, TileGrid, CursorItemContainer, CursorItemStack, CursorItemImage}, position::CursorPosition};
+use super::{MAX_TILE_GRID_OPACITY, MIN_TILE_GRID_OPACITY, CURSOR_SIZE, components::{Hoverable, CursorBackground, CursorForeground, CursorInfoMarker, CursorContainer, TileGrid, CursorItemContainer, CursorItemStack, CursorItemImage, MouseOver}, position::CursorPosition};
 
 pub(super) fn setup(
     mut commands: Commands, 
@@ -202,22 +202,12 @@ pub(super) fn spawn_tile_grid(
 }
 
 pub(super) fn update_tile_grid_visibility(
-    ui_visibility: Res<UiVisibility>,
+    ui_visible: Res<IsVisible<Ui>>,
     show_tile_grid: Res<ShowTileGrid>,
     mut query: Query<&mut Visibility, With<TileGrid>>,
 ) {
     let Ok(visibility) = query.get_single_mut() else { return; };
-    helpers::set_visibility(visibility, ui_visibility.value() && show_tile_grid.value());
-}
-
-pub(super) fn update_cursor_position(
-    cursor_pos: Res<CursorPosition<MainCamera>>,
-    mut query_cursor: Query<&mut Style, With<CursorContainer>>,
-) {
-    if let Ok(mut style) = query_cursor.get_single_mut() {
-        style.left = Val::Px(cursor_pos.screen.x);
-        style.top = Val::Px(cursor_pos.screen.y);
-    }
+    helpers::set_visibility(visibility, ui_visible.value() && show_tile_grid.value());
 }
 
 pub(super) fn update_tile_grid_position(
@@ -256,16 +246,16 @@ pub(super) fn update_cursor_info(
     mut query_hoverable: Query<(&mut Hoverable, Has<MouseOver>)>,
     mut query_info: Query<(&mut Text, &mut Visibility), With<CursorInfoMarker>>,
 ) {
-    let (mut text, mut visibility) = query_info.single_mut();
+    let (mut info_text, mut info_visibility) = query_info.single_mut();
 
-    *visibility = Visibility::Hidden;
+    *info_visibility = Visibility::Hidden;
 
     if inventory.item_exists(Slot::MouseItem) { return; }
     
     for (mut hoverable, mouse_over) in &mut query_hoverable {
         if let (Hoverable::SimpleText(info), true) = (hoverable.as_mut(), mouse_over) {
-            text.sections[0].value = info.text(&language_content);
-            *visibility = Visibility::Inherited;
+            info_text.sections[0].value = info.text(&language_content);
+            *info_visibility = Visibility::Inherited;
             return;
         }
     }
@@ -295,4 +285,29 @@ pub(super) fn update_cursor_item(
     } else {
         *text_visibility = Visibility::Hidden;
     }
+}
+
+pub(super) fn update_ui_mouse_over(
+    mut commands: Commands,
+    cursor_pos: Res<CursorPosition<MainCamera>>,
+    query_hoverable: Query<(Entity, &Node, &GlobalTransform, &ComputedVisibility), With<Hoverable>>,
+    query_camera: Query<&Camera, With<MainCamera>>
+) {
+    let Ok(camera) = query_camera.get_single() else { return; };
+    if !camera.is_active { return; }
+
+    query_hoverable.for_each(|(entity, node, global_transform, visibility)| {
+        if node.logical_rect(global_transform).contains(cursor_pos.screen) && visibility.is_visible() {
+            commands.entity(entity).insert(MouseOver);
+        }
+    });
+}
+
+pub(super) fn reset_mouse_over(
+    mut commands: Commands,
+    query: Query<Entity, With<MouseOver>>
+) {
+    query.for_each(|entity| {
+        commands.entity(entity).remove::<MouseOver>();
+    });
 }

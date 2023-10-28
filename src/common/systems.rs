@@ -1,18 +1,46 @@
 use bevy::{ui::{Interaction, Style, Display}, prelude::{Changed, Component, Query, With, EventWriter, Visibility, Resource, Res, DetectChanges, Event, Entity, Commands, DespawnRecursiveExt, States, ResMut, NextState, Color}, text::Text};
 
-use crate::{animation::{Animator, TweeningDirection, Tween, Tweenable}, plugins::audio::{SoundType, AudioCommandsExt}};
+use crate::{animation::{Animator, TweeningDirection, Tween, Tweenable}, plugins::{audio::{SoundType, AudioCommandsExt}, ui::resources::{VisibilityMarker, IsVisible}}};
 
 use super::{helpers, BoolValue, Toggle};
 
-pub(crate) fn set_visibility<C: Component, R: BoolValue + Resource>(
+pub(crate) fn bind_visibility_to<M: VisibilityMarker, C: Component>(
     mut query_visibility: Query<&mut Visibility, With<C>>,
-    opt_res_visibility: Option<Res<R>>
+    opt_res_visibility: Option<Res<IsVisible<M>>>
 ) {
     let Some(res_visibility) = opt_res_visibility else { return; };
 
     if res_visibility.is_changed() {
         query_visibility.for_each_mut(|visibility| {
             helpers::set_visibility(visibility, res_visibility.value());
+        });
+    }
+}
+
+pub(crate) fn bind_not_visibility_to<M: VisibilityMarker, C: Component>(
+    mut query_visibility: Query<&mut Visibility, With<C>>,
+    opt_visible: Option<Res<IsVisible<M>>>
+) {
+    let Some(visible) = opt_visible else { return; };
+
+    if visible.is_changed() {
+        query_visibility.for_each_mut(|visibility| {
+            helpers::set_visibility(visibility, !*visible);
+        });
+    }
+}
+
+pub(crate) fn bind_visibility2_to<M1: VisibilityMarker, M2: VisibilityMarker, C: Component>(
+    mut query_visibility: Query<&mut Visibility, With<C>>,
+    opt_visible1: Option<Res<IsVisible<M1>>>,
+    opt_visible2: Option<Res<IsVisible<M2>>>
+) {
+    let Some(visible1) = opt_visible1 else { return; };
+    let Some(visible2) = opt_visible2 else { return; };
+
+    if visible1.is_changed() || visible2.is_changed() {
+        query_visibility.for_each_mut(|visibility| {
+            helpers::set_visibility(visibility, **visible1 && **visible2);
         });
     }
 }
@@ -30,19 +58,6 @@ pub(crate) fn set_display<C: Component, R: BoolValue + Resource>(
             } else {
                 style.display = Display::None;
             }
-        });
-    }
-}
-
-pub(crate) fn set_visibility_negated<C: Component, R: BoolValue + Resource>(
-    mut query_visibility: Query<&mut Visibility, With<C>>,
-    opt_res_visibility: Option<Res<R>>
-) {
-    let Some(res_visibility) = opt_res_visibility else { return; };
-
-    if res_visibility.is_changed() {
-        query_visibility.for_each_mut(|visibility| {
-            helpers::set_visibility(visibility, !res_visibility.value());
         });
     }
 }

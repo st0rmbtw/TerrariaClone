@@ -1,11 +1,14 @@
 use bevy::prelude::Event;
 use bevy_ecs_tilemap::tiles::TilePos;
 
-use crate::{items::{ItemTool, ItemSeed}, world::{block::{BlockType, Block}, wall::{Wall, WallType}}};
+use crate::{items::{ItemTool, ItemSeed}, world::{block::Block, wall::Wall}};
+
+use super::TileType;
 
 #[derive(Event)]
-pub(crate) struct BreakBlockEvent {
-    pub(crate) tile_pos: TilePos
+pub(crate) struct BreakTileEvent {
+    pub(crate) tile_pos: TilePos,
+    pub(crate) tile_type: TileType
 }
 
 #[derive(Event)]
@@ -15,26 +18,15 @@ pub(crate) struct DigBlockEvent {
 }
 
 #[derive(Event)]
-pub(crate) struct BreakWallEvent {
-    pub(crate) tile_pos: TilePos
-}
-
-#[derive(Event)]
 pub(crate) struct DigWallEvent {
     pub(crate) tile_pos: TilePos,
     pub(crate) tool: ItemTool
 }
 
 #[derive(Event)]
-pub(crate) struct PlaceBlockEvent {
+pub(crate) struct PlaceTileEvent {
     pub(crate) tile_pos: TilePos,
-    pub(crate) block_type: BlockType,
-}
-
-#[derive(Event)]
-pub(crate) struct PlaceWallEvent {
-    pub(crate) tile_pos: TilePos,
-    pub(crate) wall_type: WallType,
+    pub(crate) tile_type: TileType,
 }
 
 #[derive(Event)]
@@ -46,6 +38,12 @@ pub(super) struct UpdateNeighborsEvent {
 pub(crate) struct UpdateBlockEvent {
     pub(crate) tile_pos: TilePos,
     pub(crate) block: Block,
+}
+
+#[derive(Event)]
+pub(crate) struct TileRemovedEvent {
+    pub(crate) tile_pos: TilePos,
+    pub(crate) tile_type: TileType
 }
 
 #[derive(Event)]

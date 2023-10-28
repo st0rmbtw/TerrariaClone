@@ -1,14 +1,14 @@
 use std::time::Duration;
 
 use bevy::{
-    prelude::{Plugin, resource_exists_and_equals, Condition, Res, KeyCode, Query, With, Update, IntoSystemConfigs, App},
+    prelude::{Plugin, Condition, Res, KeyCode, Query, With, Update, IntoSystemConfigs, App, resource_equals},
     text::Text,
     time::common_conditions::on_timer,
     input::common_conditions::input_just_pressed, diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin, Diagnostic},
 };
 
-use crate::common::systems::toggle_visibility;
-use super::ui::{UiVisibility, FpsText};
+use crate::common::{systems::toggle_visibility, conditions::is_visible};
+use super::{ui::{FpsText, resources::Ui}, world_map_view::MapViewStatus};
 
 pub(crate) struct FpsPlugin;
 impl Plugin for FpsPlugin {
@@ -20,7 +20,9 @@ impl Plugin for FpsPlugin {
             (
                 toggle_visibility::<FpsText>.run_if(input_just_pressed(KeyCode::F10)),
                 update_fps_text.run_if(
-                    resource_exists_and_equals(UiVisibility::VISIBLE).and_then(on_timer(Duration::from_secs(1)))
+                    is_visible::<Ui>
+                        .or_else(resource_equals(MapViewStatus::Opened))
+                        .and_then(on_timer(Duration::from_secs(1)))
                 ),
             )
         );

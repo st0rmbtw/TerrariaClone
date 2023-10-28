@@ -2,7 +2,7 @@ use bevy::{prelude::{Query, With, Component, Res}, sprite::TextureAtlasSprite};
 
 use crate::plugins::inventory::{UseItemAnimationData, SwingAnimation};
 
-use super::{AnimationData, PlayerSpriteBody};
+use super::{AnimationData, body_sprites::PlayerSpriteBody};
 
 pub(super) fn simple_animation<C: AnimationData + Component>(
     swing_animation: Res<SwingAnimation>,

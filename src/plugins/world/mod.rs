@@ -4,7 +4,7 @@ pub(crate) mod constants;
 mod systems;
 mod utils;
 
-use crate::common::state::GameState;
+use crate::{common::state::GameState, world::{block::BlockType, wall::WallType}};
 use bevy::{prelude::{Plugin, App, OnEnter, IntoSystemConfigs, Update, Rect, OnExit, Resource, UVec2, Deref}, math::URect, render::view::RenderLayers};
 use bevy_ecs_tilemap::TilemapPlugin;
 
@@ -18,19 +18,25 @@ pub(super) type ChunkRange = URect;
 #[derive(Resource, Deref, Clone, Copy)]
 pub(crate) struct WorldSize(UVec2);
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum TileType {
+    Block(Option<BlockType>),
+    Wall(Option<WallType>)
+}
+
 pub(crate) struct WorldPlugin;
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((TilemapPlugin, ParticlePlugin, ItemPlugin));
 
-        app.add_event::<events::BreakBlockEvent>();
-        app.add_event::<events::BreakWallEvent>();
+        app.add_event::<events::BreakTileEvent>();
+
+        app.add_event::<events::TileRemovedEvent>();
 
         app.add_event::<events::DigBlockEvent>();
         app.add_event::<events::DigWallEvent>();
 
-        app.add_event::<events::PlaceBlockEvent>();
-        app.add_event::<events::PlaceWallEvent>();
+        app.add_event::<events::PlaceTileEvent>();
 
         app.add_event::<events::UpdateNeighborsEvent>();
 
@@ -52,11 +58,9 @@ impl Plugin for WorldPlugin {
                 systems::handle_dig_block_event,
                 systems::handle_dig_wall_event,
 
-                systems::handle_place_block_event,
-                systems::handle_place_wall_event,
+                systems::handle_place_tile_event,
 
-                systems::handle_break_block_event,
-                systems::handle_break_wall_event,
+                systems::handle_break_tile_event,
 
                 systems::handle_update_neighbors_event,
                 

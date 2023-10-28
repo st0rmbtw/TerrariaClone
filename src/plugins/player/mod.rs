@@ -2,29 +2,27 @@ mod components;
 mod resources;
 mod systems;
 mod utils;
-mod body_sprites;
+pub(crate) mod body_sprites;
 
 use resources::*;
-use systems::*;
 pub(crate) use components::*;
-pub(crate) use body_sprites::*;
 
 use crate::{common::{state::{GameState, MovementState}, helpers::tile_to_world_pos, systems::{component_equals, despawn_with}}, plugins::player::utils::simple_animation, world::WorldData};
 use std::time::Duration;
 use bevy::{prelude::*, time::{Timer, TimerMode, common_conditions::on_timer}, math::vec2, input::InputSystem};
 
-use super::{assets::PlayerAssets, world::constants::TILE_SIZE, inventory::UseItemAnimationData, InGameSystemSet, entity::EntitySet};
+use super::{assets::PlayerAssets, world::constants::TILE_SIZE, inventory::UseItemAnimationData, InGameSystemSet, entity::EntitySet, world_map_view::MapViewStatus};
 
 #[cfg(feature = "debug")]
 use crate::plugins::debug::DebugConfiguration;
 #[cfg(feature = "debug")]
 use bevy::input::common_conditions::input_pressed;
 
-const PLAYER_WIDTH: f32 = 22.;
-const PLAYER_HEIGHT: f32 = 42.;
+pub(crate) const PLAYER_WIDTH: f32 = 22.;
+pub(crate) const PLAYER_HEIGHT: f32 = 42.;
 
-const PLAYER_HALF_WIDTH: f32 = PLAYER_WIDTH / 2.;
-const PLAYER_HALF_HEIGHT: f32 = PLAYER_HEIGHT / 2.;
+pub(crate) const PLAYER_HALF_WIDTH: f32 = PLAYER_WIDTH / 2.;
+pub(crate) const PLAYER_HALF_HEIGHT: f32 = PLAYER_HEIGHT / 2.;
 
 const WALKING_ANIMATION_MAX_INDEX: usize = 13;
 
@@ -45,9 +43,9 @@ impl Plugin for PlayerPlugin {
         app.add_systems(OnExit(GameState::InGame), (cleanup, despawn_with::<Player>));
 
         let flip_player_systems = (
-            update_face_direction,
-            flip_player,
-            flip_using_item
+            systems::update_face_direction,
+            systems::flip_player,
+            systems::flip_using_item
         )
         .chain();
 
@@ -59,23 +57,26 @@ impl Plugin for PlayerPlugin {
             (
                 flip_player_systems,
                 (
-                    update_movement_animation_timer,
-                    update_movement_animation_index,
-                    walking_animation.run_if(component_equals::<Player, _>(MovementState::Walking)),
+                    systems::update_movement_animation_timer,
+                    systems::update_movement_animation_index,
+                    systems::walking_animation.run_if(component_equals::<Player, _>(MovementState::Walking)),
                 ).chain(),
                 simple_animation::<IdleAnimationData>.run_if(component_equals::<Player, _>(MovementState::Idle)),
                 simple_animation::<FlyingAnimationData>.run_if(component_equals::<Player, _>(MovementState::Flying)),
-                spawn_particles_on_walk.run_if(on_timer(Duration::from_secs_f32(1. / 20.))),
-                spawn_particles_grounded
+                systems::spawn_particles_on_walk.run_if(on_timer(Duration::from_secs_f32(1. / 20.))),
+                systems::spawn_particles_grounded
             )
             .in_set(InGameSystemSet::Update)
         );
 
         app.add_systems(
             PreUpdate,
-            update_input_axis.after(InputSystem)
+            systems::update_input_axis.after(InputSystem)
+                .run_if(resource_equals(MapViewStatus::Closed))
                 .in_set(InGameSystemSet::PreUpdate)
         );
+
+        let update_jump = systems::update_jump.run_if(resource_equals(MapViewStatus::Closed));
         
         #[cfg(feature = "debug")]
         let update_jump = update_jump.run_if(|config: Res<DebugConfiguration>| !config.free_camera);
@@ -84,15 +85,15 @@ impl Plugin for PlayerPlugin {
             FixedUpdate,
             (
                 (
-                    horizontal_movement,
+                    systems::horizontal_movement,
                     (
                         update_jump,
-                        gravity,
+                        systems::gravity,
                     ).chain()
                 )
                 .before(EntitySet::UpdateEntityRect),
 
-                detect_collisions
+                systems::detect_collisions
                     .after(EntitySet::UpdateEntityRect)
                     .before(EntitySet::MoveEntity),
             )
@@ -102,8 +103,8 @@ impl Plugin for PlayerPlugin {
         app.add_systems(
             PostUpdate,
             (
-                reset_fallstart,
-                update_movement_state
+                systems::reset_fallstart,
+                systems::update_movement_state
             )
             .in_set(InGameSystemSet::PostUpdate)
         );
@@ -113,9 +114,9 @@ impl Plugin for PlayerPlugin {
             app.add_systems(
                 Update,
                 (
-                    current_speed,
-                    draw_hitbox.run_if(|config: Res<DebugConfiguration>| config.show_hitboxes),
-                    teleport_player
+                    systems::current_speed,
+                    systems::draw_hitbox.run_if(|config: Res<DebugConfiguration>| config.show_hitboxes),
+                    systems::teleport_player
                         .before(EntitySet::UpdateEntityRect)
                         .run_if(
                             (|config: Res<DebugConfiguration>| config.free_camera).and_then(
@@ -156,21 +157,13 @@ fn spawn_player(
 
     commands
         .spawn(PlayerBundle::new(spawn_point.x, spawn_point.y))
-        .with_children(|cmd| {
+        .with_children(|parent| {
             use body_sprites::*;
-            spawn_player_hair(cmd, player_assets.hair.clone_weak(), 0.5);
+            spawn_player_head(parent, &player_assets);
+            spawn_player_body(parent, &player_assets);
 
-            spawn_player_head(cmd, player_assets.head.clone_weak(), 0.1);
+            spawn_player_feet(parent, player_assets.feet.clone_weak(), 0.2);
 
-            spawn_player_eyes(cmd, player_assets.eyes_1.clone_weak(), player_assets.eyes_2.clone_weak(), 0.2);
-
-            spawn_player_left_hand(cmd, player_assets.left_shoulder.clone_weak(), player_assets.left_hand.clone_weak(), 0.9);
-            spawn_player_right_hand(cmd, player_assets.right_arm.clone_weak(), 0.);
-
-            spawn_player_chest(cmd, player_assets.chest.clone_weak(), 0.1);
-
-            spawn_player_feet(cmd, player_assets.feet.clone_weak(), 0.2);
-
-            spawn_player_item_in_hand(cmd, 0.7);
+            spawn_player_item_in_hand(parent, 0.7);
         });
 }

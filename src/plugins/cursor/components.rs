@@ -31,3 +31,7 @@ pub(crate) enum Hoverable {
     None,
     SimpleText(LocalizedText)
 }
+
+#[derive(Component)]
+#[component(storage = "SparseSet")]
+pub(crate) struct MouseOver;

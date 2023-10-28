@@ -34,7 +34,7 @@ pub(super) fn setup_main_camera(
                     ..default()
                 },
                 camera: Camera {
-                    order: 1,
+                    order: 100,
                     msaa_writeback: false,
                     ..default()
                 },

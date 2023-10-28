@@ -5,7 +5,7 @@ use bevy::{prelude::{ResMut, EventReader, KeyCode, Input, Res, With, Query, Visi
 #[cfg(feature = "debug")]
 use bevy_inspector_egui::bevy_egui::EguiContexts;
 
-use crate::{plugins::{ui::ingame::inventory::SLOT_COUNT_IN_ROW, assets::ItemAssets, cursor::position::CursorPosition, world::{events::{DigBlockEvent, PlaceBlockEvent, SeedEvent, BreakBlockEvent, BreakWallEvent, DigWallEvent, PlaceWallEvent}, constants::TILE_SIZE}, player::{FaceDirection, Player, PlayerSpriteBody}, audio::{SoundType, AudioCommandsExt}, camera::components::MainCamera, item::ItemCommandsExt, entity::components::{EntityRect, Velocity}}, common::{helpers::{self, tile_to_world_pos}, rect::FRect}, items::{Item, ItemTool}, world::{WorldData, block::BlockType, wall::WallType}};
+use crate::{plugins::{ui::ingame::inventory::SLOT_COUNT_IN_ROW, assets::ItemAssets, cursor::position::CursorPosition, world::{events::{DigBlockEvent, SeedEvent, DigWallEvent, BreakTileEvent, PlaceTileEvent}, constants::TILE_SIZE, TileType}, player::{FaceDirection, Player, body_sprites::PlayerSpriteBody}, audio::{SoundType, AudioCommandsExt}, camera::components::MainCamera, item::ItemCommandsExt, entity::components::{EntityRect, Velocity}}, common::{helpers::{self, tile_to_world_pos}, rect::FRect}, items::{Item, ItemTool}, world::{WorldData, block::BlockType, wall::WallType}};
 
 use super::{Inventory, SelectedItem, util::keycode_to_digit, SwingItemCooldown, ItemInHand, UseItemAnimationIndex, PlayerUsingItem, UseItemAnimationData, SwingItemCooldownMax, ITEM_ROTATION, SwingAnimation, ITEM_ANIMATION_POINTS};
 
@@ -103,10 +103,8 @@ pub(super) fn use_item(
     query_player: Query<&EntityRect, With<Player>>,
     mut dig_block_events: EventWriter<DigBlockEvent>,
     mut dig_wall_events: EventWriter<DigWallEvent>,
-    mut break_block_events: EventWriter<BreakBlockEvent>,
-    mut break_wall_events: EventWriter<BreakWallEvent>,
-    mut place_block_events: EventWriter<PlaceBlockEvent>,
-    mut place_wall_events: EventWriter<PlaceWallEvent>,
+    mut break_tile_events: EventWriter<BreakTileEvent>,
+    mut place_tile_events: EventWriter<PlaceTileEvent>,
     mut seed_events: EventWriter<SeedEvent>,
     mut use_cooldown: Local<u32>,
 ) {
@@ -146,14 +144,14 @@ pub(super) fn use_item(
                             }
                             
                             if instant_break {
-                                break_block_events.send(BreakBlockEvent { tile_pos });    
+                                break_tile_events.send(BreakTileEvent { tile_pos, tile_type: TileType::Block(None) });
                             } else {
                                 dig_block_events.send(DigBlockEvent { tile_pos, tool });
                             }
                         },
                         ItemTool::Hammer(_) => {
                             if instant_break {
-                                break_wall_events.send(BreakWallEvent { tile_pos });
+                                break_tile_events.send(BreakTileEvent { tile_pos, tile_type: TileType::Wall(None) });
                             } else {
                                 dig_wall_events.send(DigWallEvent { tile_pos, tool });
                             }
@@ -172,7 +170,7 @@ pub(super) fn use_item(
 
                     let block_type = BlockType::from(item_block);
 
-                    place_block_events.send(PlaceBlockEvent { tile_pos, block_type });
+                    place_tile_events.send(PlaceTileEvent { tile_pos, tile_type: TileType::Block(Some(block_type)) });
                     inventory.consume_item(selected_item_index);
                 },
                 Item::Wall(item_wall) => {
@@ -180,7 +178,7 @@ pub(super) fn use_item(
 
                     let wall_type = WallType::from(item_wall);
 
-                    place_wall_events.send(PlaceWallEvent { tile_pos, wall_type });
+                    place_tile_events.send(PlaceTileEvent { tile_pos, tile_type: TileType::Wall(Some(wall_type)) });
                     inventory.consume_item(selected_item_index);
 
                 }

@@ -1,22 +1,21 @@
-mod resources;
-mod systems;
+pub(crate) mod resources;
+pub(crate) mod systems;
 pub(crate) mod components;
 pub(crate) mod ingame;
 pub(crate) mod menu;
-pub(crate) use resources::*;
 
-use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Color, TextBundle, Condition, Button, resource_exists_and_equals, not, Component, OnEnter, PostUpdate, Resource, PreUpdate}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, PositionType}, text::{TextAlignment, Text, TextStyle, TextSection}};
-use crate::common::{state::GameState, systems::{set_visibility, despawn_with, toggle_resource, animate_button_scale, play_sound}, conditions::on_click};
+use bevy::{prelude::{Plugin, App, KeyCode, Update, IntoSystemConfigs, OnExit, Commands, Res, NodeBundle, default, Name, BuildChildren, Visibility, Color, TextBundle, Condition, Button, not, Component, OnEnter, PostUpdate, Resource, resource_equals}, input::common_conditions::input_just_pressed, ui::{Style, Val, FlexDirection, JustifyContent, AlignItems, UiRect, PositionType}, text::{TextAlignment, Text, TextStyle, TextSection}};
+use crate::common::{state::GameState, systems::{bind_visibility_to, despawn_with, toggle_resource, animate_button_scale, play_sound}, conditions::{on_click, is_visible}};
 
 use self::{
     components::{MainUiContainer, MusicVolumeSliderOutput, SoundVolumeSliderOutput, MusicVolumeSlider, SoundVolumeSlider},
-    ingame::{inventory::{systems::spawn_inventory_ui, InventoryUiPlugin}, settings::{systems::spawn_ingame_settings_button, InGameSettingsUiPlugin}},
-    menu::MenuPlugin, systems::{play_sound_on_hover, update_previous_interaction},
+    ingame::{inventory::{systems::spawn_inventory_ui, InventoryUiPlugin, components::InventoryUi}, settings::{systems::spawn_ingame_settings_button, InGameSettingsUiPlugin}},
+    menu::MenuPlugin, systems::{play_sound_on_hover, update_previous_interaction}, resources::{IsVisible, SettingsMenu, Ui, Cursor},
 };
 
 use crate::plugins::assets::{FontAssets, UiAssets};
 
-use super::{InGameSystemSet, DespawnOnGameExit, slider::Slider, audio::SoundType};
+use super::{InGameSystemSet, DespawnOnGameExit, slider::Slider, audio::SoundType, world_map_view::MapViewStatus};
 
 #[derive(Component)]
 pub(crate) struct FpsText;
@@ -29,7 +28,7 @@ impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((InventoryUiPlugin, InGameSettingsUiPlugin, MenuPlugin));
 
-        app.init_resource::<UiVisibility>();
+        app.insert_resource(IsVisible::<Ui>::visible());
         app.init_resource::<MouseOverUi>();
 
         app.add_systems(OnEnter(GameState::InGame), setup);
@@ -52,16 +51,19 @@ impl Plugin for UiPlugin {
             Update,
             (
                 (
-                    toggle_resource::<InventoryUiVisibility>,
-                    systems::play_sound_on_toggle::<InventoryUiVisibility>
+                    toggle_resource::<IsVisible<InventoryUi>>,
+                    systems::play_sound_on_toggle::<IsVisible<InventoryUi>>
                 )
                 .chain()
                 .run_if(
-                    not(resource_exists_and_equals(SettingsMenuVisibility(true))).and_then(input_just_pressed(KeyCode::Escape))
+                    not(is_visible::<SettingsMenu>).and_then(input_just_pressed(KeyCode::Escape))
                 ),
-
-                toggle_resource::<UiVisibility>.run_if(input_just_pressed(KeyCode::F11)),
-                set_visibility::<MainUiContainer, UiVisibility>
+                (
+                    toggle_resource::<IsVisible<Ui>>,
+                    toggle_resource::<IsVisible<Cursor>>,
+                )
+                .run_if(input_just_pressed(KeyCode::F11)),
+                bind_visibility_to::<Ui, MainUiContainer>,
             )
             .in_set(InGameSystemSet::Update)
         );
@@ -81,22 +83,19 @@ impl Plugin for UiPlugin {
         app.add_systems(PostUpdate, update_previous_interaction);
 
         app.add_systems(
-            PreUpdate,
-            (
-                systems::update_mouse_over_ui,
-                systems::update_world_mouse_over,
-                systems::update_ui_mouse_over
-            )
+            Update,
+            systems::update_mouse_over_ui
+                .run_if(resource_equals(MapViewStatus::Closed)),
         );
     }
 }
 
 fn setup(mut commands: Commands) {
-    commands.init_resource::<InventoryUiVisibility>();
+    commands.insert_resource(IsVisible::<InventoryUi>::hidden());
 }
 
 fn cleanup(mut commands: Commands) {
-    commands.remove_resource::<InventoryUiVisibility>();
+    commands.remove_resource::<IsVisible::<InventoryUi>>();
 }
 
 fn spawn_ui_container(

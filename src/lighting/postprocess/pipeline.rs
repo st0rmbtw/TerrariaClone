@@ -1,6 +1,6 @@
 use bevy::{render::{render_resource::{BindGroupLayout, CachedRenderPipelineId, PipelineCache, RenderPipelineDescriptor, PrimitiveState, MultisampleState, FragmentState, ColorTargetState, ColorWrites, BindGroupLayoutDescriptor, BindGroupLayoutEntry, ShaderStages, BindingType, BufferBindingType, ShaderType, TextureSampleType, TextureViewDimension, SamplerBindingType, BindGroupDescriptor, BindGroupEntry, BindingResource, BindGroup, ShaderDefVal}, render_asset::RenderAssets, renderer::RenderDevice, texture::BevyDefault}, prelude::{Commands, Image, Res, Resource, FromWorld, World, AssetServer}, core_pipeline::fullscreen_vertex_shader::fullscreen_shader_vertex_state};
 
-use crate::{lighting::{BackgroundTexture, InGameBackgroundTexture, WorldTexture, MainTexture, LightMapTexture, gpu_types::GpuCameraParams}, plugins::world::WorldSize};
+use crate::{lighting::{BackgroundTexture, InGameBackgroundTexture, WorldTexture, LightMapTexture, gpu_types::GpuCameraParams}, plugins::world::WorldSize};
 
 use super::assets::PostProcessPipelineAssets;
 
@@ -24,14 +24,12 @@ pub(crate) fn queue_postprocess_bind_groups(
     background_texture: Res<BackgroundTexture>,
     ingame_background_texture: Res<InGameBackgroundTexture>,
     world_texture: Res<WorldTexture>,
-    main_texture: Res<MainTexture>,
     lightmap_texture: Res<LightMapTexture>,
 ) {
     if let Some(camera_params) = pipeline_assets.camera_params.binding() {
         let background_image = &gpu_images[&background_texture.0];
         let ingame_background_image = &gpu_images[&ingame_background_texture.0];
         let world_image = &gpu_images[&world_texture.0];
-        let main_image = &gpu_images[&main_texture.0];
         let lightmap_image = &gpu_images[&lightmap_texture.0];
 
         let bind_group = render_device.create_bind_group(&BindGroupDescriptor {
@@ -63,15 +61,6 @@ pub(crate) fn queue_postprocess_bind_groups(
                 BindGroupEntry {
                     binding: 5,
                     resource: BindingResource::Sampler(&world_image.sampler),
-                },
-
-                BindGroupEntry {
-                    binding: 6,
-                    resource: BindingResource::TextureView(&main_image.texture_view),
-                },
-                BindGroupEntry {
-                    binding: 7,
-                    resource: BindingResource::Sampler(&main_image.sampler),
                 },
 
                 BindGroupEntry {
@@ -148,23 +137,6 @@ impl FromWorld for PostProcessPipeline {
                     },
                     BindGroupLayoutEntry {
                         binding: 5,
-                        visibility: ShaderStages::FRAGMENT,
-                        ty: BindingType::Sampler(SamplerBindingType::NonFiltering),
-                        count: None,
-                    },
-
-                    BindGroupLayoutEntry {
-                        binding: 6,
-                        visibility: ShaderStages::FRAGMENT,
-                        ty: BindingType::Texture {
-                            sample_type: TextureSampleType::Float { filterable: false },
-                            view_dimension: TextureViewDimension::D2,
-                            multisampled: false
-                        },
-                        count: None,
-                    },
-                    BindGroupLayoutEntry {
-                        binding: 7,
                         visibility: ShaderStages::FRAGMENT,
                         ty: BindingType::Sampler(SamplerBindingType::NonFiltering),
                         count: None,

@@ -15,11 +15,6 @@ var world_texture: texture_2d<f32>;
 @group(0) @binding(5)
 var world_texture_sampler: sampler;
 
-@group(0) @binding(6)
-var main_texture: texture_2d<f32>;
-@group(0) @binding(7)
-var main_texture_sampler: sampler;
-
 @group(0) @binding(8)
 var lightmap_texture: texture_2d<f32>;
 @group(0) @binding(9)
@@ -69,12 +64,11 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
 
     let light = textureSampleLevel(lightmap_texture, lightmap_texture_sampler, light_uv, 0.0);
 
-    let main_sample: vec4<f32> = textureSampleLevel(main_texture, main_texture_sampler, in.uv, 0.0);
     var world_sample: vec4<f32> = textureSampleLevel(world_texture, world_texture_sampler, in.uv, 0.0) * light;
     let background_sample: vec4<f32> = textureSampleLevel(background_texture, background_texture_sampler, in.uv, 0.0);
     let ingame_background_sample: vec4<f32> = textureSampleLevel(ingame_background_texture, ingame_background_texture_sampler, in.uv, 0.0) * light;
 
-    let color = layer(main_sample, layer(world_sample, layer(ingame_background_sample, background_sample)));
+    let color = layer(world_sample, layer(ingame_background_sample, background_sample));
 
     return color;
 }

@@ -1,14 +1,18 @@
 use bevy::core_pipeline::core_2d;
-use bevy::prelude::{Plugin, App, Update, IntoSystemConfigs, OnEnter, OnExit, PostUpdate, in_state, Handle, Image, Resource, Deref, not, Condition, Commands, state_changed, Component, on_event};
+use bevy::prelude::{Plugin, App, Update, IntoSystemConfigs, OnEnter, OnExit, PostUpdate, in_state, Handle, Image, Resource, Deref, not, Condition, Commands, state_changed, Component, on_event, ResMut, EventReader, Query, With, resource_equals};
 use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
 use bevy::render::extract_resource::ExtractResource;
 use bevy::render::render_graph::{RenderGraph, RenderGraphApp, ViewNodeRunner};
 use bevy::render::render_resource::TextureFormat;
 use bevy::render::{RenderApp, Render, RenderSet, ExtractSchedule};
 use bevy::transform::TransformSystem;
+use bevy::window::{WindowResized, PrimaryWindow};
 use crate::common::state::GameState;
+use crate::common::systems::set_resource;
 use crate::plugins::InGameSystemSet;
-use crate::plugins::world::events::{BreakBlockEvent, PlaceBlockEvent};
+use crate::plugins::world::WorldSize;
+use crate::plugins::world::events::{BreakTileEvent, PlaceTileEvent};
+use crate::plugins::world::resources::WorldUndergroundLevel;
 
 use self::lightmap::LightMapNode;
 use self::lightmap::assets::{BlurArea, LightMapPipelineAssets, LightSourceCount};
@@ -33,14 +37,14 @@ pub(crate) struct InGameBackgroundTexture(Handle<Image>);
 #[derive(Resource, ExtractResource, Clone)]
 pub(crate) struct WorldTexture(Handle<Image>);
 
-#[derive(Resource, ExtractResource, Clone)]
-pub(crate) struct MainTexture(Handle<Image>);
-
-#[derive(Resource, ExtractResource, Clone)]
+#[derive(Resource, ExtractResource, Clone, Deref)]
 pub(crate) struct TileTexture(Handle<Image>);
 
 #[derive(Resource, ExtractResource, Clone, Deref)]
 pub(crate) struct LightMapTexture(Handle<Image>);
+
+#[derive(Resource, Clone, Copy, Deref, PartialEq, Eq)]
+pub(crate) struct DoLighting(pub(crate) bool);
 
 #[derive(Component, ExtractComponent, Clone)]
 struct PostProcessCamera;
@@ -55,6 +59,7 @@ impl Plugin for LightingPlugin {
         app.add_plugins(ExtractComponentPlugin::<PostProcessCamera>::default());
 
         app.init_resource::<BlurArea>();
+        app.insert_resource(DoLighting(false));
 
         app.add_systems(
             OnExit(GameState::WorldLoading),
@@ -69,10 +74,13 @@ impl Plugin for LightingPlugin {
         app.add_systems(
             Update,
             (
-                lightmap::assets::handle_update_tiles_texture_event
-                    .run_if(on_event::<BreakBlockEvent>().or_else(on_event::<PlaceBlockEvent>())),
-                compositing::update_image_to_window_size,
-            ).in_set(InGameSystemSet::Update)
+                toggle_do_lighting.run_if(on_event::<WindowResized>()),
+                (
+                    lightmap::assets::handle_update_tiles_texture_event
+                        .run_if(on_event::<BreakTileEvent>().or_else(on_event::<PlaceTileEvent>())),
+                    compositing::update_image_to_window_size,
+                ).in_set(InGameSystemSet::Update)
+            )
         );
 
         app.add_systems(
@@ -88,9 +96,16 @@ impl Plugin for LightingPlugin {
             .add_systems(
                 ExtractSchedule,
                 (
-                    extract::extract_textures,
-                    extract::extract_world_underground_level,
-                    extract::extract_world_size,
+                    (
+                        extract::extract_resource::<BackgroundTexture>,
+                        extract::extract_resource::<InGameBackgroundTexture>,
+                        extract::extract_resource::<WorldTexture>,
+                        extract::extract_resource::<TileTexture>,
+                        extract::extract_resource::<LightMapTexture>,
+                    ),
+                    extract::extract_resource::<WorldUndergroundLevel>,
+                    extract::extract_resource::<WorldSize>,
+                    extract::extract_resource::<DoLighting>,
                     extract::extract_state,
                     (
                         extract::extract_light_smoothness,
@@ -104,22 +119,32 @@ impl Plugin for LightingPlugin {
                 Render,
                 (
                     (
-                        init_pipeline
-                            .run_if(state_changed::<GameState>().and_then(in_state(GameState::InGame))),
-                        lightmap::assets::prepare_lightmap_pipeline_assets,
-                        postprocess::assets::prepare_postprocess_pipeline_assets,
+                        (
+                            init_pipeline,
+                            set_resource(DoLighting(true))
+                        )
+                        .run_if(state_changed::<GameState>().and_then(in_state(GameState::InGame))),
+                        (
+                            lightmap::assets::prepare_lightmap_pipeline_assets,
+                            postprocess::assets::prepare_postprocess_pipeline_assets
+                        )
+                        .run_if(resource_equals(DoLighting(true))),
                     ).in_set(RenderSet::Prepare),
 
                     (
                         lightmap::pipeline::queue_lightmap_bind_groups,
                         postprocess::pipeline::queue_postprocess_bind_groups
                     )
+                    .run_if(resource_equals(DoLighting(true)))
                     .run_if(in_state(GameState::InGame))
                     .in_set(RenderSet::Queue),
 
-                    remove_pipeline
-                        .run_if(state_changed::<GameState>().and_then(not(in_state(GameState::InGame))))
-                        .in_set(RenderSet::Cleanup)
+                    (
+                        remove_pipeline,
+                        set_resource(DoLighting(false))
+                    )
+                    .run_if(state_changed::<GameState>().and_then(not(in_state(GameState::InGame))))
+                    .in_set(RenderSet::Cleanup)
                 ),
             );
 
@@ -164,4 +189,16 @@ fn remove_pipeline(mut commands: Commands) {
 
     commands.remove_resource::<PostProcessPipeline>();
     commands.remove_resource::<PostProcessPipelineBindGroups>();
+}
+
+fn toggle_do_lighting(
+    mut do_lighting: ResMut<DoLighting>,
+    mut events: EventReader<WindowResized>,
+    query_primary_window: Query<(), With<PrimaryWindow>>
+) {
+    let Some(event) = events.iter().last() else { return; };
+    
+    if query_primary_window.contains(event.window) {
+        do_lighting.0 = event.width > 0. && event.height > 0.;
+    }
 }

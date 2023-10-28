@@ -1,7 +1,7 @@
 use bevy::{prelude::{Image, Res, ResMut, Assets, GlobalTransform, OrthographicProjection, With, Query, Deref, UVec2, EventReader, Commands, Transform, Resource, ComputedVisibility}, render::{render_resource::{Extent3d, TextureDimension, TextureUsages, UniformBuffer, StorageBuffer, FilterMode, SamplerDescriptor}, renderer::{RenderQueue, RenderDevice}, Extract, extract_resource::ExtractResource, texture::ImageSampler}, utils::default, math::{URect, Vec3Swizzles}};
 use rand::{thread_rng, Rng};
 
-use crate::{world::WorldData, plugins::{camera::components::WorldCamera, world::{constants::TILE_SIZE, WorldSize, events::{PlaceBlockEvent, BreakBlockEvent}}, config::LightSmoothness}, lighting::{LightMapTexture, LIGHTMAP_FORMAT, gpu_types::{GpuLightSourceBuffer, GpuLightSource}, TILES_FORMAT, TileTexture, types::LightSource}};
+use crate::{world::WorldData, plugins::{camera::components::WorldCamera, world::{constants::TILE_SIZE, WorldSize, events::{PlaceTileEvent, BreakTileEvent}, TileType}, config::LightSmoothness}, lighting::{LightMapTexture, LIGHTMAP_FORMAT, gpu_types::{GpuLightSourceBuffer, GpuLightSource}, TILES_FORMAT, TileTexture, types::LightSource}};
 
 #[derive(Resource, ExtractResource, Deref, Clone, Copy, Default)]
 pub(crate) struct BlurArea(pub(crate) URect);
@@ -97,35 +97,59 @@ pub(crate) fn handle_update_tiles_texture_event(
     tile_texture: Res<TileTexture>,
     world_data: Res<WorldData>,
     mut images: ResMut<Assets<Image>>,
-    mut place_block_events: EventReader<PlaceBlockEvent>,
-    mut break_block_events: EventReader<BreakBlockEvent>
+    mut place_tile_events: EventReader<PlaceTileEvent>,
+    mut break_tile_events: EventReader<BreakTileEvent>
 ) {
     let image = images.get_mut(&tile_texture.0).unwrap();
 
-    for event in break_block_events.iter() {
-        let wall_exists = world_data.wall_exists(event.tile_pos);
-
+    for event in break_tile_events.iter() {
         let x = event.tile_pos.x as usize;
         let y = event.tile_pos.y as usize;
 
         let index = y * world_data.width() + x;
 
-        if wall_exists || y >= world_data.layer.underground {
-            image.data[index] = 2;
-        } else {
-            image.data[index] = 0;
+        match event.tile_type {
+            TileType::Block(_) => {
+                let wall_exists = world_data.wall_exists(event.tile_pos);
+
+                if wall_exists || y >= world_data.layer.underground {
+                    image.data[index] = 2;
+                } else {
+                    image.data[index] = 0;
+                }
+            },
+            TileType::Wall(_) => {
+                let block_exists = world_data.block_exists(event.tile_pos);
+
+                if block_exists {
+                    image.data[index] = 1;
+                } else {
+                    image.data[index] = 0;
+                }
+            },
         }
     }
 
-    for event in place_block_events.iter() {
-        if !event.block_type.is_solid() { continue; }
-
+    for event in place_tile_events.iter() {
         let x = event.tile_pos.x as usize;
         let y = event.tile_pos.y as usize;
 
         let index = y * world_data.width() + x;
 
-        image.data[index] = 1;
+        match event.tile_type {
+            TileType::Block(Some(block_type)) => {
+                if !block_type.is_solid() { continue; }
+                image.data[index] = 1;
+            },
+            TileType::Wall(_) => {
+                let block_exists = world_data.block_exists(event.tile_pos);
+
+                if !block_exists {
+                    image.data[index] = 2;
+                }
+            },
+            _ => unreachable!()
+        }
     }
 }
 

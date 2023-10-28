@@ -14,7 +14,7 @@ use crate::{
 #[cfg(feature = "debug")]
 use bevy_inspector_egui::bevy_egui::EguiContexts;
 
-use super::{*, utils::get_fall_distance};
+use super::{*, utils::get_fall_distance, body_sprites::{ChangeFlip, PlayerSpriteBody}};
 
 pub(super) fn horizontal_movement(
     axis: Res<InputAxis>,

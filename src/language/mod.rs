@@ -65,6 +65,7 @@ struct UI {
     medium: String,
     high: String,
     ultra: String,
+    spawn_point: String,
 }
 
 #[derive(Deserialize)]
@@ -126,6 +127,7 @@ impl LanguageContent {
                 keys::UIStringKey::Medium => &self.ui.medium,
                 keys::UIStringKey::High => &self.ui.high,
                 keys::UIStringKey::Ultra => &self.ui.ultra,
+                keys::UIStringKey::SpawnPoint => &self.ui.spawn_point
             },
             LanguageStringKey::Items(item_key) => match item_key {
                 keys::ItemStringKey::CopperPickaxe => &self.items.copper_pickaxe,
