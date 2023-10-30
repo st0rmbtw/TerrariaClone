@@ -32,6 +32,7 @@ pub(crate) enum InGameSystemSet {
 #[derive(Debug, PartialEq, Eq, Hash, Clone, SystemSet)]
 pub(crate) enum MenuSystemSet {
     PreUpdate,
+    FixedUpdate,
     Update,
     PostUpdate
 }

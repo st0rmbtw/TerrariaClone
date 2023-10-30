@@ -1,32 +1,44 @@
 use std::time::Duration;
 
-use bevy::{prelude::{Commands, Res, Plugin, App, Query, With, EventReader, ResMut, Handle, GlobalTransform, Camera, Vec2, Transform, Local, Input, MouseButton, Color, Vec4, DetectChanges, IntoSystemConfigs, Name, Update, OnEnter, Without, Entity, Deref, DerefMut, PreUpdate, on_event, Vec3, Component, Resource, Event, EventWriter}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas, SpriteBundle}, window::{Window, PrimaryWindow, WindowResized}, utils::default, ecs::query::Has, time::Time};
-use interpolation::{Lerp, EaseFunction};
+use bevy::{prelude::{Commands, Res, Plugin, App, Query, With, Handle, GlobalTransform, Camera, Vec2, Transform, Local, Input, MouseButton, Color, IntoSystemConfigs, Name, Update, OnEnter, Without, Entity, Deref, DerefMut, PreUpdate, on_event, Vec3, Component, ResMut, Bezier, CubicGenerator, Resource}, sprite::{Sprite, SpriteSheetBundle, TextureAtlasSprite, TextureAtlas, SpriteBundle}, window::{Window, PrimaryWindow, WindowResized}, utils::default, ecs::query::Has, math::cubic_splines::CubicCurve};
+use interpolation::EaseFunction;
 use rand::{thread_rng, Rng, seq::SliceRandom};
 
-use crate::{plugins::{assets::{CelestialBodyAssets, BackgroundAssets}, camera::components::BackgroundCamera, background::{BACKGROUND_RENDER_LAYER, BackgroundPlugin}, cursor::position::CursorPosition, MenuSystemSet}, animation::{Tween, Animator, RepeatStrategy, RepeatCount, lens::TransformScaleLens}, common::state::GameState, common::{rect::FRect, systems::despawn_with, math::map_range_f32, gradient::Gradient}, parallax::{LayerTextureComponent, ParallaxSet}, BACKGROUND_LAYER};
+use crate::{plugins::{assets::{CelestialBodyAssets, BackgroundAssets}, camera::components::BackgroundCamera, background::{BACKGROUND_RENDER_LAYER, BackgroundPlugin}, cursor::position::CursorPosition, MenuSystemSet, world::time::GameTime}, animation::{Tween, Animator, RepeatStrategy, RepeatCount, lens::TransformScaleLens}, common::state::GameState, common::{rect::FRect, systems::despawn_with}, parallax::{LayerTextureComponent, ParallaxSet}, BACKGROUND_LAYER};
 
-use super::DespawnOnMenuExit;
+use super::{DespawnOnMenuExit, Dragging};
 
 pub(super) struct CelestialBodyPlugin;
 impl Plugin for CelestialBodyPlugin {
     fn build(&self, app: &mut App) {
         // This plugin depends on resources and components that BackgroundPlugin creates
         if !app.get_added_plugins::<BackgroundPlugin>().is_empty() {
-            app.add_event::<TimeTypeChangedEvent>();
+            app.insert_resource(CelestialBodyCurve(
+                Bezier::new(vec![[
+                    0.5,
+                    0.9,
+                    0.9,
+                    0.5,
+                ]]).to_curve()
+            ));
 
             app.add_systems(
                 OnEnter(GameState::Menu),
                 (
-                    setup,
                     spawn_celestial_body,
                     spawn_stars
                 )
             );
 
-            app.add_systems(OnEnter(GameState::InGame), cleanup);
-
-            app.add_systems(Update, update_celestial_body_position.in_set(MenuSystemSet::Update));
+            app.add_systems(
+                Update,
+                (
+                    update_celestial_body_position,
+                    reset_celestial_body_position
+                )
+                .chain()
+                .in_set(MenuSystemSet::Update)
+            );
 
             app.add_systems(
                 Update,
@@ -51,10 +63,7 @@ impl Plugin for CelestialBodyPlugin {
             app.add_systems(
                 Update,
                 (
-                    (
-                        update_time_type,
-                        update_celestial_body_sprite,
-                    ).chain(),
+                    update_celestial_body_sprite,
                     drag_celestial_body,
                     update_sprites_color,
                     change_visibility_of_stars,
@@ -67,70 +76,32 @@ impl Plugin for CelestialBodyPlugin {
 
 const SUN_SIZE: f32 = 42.;
 const MOON_SIZE: f32 = 50.;
+const SUNRISE_THRESHOLD: f32 = 0.2;
+const SUNSET_THRESHOLD: f32 = 0.8;
+const OFFSCREEN: f32 = 150.;
 
 #[derive(Component, Clone, Copy, Default, PartialEq, Deref, DerefMut)]
-struct CelestialBodyPosition(Vec2);
+pub(super) struct CelestialBodyPosition(Vec2);
 
 #[derive(Component)]
 struct Star {
     screen_position: Vec2
 }
 
-#[derive(Default, Resource, Clone, Copy)]
-enum TimeType {
-    #[default]
-    Day,
-    Night
-}
-
-#[derive(Resource)]
-struct Gradients {
-    night: Gradient<Vec4>,
-    day: Gradient<Vec4>
-}
-
-#[derive(Component)]
-struct Dragging;
-
-#[derive(Event)]
-struct TimeTypeChangedEvent;
-
-const SUNRISE_THRESHOLD: f32 = 0.2;
-const SUNSET_THRESHOLD: f32 = 0.8;
-
-fn setup(mut commands: Commands) {
-    commands.init_resource::<TimeType>();
-    commands.insert_resource(Gradients {
-        night: {
-            let mut gradient = Gradient::<Vec4>::new();
-            gradient.add_key(0.0, Color::rgb(0.07, 0.07, 0.07).into());
-            gradient.add_key(0.8, Color::rgb(0.07, 0.07, 0.07).into());
-            gradient.add_key(1., Color::rgb_u8(0, 54, 107).into());
-            gradient
-        },
-        day: {
-            let mut gradient = Gradient::<Vec4>::new();
-            gradient.add_key(0., Color::rgb_u8(0, 54, 107).into());
-            gradient.add_key(0.2, Color::WHITE.into());
-            gradient.add_key(0.8, Color::WHITE.into());
-            gradient.add_key(1.0, Color::rgb(0.07, 0.07, 0.07).into());
-            gradient
-        }
-    });
-}
-
-fn cleanup(mut commands: Commands) {
-    commands.remove_resource::<TimeType>();
-    commands.remove_resource::<Gradients>();
-}
+#[derive(Resource, Deref)]
+struct CelestialBodyCurve(CubicCurve<f32>);
 
 fn spawn_celestial_body(
     mut commands: Commands,
-    celestial_body_assets: Res<CelestialBodyAssets>
+    game_time: Res<GameTime>,
+    celestial_body_assets: Res<CelestialBodyAssets>,
+    celestial_body_curve: Res<CelestialBodyCurve>
 ) {
+    let progress = game_time.value as f32 / game_time.duration() as f32;
+
     commands.spawn((
         Name::new("Celestial Body"),
-        CelestialBodyPosition::default(),
+        CelestialBodyPosition(Vec2::new(progress, celestial_body_curve.position(progress))),
         DespawnOnMenuExit,
         BACKGROUND_RENDER_LAYER,
         SpriteSheetBundle {
@@ -161,7 +132,7 @@ fn spawn_stars(
         background_assets.star_4.clone_weak(),
     ];
 
-    let star_count = (window.width() + window.height() / 2.) / 25.;
+    let star_count = (window.width() + window.height() / 2.) / 10.;
 
     let bundles = (0..star_count as i32)
         .map(|i| {
@@ -190,7 +161,7 @@ fn spawn_stars(
                     texture: star_image.clone_weak(),
                     transform: Transform {
                         translation: Vec3::new(0., 0., BACKGROUND_LAYER + 0.05),
-                        scale: Vec3::splat(rng.gen_range(0.5..1.0)),
+                        scale: Vec3::splat(rng.gen_range(0.25..=1.0)),
                         ..default()
                     },
                     ..default()
@@ -222,63 +193,42 @@ fn move_stars(
 }
 
 fn change_visibility_of_stars(
-    time_type: Res<TimeType>,
+    game_time: Res<GameTime>,
     mut query_stars: Query<&mut Sprite, With<Star>>,
-    query_celestial_body: Query<&CelestialBodyPosition>,
-    mut alpha: Local<f32>
 ) {
-    let celestial_body_pos = query_celestial_body.single();
-    let x = celestial_body_pos.x.clamp(0., 1.);
+    let x = game_time.value as f32 / game_time.duration() as f32;
 
-    if x <= SUNRISE_THRESHOLD {
-        let s = map_range_f32(0., SUNRISE_THRESHOLD, 0., 1., x);
+    let mut alpha = if game_time.is_day { 0. } else { 1. };
 
-        *alpha = match *time_type {
-            TimeType::Day => alpha.lerp(&0., &s),
-            TimeType::Night => alpha.lerp(&1., &s),
-        }
-    } else if x >= SUNSET_THRESHOLD { 
-        let s = map_range_f32(SUNSET_THRESHOLD, 1., 0., 1., x);
-
-        *alpha = match *time_type {
-            TimeType::Day => 0f32.lerp(&1., &s),
-            TimeType::Night => 1f32.lerp(&0., &s),
-        }
-    };
+    if game_time.is_day {
+        if x <= SUNRISE_THRESHOLD {
+            alpha = 1. - x / SUNRISE_THRESHOLD;
+        } else if x >= SUNSET_THRESHOLD { 
+            alpha = (x - SUNSET_THRESHOLD) / (1. - SUNSET_THRESHOLD);
+        };
+    }
 
     query_stars.for_each_mut(|mut sprite| {
-        sprite.color.set_a(*alpha);
+        sprite.color.set_a(alpha);
     });
 }
 
 fn move_celestial_body(
     query_windows: Query<&Window, With<PrimaryWindow>>,
     query_camera: Query<(&Camera, &Transform), With<BackgroundCamera>>,
-    mut query_celestial_body: Query<(&mut Transform, &CelestialBodyPosition), (Without<Dragging>, Without<BackgroundCamera>)>
+    mut query_celestial_body: Query<(&mut Transform, &CelestialBodyPosition), (Without<Dragging>, Without<BackgroundCamera>)>,
 ) {
     let (camera, camera_transform) = query_camera.single();
     let Ok((mut celestial_body_transform, celestial_body_pos)) = query_celestial_body.get_single_mut() else { return; };
 
     let window = query_windows.single();
-    let window_size = Vec2::new(window.width(), window.height());
+    let window_size = Vec2::new(window.width() + OFFSCREEN * 2., window.height());
     let camera_global_transform = GlobalTransform::from_translation(camera_transform.translation);
-    let position = Vec2::new(celestial_body_pos.x, (1. - celestial_body_pos.y) / 2.);
+    let position = Vec2::new(celestial_body_pos.x, 1. - celestial_body_pos.y);
 
-    if let Some(world_pos) = camera.viewport_to_world_2d(&camera_global_transform, position * window_size) {
+    if let Some(world_pos) = camera.viewport_to_world_2d(&camera_global_transform, (position * window_size) - Vec2::new(OFFSCREEN, 0.)) {
         celestial_body_transform.translation.x = world_pos.x;
         celestial_body_transform.translation.y = world_pos.y;
-    }
-}
-
-fn update_time_type(
-    mut events: EventReader<TimeTypeChangedEvent>,
-    mut time_type: ResMut<TimeType>
-) {
-    for _ in events.iter() {
-        *time_type = match *time_type {
-            TimeType::Day => TimeType::Night,
-            TimeType::Night => TimeType::Day,
-        };
     }
 }
 
@@ -286,18 +236,16 @@ fn drag_celestial_body(
     mut commands: Commands,
     query_window: Query<&Window, With<PrimaryWindow>>,
     input: Res<Input<MouseButton>>,
-    time_type: Res<TimeType>,
+    mut game_time: ResMut<GameTime>,
     cursor_position: Res<CursorPosition<BackgroundCamera>>,
     mut query_celestial_body: Query<(Entity, &mut Transform, &mut CelestialBodyPosition, Has<Dragging>)>,
 ) {
     let (entity, mut transform, mut position, is_dragging) = query_celestial_body.single_mut();
 
     let window = query_window.single();
+    let window_size = Vec2::new(window.width() + OFFSCREEN * 2., window.height());
 
-    let size = match *time_type {
-        TimeType::Day => SUN_SIZE,
-        TimeType::Night => MOON_SIZE,
-    };
+    let size = if game_time.is_day { SUN_SIZE } else { MOON_SIZE };
 
     let rect = FRect::new_center(transform.translation.x, transform.translation.y, size, size);
 
@@ -307,8 +255,10 @@ fn drag_celestial_body(
         transform.translation.x = cursor_position.world.x;
         transform.translation.y = cursor_position.world.y;
 
-        position.x = cursor_position.screen.x / window.width();
-        position.y = 1. - (cursor_position.screen.y / window.height() * 2.);
+        position.x = (cursor_position.screen.x + OFFSCREEN) / (window_size.x);
+        position.y = 1. - (cursor_position.screen.y / window_size.y);
+
+        game_time.value = (position.x * game_time.duration() as f32).round() as u32;
 
         commands.entity(entity).insert(Dragging);
     } else {
@@ -317,70 +267,75 @@ fn drag_celestial_body(
 }
 
 fn update_celestial_body_sprite(
-    time_type: Res<TimeType>,
+    game_time: Res<GameTime>,
     celestial_body_assets: Res<CelestialBodyAssets>,
     mut query: Query<(&mut Handle<TextureAtlas>, &mut TextureAtlasSprite), With<CelestialBodyPosition>>,
     mut moon_index: Local<usize>,
+    mut prev_is_day: Local<bool>
 ) {
-    if time_type.is_changed() {
+    if game_time.is_day != *prev_is_day {
         let (mut texture, mut atlas_sprite) = query.single_mut();
-        match *time_type {
-            TimeType::Day => {
-                *texture = celestial_body_assets.sun.clone_weak();
-                atlas_sprite.index = 0;
-            },
-            TimeType::Night => {
-                let mut rng = thread_rng();
-                let moons = celestial_body_assets.moons();
+        if game_time.is_day {
+            *texture = celestial_body_assets.sun.clone_weak();
+            atlas_sprite.index = 0;
+        } else {
+            let mut rng = thread_rng();
+            let moons = celestial_body_assets.moons();
 
-                *moon_index = (*moon_index + 1) % (moons.len() - 1);
-                atlas_sprite.index = rng.gen_range(0..8);
-                *texture = moons[*moon_index].clone_weak();
-            },
+            *moon_index = (*moon_index + 1) % (moons.len() - 1);
+            atlas_sprite.index = rng.gen_range(0..8);
+            *texture = moons[*moon_index].clone_weak();
         }
     }
+
+    *prev_is_day = game_time.is_day;
 }
 
 fn update_sprites_color(
-    time_type: Res<TimeType>,
+    game_time: Res<GameTime>,
     mut query_sprite: Query<&mut Sprite, With<LayerTextureComponent>>,
-    query_celestial_body: Query<&CelestialBodyPosition>,
-    gradients: Res<Gradients>
-) {
-    let position = query_celestial_body.single();
-    let x = position.x.clamp(0., 1.);
+) { 
+    let ambient_color = Color::from(game_time.get_ambient_color().extend(1.));
 
-    let gradient = match *time_type {
-        TimeType::Day => &gradients.day,
-        TimeType::Night => &gradients.night,
-    };
-    
     for mut sprite in &mut query_sprite {
-        sprite.color = gradient.sample(x).into();
+        sprite.color = ambient_color;
     }
 }
 
-fn update_celestial_body_position(
-    time: Res<Time>,
+fn reset_celestial_body_position(
+    game_time: Res<GameTime>,
     mut query_celestial_body: Query<&mut CelestialBodyPosition>,
-    mut time_type_changed: EventWriter<TimeTypeChangedEvent>
+    mut prev_is_day: Local<Option<bool>>
+) {
+    if let None = *prev_is_day {
+        *prev_is_day = Some(game_time.is_day);
+    }
+
+    if game_time.is_day != prev_is_day.unwrap() {
+        if let Ok(mut position) = query_celestial_body.get_single_mut() {
+            position.x = 0.;
+            position.y = 0.5;
+        }
+    }
+
+    *prev_is_day = Some(game_time.is_day);
+}
+
+fn update_celestial_body_position(
+    game_time: Res<GameTime>,
+    mut query_celestial_body: Query<&mut CelestialBodyPosition, Without<Dragging>>,
+    curve: Res<CelestialBodyCurve>
 ) {
     if let Ok(mut position) = query_celestial_body.get_single_mut() {
-        let delta_x = time.delta_seconds() / 30.;
-        let delta_y = time.delta_seconds() / 15.;
+        let progress = game_time.value as f32 / game_time.duration() as f32;
 
-        position.x += delta_x;
+        position.x = progress;
 
-        if position.x >= 1.1 {
-            position.x = -0.1;
-            position.y = 0.;
-            time_type_changed.send(TimeTypeChangedEvent);
-        }
-
-        if position.x >= 0.7 || position.y >= 0.7 {
-            position.y -= delta_y;
+        let new_y = curve.position(progress);
+        if (new_y - position.y).abs() > 0.005 {
+            position.y += (new_y - position.y) * (GameTime::RATE_MENU as f32 / game_time.duration() as f32);
         } else {
-            position.y += delta_y;
+            position.y = new_y;
         }
     }
 }

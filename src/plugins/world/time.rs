@@ -7,6 +7,7 @@ use crate::plugins::InGameSystemSet;
 pub(super) struct WorldTimePlugin;
 impl Plugin for WorldTimePlugin {
     fn build(&self, app: &mut App) {
+        app.insert_resource(GameTime::default());
         app.add_systems(
             FixedUpdate,
             update_time
@@ -19,14 +20,17 @@ impl Plugin for WorldTimePlugin {
 #[derive(Clone, Copy, Resource)]
 pub(crate) struct GameTime {
     pub(crate) value: u32,
-    is_day: bool,
+    pub(crate) is_day: bool,
     pub(crate) paused: bool,
 }
 
 impl GameTime {
+    pub(crate) const RATE_INGAME: u32 = 1;
+    pub(crate) const RATE_MENU: u32 = 30;
+
     pub(crate) const MAX_TIME: u32 = 24 * 60 * 60;
-    const DAY_DURATION: u32 = 15 * 60 * 60;
-    const NIGHT_DURATION: u32 = Self::MAX_TIME - Self::DAY_DURATION;
+    pub(crate) const DAY_DURATION: u32 = 15 * 60 * 60;
+    pub(crate) const NIGHT_DURATION: u32 = Self::MAX_TIME - Self::DAY_DURATION;
     const MIDNIGHT: u32 = Self::NIGHT_DURATION / 2;
     const NIGHT_START: u32 = (19 * 60 * 60) + 30 * 60;
     const DAY_START: u32 = (4 * 60 * 60) + 30 * 60;
@@ -48,8 +52,8 @@ impl GameTime {
         }
     }
 
-    fn tick(&mut self) {
-        self.value += 50;
+    pub(crate) fn tick(&mut self, value: u32) {
+        self.value += value;
         if self.is_day {
             if self.value >= Self::DAY_DURATION {
                 self.value = 0;
@@ -89,6 +93,11 @@ impl GameTime {
 
         color / 255.
     }
+
+    #[inline(always)]
+    pub(crate) const fn duration(&self) -> u32 {
+        if self.is_day { Self::DAY_DURATION } else { Self::NIGHT_DURATION }
+    }
 }
 
 impl Default for GameTime {
@@ -122,8 +131,9 @@ impl Display for GameTime {
     }
 }
 
-fn update_time(mut game_time: ResMut<GameTime>) {
-    if !game_time.paused {
-        game_time.tick();
-    }
+fn update_time(
+    mut game_time: ResMut<GameTime>
+) {
+    if game_time.paused { return; }
+    game_time.tick(GameTime::RATE_INGAME);
 }
