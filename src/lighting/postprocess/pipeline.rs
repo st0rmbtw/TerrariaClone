@@ -1,4 +1,4 @@
-use bevy::{render::{render_resource::{BindGroupLayout, CachedRenderPipelineId, PipelineCache, RenderPipelineDescriptor, PrimitiveState, MultisampleState, FragmentState, ColorTargetState, ColorWrites, BindGroupLayoutDescriptor, BindGroupLayoutEntry, ShaderStages, BindingType, BufferBindingType, ShaderType, TextureSampleType, TextureViewDimension, SamplerBindingType, BindGroupDescriptor, BindGroupEntry, BindingResource, BindGroup, ShaderDefVal}, render_asset::RenderAssets, renderer::RenderDevice, texture::BevyDefault}, prelude::{Commands, Image, Res, Resource, FromWorld, World, AssetServer}, core_pipeline::fullscreen_vertex_shader::fullscreen_shader_vertex_state};
+use bevy::{render::{render_resource::{BindGroupLayout, CachedRenderPipelineId, PipelineCache, RenderPipelineDescriptor, PrimitiveState, MultisampleState, FragmentState, ColorTargetState, ColorWrites, BindGroupLayoutDescriptor, BindGroupLayoutEntry, ShaderStages, BindingType, BufferBindingType, ShaderType, TextureSampleType, TextureViewDimension, SamplerBindingType, BindGroupDescriptor, BindGroupEntry, BindingResource, BindGroup, ShaderDefVal}, render_asset::RenderAssets, renderer::RenderDevice, texture::BevyDefault}, prelude::{Commands, Image, Res, Resource, FromWorld, World, AssetServer, Vec3}, core_pipeline::fullscreen_vertex_shader::fullscreen_shader_vertex_state};
 
 use crate::{lighting::{BackgroundTexture, InGameBackgroundTexture, WorldTexture, LightMapTexture, gpu_types::GpuCameraParams}, plugins::world::WorldSize};
 
@@ -26,7 +26,13 @@ pub(crate) fn queue_postprocess_bind_groups(
     world_texture: Res<WorldTexture>,
     lightmap_texture: Res<LightMapTexture>,
 ) {
-    if let Some(camera_params) = pipeline_assets.camera_params.binding() {
+    if let (
+        Some(camera_params),
+        Some(background_color),
+    ) = (
+        pipeline_assets.camera_params.binding(),
+        pipeline_assets.background_color.binding()
+     ) {
         let background_image = &gpu_images[&background_texture.0];
         let ingame_background_image = &gpu_images[&ingame_background_texture.0];
         let world_image = &gpu_images[&world_texture.0];
@@ -75,6 +81,11 @@ pub(crate) fn queue_postprocess_bind_groups(
                 BindGroupEntry {
                     binding: 10,
                     resource: camera_params
+                },
+
+                BindGroupEntry {
+                    binding: 11,
+                    resource: background_color
                 },
             ],
         });
@@ -166,6 +177,17 @@ impl FromWorld for PostProcessPipeline {
                             ty: BufferBindingType::Uniform,
                             has_dynamic_offset: false,
                             min_binding_size: Some(GpuCameraParams::min_size())
+                        },
+                        count: None,
+                    },
+
+                    BindGroupLayoutEntry {
+                        binding: 11,
+                        visibility: ShaderStages::FRAGMENT,
+                        ty: BindingType::Buffer {
+                            ty: BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: Some(Vec3::min_size())
                         },
                         count: None,
                     },

@@ -1,7 +1,7 @@
-use bevy::{prelude::{ResMut, Res, Query, AppTypeRegistry, With, Vec3}, time::Time, reflect::{ReflectMut, Reflect}, window::{PrimaryWindow, Window}};
-use bevy_inspector_egui::{bevy_egui::EguiContexts, egui::{self, Align2, ScrollArea, CollapsingHeader, DragValue, Checkbox, Grid, Vec2, Layout, Align}, reflect_inspector};
+use bevy::{prelude::{ResMut, Res, Query, AppTypeRegistry, With, Vec3, Local}, time::Time, reflect::{ReflectMut, Reflect}, window::{PrimaryWindow, Window}};
+use bevy_inspector_egui::{bevy_egui::EguiContexts, egui::{self, Align2, ScrollArea, CollapsingHeader, DragValue, Checkbox, Grid, Vec2, Layout, Align, Button, Slider}, reflect_inspector};
 
-use crate::world::{chunk::ChunkContainer, block::BlockType};
+use crate::{world::{chunk::ChunkContainer, block::BlockType}, plugins::world::time::GameTime};
 
 use super::resources::{DebugConfiguration, HoverBlockData, MouseParticleSettings, MouseLightSettings};
 
@@ -9,8 +9,10 @@ pub(super) fn debug_gui(
     mut contexts: EguiContexts, 
     mut debug_config: ResMut<DebugConfiguration>,
     mut time: ResMut<Time>,
+    mut game_time: ResMut<GameTime>,
     type_registry: Res<AppTypeRegistry>,
-    query_chunk: Query<&ChunkContainer>
+    query_chunk: Query<&ChunkContainer>,
+    mut game_time_value: Local<u32>
 ) {
     let chunk_count = query_chunk.iter().count();
 
@@ -31,7 +33,7 @@ pub(super) fn debug_gui(
             ui.checkbox(&mut debug_config.instant_break, "Break tiles instantly");
 
             if let ReflectMut::Struct(str) = time.reflect_mut() {
-                ui.heading("Game Time");
+                ui.heading("App Time");
                 ui.separator();
                 ui.columns(2, |columns| {
                     columns[0].label("Pause:");
@@ -43,6 +45,36 @@ pub(super) fn debug_gui(
                         .clamp_range(0.001..=1.0));
                 });
             }
+
+            ui.heading("Game Time");
+            ui.separator();
+
+            Grid::new("GameTime")
+                .num_columns(2)
+                .show(ui, |grid| {
+                    grid.allocate_ui_with_layout(
+                        grid.max_rect().size() * Vec2::new(0.5, 1.),
+                        Layout::top_down_justified(Align::Min),
+                        |ui| ui.label("Pause: ")
+                    );
+
+                    grid.add(Checkbox::without_text(&mut game_time.paused));
+                    grid.end_row();
+
+                    grid.label("Value: ");
+                    reflect_inspector::ui_for_value_readonly(&game_time.value, grid, &type_registry.0.read());
+                    grid.label(format!("{}", *game_time));
+                    grid.end_row();
+
+                    if grid.add(Button::new("Set")).clicked() {
+                        *game_time = GameTime::from_time(*game_time_value, game_time.paused);
+                    }
+                    grid.add(
+                        Slider::new(&mut *game_time_value, 0..=GameTime::MAX_TIME - 1)
+                            .clamp_to_range(true)
+                    );
+                    grid.end_row();
+                });
 
             ui.heading("Player Speed");
             ui.separator();

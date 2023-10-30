@@ -23,6 +23,9 @@ var lightmap_texture_sampler: sampler;
 @group(0) @binding(10)
 var<uniform> camera_params: CameraParams;
 
+@group(0) @binding(11)
+var<uniform> background_color: vec3<f32>;
+
 struct CameraParams {
     screen_size: vec2<f32>,
     screen_size_inv: vec2<f32>,
@@ -51,6 +54,8 @@ fn layer(foreground: vec4<f32>, background: vec4<f32>) -> vec4<f32> {
     return foreground * foreground.a + background * (1.0 - foreground.a);
 }
 
+const BRIGHTNESS: f32 = 1.0;
+
 @fragment
 fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
     let world_pos = screen_to_world(
@@ -62,10 +67,13 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
 
     let light_uv = abs(world_pos) / (vec2(f32(#WORLD_WIDTH), f32(#WORLD_HEIGHT)) * 16.);
 
-    let light = textureSampleLevel(lightmap_texture, lightmap_texture_sampler, light_uv, 0.0);
+    var light = textureSampleLevel(lightmap_texture, lightmap_texture_sampler, light_uv, 0.0);
+    light.r *= BRIGHTNESS;
+    light.g *= BRIGHTNESS;
+    light.b *= BRIGHTNESS;
 
     var world_sample: vec4<f32> = textureSampleLevel(world_texture, world_texture_sampler, in.uv, 0.0) * light;
-    let background_sample: vec4<f32> = textureSampleLevel(background_texture, background_texture_sampler, in.uv, 0.0);
+    let background_sample: vec4<f32> = textureSampleLevel(background_texture, background_texture_sampler, in.uv, 0.0) * vec4(background_color, 1.);
     let ingame_background_sample: vec4<f32> = textureSampleLevel(ingame_background_texture, ingame_background_texture_sampler, in.uv, 0.0) * light;
 
     let color = layer(world_sample, layer(ingame_background_sample, background_sample));

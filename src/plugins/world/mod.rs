@@ -1,12 +1,15 @@
 pub(crate) mod events;
 pub(crate) mod resources;
 pub(crate) mod constants;
-mod systems;
+pub(crate) mod time;
 mod utils;
+mod systems;
 
 use crate::{common::state::GameState, world::{block::BlockType, wall::WallType}};
 use bevy::{prelude::{Plugin, App, OnEnter, IntoSystemConfigs, Update, Rect, OnExit, Resource, UVec2, Deref}, math::URect, render::view::RenderLayers};
 use bevy_ecs_tilemap::TilemapPlugin;
+
+use self::time::WorldTimePlugin;
 
 use super::{InGameSystemSet, particles::ParticlePlugin, item::ItemPlugin};
 
@@ -27,7 +30,7 @@ pub(crate) enum TileType {
 pub(crate) struct WorldPlugin;
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((TilemapPlugin, ParticlePlugin, ItemPlugin));
+        app.add_plugins((TilemapPlugin, ParticlePlugin, ItemPlugin, WorldTimePlugin));
 
         app.add_event::<events::BreakTileEvent>();
 

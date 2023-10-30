@@ -1,15 +1,17 @@
-use bevy::{prelude::{ResMut, Res, Query, Camera, With, GlobalTransform, Resource}, render::{renderer::{RenderDevice, RenderQueue}, render_resource::UniformBuffer, Extract}};
+use bevy::{prelude::{ResMut, Res, Query, Camera, With, GlobalTransform, Resource, Vec3}, render::{renderer::{RenderDevice, RenderQueue}, render_resource::UniformBuffer, Extract}};
 
-use crate::{lighting::gpu_types::GpuCameraParams, plugins::camera::components::WorldCamera};
+use crate::{lighting::gpu_types::GpuCameraParams, plugins::{camera::components::WorldCamera, world::time::GameTime}};
 
 #[derive(Resource, Default)]
 pub(crate) struct PostProcessPipelineAssets {
     pub(crate) camera_params: UniformBuffer<GpuCameraParams>,
+    pub(crate) background_color: UniformBuffer<Vec3>,
 }
 
 impl PostProcessPipelineAssets {
     pub(crate) fn write_buffer(&mut self, device: &RenderDevice, queue: &RenderQueue) {
         self.camera_params.write_buffer(device, queue);
+        self.background_color.write_buffer(device, queue);
     }
 }
 
@@ -33,5 +35,14 @@ pub(crate) fn extract_postprocess_pipeline_assets(
         camera_params.inverse_view_proj = view * inverse_projection;
         camera_params.screen_size = camera.logical_viewport_size().unwrap();
         camera_params.screen_size_inv = 1. / camera_params.screen_size;
+    }
+}
+
+pub(crate) fn extract_background_color(
+    res_game_time: Extract<Option<Res<GameTime>>>,
+    mut pipeline_assets: ResMut<PostProcessPipelineAssets>,
+) {
+    if let Some(game_time) = res_game_time.as_ref() {
+        pipeline_assets.background_color.set(game_time.get_ambient_color());
     }
 }
