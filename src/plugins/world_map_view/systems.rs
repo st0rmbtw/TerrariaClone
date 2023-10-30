@@ -207,7 +207,7 @@ pub(super) fn update_spawn_icon_position(
     query_map_view: Query<(&Transform, &Bounds), With<WorldMapView>>,
 ) {
     let (map_transform, bounds) = query_map_view.single();
-    let (mut spawn_icon_transform, spaw_icon_size) = query_spawn_point_icon.single_mut();
+    let (mut spawn_icon_transform, spawn_icon_size) = query_spawn_point_icon.single_mut();
 
     let map_default_size = bounds.as_vec2();
     let map_position = map_transform.translation;
@@ -217,7 +217,7 @@ pub(super) fn update_spawn_icon_position(
     let spawn_point = (Vec2::from(world_data.spawn_point) - world_data.playable_area.min.as_vec2()) / world_data.playable_area.size().as_vec2();
 
     spawn_icon_transform.translation.x = map_position.x - map_size.x / 2. + spawn_point.x * map_size.x;
-    spawn_icon_transform.translation.y = map_position.y + map_size.y / 2. - spawn_point.y * map_size.y + spaw_icon_size.height / 2.;
+    spawn_icon_transform.translation.y = map_position.y + map_size.y / 2. - spawn_point.y * map_size.y + spawn_icon_size.height / 2.;
 }
 
 pub(super) fn update_player_icon_position(

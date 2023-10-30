@@ -35,7 +35,7 @@ impl BlockType {
         !matches!(self, BlockType::Tree(_))
     }
 
-    pub(crate) const fn dirt_mergable(&self) -> bool {
+    pub(crate) const fn dirt_mergeable(&self) -> bool {
         match self {
             BlockType::Dirt | BlockType::Grass | BlockType::Tree(_) => false,
             BlockType::Stone => true,
@@ -164,7 +164,7 @@ impl Block {
 
         let mut index = get_sprite_index_by_neighbors(neighbors, block.variant);
 
-        if block.dirt_mergable() {
+        if block.dirt_mergeable() {
             if let Some(idx) = get_sprite_index_by_dirt_connections(neighbors, block.variant) {
                 index = idx;
             }
