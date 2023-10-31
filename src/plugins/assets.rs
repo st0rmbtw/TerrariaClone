@@ -92,7 +92,7 @@ impl Plugin for AssetsPlugin {
         app.add_collection_to_loading_state::<_, ItemAssets>(GameState::AssetLoading);
         app.add_collection_to_loading_state::<_, CursorAssets>(GameState::AssetLoading);
         app.add_collection_to_loading_state::<_, BackgroundAssets>(GameState::AssetLoading);
-        app.add_collection_to_loading_state::<_, CelestialBodyAssets>(GameState::AssetLoading);
+        app.add_collection_to_loading_state::<_, SunAndMoonAssets>(GameState::AssetLoading);
         app.add_collection_to_loading_state::<_, ParticleAssets>(GameState::AssetLoading);
         app.add_collection_to_loading_state::<_, InventoryItemAssets>(GameState::AssetLoading);
         
@@ -407,7 +407,7 @@ handles! {
 }
 
 #[derive(Resource, AssetCollection)]
-pub(crate) struct CelestialBodyAssets {
+pub(crate) struct SunAndMoonAssets {
     #[asset(texture_atlas(tile_size_x = 114., tile_size_y = 114., columns = 1, rows = 1))]
     #[asset(path = "sprites/backgrounds/Sun.png")]
     pub(crate) sun: Handle<TextureAtlas>,
@@ -449,7 +449,7 @@ pub(crate) struct CelestialBodyAssets {
     pub(crate) moon_8: Handle<TextureAtlas>,
 }
 
-impl CelestialBodyAssets {
+impl SunAndMoonAssets {
     pub(crate) const fn moons(&self) -> [&Handle<TextureAtlas>; 9] {
         [&self.moon_0, &self.moon_1, &self.moon_2, &self.moon_3, &self.moon_4, &self.moon_5, &self.moon_6, &self.moon_7, &self.moon_8]
     }

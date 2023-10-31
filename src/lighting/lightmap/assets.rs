@@ -1,4 +1,4 @@
-use bevy::{prelude::{Image, Res, ResMut, Assets, GlobalTransform, OrthographicProjection, With, Query, Deref, UVec2, EventReader, Commands, Transform, Resource, ComputedVisibility, Vec3}, render::{render_resource::{Extent3d, TextureDimension, TextureUsages, UniformBuffer, StorageBuffer, FilterMode, SamplerDescriptor}, renderer::{RenderQueue, RenderDevice}, Extract, extract_resource::ExtractResource, texture::ImageSampler}, utils::default, math::{URect, Vec3Swizzles}};
+use bevy::{prelude::{Image, Res, ResMut, Assets, GlobalTransform, OrthographicProjection, With, Query, Deref, UVec2, EventReader, Commands, Transform, Resource, ComputedVisibility, Color}, render::{render_resource::{Extent3d, TextureDimension, TextureUsages, UniformBuffer, StorageBuffer, FilterMode, SamplerDescriptor}, renderer::{RenderQueue, RenderDevice}, Extract, extract_resource::ExtractResource, texture::ImageSampler}, utils::default, math::{URect, Vec3Swizzles}};
 use rand::{thread_rng, Rng};
 
 use crate::{world::WorldData, plugins::{camera::components::WorldCamera, world::{constants::TILE_SIZE, WorldSize, events::{PlaceTileEvent, BreakTileEvent}, TileType, time::GameTime}, config::LightSmoothness}, lighting::{LightMapTexture, LIGHTMAP_FORMAT, gpu_types::{GpuLightSourceBuffer, GpuLightSource}, TILES_FORMAT, TileTexture, types::LightSource}};
@@ -13,7 +13,7 @@ pub(crate) struct LightSourceCount(pub(super) u32);
 pub(crate) struct LightMapPipelineAssets {
     pub(crate) area_min: UniformBuffer<UVec2>,
     pub(crate) area_max: UniformBuffer<UVec2>,
-    pub(crate) ambient_color: UniformBuffer<Vec3>,
+    pub(crate) ambient_color: UniformBuffer<Color>,
     pub(crate) light_sources: StorageBuffer<GpuLightSourceBuffer>,
 }
 
@@ -185,7 +185,7 @@ pub(crate) fn extract_ambient_color(
     mut pipeline_assets: ResMut<LightMapPipelineAssets>,
 ) {
     if let Some(game_time) = res_game_time.as_ref() {
-        pipeline_assets.ambient_color.set(game_time.get_ambient_color());
+        pipeline_assets.ambient_color.set(game_time.ambient_color().as_rgba_linear());
     }
 }
 

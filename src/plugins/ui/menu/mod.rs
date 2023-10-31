@@ -1,5 +1,4 @@
 mod settings;
-mod celestial_body;
 mod components;
 pub(super) mod builders;
 mod events;
@@ -14,9 +13,9 @@ use crate::{
     common::{state::{GameState, MenuState, SettingsMenuState}, conditions::on_click, systems::{send_event, despawn_with, set_state, animate_button_scale, animate_button_color}, lens::TransformLens},
     parallax::{parallax_animation_system, ParallaxSet},
     animation::{Animator, RepeatCount, Tween, RepeatStrategy}, 
-    plugins::{assets::{FontAssets, UiAssets}, camera::components::MainCamera, audio::{SoundType, AudioCommandsExt}, MenuSystemSet, world::time::GameTime}, language::keys::UIStringKey
+    plugins::{assets::{FontAssets, UiAssets}, camera::components::MainCamera, audio::{SoundType, AudioCommandsExt}, MenuSystemSet, world::time::GameTime, background::sun_and_moon::SunAndMoon}, language::keys::UIStringKey
 };
-use self::{settings::SettingsMenuPlugin, celestial_body::{CelestialBodyPlugin, CelestialBodyPosition}, builders::{menu, menu_button}, events::{Back, EnterMenu}};
+use self::{settings::SettingsMenuPlugin, builders::{menu, menu_button}, events::{Back, EnterMenu}};
 
 use super::{FpsText, systems::play_sound_on_hover};
 
@@ -41,7 +40,7 @@ impl Plugin for MenuPlugin {
         app.add_event::<Back>();
         app.add_event::<EnterMenu>();
 
-        app.add_plugins((CelestialBodyPlugin, SettingsMenuPlugin));
+        app.add_plugins(SettingsMenuPlugin);
 
         app.add_systems(
             OnEnter(GameState::Menu),
@@ -111,12 +110,12 @@ impl Plugin for MenuPlugin {
 
 fn update_game_time(
     mut game_time: ResMut<GameTime>,
-    query_celestial_body: Query<Has<Dragging>, With<CelestialBodyPosition>>
+    query_celestial_body: Query<Has<Dragging>, With<SunAndMoon>>
 ) {
     if game_time.paused { return; }
     if query_celestial_body.get_single().is_ok_and(|dragging| dragging) { return; }
 
-    game_time.tick(GameTime::RATE_MENU);
+    game_time.tick();
 }
 
 fn setup_camera(mut commands: Commands) {

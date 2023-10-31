@@ -8,7 +8,7 @@ var light_texture: texture_storage_2d<rgba8unorm, write>;
 var<uniform> min: vec2<u32>;
 
 @group(0) @binding(3)
-var<uniform> sky_color: vec3<f32>;
+var<uniform> sky_color: vec4<f32>;
 
 @compute @workgroup_size(16, 16, 1)
 fn scan(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
@@ -20,7 +20,7 @@ fn scan(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
         let tile = textureLoad(tiles_texture, pos / u32(#SUBDIVISION)).r;
 
         if tile == 0u {
-            light = sky_color;
+            light = sky_color.rgb;
         }
     }
     

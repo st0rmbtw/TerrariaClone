@@ -5,11 +5,11 @@ pub(crate) mod time;
 mod utils;
 mod systems;
 
-use crate::{common::state::GameState, world::{block::BlockType, wall::WallType}};
+use crate::{common::{state::GameState, systems::set_resource}, world::{block::BlockType, wall::WallType}};
 use bevy::{prelude::{Plugin, App, OnEnter, IntoSystemConfigs, Update, Rect, OnExit, Resource, UVec2, Deref}, math::URect, render::view::RenderLayers};
 use bevy_ecs_tilemap::TilemapPlugin;
 
-use self::time::WorldTimePlugin;
+use self::time::{WorldTimePlugin, GameTime};
 
 use super::{InGameSystemSet, particles::ParticlePlugin, item::ItemPlugin};
 
@@ -51,6 +51,11 @@ impl Plugin for WorldPlugin {
 
         app.add_systems(OnEnter(GameState::WorldLoading), (systems::setup, systems::spawn_terrain));
         app.add_systems(OnExit(GameState::InGame), systems::cleanup);
+
+        app.add_systems(
+            OnEnter(GameState::InGame),
+            set_resource(GameTime::new(13500, GameTime::RATE_INGAME, false, true))
+        );
 
         app.add_systems(
             Update,

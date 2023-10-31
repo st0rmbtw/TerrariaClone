@@ -154,19 +154,14 @@ pub(crate) fn parallax_animation_system(
     speed: f32,    
 ) -> impl FnMut(
     Res<Time>,
-    Query<&mut Transform, With<ParallaxCameraComponent>>,
-    Query<(&mut Transform, &LayerComponent), Without<ParallaxCameraComponent>>
+    Query<(&mut Transform, &LayerComponent)>
 ) {
     move |
         time: Res<Time>,
-        mut query_camera: Query<&mut Transform, With<ParallaxCameraComponent>>,
-        mut query_layer: Query<(&mut Transform, &LayerComponent), Without<ParallaxCameraComponent>>
+        mut query_layer: Query<(&mut Transform, &LayerComponent)>
     | {
-        if let Some(mut camera_transform) = query_camera.iter_mut().next() {
-            camera_transform.translation.x += speed * time.delta_seconds();
-            for (mut layer_transform, layer) in query_layer.iter_mut() {
-                layer_transform.translation.x += speed * layer.speed.x * time.delta_seconds();
-            }
+        for (mut layer_transform, layer) in query_layer.iter_mut() {
+            layer_transform.translation.x -= speed * (1. - layer.speed.x) * time.delta_seconds();
         }
     }
 }

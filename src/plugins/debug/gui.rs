@@ -1,5 +1,5 @@
 use bevy::{prelude::{ResMut, Res, Query, AppTypeRegistry, With, Vec3, Local}, time::Time, reflect::{ReflectMut, Reflect}, window::{PrimaryWindow, Window}};
-use bevy_inspector_egui::{bevy_egui::EguiContexts, egui::{self, Align2, ScrollArea, CollapsingHeader, DragValue, Checkbox, Grid, Vec2, Layout, Align, Button, Slider}, reflect_inspector};
+use bevy_inspector_egui::{bevy_egui::EguiContexts, egui::{self, Align2, ScrollArea, CollapsingHeader, DragValue, Checkbox, Grid, Vec2, Layout, Align, Slider}, reflect_inspector};
 
 use crate::{world::{chunk::ChunkContainer, block::BlockType}, plugins::world::time::GameTime};
 
@@ -66,13 +66,15 @@ pub(super) fn debug_gui(
                     grid.label(format!("{}", *game_time));
                     grid.end_row();
 
-                    if grid.add(Button::new("Set")).clicked() {
-                        *game_time = GameTime::from_time(*game_time_value, game_time.paused);
-                    }
-                    grid.add(
-                        Slider::new(&mut *game_time_value, 0..=GameTime::MAX_TIME - 1)
-                            .clamp_to_range(true)
+                    grid.label("Set");
+
+                    let slider = grid.add(
+                        Slider::new(&mut *game_time_value, 0..=GameTime::MAX_TIME - 1).clamp_to_range(true)
                     );
+
+                    if slider.changed() {
+                        *game_time = GameTime::from_time(*game_time_value, game_time.rate(), game_time.paused);
+                    }
                     grid.end_row();
                 });
 

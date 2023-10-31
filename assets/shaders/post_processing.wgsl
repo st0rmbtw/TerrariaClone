@@ -23,9 +23,6 @@ var lightmap_texture_sampler: sampler;
 @group(0) @binding(10)
 var<uniform> camera_params: CameraParams;
 
-@group(0) @binding(11)
-var<uniform> background_color: vec3<f32>;
-
 struct CameraParams {
     screen_size: vec2<f32>,
     screen_size_inv: vec2<f32>,
@@ -73,7 +70,7 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
     light.b *= BRIGHTNESS;
 
     var world_sample: vec4<f32> = textureSampleLevel(world_texture, world_texture_sampler, in.uv, 0.0) * light;
-    let background_sample: vec4<f32> = textureSampleLevel(background_texture, background_texture_sampler, in.uv, 0.0) * vec4(background_color, 1.);
+    let background_sample: vec4<f32> = textureSampleLevel(background_texture, background_texture_sampler, in.uv, 0.0);
     let ingame_background_sample: vec4<f32> = textureSampleLevel(ingame_background_texture, ingame_background_texture_sampler, in.uv, 0.0) * light;
 
     let color = layer(world_sample, layer(ingame_background_sample, background_sample));

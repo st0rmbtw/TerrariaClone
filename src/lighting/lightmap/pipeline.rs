@@ -1,4 +1,4 @@
-use bevy::{prelude::{Image, Commands, Res, World, FromWorld, AssetServer, Resource, UVec2, Vec3}, render::{render_resource::{BindGroup, BindGroupLayout, CachedComputePipelineId, BindGroupDescriptor, BindGroupEntry, BindingResource, BindGroupLayoutDescriptor, BindGroupLayoutEntry, ShaderStages, BindingType, StorageTextureAccess, TextureViewDimension, PipelineCache, ComputePipelineDescriptor, BufferBindingType, ShaderType, ShaderDefVal}, renderer::RenderDevice, render_asset::RenderAssets}};
+use bevy::{prelude::{Image, Commands, Res, World, FromWorld, AssetServer, Resource, UVec2, Color}, render::{render_resource::{BindGroup, BindGroupLayout, CachedComputePipelineId, BindGroupDescriptor, BindGroupEntry, BindingResource, BindGroupLayoutDescriptor, BindGroupLayoutEntry, ShaderStages, BindingType, StorageTextureAccess, TextureViewDimension, PipelineCache, ComputePipelineDescriptor, BufferBindingType, ShaderType, ShaderDefVal}, renderer::RenderDevice, render_asset::RenderAssets}};
 
 use crate::{plugins::{config::LightSmoothness, world::resources::WorldUndergroundLevel}, lighting::{LightMapTexture, TileTexture, LIGHTMAP_FORMAT, TILES_FORMAT, gpu_types::GpuLightSourceBuffer}};
 
@@ -248,7 +248,7 @@ impl FromWorld for LightMapPipeline {
                         ty: BindingType::Buffer {
                             ty: BufferBindingType::Uniform,
                             has_dynamic_offset: false,
-                            min_binding_size: Some(Vec3::min_size())
+                            min_binding_size: Some(Color::min_size())
                         },
                         count: None,
                     },
