@@ -1,5 +1,4 @@
 mod settings;
-mod celestial_body;
 mod components;
 pub(super) mod builders;
 mod events;
@@ -9,14 +8,14 @@ use std::time::Duration;
 use components::*;
 use interpolation::EaseFunction;
 
-use bevy::{prelude::{Plugin, App, IntoSystemConfigs, OnEnter, OnExit, Color, Update, KeyCode, PostUpdate, Res, Query, Entity, With, Commands, Name, NodeBundle, BuildChildren, ImageBundle, default, Visibility, TextBundle, Transform, Quat, Vec3, Camera2dBundle, Camera2d, State, ResMut, NextState, EventReader, Component}, input::common_conditions::input_just_pressed, app::AppExit, text::{TextStyle, Text, TextSection}, ui::{Style, PositionType, AlignSelf, Val, UiRect, FlexDirection, UiImage}, core_pipeline::clear_color::ClearColorConfig};
+use bevy::{prelude::{Plugin, App, IntoSystemConfigs, OnEnter, OnExit, Color, Update, KeyCode, PostUpdate, Res, Query, Entity, With, Commands, Name, NodeBundle, BuildChildren, ImageBundle, default, Visibility, TextBundle, Transform, Quat, Vec3, Camera2dBundle, Camera2d, State, ResMut, NextState, EventReader, Component, FixedUpdate}, input::common_conditions::input_just_pressed, app::AppExit, text::{TextStyle, Text, TextSection}, ui::{Style, PositionType, AlignSelf, Val, UiRect, FlexDirection, UiImage}, core_pipeline::clear_color::ClearColorConfig, time::common_conditions::on_fixed_timer, ecs::query::Has};
 use crate::{
     common::{state::{GameState, MenuState, SettingsMenuState}, conditions::on_click, systems::{send_event, despawn_with, set_state, animate_button_scale, animate_button_color}, lens::TransformLens},
     parallax::{parallax_animation_system, ParallaxSet},
     animation::{Animator, RepeatCount, Tween, RepeatStrategy}, 
-    plugins::{assets::{FontAssets, UiAssets}, camera::components::MainCamera, audio::{SoundType, AudioCommandsExt}, MenuSystemSet}, language::keys::UIStringKey
+    plugins::{assets::{FontAssets, UiAssets}, camera::components::MainCamera, audio::{SoundType, AudioCommandsExt}, MenuSystemSet, world::time::GameTime, background::sun_and_moon::SunAndMoon}, language::keys::UIStringKey
 };
-use self::{settings::SettingsMenuPlugin, celestial_body::CelestialBodyPlugin, builders::{menu, menu_button}, events::{Back, EnterMenu}};
+use self::{settings::SettingsMenuPlugin, builders::{menu, menu_button}, events::{Back, EnterMenu}};
 
 use super::{FpsText, systems::play_sound_on_hover};
 
@@ -32,13 +31,16 @@ pub(super) struct BackButton;
 #[derive(Component)]
 pub(super) struct ApplyButton;
 
+#[derive(Component)]
+struct Dragging;
+
 pub(super) struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<Back>();
         app.add_event::<EnterMenu>();
 
-        app.add_plugins((CelestialBodyPlugin, SettingsMenuPlugin));
+        app.add_plugins(SettingsMenuPlugin);
 
         app.add_systems(
             OnEnter(GameState::Menu),
@@ -96,7 +98,24 @@ impl Plugin for MenuPlugin {
             )
             .in_set(MenuSystemSet::PostUpdate)
         );
+
+        app.add_systems(
+            FixedUpdate,
+            update_game_time
+                .in_set(MenuSystemSet::FixedUpdate)
+                .run_if(on_fixed_timer(Duration::from_millis(1)))
+        );
     }
+}
+
+fn update_game_time(
+    mut game_time: ResMut<GameTime>,
+    query_celestial_body: Query<Has<Dragging>, With<SunAndMoon>>
+) {
+    if game_time.paused { return; }
+    if query_celestial_body.get_single().is_ok_and(|dragging| dragging) { return; }
+
+    game_time.tick();
 }
 
 fn setup_camera(mut commands: Commands) {

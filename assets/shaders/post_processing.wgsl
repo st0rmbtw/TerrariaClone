@@ -51,6 +51,8 @@ fn layer(foreground: vec4<f32>, background: vec4<f32>) -> vec4<f32> {
     return foreground * foreground.a + background * (1.0 - foreground.a);
 }
 
+const BRIGHTNESS: f32 = 1.0;
+
 @fragment
 fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
     let world_pos = screen_to_world(
@@ -62,7 +64,10 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
 
     let light_uv = abs(world_pos) / (vec2(f32(#WORLD_WIDTH), f32(#WORLD_HEIGHT)) * 16.);
 
-    let light = textureSampleLevel(lightmap_texture, lightmap_texture_sampler, light_uv, 0.0);
+    var light = textureSampleLevel(lightmap_texture, lightmap_texture_sampler, light_uv, 0.0);
+    light.r *= BRIGHTNESS;
+    light.g *= BRIGHTNESS;
+    light.b *= BRIGHTNESS;
 
     var world_sample: vec4<f32> = textureSampleLevel(world_texture, world_texture_sampler, in.uv, 0.0) * light;
     let background_sample: vec4<f32> = textureSampleLevel(background_texture, background_texture_sampler, in.uv, 0.0);

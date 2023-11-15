@@ -1,7 +1,7 @@
-use bevy::{prelude::{Image, Res, ResMut, Assets, GlobalTransform, OrthographicProjection, With, Query, Deref, UVec2, EventReader, Commands, Transform, Resource, ComputedVisibility}, render::{render_resource::{Extent3d, TextureDimension, TextureUsages, UniformBuffer, StorageBuffer, FilterMode, SamplerDescriptor}, renderer::{RenderQueue, RenderDevice}, Extract, extract_resource::ExtractResource, texture::ImageSampler}, utils::default, math::{URect, Vec3Swizzles}};
+use bevy::{prelude::{Image, Res, ResMut, Assets, GlobalTransform, OrthographicProjection, With, Query, Deref, UVec2, EventReader, Commands, Transform, Resource, ComputedVisibility, Color}, render::{render_resource::{Extent3d, TextureDimension, TextureUsages, UniformBuffer, StorageBuffer, FilterMode, SamplerDescriptor}, renderer::{RenderQueue, RenderDevice}, Extract, extract_resource::ExtractResource, texture::ImageSampler}, utils::default, math::{URect, Vec3Swizzles}};
 use rand::{thread_rng, Rng};
 
-use crate::{world::WorldData, plugins::{camera::components::WorldCamera, world::{constants::TILE_SIZE, WorldSize, events::{PlaceTileEvent, BreakTileEvent}, TileType}, config::LightSmoothness}, lighting::{LightMapTexture, LIGHTMAP_FORMAT, gpu_types::{GpuLightSourceBuffer, GpuLightSource}, TILES_FORMAT, TileTexture, types::LightSource}};
+use crate::{world::WorldData, plugins::{camera::components::WorldCamera, world::{constants::TILE_SIZE, WorldSize, events::{PlaceTileEvent, BreakTileEvent}, TileType, time::GameTime}, config::LightSmoothness}, lighting::{LightMapTexture, LIGHTMAP_FORMAT, gpu_types::{GpuLightSourceBuffer, GpuLightSource}, TILES_FORMAT, TileTexture, types::LightSource}};
 
 #[derive(Resource, ExtractResource, Deref, Clone, Copy, Default)]
 pub(crate) struct BlurArea(pub(crate) URect);
@@ -13,6 +13,7 @@ pub(crate) struct LightSourceCount(pub(super) u32);
 pub(crate) struct LightMapPipelineAssets {
     pub(crate) area_min: UniformBuffer<UVec2>,
     pub(crate) area_max: UniformBuffer<UVec2>,
+    pub(crate) ambient_color: UniformBuffer<Color>,
     pub(crate) light_sources: StorageBuffer<GpuLightSourceBuffer>,
 }
 
@@ -20,6 +21,7 @@ impl LightMapPipelineAssets {
     pub(crate) fn write_buffer(&mut self, device: &RenderDevice, queue: &RenderQueue) {
         self.area_min.write_buffer(device, queue);
         self.area_max.write_buffer(device, queue);
+        self.ambient_color.write_buffer(device, queue);
         self.light_sources.write_buffer(device, queue);
     }
 }
@@ -176,6 +178,15 @@ pub(crate) fn prepare_lightmap_pipeline_assets(
     mut pipeline_assets: ResMut<LightMapPipelineAssets>,
 ) {
     pipeline_assets.write_buffer(&render_device, &render_queue);
+}
+
+pub(crate) fn extract_ambient_color(
+    res_game_time: Extract<Option<Res<GameTime>>>,
+    mut pipeline_assets: ResMut<LightMapPipelineAssets>,
+) {
+    if let Some(game_time) = res_game_time.as_ref() {
+        pipeline_assets.ambient_color.set(game_time.ambient_color().as_rgba_linear());
+    }
 }
 
 pub(crate) fn extract_lightmap_pipeline_assets(

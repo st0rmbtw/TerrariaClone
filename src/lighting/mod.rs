@@ -107,6 +107,7 @@ impl Plugin for LightingPlugin {
                     extract::extract_resource::<WorldSize>,
                     extract::extract_resource::<DoLighting>,
                     extract::extract_state,
+                    lightmap::assets::extract_ambient_color,
                     (
                         extract::extract_light_smoothness,
                         extract::extract_blur_area,

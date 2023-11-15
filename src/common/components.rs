@@ -23,3 +23,6 @@ impl From<Vec2> for Bounds {
         Self::new(value.x, value.y)
     }
 }
+
+#[derive(Component)]
+pub(crate) struct Dragging;

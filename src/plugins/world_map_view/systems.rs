@@ -207,7 +207,7 @@ pub(super) fn update_spawn_icon_position(
     query_map_view: Query<(&Transform, &Bounds), With<WorldMapView>>,
 ) {
     let (map_transform, bounds) = query_map_view.single();
-    let (mut spawn_icon_transform, spaw_icon_size) = query_spawn_point_icon.single_mut();
+    let (mut spawn_icon_transform, spawn_icon_size) = query_spawn_point_icon.single_mut();
 
     let map_default_size = bounds.as_vec2();
     let map_position = map_transform.translation;
@@ -217,7 +217,7 @@ pub(super) fn update_spawn_icon_position(
     let spawn_point = (Vec2::from(world_data.spawn_point) - world_data.playable_area.min.as_vec2()) / world_data.playable_area.size().as_vec2();
 
     spawn_icon_transform.translation.x = map_position.x - map_size.x / 2. + spawn_point.x * map_size.x;
-    spawn_icon_transform.translation.y = map_position.y + map_size.y / 2. - spawn_point.y * map_size.y + spaw_icon_size.height / 2.;
+    spawn_icon_transform.translation.y = map_position.y + map_size.y / 2. - spawn_point.y * map_size.y + spawn_icon_size.height / 2.;
 }
 
 pub(super) fn update_player_icon_position(
@@ -394,26 +394,26 @@ pub(super) fn teleport_player(
 ) {
     use crate::plugins::world::constants::TILE_SIZE;
 
-    if input.pressed(MouseButton::Right) {
-        let (map_transform, map_bounds) = query_map_view.single();
-        let (mut player_rect, mut player_velocity) = query_player.single_mut();
+    if !input.pressed(MouseButton::Right) { return; };
+    
+    let (map_transform, map_bounds) = query_map_view.single();
+    let (mut player_rect, mut player_velocity) = query_player.single_mut();
 
-        let cursor_pos = cursor_position.world;
-        let map_pos = map_transform.translation.xy();
-        let map_scale = map_transform.scale.xy();
-        let map_size = map_bounds.as_vec2() * map_scale;
+    let cursor_pos = cursor_position.world;
+    let map_pos = map_transform.translation.xy();
+    let map_scale = map_transform.scale.xy();
+    let map_size = map_bounds.as_vec2() * map_scale;
 
-        let mut cursor_map_pos = (cursor_pos - map_pos + map_size / 2.) / map_size;
-        cursor_map_pos.y = 1. - cursor_map_pos.y;
+    let mut cursor_map_pos = (cursor_pos - map_pos + map_size / 2.) / map_size;
+    cursor_map_pos.y = 1. - cursor_map_pos.y;
 
-        if (0.0..=1.0).contains(&cursor_map_pos.x) && (0.0..=1.0).contains(&cursor_map_pos.y) {
-            let new_player_pos = world_data.playable_area.min.as_vec2() + cursor_map_pos * world_data.playable_area.size().as_vec2();
+    if (0.0..=1.0).contains(&cursor_map_pos.x) && (0.0..=1.0).contains(&cursor_map_pos.y) {
+        let new_player_pos = world_data.playable_area.min.as_vec2() + cursor_map_pos * world_data.playable_area.size().as_vec2();
 
-            player_rect.centerx = new_player_pos.x * TILE_SIZE;
-            player_rect.centery = -new_player_pos.y * TILE_SIZE;
+        player_rect.centerx = new_player_pos.x * TILE_SIZE;
+        player_rect.centery = -new_player_pos.y * TILE_SIZE;
 
-            player_velocity.x = 0.;
-            player_velocity.y = 0.;
-        }
+        player_velocity.x = 0.;
+        player_velocity.y = 0.;
     }
 }

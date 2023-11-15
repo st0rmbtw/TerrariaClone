@@ -59,15 +59,17 @@ impl Plugin for DebugPlugin {
             Update,
             (
                 gui::debug_gui,
-                gui::block_gui,
-                gui::particle_gui,
-                gui::mouse_light_gui,
-                systems::set_free_camera_legend_visibility,
-                systems::block_hover,
-                systems::spawn_particles,
-                systems::update_mouse_light
+                (
+                    gui::block_gui,
+                    gui::particle_gui,
+                    gui::mouse_light_gui,
+                    systems::set_free_camera_legend_visibility,
+                    systems::block_hover,
+                    systems::spawn_particles,
+                    systems::update_mouse_light
+                )
+                .in_set(InGameSystemSet::Update)
             )
-            .in_set(InGameSystemSet::Update)
         );
     }
 }

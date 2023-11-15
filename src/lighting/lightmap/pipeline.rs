@@ -1,4 +1,4 @@
-use bevy::{prelude::{Image, Commands, Res, World, FromWorld, AssetServer, Resource, UVec2}, render::{render_resource::{BindGroup, BindGroupLayout, CachedComputePipelineId, BindGroupDescriptor, BindGroupEntry, BindingResource, BindGroupLayoutDescriptor, BindGroupLayoutEntry, ShaderStages, BindingType, StorageTextureAccess, TextureViewDimension, PipelineCache, ComputePipelineDescriptor, BufferBindingType, ShaderType, ShaderDefVal}, renderer::RenderDevice, render_asset::RenderAssets}};
+use bevy::{prelude::{Image, Commands, Res, World, FromWorld, AssetServer, Resource, UVec2, Color}, render::{render_resource::{BindGroup, BindGroupLayout, CachedComputePipelineId, BindGroupDescriptor, BindGroupEntry, BindingResource, BindGroupLayoutDescriptor, BindGroupLayoutEntry, ShaderStages, BindingType, StorageTextureAccess, TextureViewDimension, PipelineCache, ComputePipelineDescriptor, BufferBindingType, ShaderType, ShaderDefVal}, renderer::RenderDevice, render_asset::RenderAssets}};
 
 use crate::{plugins::{config::LightSmoothness, world::resources::WorldUndergroundLevel}, lighting::{LightMapTexture, TileTexture, LIGHTMAP_FORMAT, TILES_FORMAT, gpu_types::GpuLightSourceBuffer}};
 
@@ -47,10 +47,12 @@ pub(crate) fn queue_lightmap_bind_groups(
     if let (
         Some(area_min),
         Some(area_max),
+        Some(sky_color),
         Some(light_sources),
     ) = (
         pipeline_assets.area_min.binding(),
         pipeline_assets.area_max.binding(),
+        pipeline_assets.ambient_color.binding(),
         pipeline_assets.light_sources.binding(),
     ) {
         let tiles_image = &gpu_images[&tile_texture.0];
@@ -71,6 +73,10 @@ pub(crate) fn queue_lightmap_bind_groups(
                 BindGroupEntry {
                     binding: 2,
                     resource: area_min.clone()
+                },
+                BindGroupEntry {
+                    binding: 3,
+                    resource: sky_color.clone()
                 },
             ],
         });
@@ -233,6 +239,16 @@ impl FromWorld for LightMapPipeline {
                             ty: BufferBindingType::Uniform,
                             has_dynamic_offset: false,
                             min_binding_size: Some(UVec2::min_size())
+                        },
+                        count: None,
+                    },
+                    BindGroupLayoutEntry {
+                        binding: 3,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::Buffer {
+                            ty: BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: Some(Color::min_size())
                         },
                         count: None,
                     },
